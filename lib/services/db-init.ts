@@ -1,11 +1,11 @@
 /**
  * Database Initialization Service
  * Handles seeding bundled data on first app launch
+ * Note: Seeding is now handled internally by store.ts
  */
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { store } from "./store";
-import { BUNDLED_SOURCES, BUNDLED_PASSAGES, BUNDLED_THEMES, NOTIFICATION_MATRIX } from "@/lib/data/seed-data";
 
 const DB_INITIALIZED_KEY = "aletheia_db_initialized";
 
@@ -19,34 +19,10 @@ class DatabaseInitService {
         return;
       }
 
-      console.log("Initializing database with bundled data...");
+      console.log("Initializing database...");
 
-      // Initialize store
+      // Initialize store (which handles seeding internally)
       await store.initialize();
-
-      // Seed sources
-      for (const source of BUNDLED_SOURCES) {
-        await store.insertSource(source);
-      }
-      console.log(`✓ Seeded ${BUNDLED_SOURCES.length} sources`);
-
-      // Seed passages
-      for (const passage of BUNDLED_PASSAGES) {
-        await store.insertPassage(passage);
-      }
-      console.log(`✓ Seeded ${BUNDLED_PASSAGES.length} passages`);
-
-      // Seed themes
-      for (const theme of BUNDLED_THEMES) {
-        await store.insertTheme(theme);
-      }
-      console.log(`✓ Seeded ${BUNDLED_THEMES.length} themes`);
-
-      // Seed notification matrix
-      for (const entry of NOTIFICATION_MATRIX) {
-        await store.insertNotificationEntry(entry);
-      }
-      console.log(`✓ Seeded ${NOTIFICATION_MATRIX.length} notification entries`);
 
       // Mark as initialized
       await AsyncStorage.setItem(DB_INITIALIZED_KEY, "true");

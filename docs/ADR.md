@@ -565,6 +565,23 @@ Dependency on a single AI provider (Claude) creates a single point of failure. O
 ### Decision
 Implement a Multi-Provider AI Gateway in Rust Core. Support Claude, GPT-4, and Gemini with automatic failover. The gateway normalizes different provider schemas into a unified internal format.
 
+### Implementation Details
+```
+Providers (ai_client.rs):
+- Claude: claude-sonnet-4-20250514
+- GPT-4: gpt-4-turbo
+- Gemini: gemini-2.0-flash
+
+Failover Strategy (ADR-AL-14):
+- MAX_RETRIES = 3 (per provider)
+- INITIAL_BACKOFF_MS = 500
+- Round-robin: Claude → GPT4 → Gemini → Claude
+
+API Keys:
+- Set via set_api_key(provider, key) at runtime
+- Stored in keychain (iOS) / Keystore (Android)
+```
+
 ### Consequences
 - **Positive:** High availability, no vendor lock-in.
 - **Trade-off:** Increased complexity in handling multiple API keys and SDKs.

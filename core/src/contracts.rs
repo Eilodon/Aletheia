@@ -237,6 +237,7 @@ pub struct UserState {
     pub notification_time: Option<String>,
     pub preferred_language: String,
     pub dark_mode: bool,
+    pub onboarding_complete: bool,
 }
 
 impl Default for UserState {
@@ -251,6 +252,7 @@ impl Default for UserState {
             notification_time: Some("09:00".to_string()),
             preferred_language: "vi".to_string(),
             dark_mode: false,
+            onboarding_complete: false,
         }
     }
 }
@@ -290,6 +292,12 @@ pub struct PaginatedReadings {
     pub items: Vec<Reading>,
     pub total_count: u32,
     pub has_more: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CancellationToken {
+    pub id: String,
+    pub is_cancelled: bool,
 }
 
 // ============================================================================

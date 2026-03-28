@@ -13,12 +13,15 @@ import {
   AletheiaError,
 } from "@/lib/types";
 import { readingEngine } from "@/lib/services/reading-engine";
+import { aiClient } from "@/lib/services/ai-client";
 
 interface ReadingContextType {
   // State
   currentState: ReadingState;
   session: ReadingSession | null;
   passage: Passage | null;
+  selectedSymbolId: string | null;
+  selectedMethod: SymbolMethod;
   aiResponse: string | null;
   isAIFallback: boolean;
   readingStartTime: number | null;
@@ -40,6 +43,8 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
   const [currentState, setCurrentState] = useState<ReadingState>(ReadingState.Idle);
   const [session, setSession] = useState<ReadingSession | null>(null);
   const [passage, setPassage] = useState<Passage | null>(null);
+  const [selectedSymbolId, setSelectedSymbolId] = useState<string | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<SymbolMethod>(SymbolMethod.Manual);
   const [aiResponse, setAIResponse] = useState<string | null>(null);
   const [isAIFallback, setIsAIFallback] = useState(false);
   const [readingStartTime, setReadingStartTime] = useState<number | null>(null);
@@ -66,6 +71,8 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
       if (!session) throw new Error("No active session");
 
       setError(null);
+      setSelectedSymbolId(symbolId);
+      setSelectedMethod(method);
       setCurrentState(ReadingState.WildcardChosen);
 
       const { passage: newPassage } = await readingEngine.chooseSymbol(session, symbolId, method);
@@ -90,16 +97,19 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
       if (!session || !passage) throw new Error("No active reading");
 
       setError(null);
-      setCurrentState(ReadingState.AIStreaming);
+      setCurrentState(ReadingState.AiStreaming);
       setAIResponse("");
 
-      // TODO: Implement AI client integration
-      // For now, simulate with fallback prompts
-      const fallbackPrompts = await readingEngine.getFallbackPrompts(session.source.id);
-      setAIResponse(fallbackPrompts.join("\n\n"));
-      setIsAIFallback(true);
+      // Use AI client service with UniFFI integration
+      const interpretation = await aiClient.requestInterpretation({
+        passage,
+        symbol: session.symbols[0], // TODO: pass selected symbol
+        situationText: session.situation_text,
+      });
+      setAIResponse(interpretation.join("\n\n"));
+      setIsAIFallback(!aiClient.isReady());
 
-      setCurrentState(ReadingState.AIFallback);
+      setCurrentState(ReadingState.AiFallback);
     } catch (err) {
       const aletheiaError = err as AletheiaError;
       setError(aletheiaError);
@@ -121,8 +131,8 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
         source_id: session.source.id,
         passage_id: passage.id,
         theme_id: session.theme.id,
-        symbol_chosen: "", // TODO: Track selected symbol
-        symbol_method: SymbolMethod.Manual, // TODO: Track method
+        symbol_chosen: selectedSymbolId || "",
+        symbol_method: selectedMethod,
         situation_text: session.situation_text,
         ai_interpreted: !!aiResponse,
         ai_used_fallback: isAIFallback,
@@ -138,7 +148,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
       const aletheiaError = err as AletheiaError;
       setError(aletheiaError);
     }
-  }, [session, passage, aiResponse, isAIFallback, readingStartTime]);
+  }, [session, passage, aiResponse, isAIFallback, readingStartTime, selectedSymbolId, selectedMethod]);
 
   const completeReading = useCallback(() => {
     setCurrentState(ReadingState.Complete);
@@ -148,6 +158,8 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
     setCurrentState(ReadingState.Idle);
     setSession(null);
     setPassage(null);
+    setSelectedSymbolId(null);
+    setSelectedMethod(SymbolMethod.Manual);
     setAIResponse(null);
     setIsAIFallback(false);
     setReadingStartTime(null);
@@ -162,6 +174,8 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
     currentState,
     session,
     passage,
+    selectedSymbolId,
+    selectedMethod,
     aiResponse,
     isAIFallback,
     readingStartTime,

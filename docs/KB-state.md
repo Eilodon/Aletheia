@@ -260,9 +260,9 @@ Deferred: None.
 | transactional_migration | 0.74 | 0.64 | 0.15 | ❌ | ALIVE |
 | exponential_backoff | 0.67 | 0.55 | 0.20 | ❌ | ALIVE |
 
-### Next Step
-→ **CYCLE COMPLETE** — reason: All identified high-risk blind spots (UI performance and resource leaks) resolved.
-
 ### Proposed Next Cycle Scope
 - Security audit of the Cloudflare Workers KV access control.
 - Performance audit of the Rust-to-UI serialization (UniFFI overhead) for complex objects.
+
+### Next Step
+→ **CYCLE COMPLETE** — reason: All identified high-risk blind spots (UI performance and resource leaks) resolved.

@@ -377,9 +377,11 @@ UserState :: {
   subscription_tier    :: SubscriptionTier
   readings_today       :: u8              // Reset lúc midnight local time
   ai_calls_today       :: u8              // Reset lúc midnight local time
-  last_reset_date      :: string          // ISO date "2026-03-18"
+  last_reading_date    :: string?         // ISO date "2026-03-18", null = chưa đọc
+  notification_enabled :: bool            // Default: true
   notification_time    :: string?         // "HH:MM" local, null = disabled
-  onboarding_complete  :: bool
+  preferred_language   :: string          // Default: "vi"
+  dark_mode            :: bool            // Default: false (system preference)
 }
 ```
 

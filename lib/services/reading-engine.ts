@@ -9,20 +9,28 @@ import {
   ReadingSession,
   SymbolMethod,
   SubscriptionTier,
-  FREE_READINGS_PER_DAY,
-  FREE_AI_PER_DAY,
   ErrorCode,
   AletheiaError,
   Passage,
 } from "@/lib/types";
+import {
+  FREE_READINGS_PER_DAY,
+  FREE_AI_PER_DAY,
+} from "@/lib/constants";
 import { store } from "./store";
 import { themeEngine } from "./theme-engine";
+import { getUserInfo } from "@/lib/auth";
+
+async function getCurrentUserId(): Promise<string> {
+  const user = await getUserInfo();
+  return user?.id?.toString() || "local-user";
+}
 
 class ReadingEngineService {
   async performReading(sourceId?: string, situationText?: string): Promise<ReadingSession> {
     try {
       // Get user state
-      const userId = "local-user"; // TODO: Replace with actual user ID
+      const userId = await getCurrentUserId();
       const userState = await store.getUserState(userId);
 
       // Check daily limit for Free tier
@@ -144,7 +152,7 @@ class ReadingEngineService {
       await store.insertReading(reading);
 
       // Update user state
-      const userId = "local-user"; // TODO: Replace with actual user ID
+      const userId = await getCurrentUserId();
       const userState = await store.getUserState(userId);
 
       await store.incrementReadingsToday(userId);

@@ -122,7 +122,8 @@ impl Store {
                     notification_enabled INTEGER NOT NULL DEFAULT 1,
                     notification_time TEXT DEFAULT '09:00',
                     preferred_language TEXT DEFAULT 'vi',
-                    dark_mode INTEGER NOT NULL DEFAULT 0
+                    dark_mode INTEGER NOT NULL DEFAULT 0,
+                    onboarding_complete INTEGER NOT NULL DEFAULT 0
                 );
                 "#,
             )?;
@@ -551,6 +552,7 @@ impl Store {
                 notification_time: row.get(6)?,
                 preferred_language: row.get(7)?,
                 dark_mode: row.get::<_, i32>(8)? != 0,
+                onboarding_complete: row.get::<_, i32>(9)? != 0,
             })
         });
         drop(stmt);
@@ -594,7 +596,8 @@ impl Store {
             r#"UPDATE user_state SET
                 subscription_tier = ?, readings_today = ?, ai_calls_today = ?,
                 last_reading_date = ?, notification_enabled = ?,
-                notification_time = ?, preferred_language = ?, dark_mode = ?
+                notification_time = ?, preferred_language = ?, dark_mode = ?,
+                onboarding_complete = ?
             WHERE user_id = ?"#,
             params![
                 serde_json::to_string(&state.subscription_tier).unwrap(),
@@ -605,6 +608,7 @@ impl Store {
                 state.notification_time,
                 state.preferred_language,
                 state.dark_mode as i32,
+                state.onboarding_complete as i32,
                 state.user_id,
             ],
         )?;

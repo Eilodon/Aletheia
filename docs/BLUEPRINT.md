@@ -599,7 +599,7 @@ PSEUDOCODE:
 
 ```
 Retry strategy:
-  MAX_RETRIES = 0  // Không retry — timeout nhanh hơn là better UX
+  MAX_RETRIES = 3  // ADR-AL-14: exponential backoff
   TIMEOUT     = AI_STREAM_TIMEOUT_MS (15_000ms)
 
 Fallback khi unavailable:

@@ -146,7 +146,8 @@ namespace aletheia {
         notification_enabled: boolean,
         notification_time: string?,
         preferred_language: string,
-        dark_mode: boolean
+        dark_mode: boolean,
+        onboarding_complete: boolean
     }
 
     record ShareCard {
@@ -162,6 +163,11 @@ namespace aletheia {
         items: sequence<Reading>,
         total_count: u32,
         has_more: boolean
+    }
+
+    record CancellationToken {
+        id: string,
+        is_cancelled: boolean
     }
 
     record AletheiaError {
