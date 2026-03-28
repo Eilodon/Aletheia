@@ -173,6 +173,7 @@ export interface GiftReading {
 
 export interface UserState {
   user_id: string; // Local UUID
+  role: "user" | "admin";
   subscription_tier: SubscriptionTier;
   readings_today: number;
   ai_calls_today: number;

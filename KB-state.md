@@ -307,107 +307,39 @@ Filter threshold: 0.3
 
 ---
 
-## [A] Decide — Cycle #1 — 2026-03-28
+## [A] Decide — Cycle #2 — 2026-03-28
 
 ### New ADRs This Cycle
 
-#### ADR-AL-12 | 🔴 MANDATORY
-**Problem:** TypeScript types in `lib/types.ts` are out of sync with Rust contracts in `core/src/contracts.rs`. Field naming (`createdAt` vs `created_at`), missing fields (`role`), and enum values differ. This causes runtime errors when data crosses the UniFFI boundary.
+#### ADR-AL-15 | 🔴 MANDATORY
+**Problem:** Duplicate implementations exist between TypeScript services (`lib/services/reading-engine.ts`, `lib/services/store.ts`, `lib/services/theme-engine.ts`) and Rust core (`core/src/reading.rs`, `core/src/store.rs`, `core/src/theme.rs`). Both implement identical business logic. This creates maintenance burden, potential drift, and unnecessary complexity.
 
-**Decision:** Create a single source of truth for types. Generate TypeScript types from Rust contracts using UniFFI's type generation. For v1.0, manually sync types with a checklist:
-- [ ] All `contracts.rs` structs have corresponding TS interfaces
-- [ ] Field names match exactly (camelCase in TS, snake_case in Rust → handle in bindings)
-- [ ] All optional fields marked optional in TS
-- [ ] All enum variants present in both
+**Decision:** Remove all duplicate TypeScript service implementations. Use Rust core via UniFFI bindings as the single source of truth for all business logic. Keep only:
+- `lib/types.ts` — Type definitions (shared with Rust via manual sync)
+- `lib/context/reading-context.tsx` — React state management (required for UI)
+- `lib/services/db-init.ts` — Database initialization (Expo-specific)
+- `lib/services/reading-engine.ts` — REWRITE to call Rust core instead of duplicate logic
 
-**Evidence:** E-Sim H-01 confirmed: 3 type mismatches found between TS and Rust.
+**Evidence:** Code analysis shows `reading-engine.ts` duplicates `core/src/reading.rs` 1:1. Both implement `perform_reading`, `choose_symbol`, `complete_reading` with identical logic.
 
 **Pattern:**
 ```typescript
-// lib/types.ts - ADD this comment:
-// SYNC WITH: core/src/contracts.rs
-// Last synced: 2026-03-28
-// TODO: Add sync script in build pipeline
-```
+// lib/services/reading-engine.ts - REWRITE to:
+import { AletheiaCore } from './aletheia-core'; // Rust bindings
 
-**Rejected:** Auto-generated types from OpenAPI (too complex for v1.0), separate type definitions per feature (maintains inconsistency)
-
-**Initial weight:** 1.0 | **λ:** 0.15 | **Energy Tax priority:** 9.5 (score=0.9, cost=0.3)
-
----
-
-#### ADR-AL-13 | 🟠 REQUIRED
-**Problem:** No ErrorBoundary in React Native app. Any unhandled error crashes the entire app instead of showing a graceful error screen.
-
-**Decision:** Add ErrorBoundary component at root level (`app/_layout.tsx`). ErrorBoundary should:
-- Catch render errors
-- Show user-friendly message in Vietnamese
-- Provide "Thử lại" (Retry) button
-- Log error to console for debugging
-
-**Evidence:** E-Sim H-03 confirmed: No ErrorBoundary found in codebase.
-
-**Pattern:**
-```tsx
-// In app/_layout.tsx
-import { ErrorBoundary } from 'react-error-boundary';
-
-function ErrorFallback({ error, resetErrorBoundary }) {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Đã xảy ra lỗi. Vui lòng thử lại.</Text>
-      <Button title="Thử lại" onPress={resetErrorBoundary} />
-    </View>
-  );
-}
-
-// Wrap children
-<ErrorBoundary FallbackComponent={ErrorFallback}>
-  {children}
-</ErrorBoundary>
-```
-
-**Rejected:** Per-screen error boundaries (over-engineered for v1.0), crash-only approach (bad UX)
-
-**Initial weight:** 1.0 | **λ:** 0.20 | **Energy Tax priority:** 8.0 (score=0.7, cost=0.3)
-
----
-
-#### ADR-AL-14 | 🟠 REQUIRED
-**Problem:** AI client in `reading.rs` catches ALL errors and returns fallback prompts silently. This makes it impossible to distinguish between rate limiting, timeout, invalid request, or actual AI failure. Debugging becomes impossible.
-
-**Decision:** Differentiate error types in AI client:
-- Timeout/network error → retry with exponential backoff (max 2 retries)
-- Rate limit → return specific "slow down" message
-- Invalid request → log and return fallback
-- Unknown error → log and return fallback
-
-Add error classification enum and propagate specific errors to caller.
-
-**Evidence:** E-Sim H-02 confirmed: All errors caught by `Err(_) => Ok(source.fallback_prompts)`.
-
-**Pattern:**
-```rust
-// In errors.rs - ADD:
-pub enum AIError {
-    Timeout,
-    RateLimited { retry_after: u64 },
-    InvalidRequest { message: String },
-    Unknown { message: String },
-}
-
-// In reading.rs - CHANGE:
-match result {
-    Ok(reading) => Ok(reading),
-    Err(AIClientError::Timeout) => { /* retry logic */ }
-    Err(AIClientError::RateLimited { retry_after }) => { /* slow down */ }
-    Err(_) => Ok(source.fallback_prompts), // Only true failures
+class ReadingEngineService {
+  private core: AletheiaCore;
+  
+  async performReading(sourceId?: string, situationText?: string): Promise<ReadingSession> {
+    return this.core.perform_reading(userId, sourceId, situationText);
+  }
+  // ... similar for other methods
 }
 ```
 
-**Rejected:** Propagate all errors to UI (breaks offline-first UX), logging only (doesn't help user experience)
+**Rejected:** Keep both implementations (maintenance burden, drift risk), Remove Rust core entirely (breaks mobile native)
 
-**Initial weight:** 1.0 | **λ:** 0.20 | **Energy Tax priority:** 7.5 (score=0.7, cost=0.4)
+**Initial weight:** 1.0 | **λ:** 0.15 | **Energy Tax priority:** 9.8 (score=1.0, cost=0.2)
 
 ---
 
@@ -415,59 +347,67 @@ match result {
 None this cycle.
 
 ### ADR Weight Decay This Cycle
-First cycle — no existing ADRs to decay.
+| ADR-ID | Previous | New | λ | Status |
+|---|---|---|---|---|
+| ADR-AL-12 | 1.0 | 0.82 | 0.15 | ALIVE |
+| ADR-AL-13 | 1.0 | 0.82 | 0.20 | ALIVE |
+| ADR-AL-14 | 1.0 | 0.82 | 0.20 | ALIVE |
 
 ---
 
-## [T] Transform — Cycle #1 — 2026-03-28
+## [T] Transform — Cycle #2 — 2026-03-28
 
-### Transforms Applied
+### ADR-AL-15 — Wrapper Removal (NOT FEASIBLE)
 
-#### Transform: ADR-AL-12 — Type sync comment
+**Status:** ❌ CANNOT IMPLEMENT
 
-**Level:** 1
-**Scope:** lib/types.ts
-**Estimated cost:** $0.001 | **Actual:** $0.001
-**Changes made:**
-- Added sync comment header to lib/types.ts
+**Reason:** After analysis, found that:
+1. Rust core (`libaletheia_core.so`) is built but has NO JavaScript/TypeScript bindings
+2. UniFFI only generates native bindings (Swift/Kotlin), not JS
+3. Architecture is: Mobile App → tRPC → Server → Rust core (for server-side)
+4. For mobile-native, would need JSI or TurboModule (not implemented)
+5. Current TS `reading-engine.ts` is the actual working implementation
 
-**Rollback plan:** Remove comment | Trigger: None | Owner: Self
-**Post-transform verification:** ✅ N/A (comment only)
-**Burn rate before:** N/A | **after:** N/A
+**Current state:** Keep existing `reading-engine.ts`. Business logic runs in TypeScript layer on mobile.
 
----
+**Alternative considered:** Use server via tRPC for all reading operations
+- Pro: Single source of truth (Rust on server)
+- Con: Breaks offline-first requirement (ADR-AL-1)
 
-#### Transform: ADR-AL-13 — Add ErrorBoundary
-
-**Level:** 2
-**Scope:** app/_layout.tsx, package.json
-**Estimated cost:** $0.01 | **Actual:** $0.008
-**Changes made:**
-- Added react-error-boundary to dependencies
-- Created ErrorBoundary component in app/_layout.tsx
-- Wrapped app with ErrorBoundary
-
-**Rollback plan:** Revert changes via git | Trigger: New crashes | Owner: Self
-**Post-transform verification:** ✅ Compiles, no errors
-**Burn rate before:** N/A | **after:** N/A
+**Conclusion:** ADR-AL-15 is NOT FEASIBLE for v1.0. Mobile app requires local business logic.
 
 ---
 
-#### Transform: ADR-AL-14 — Differentiate AI errors
+## [M] Measure — Cycle #2 — 2026-03-28
 
-**Level:** 2
-**Scope:** core/src/errors.rs, core/src/reading.rs, core/src/ai_client.rs
-**Estimated cost:** $0.03 | **Actual:** $0.028
-**Changes made:**
-- Added AIError enum to errors.rs
-- Updated reading.rs to handle different error types
-- Updated ai_client.rs to return specific errors
+### Cycle Metrics
 
-**Rollback plan:** Revert via git | Trigger: Runtime errors | Owner: Self
-**Post-transform verification:** ✅ Rust compiles
-**Burn rate before:** N/A | **after:** N/A
+| Metric | Value |
+|---|---|
+| Hypotheses analyzed | 1 |
+| ADRs written | 1 (MANDATORY) |
+| Transforms applied | 0 (deferred) |
+| Total cycle cost | <$0.01 |
+| ROI ratio | N/A |
+| ROI net | N/A |
 
 ---
+
+### Next Step
+→ **DEFER** — Cannot proceed with transform until Rust core is built.
+
+**Reason:** ADR-AL-15 requires UniFFI bindings which don't exist yet. Need to build Rust core first.
+
+---
+
+### Proposed Next Cycle Scope
+- Build Rust core to generate UniFFI bindings
+- Rewrite `reading-engine.ts` to call Rust core
+- Remove duplicate logic from TS layer
+
+---
+
+*End of Cycle #2 — 2026-03-28*
 
 ### Cost Record
 
