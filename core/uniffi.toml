@@ -1,0 +1,3 @@
+[uniffi]
+namespace = "aletheia"
+library_name = "aletheia_core"

@@ -1,0 +1,249 @@
+[library_name = "aletheia"]
+namespace aletheia {
+    // ============================================================================
+    // ENUMS
+    // ============================================================================
+
+    enum Tradition {
+        "chinese",
+        "christian",
+        "islamic",
+        "sufi",
+        "stoic",
+        "universal"
+    }
+
+    enum SymbolMethod {
+        "manual",
+        "auto"
+    }
+
+    enum MoodTag {
+        "confused",
+        "hopeful",
+        "anxious",
+        "curious",
+        "grateful",
+        "grief"
+    }
+
+    enum SubscriptionTier {
+        "free",
+        "pro"
+    }
+
+    enum ErrorCode {
+        "ERR_SOURCE_NOT_FOUND",
+        "ERR_PASSAGE_EMPTY",
+        "ERR_THEME_NOT_FOUND",
+        "ERR_SYMBOL_INVALID",
+        "ERR_AI_TIMEOUT",
+        "ERR_AI_UNAVAILABLE",
+        "ERR_GIFT_EXPIRED",
+        "ERR_GIFT_NOT_FOUND",
+        "ERR_GIFT_ALREADY_REDEEMED",
+        "ERR_DAILY_LIMIT_REACHED",
+        "ERR_SUBSCRIPTION_REQUIRED",
+        "ERR_STORAGE_WRITE_FAIL",
+        "ERR_INVALID_INPUT"
+    }
+
+    // ============================================================================
+    // RECORD TYPES
+    // ============================================================================
+
+    record Symbol {
+        id: string,
+        display_name: string,
+        flavor_text: string?
+    }
+
+    record Theme {
+        id: string,
+        name: string,
+        symbols: sequence<Symbol>,
+        is_premium: boolean,
+        pack_id: string?,
+        price_usd: float?
+    }
+
+    record Source {
+        id: string,
+        name: string,
+        tradition: Tradition,
+        language: string,
+        passage_count: u32,
+        is_bundled: boolean,
+        is_premium: boolean,
+        fallback_prompts: sequence<string>
+    }
+
+    record Passage {
+        id: string,
+        source_id: string,
+        reference: string,
+        text: string,
+        context: string?
+    }
+
+    record Reading {
+        id: string,
+        created_at: i64,
+        source_id: string,
+        passage_id: string,
+        theme_id: string,
+        symbol_chosen: string,
+        symbol_method: SymbolMethod,
+        situation_text: string?,
+        ai_interpreted: boolean,
+        ai_used_fallback: boolean,
+        read_duration_s: u32?,
+        mood_tag: MoodTag?,
+        is_favorite: boolean,
+        shared: boolean
+    }
+
+    record ReadingSession {
+        temp_id: string,
+        source: Source,
+        theme: Theme,
+        symbols: sequence<Symbol>,
+        situation_text: string?,
+        started_at: i64
+    }
+
+    record CompletedReading {
+        reading_id: string,
+        saved_at: i64
+    }
+
+    record NotificationEntry {
+        symbol_id: string,
+        question: string
+    }
+
+    record GiftReading {
+        token: string,
+        buyer_note: string?,
+        source_id: string?,
+        created_at: i64,
+        expires_at: i64,
+        redeemed: boolean,
+        redeemed_at: i64?
+    }
+
+    record GiftResponse {
+        token: string,
+        deep_link: string
+    }
+
+    record UserState {
+        user_id: string,
+        subscription_tier: SubscriptionTier,
+        readings_today: u8,
+        ai_calls_today: u8,
+        last_reading_date: string?,
+        notification_enabled: boolean,
+        notification_time: string?,
+        preferred_language: string,
+        dark_mode: boolean
+    }
+
+    record ShareCard {
+        passage_text: string,
+        symbol: Symbol,
+        reference: string,
+        tradition: Tradition,
+        generated_at: i64,
+        has_watermark: boolean
+    }
+
+    record PaginatedReadings {
+        items: sequence<Reading>,
+        total_count: u32,
+        has_more: boolean
+    }
+
+    record AletheiaError {
+        code: ErrorCode,
+        message: string,
+        context: map<string, any>?
+    }
+
+    // ============================================================================
+    // FUNCTIONS
+    // ============================================================================
+
+    [constructor]
+    AletheiaCore new(db_path: string, gift_backend_url: string);
+
+    // Reading operations
+    ReadingSession perform_reading(
+        user_id: string,
+        source_id: string?,
+        situation_text: string?
+    );
+
+    [throws=AletheiaError]
+    tuple<Passage, string> choose_symbol(
+        ReadingSession session,
+        string symbol_id,
+        SymbolMethod method
+    );
+
+    [throws=AletheiaError]
+    CompletedReading complete_reading(
+        user_id: string,
+        Reading reading
+    );
+
+    [throws=AletheiaError]
+    sequence<string> get_fallback_prompts(string source_id);
+
+    // Theme operations
+    [throws=AletheiaError]
+    Theme get_random_theme(boolean premium_allowed);
+
+    [throws=AletheiaError]
+    sequence<Symbol> random_three_symbols(string theme_id);
+
+    // AI operations
+    void set_ai_api_key(string provider, string key);
+
+    [throws=AletheiaError]
+    sequence<string> request_interpretation(
+        string reading_id,
+        Passage passage,
+        Symbol symbol,
+        string? situation_text
+    );
+
+    // Card generator
+    [throws=AletheiaError]
+    string generate_share_card(ShareCard card);
+
+    // Gift operations
+    [throws=AletheiaError]
+    GiftResponse create_gift(string? source_id, string? buyer_note);
+
+    [throws=AletheiaError]
+    GiftReading redeem_gift(string token);
+
+    // Notification operations
+    [throws=AletheiaError]
+    NotificationEntry get_daily_notification(string user_id, string date);
+
+    // History (paginated)
+    [throws=AletheiaError]
+    PaginatedReadings get_readings(u32 limit, u32 offset);
+
+    [throws=AletheiaError]
+    u32 get_readings_count();
+
+    // User state
+    [throws=AletheiaError]
+    UserState get_user_state(string user_id);
+
+    [throws=AletheiaError]
+    void update_user_state(UserState state);
+}
