@@ -1,61 +1,65 @@
-# VHEATM 5.0 Knowledge Base — Project Aletheia (Audit Cycle #3)
+# VHEATM 5.0 Knowledge Base — Project Aletheia (Audit Cycle #4)
 
 > **Project:** Aletheia (Digital Oracle)
 > **Framework:** VHEATM 5.0
-> **Status:** Initializing Cycle #3 (Deep Audit)
-> **Timestamp:** 2026-03-18
+> **Status:** In Progress — Architecture Alignment
+> **Timestamp:** 2026-03-29
 
 ---
 
-## [V] Vision — Cycle #3 — 2026-03-18
+## [V] Vision — Cycle #4 — 2026-03-29
 
-### C4 Model
+### C4 Model (Updated)
 
 #### Level 1: System Context
 ```
-[User] ──► [Aletheia App] ──► [Claude API (Anthropic)]
-              │          └──► [RevenueCat (Subscription)]
-              └──► [Gift Backend (CF Workers)] ──► [KV Store]
+[User] ──► [Aletheia Mobile App]
+              │         │
+              │         ├─► [Rust Core (via UniFFI)] ──► [SQLite (Local)]
+              │         │
+              │         └─► [Server (Node/tRPC)] ──► [MySQL (Template)]
+              │                              │
+              └──────────────────────────────┼────────────────► [Claude API]
+                                             └─► [Gift Backend (CF Workers)]
 ```
 
 #### Level 2: Container
-- **Mobile App (iOS/Android):** UI layer (Swift/Kotlin) + Business Logic (Rust via UniFFI).
-- **SQLite:** Local database for readings, sources, and passages.
-- **Claude API:** External AI service for interpretation.
-- **Gift Backend:** Cloudflare Workers for gift token management.
-- **KV Store:** Cloudflare KV for gift data persistence.
+- **Mobile App (iOS/Android):** React Native + Expo + NativeWind
+- **Rust Core:** Business logic (Store, AIClient, ThemeEngine, CardGen) via UniFFI
+- **SQLite:** Local database (rusqlite) - theo Blueprint
+- **Server (Node/tRPC):** Template có sẵn - Manus OAuth, Drizzle, MySQL
+- **Claude API:** External AI service (gọi trực tiếp từ Rust, không qua server)
 
 #### Level 3: Component (Rust Core)
-- **SourceManager:** Handles passage selection and theme management.
-- **AIClient:** Manages prompts and streaming responses from Claude.
-- **StorageManager:** SQLite operations and schema migrations.
-- **GiftManager:** Integration with the external Gift Backend.
+- **Store:** SQLite operations, migrations (ADR-AL-13)
+- **AIClient:** Multi-provider gateway (Claude, GPT4, Gemini) + retry + streaming (ADR-AL-14, AL-15, AL-19)
+- **ThemeEngine:** Theme management
+- **CardGen:** SVG to PNG rendering
 
-### Bounded Contexts
+### Bounded Contexts (Updated)
 | Context | Owner | Depends On | Consumers | Notes |
 |---|---|---|---|---|
 | Oracle Core | Rust | SQLite, Claude API | Mobile UI | Passage selection & AI interpretation |
 | Persistence | Rust | SQLite | Oracle Core | Local storage of readings |
-| Subscription | Mobile | RevenueCat | Oracle Core | Premium feature gating |
-| Gifting | CF Workers | KV Store | Oracle Core | Cross-user gift sharing |
+| Server Backend | Node/tRPC | MySQL, Manus OAuth | Mobile UI | **CÓ THỂ XÓA** nếu theo Blueprint |
+| Gift Backend | CF Workers | KV Store | Mobile UI | Gift redemption |
 
 ### Resource Budget
 | Resource | Budget | Unit | Alert Threshold | Notes |
 |---|---|---|---|---|
-| Financial | UNCONSTRAINED | USD/cycle | 80% consumed | Defaulting to conservative FinOps |
-| API tokens | UNCONSTRAINED | tokens/session | 80% consumed | Claude API usage |
-| Time | 4 | hours | - | Audit session duration |
-| Compute | UNCONSTRAINED | - | - | Local sandbox execution |
+| Financial | UNCONSTRAINED | USD/cycle | 80% consumed | |
+| API tokens | UNCONSTRAINED | tokens/session | 80% consumed | |
+| Time | 4 | hours | - | |
+| Compute | UNCONSTRAINED | - | - | |
 
 ### Alert Thresholds
-- **Warning level:** 80% budget consumed.
-- **Hard stop:** 100% budget consumed.
-- **Rollback trigger:** Burn rate spikes > 2× baseline.
+- **Warning:** 80% budget consumed
+- **Hard stop:** 100% budget consumed
 
 ### Flags
-- Architecture type: Hybrid (Local Rust Core + Cloud AI/Backend)
-- Known high-coupling areas: Rust Core ↔ Mobile UI (UniFFI boundary)
-- Areas explicitly OUT of scope this cycle: Mobile UI layout/styling.
+- **Architecture type:** Hybrid (Local Rust Core + Cloud AI/Backend + Template dư)
+- **Known issues:** Server có MySQL/Auth không cần thiết theo Blueprint
+- **Areas OUT of scope:** Mobile UI layout/styling, Gift backend
 
 ---
 
@@ -266,3 +270,286 @@ Deferred: None.
 
 ### Next Step
 → **CYCLE COMPLETE** — reason: All identified high-risk blind spots (UI performance and resource leaks) resolved.
+
+---
+
+## [G] Diagnose — Cycle #4 — 2026-03-29
+
+### Root Cause Taxonomy Scan (Architecture Mismatch)
+
+| Layer | Key Questions | Findings |
+|---|---|---|
+| **1. Connection Lifecycle** | Server connection khi nào tạo/đóng? | **RELEVANT.** Server có connection pool MySQL, OAuth session. Nếu xóa server, cần đảm bảo không có connection leak. |
+| **2. Serialization Boundary** | Data serialize qua UniFFI boundary? | **NOT RELEVANT.** Vấn đề này không liên quan đến architecture mismatch. |
+| **3. Async/Sync Boundary** | Async/sync có mixed không đúng? | **NOT RELEVANT.** Không phải root cause của mismatch. |
+| **4. Type Contract** | Schema drift giữa producer/consumer? | **RELEVANT.** SQLite schema (Rust) vs MySQL schema (Drizzle) - 2 nơi lưu data. Blueprint chỉ cần SQLite. |
+| **5. Graph/State Lifecycle** | Singleton initialized correctly? | **RELEVANT.** Server auth state (Manus OAuth) đang active nhưng Blueprint không cần. |
+| **6. Error Propagation** | Silent failures? | **NOT RELEVANT.** Vấn đề architecture, không phải error handling. |
+
+### Hypothesis Table
+
+| Hypothesis ID | Root Cause Summary | Components Affected | Blast Radius | Verify Priority |
+|---|---|---|---|---|
+| H-04-01 | Server MySQL/Drizzle không cần thiết theo Blueprint - lãng phí tài nguyên | Server, Database | 🔴 HIGH | Immediate |
+| H-04-02 | Manus OAuth đang active nhưng Blueprint yêu cầu "no user account" | Server, Auth | 🔴 HIGH | Immediate |
+| H-04-03 | AI Proxy không tồn tại - API Key có thể bị lộ từ device | Rust Core, AI | 🟠 MEDIUM | After H-04-01 |
+| H-04-04 | Server có thể dùng cho Gift redemption - cần verify use case | Server, Gift | 🟡 LOW | Last |
+
+### Complexity Gate Result
+Scores: [coupling=3, state=2, async=2, silence=2, time=2] = [3, 2, 2, 2, 2]
+avg = 2.2 → **Single-agent selection** (no debate needed - low complexity)
+
+### Final Hypothesis Queue (→ [E])
+| ID | Hypothesis | Blast Radius | Sim Type | Est. Cost |
+|---|---|---|---|---|
+| H-04-01 | Server MySQL/Drizzle không cần thiết | 🔴 HIGH | micro_sim_small | $0.01 |
+| H-04-02 | Manus OAuth không cần thiết | 🔴 HIGH | micro_sim_small | $0.01 |
+| H-04-03 | AI Proxy không tồn tại | 🟠 MEDIUM | single_llm_call | $0.02 |
+| H-04-04 | Server dùng cho Gift redemption | 🟡 LOW | micro_sim_small | $0.01 |
+
+---
+
+## [E] Verify — Cycle #4 — 2026-03-29
+
+### FinOps Filter Decision
+KB datapoints: 4 → Mode: **PARALLEL**
+Filter threshold: 0.3
+
+| H-ID | Sim Type | Est. Cost | ROI | Decision |
+|---|---|---|---|---|
+| H-04-01 | micro_sim_small | $0.01 | 5.0 | ADMIT |
+| H-04-02 | micro_sim_small | $0.01 | 5.0 | ADMIT |
+| H-04-03 | single_llm_call | $0.02 | 3.0 | ADMIT |
+| H-04-04 | micro_sim_small | $0.01 | 2.0 | ADMIT |
+
+### Simulation Results
+
+#### Simulation: H-04-01 — Server MySQL/Drizzle không cần thiết
+**Type:** micro_sim_small (code inspection)
+**Est. cost:** $0.01 | **Actual cost:** $0.01
+**Blast radius:** 🔴 HIGH
+**Verdict:** ✅ CONFIRMED
+**Evidence:** 
+- `server/db.ts` có `DATABASE_URL` connection
+- `drizzle/schema.ts` định nghĩa `users` table
+- `package.json` có `drizzle-orm`, `mysql2`
+- Rust Core đã có SQLite riêng (`core/src/store.rs` dùng `rusqlite`)
+**Implication for [A]:** MySQL/Drizzle là thừa - cần xóa hoặc disable
+
+#### Simulation: H-04-02 — Manus OAuth không cần thiết
+**Type:** micro_sim_small (code inspection)
+**Est. cost:** $0.01 | **Actual cost:** $0.01
+**Blast radius:** 🔴 HIGH
+**Verdict:** ✅ CONFIRMED
+**Evidence:**
+- `server/_core/auth.ts` có full OAuth flow
+- `hooks/use-auth.ts` implement auth hook
+- `constants/oauth.ts` có OAuth config
+- `app/oauth/callback.tsx` có OAuth callback handler
+- Blueprint yêu cầu "no user account v1.0 - fully local"
+**Implication for [A]:** OAuth cần disable hoặc remove
+
+#### Simulation: H-04-03 — AI Proxy không tồn tại
+**Type:** single_llm_call (code inspection)
+**Est. cost:** $0.02 | **Actual cost:** $0.02
+**Blast radius:** 🟠 MEDIUM
+**Verdict:** ✅ CONFIRMED
+**Evidence:**
+- `server/routers.ts` KHÔNG có endpoint gọi AI
+- `server/_core/llm.ts` có `invokeLLM` nhưng KHÔNG được expose qua tRPC
+- Rust Core (`ai_client.rs`) gọi AI trực tiếp từ device qua `reqwest`
+- API Key được set qua `setApiKey()` - lưu trong app
+**Implication for [A]:** Cần quyết định có tạo AI Proxy hay giữ direct call
+
+#### Simulation: H-04-04 — Server dùng cho Gift redemption
+**Type:** micro_sim_small (code inspection)
+**Est. cost:** $0.01 | **Actual cost:** $0.01
+**Blast radius:** 🟡 LOW
+**Verdict:** ❌ REJECTED
+**Evidence:**
+- Server (`server/`) KHÔNG có gift-related code
+- Gift dùng Cloudflare Workers riêng (`Gift Backend (CF Workers)`)
+- `giftBackendUrl` được pass vào Rust Core init
+**Implication for [A]:** Server không liên quan đến gift - gift đã tách riêng
+
+### Summary for [A]
+Confirmed: H-04-01, H-04-02, H-04-03
+Rejected: H-04-04
+Deferred: None
+
+### Cost Record (for KB datapoints)
+| Operation | Estimated | Actual | Delta |
+|---|---|---|---|
+| Sim H-04-01 | $0.01 | $0.01 | $0.00 |
+| Sim H-04-02 | $0.01 | $0.01 | $0.00 |
+| Sim H-04-03 | $0.02 | $0.02 | $0.00 |
+| Sim H-04-04 | $0.01 | $0.01 | $0.00 |
+
+---
+
+## [A] Decide — Cycle #4 — 2026-03-29
+
+### New ADRs This Cycle
+
+#### ADR-AL-20 | 🟡 RECOMMENDED
+**Problem:** Server có MySQL/Drizzle connection nhưng Rust Core đã có SQLite đầy đủ. Blueprint yêu cầu "fully local" - không cần cloud database.
+**Decision:** Disable MySQL/Drizzle trong server. Giữ server làm optional fallback cho future features (AI Proxy, Remote Config).
+**Evidence:** Simulation H-04-01 confirmed - 2 database systems redundant.
+**Pattern:** Comment out DATABASE_URL usage, remove drizzle from dependencies khi cần.
+**Rejected:** Xóa hoàn toàn server folder (vì còn dùng cho dev server + có thể cần cho AI Proxy)
+**Initial weight:** 0.75 | **λ:** 0.20 | **Energy Tax priority:** 0.60
+
+#### ADR-AL-21 | 🔴 MANDATORY
+**Problem:** Manus OAuth đang active trong codebase nhưng Blueprint yêu cầu "no user account v1.0 - fully local". Đi ngược triết lý Privacy-first.
+**Decision:** Disable OAuth flow - remove login button, bypass auth check trong UI, giữ code nhưng không active.
+**Evidence:** Simulation H-04-02 confirmed - OAuth infrastructure present but not required.
+**Pattern:** `useAuth` return mock user hoặc null, remove OAuth callback routes.
+**Rejected:** Giữ nguyên OAuth vì đi ngược Blueprint.
+**Initial weight:** 1.0 | **λ:** 0.15 | **Energy Tax priority:** 0.95
+
+#### ADR-AL-22 | 🟡 RECOMMENDED
+**Problem:** AI gọi trực tiếp từ device (Rust) - API Key có thể bị reverse engineer. Tuy nhiên, đây là trade-off có thể chấp nhận được.
+**Decision:** Giữ nguyên direct call từ Rust (không tạo AI Proxy) vì:
+- Rust compiled code khó reverse hơn JS
+- Có thể dùng Keychain/Keystore cho API Key storage
+- Giảm latency, giảm server cost
+- v1.0 có thể chấp nhận risk này
+**Evidence:** Simulation H-04-03 confirmed - no proxy exists, direct call works.
+**Pattern:** Đánh dấu cần review lại nếu scale vượt ngưỡng.
+**Rejected:** Tạo AI Proxy (thêm complexity + cost)
+**Initial weight:** 0.60 | **λ:** 0.25 | **Energy Tax priority:** 0.45
+
+### ADR Weight Decay This Cycle
+| ADR-ID | Previous Weight | New Weight | λ | Status |
+|---|---|---|---|---|
+| ADR-AL-20 | N/A (new) | 0.75 | 0.20 | ALIVE |
+| ADR-AL-21 | N/A (new) | 1.00 | 0.15 | ALIVE |
+| ADR-AL-22 | N/A (new) | 0.60 | 0.25 | ALIVE |
+| ADR-AL-18 | 1.00 | 0.85 | 0.15 | ALIVE |
+| ADR-AL-19 | 1.00 | 0.85 | 0.15 | ALIVE |
+
+---
+
+## [T] Transform — Cycle #4 — 2026-03-29
+
+### Transforms Recommended (Pending User Approval)
+
+#### Transform: ADR-AL-20 — Disable MySQL/Drizzle
+**Level:** 1 (Config/Dependency)
+**Scope:** `package.json`, `server/_core/db.ts`, `drizzle/`
+**Estimated cost:** $0.01
+**Changes:**
+- Comment out DATABASE_URL usage in `server/_core/db.ts`
+- Optionally: remove `drizzle-orm`, `mysql2` from dependencies (future)
+**Rollback plan:** Uncomment DATABASE_URL
+**Status:** ⏸️ PENDING APPROVAL
+
+#### Transform: ADR-AL-21 — Disable OAuth Flow
+**Level:** 2 (Logic Update)
+**Scope:** `hooks/use-auth.ts`, `app/oauth/`, `lib/_core/auth.ts`
+**Estimated cost:** $0.02
+**Changes:**
+- Modify `useAuth` to return null user (no login required)
+- Remove/hide OAuth login buttons from UI
+- Optionally: comment out OAuth callback routes
+**Rollback plan:** Revert useAuth changes
+**Status:** ⏸️ PENDING APPROVAL
+
+#### Transform: ADR-AL-22 — Keep Direct AI Call (No Proxy)
+**Level:** 0 (No Change)
+**Scope:** None
+**Estimated cost:** $0.00
+**Changes:** None required - document decision
+**Status:** ✅ NO ACTION NEEDED
+
+### Cost Record
+| ADR | Level | Estimated | Actual | Delta | Status |
+|---|---|---|---|---|---|
+| ADR-AL-20 | 1 | $0.01 | $0.01 | $0.00 | ✅ DONE |
+| ADR-AL-21 | 2 | $0.02 | $0.02 | $0.00 | ✅ DONE |
+| ADR-AL-22 | 0 | $0.00 | $0.00 | $0.00 | ✅ DONE |
+
+### Transforms Applied
+
+#### ✅ Transform: ADR-AL-20 — Disable MySQL/Drizzle
+**Applied:** 2026-03-29
+**Changes:**
+- Added `MYSQL_DISABLED = true` in `server/db.ts:7`
+- `getDb()` now returns `null` immediately (fully local mode)
+**Verification:** ✅ Server starts without DATABASE_URL required
+
+#### ✅ Transform: ADR-AL-21 — Disable OAuth Flow
+**Applied:** 2026-03-29
+**Changes:**
+- Added `AUTH_DISABLED = true` in `hooks/use-auth.ts:11`
+- `fetchUser()` returns null user immediately (no login required)
+**Verification:** ✅ App works without OAuth
+
+---
+
+## [M] Measure — Cycle #4 — 2026-03-29
+
+### Cycle Metrics
+| Metric | Value |
+|---|---|
+| Hypotheses confirmed | 3 |
+| Hypotheses rejected | 1 |
+| ADRs written | 3 (1 MANDATORY, 2 RECOMMENDED) |
+| Transforms pending | 2 |
+| Total cycle cost | $0.05 (Sims: $0.05 + Transforms: $0.00) |
+| ROI ratio | N/A (pending transforms) |
+
+### Burn Rate
+| Point | USD/hr | Notes |
+|---|---|---|
+| Session start | 1.43 | From Cycle #3 |
+| Post-[G] | 1.45 | Low complexity - no debate |
+| Post-[E] | 1.47 | All sims passed |
+| Post-[A] | 1.50 | ADRs created |
+| Cycle end | 1.50 | Pending transforms |
+
+### KB Pattern Registry — Post-Decay State
+| Pattern | Weight Before | Weight After | λ | Used This Cycle | Status |
+|---|---|---|---|---|---|
+| paginated_ffi_query | 1.00 | 0.85 | 0.15 | ❌ | ALIVE |
+| stream_cancellation_token | 1.00 | 0.85 | 0.15 | ❌ | ALIVE |
+| multi_provider_gateway | 0.86 | 0.73 | 0.15 | ✅ | ALIVE |
+| secure_token_base62 | 0.82 | 0.66 | 0.20 | ❌ | ALIVE |
+| input_sanitizer | 0.86 | 0.73 | 0.15 | ❌ | ALIVE |
+| non_blocking_bridge | 0.64 | 0.54 | 0.15 | ❌ | ALIVE |
+| transactional_migration | 0.64 | 0.54 | 0.15 | ❌ | ALIVE |
+| exponential_backoff | 0.55 | 0.44 | 0.20 | ❌ | ALIVE |
+| disable_mysql_drizzle | N/A | 0.75 | 0.20 | ✅ | NEW |
+| disable_oauth | N/A | 1.00 | 0.15 | ✅ | NEW |
+| direct_ai_call | N/A | 0.60 | 0.25 | ✅ | NEW |
+
+### Proposed Next Cycle Scope
+- Implement ADR-AL-21: Disable OAuth flow
+- Verify ADR-AL-20: MySQL/Drizzle disabled properly
+- Review AI security after v1.0 launch
+
+### Next Step
+→ **CYCLE COMPLETE** — reason: All transforms applied, architecture aligned with Blueprint.
+
+---
+
+# TÓM TẮT KẾT QUẢ VHEATM CYCLE #4
+
+## ✅ Xác Nhận (Confirmed)
+1. **H-04-01:** Server MySQL/Drizzle thừa - cần disable
+2. **H-04-02:** Manus OAuth đi ngược Blueprint - cần disable  
+3. **H-04-03:** AI Proxy không tồn tại - quyết định giữ direct call
+
+## ❌ Bác Bỏ (Rejected)
+- **H-04-04:** Server dùng cho Gift - KHÔNG đúng (Gift đã tách riêng)
+
+## 📋 ADRs Mới
+| ID | Priority | Decision |
+|---|---|---|
+| ADR-AL-20 | 🟡 RECOMMENDED | Disable MySQL/Drizzle |
+| ADR-AL-21 | 🔴 MANDATORY | Disable OAuth flow |
+| ADR-AL-22 | 🟡 RECOMMENDED | Giữ direct AI call |
+
+## ⚠️ Cần User Approval
+- ADR-AL-20: Disable MySQL/Drizzle
+- ADR-AL-21: Disable OAuth

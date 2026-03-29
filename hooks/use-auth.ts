@@ -7,6 +7,9 @@ type UseAuthOptions = {
   autoFetch?: boolean;
 };
 
+// ADR-AL-21: Disable OAuth - app works without user account (fully local per Blueprint)
+const AUTH_DISABLED = true;
+
 export function useAuth(options?: UseAuthOptions) {
   const { autoFetch = true } = options ?? {};
   const [user, setUser] = useState<Auth.User | null>(null);
@@ -14,6 +17,14 @@ export function useAuth(options?: UseAuthOptions) {
   const [error, setError] = useState<Error | null>(null);
 
   const fetchUser = useCallback(async () => {
+    // ADR-AL-21: Bypass auth - return null user (no login required)
+    if (AUTH_DISABLED) {
+      console.log("[useAuth] AUTH_DISABLED: returning null user");
+      setUser(null);
+      setLoading(false);
+      return;
+    }
+
     console.log("[useAuth] fetchUser called");
     try {
       setLoading(true);

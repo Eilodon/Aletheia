@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { View, Text, Pressable, FlatList, Animated, RefreshControl } from "react-native";
+import { View, Text, Pressable, FlatList, Animated, RefreshControl, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
+import { SkeletonList } from "@/components/skeleton";
+import { PressableCard } from "@/components/pressable-card";
 import { store } from "@/lib/services/store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
-import { Reading, MoodTag, SymbolMethod } from "@/lib/types";
+import { Reading, MoodTag } from "@/lib/types";
 import * as Haptics from "expo-haptics";
 
 interface ReadingWithDetails extends Reading {
@@ -27,8 +29,7 @@ export default function HistoryScreen() {
 
   const loadReadings = useCallback(async (pageNum: number = 0, refresh: boolean = false) => {
     try {
-      const userId = await getCurrentUserId();
-      const userState = await store.getUserState(userId);
+      await getCurrentUserId();
       
       // Get readings from store (limit, offset)
       const allReadings = await store.getReadings(1000, 0);
@@ -109,39 +110,39 @@ export default function HistoryScreen() {
   };
 
   const renderReadingItem = ({ item }: { item: ReadingWithDetails }) => (
-    <Pressable
+    <PressableCard
       onPress={() => handleReadingPress(item)}
-      className="p-4 mb-3 rounded-xl bg-muted/10 border border-muted/20"
+      style={styles.readingCard}
     >
-      <View className="flex-row items-center justify-between mb-2">
-        <View className="flex-row items-center gap-2">
-          <Text className="text-lg">{getMoodEmoji(item.mood_tag)}</Text>
-          <Text className="text-sm text-muted">
+      <View style={styles.readingHeader}>
+        <View style={styles.readingHeaderLeft}>
+          <Text style={styles.moodEmoji}>{getMoodEmoji(item.mood_tag)}</Text>
+          <Text style={styles.readingDate}>
             {formatDate(item.created_at)}
           </Text>
         </View>
         {item.ai_interpreted && (
-          <View className="px-2 py-1 rounded-full bg-primary/10">
-            <Text className="text-xs text-primary">AI</Text>
+          <View style={styles.aiBadge}>
+            <Text style={styles.aiBadgeText}>AI</Text>
           </View>
         )}
       </View>
       
-      <Text className="text-sm text-foreground" numberOfLines={2}>
+      <Text style={styles.readingSituation} numberOfLines={2}>
         {item.situation_text || "Không có tình huống"}
       </Text>
       
-      <View className="flex-row items-center gap-3 mt-2">
-        <Text className="text-xs text-muted">
+      <View style={styles.readingFooter}>
+        <Text style={styles.readingMeta}>
           Biểu tượng: {item.symbol_chosen || "?"}
         </Text>
         {item.read_duration_s && (
-          <Text className="text-xs text-muted">
+          <Text style={styles.readingMeta}>
             {Math.floor(item.read_duration_s / 60)}p{item.read_duration_s % 60}s
           </Text>
         )}
       </View>
-    </Pressable>
+    </PressableCard>
   );
 
   const renderEmpty = () => (
@@ -181,7 +182,7 @@ export default function HistoryScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ flexGrow: 1 }}
           ListHeaderComponent={renderHeader}
-          ListEmptyComponent={!isLoading ? renderEmpty : null}
+          ListEmptyComponent={isLoading ? <SkeletonList count={3} /> : renderEmpty}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
           refreshControl={
@@ -197,3 +198,56 @@ export default function HistoryScreen() {
     </ScreenContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  readingCard: {
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: "rgba(55, 65, 81, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(55, 65, 81, 0.25)",
+    marginBottom: 12,
+  },
+  readingHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 8,
+  },
+  readingHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  moodEmoji: {
+    fontSize: 18,
+  },
+  readingDate: {
+    fontSize: 14,
+    color: "#9BA1A6",
+  },
+  aiBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    backgroundColor: "rgba(10, 126, 164, 0.2)",
+  },
+  aiBadgeText: {
+    fontSize: 12,
+    color: "#0a7ea4",
+    fontWeight: "600",
+  },
+  readingSituation: {
+    fontSize: 14,
+    color: "#ECEDEE",
+    marginBottom: 8,
+  },
+  readingFooter: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  readingMeta: {
+    fontSize: 12,
+    color: "#9BA1A6",
+  },
+});

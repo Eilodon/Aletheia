@@ -774,3 +774,239 @@ fn current_utc_date(conn: &Connection) -> Result<String, AletheiaError> {
     let today = conn.query_row("SELECT date('now')", [], |row| row.get(0))?;
     Ok(today)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_test_store() -> Result<Store, AletheiaError> {
+        Store::new(":memory:")
+    }
+
+    fn create_test_source() -> Source {
+        Source {
+            id: "test-source-1".to_string(),
+            name: "Test Source".to_string(),
+            tradition: Tradition::Universal,
+            language: "en".to_string(),
+            passage_count: 10,
+            is_bundled: true,
+            is_premium: false,
+            fallback_prompts: vec!["prompt1".to_string(), "prompt2".to_string(), "prompt3".to_string()],
+        }
+    }
+
+    fn create_test_theme() -> Theme {
+        Theme {
+            id: "test-theme-1".to_string(),
+            name: "Test Theme".to_string(),
+            symbols: vec![],
+            is_premium: false,
+            pack_id: None,
+            price_usd: None,
+        }
+    }
+
+    fn create_test_passage(source_id: &str) -> Passage {
+        Passage {
+            id: "test-passage-1".to_string(),
+            source_id: source_id.to_string(),
+            reference: "Test 1:1".to_string(),
+            text: "This is a test passage.".to_string(),
+            context: Some("Test context".to_string()),
+        }
+    }
+
+    #[test]
+    fn test_store_initialization() {
+        let result = create_test_store();
+        assert!(result.is_ok(), "Failed to create store: {:?}", result.err());
+    }
+
+    #[test]
+    fn test_insert_and_get_source() {
+        let store = create_test_store().unwrap();
+        let source = create_test_source();
+
+        let insert_result = store.insert_source(&source);
+        assert!(insert_result.is_ok(), "Failed to insert source: {:?}", insert_result.err());
+
+        let get_result = store.get_source(&source.id);
+        assert!(get_result.is_ok(), "Failed to get source: {:?}", get_result.err());
+
+        let retrieved = get_result.unwrap();
+        assert!(retrieved.is_some(), "Source should exist");
+        assert_eq!(retrieved.unwrap().name, "Test Source");
+    }
+
+    #[test]
+    fn test_get_nonexistent_source() {
+        let store = create_test_store().unwrap();
+        let result = store.get_source("nonexistent");
+        assert!(result.is_ok(), "Failed to get source: {:?}", result.err());
+        assert!(result.unwrap().is_none(), "Should return None for nonexistent source");
+    }
+
+    #[test]
+    fn test_insert_and_get_theme() {
+        let store = create_test_store().unwrap();
+        let theme = create_test_theme();
+
+        let result = store.insert_theme(&theme);
+        assert!(result.is_ok(), "Failed to insert theme: {:?}", result.err());
+
+        let retrieved = store.get_theme(&theme.id).unwrap();
+        assert!(retrieved.is_some(), "Theme should exist");
+        assert_eq!(retrieved.unwrap().name, "Test Theme");
+    }
+
+    #[test]
+    fn test_insert_and_get_passage() {
+        let store = create_test_store().unwrap();
+        let source = create_test_source();
+        let passage = create_test_passage(&source.id);
+
+        store.insert_source(&source).unwrap();
+        let result = store.insert_passage(&passage);
+        assert!(result.is_ok(), "Failed to insert passage: {:?}", result.err());
+
+        // Verify by getting random passage
+        let random_passage = store.get_random_passage(&source.id).unwrap();
+        assert!(random_passage.is_some(), "Should have a passage");
+        assert_eq!(random_passage.unwrap().text, "This is a test passage.");
+    }
+
+    #[test]
+    fn test_get_random_source() {
+        let store = create_test_store().unwrap();
+        let source = create_test_source();
+        store.insert_source(&source).unwrap();
+
+        let result = store.get_random_source(false);
+        assert!(result.is_ok(), "Failed to get random source: {:?}", result.err());
+
+        let random_source = result.unwrap();
+        assert!(random_source.is_some(), "Should return a source");
+    }
+
+    #[test]
+    fn test_get_random_theme() {
+        let store = create_test_store().unwrap();
+        let theme = create_test_theme();
+        store.insert_theme(&theme).unwrap();
+
+        let result = store.get_random_theme(false);
+        assert!(result.is_ok(), "Failed to get random theme: {:?}", result.err());
+
+        let random_theme = result.unwrap();
+        assert!(random_theme.is_some(), "Should return a theme");
+    }
+
+    #[test]
+    fn test_insert_reading() {
+        let store = create_test_store().unwrap();
+
+        let source = create_test_source();
+        let theme = create_test_theme();
+        let passage = create_test_passage(&source.id);
+
+        store.insert_source(&source).unwrap();
+        store.insert_theme(&theme).unwrap();
+        store.insert_passage(&passage).unwrap();
+
+        let reading = Reading {
+            id: "reading-1".to_string(),
+            created_at: 1234567890,
+            source_id: source.id.clone(),
+            passage_id: passage.id.clone(),
+            theme_id: theme.id.clone(),
+            symbol_chosen: "test-symbol-1".to_string(),
+            symbol_method: SymbolMethod::Manual,
+            situation_text: Some("Test situation".to_string()),
+            ai_interpreted: false,
+            ai_used_fallback: false,
+            read_duration_s: Some(60),
+            time_to_ai_request_s: Some(30),
+            notification_opened: false,
+            mood_tag: None,
+            is_favorite: false,
+            shared: false,
+        };
+
+        let result = store.insert_reading(&reading);
+        assert!(result.is_ok(), "Failed to insert reading: {:?}", result.err());
+
+        let readings = store.get_readings(10, 0).unwrap();
+        assert_eq!(readings.len(), 1, "Should have 1 reading");
+        assert_eq!(readings[0].situation_text, Some("Test situation".to_string()));
+    }
+
+    #[test]
+    fn test_get_readings_count() {
+        let store = create_test_store().unwrap();
+
+        let source = create_test_source();
+        let theme = create_test_theme();
+        let passage = create_test_passage(&source.id);
+
+        store.insert_source(&source).unwrap();
+        store.insert_theme(&theme).unwrap();
+        store.insert_passage(&passage).unwrap();
+
+        let reading = Reading {
+            id: "reading-1".to_string(),
+            created_at: 1234567890,
+            source_id: source.id.clone(),
+            passage_id: passage.id.clone(),
+            theme_id: theme.id.clone(),
+            symbol_chosen: "test-symbol-1".to_string(),
+            symbol_method: SymbolMethod::Manual,
+            situation_text: None,
+            ai_interpreted: false,
+            ai_used_fallback: false,
+            read_duration_s: None,
+            time_to_ai_request_s: None,
+            notification_opened: false,
+            mood_tag: None,
+            is_favorite: false,
+            shared: false,
+        };
+
+        store.insert_reading(&reading).unwrap();
+
+        let count = store.get_readings_count().unwrap();
+        assert_eq!(count, 1, "Should have 1 reading");
+    }
+
+    #[test]
+    fn test_user_state_operations() {
+        let store = create_test_store().unwrap();
+
+        let result = store.get_user_state("test-user");
+        assert!(result.is_ok(), "Failed to get user state: {:?}", result.err());
+
+        let state = result.unwrap();
+        assert_eq!(state.user_id, "test-user");
+        assert_eq!(state.readings_today, 0);
+        assert_eq!(state.ai_calls_today, 0);
+
+        store.increment_readings_today("test-user").unwrap();
+        let updated_state = store.get_user_state("test-user").unwrap();
+        assert_eq!(updated_state.readings_today, 1);
+    }
+
+    #[test]
+    fn test_seed_bundled_data() {
+        let store = create_test_store().unwrap();
+
+        let sources = vec![create_test_source()];
+        let themes = vec![create_test_theme()];
+        let passages = vec![create_test_passage("test-source-1")];
+
+        let result = store.seed_bundled_data(&sources, &passages, &themes);
+        assert!(result.is_ok(), "Failed to seed data: {:?}", result.err());
+
+        let seeded = store.seed_bundled_data(&sources, &passages, &themes).unwrap();
+        assert!(!seeded, "Second seed should return false (already seeded)");
+    }
+}

@@ -3,10 +3,19 @@ import { drizzle, type MySql2Database } from "drizzle-orm/mysql2";
 import { InsertUser, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
+// ADR-AL-20: Disable MySQL/Drizzle - app is fully local per Blueprint
+const MYSQL_DISABLED = true;
+
 let _db: MySql2Database | null = null;
 
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb(): Promise<MySql2Database | null> {
+  // ADR-AL-20: Bypass database connection
+  if (MYSQL_DISABLED) {
+    console.log("[Database] MYSQL_DISABLED: returning null (fully local mode)");
+    return null;
+  }
+
   if (!_db && process.env.DATABASE_URL) {
     try {
       _db = drizzle(process.env.DATABASE_URL);

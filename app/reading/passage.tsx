@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
-import { View, Text, Pressable, ScrollView, Animated } from "react-native";
+import { useEffect, useState, useRef } from "react";
+import { View, Text, Pressable, ScrollView, Animated, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
-import { ReadingState } from "@/lib/types";
 import * as Haptics from "expo-haptics";
 
 export default function PassageScreen() {
@@ -14,7 +13,6 @@ export default function PassageScreen() {
     selectedSymbol,
     visiblePassageText,
     passageActionsReady,
-    currentState,
     aiResponse,
     isAIFallback,
     requestAIInterpretation,
@@ -25,15 +23,19 @@ export default function PassageScreen() {
   const router = useRouter();
   const [showAI, setShowAI] = useState(false);
 
-  // Fade in animation
-  const fadeAnim = new Animated.Value(0);
+  // Fade in animation - use ref to avoid re-renders
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
-    Animated.timing(fadeAnim, {
+    // Only run animation once on mount
+    const animation = Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 800,
       useNativeDriver: true,
-    }).start();
-  }, [fadeAnim]);
+    });
+    animation.start();
+    return () => animation.stop();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRequestAI = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -87,15 +89,12 @@ export default function PassageScreen() {
             </Text>
           </View>
 
-          {/* Passage Card */}
-          <View
-            className="rounded-2xl p-6 mb-6"
-            style={{ backgroundColor: "#1F2937" }}
-          >
-            <Text className="text-xl font-light text-foreground leading-relaxed mb-4">
+          {/* Passage Card - Glassmorphic */}
+          <View style={styles.passageCard}>
+            <Text style={styles.passageText}>
               {visiblePassageText || passage.text}
             </Text>
-            <Text className="text-sm text-muted text-right">
+            <Text style={styles.passageReference}>
               {passage.reference}
             </Text>
           </View>
@@ -207,3 +206,26 @@ export default function PassageScreen() {
     </ScreenContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  passageCard: {
+    borderRadius: 24,
+    padding: 24,
+    backgroundColor: "rgba(31, 41, 55, 0.8)",
+    borderWidth: 1,
+    borderColor: "rgba(55, 65, 81, 0.5)",
+    marginBottom: 24,
+  },
+  passageText: {
+    fontSize: 20,
+    fontWeight: "300",
+    color: "#ECEDEE",
+    lineHeight: 32,
+    marginBottom: 16,
+  },
+  passageReference: {
+    fontSize: 14,
+    color: "#9BA1A6",
+    textAlign: "right",
+  },
+});

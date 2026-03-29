@@ -11,15 +11,15 @@ mod reading;
 mod store;
 mod theme;
 
-use ai_client::AIClient;
-use card_gen::CardGenerator;
-use contracts::*;
-use errors::AletheiaError;
-use gift_client::GiftClient;
-use notif::NotificationScheduler;
-use reading::ReadingEngine;
-use store::Store;
-use theme::ThemeEngine;
+pub use ai_client::AIClient;
+pub use card_gen::CardGenerator;
+pub use contracts::*;
+pub use errors::AletheiaError;
+pub use gift_client::GiftClient;
+pub use notif::NotificationScheduler;
+pub use reading::ReadingEngine;
+pub use store::Store;
+pub use theme::ThemeEngine;
 
 use std::collections::HashMap;
 use std::sync::Arc;
