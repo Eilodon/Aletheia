@@ -3,20 +3,40 @@
  * Handles AI interpretation requests with multi-provider failover
  */
 
-import { Passage, Symbol, AletheiaError, ErrorCode } from "@/lib/types";
-
-// TODO: Import from generated UniFFI bindings once available
-// import { AletheiaCore } from "@/lib/aletheia-core";
+import { Passage, Symbol } from "@/lib/types";
+import { aletheiaNativeClient } from "@/lib/native/aletheia-core";
+import {
+  unwrapNativeCancelInterpretationResponse,
+  unwrapNativeInterpretationStreamState,
+  unwrapNativeFallbackPromptsResponse,
+  unwrapNativeRequestInterpretationResponse,
+  unwrapNativeStartInterpretationStreamResponse,
+} from "@/lib/native/bridge";
+import { initializeAletheiaNative, shouldUseAletheiaNative } from "@/lib/native/runtime";
 
 interface AIRequest {
   passage: Passage;
   symbol: Symbol;
   situationText?: string;
+  /** Hidden context injected into AI prompt, not shown to user (AI-05) */
+  resonanceContext?: string;
 }
 
+interface AIInterpretationResult {
+  chunks: string[];
+  usedFallback: boolean;
+}
+
+interface AIStreamHandlers {
+  onChunk?: (fullText: string, chunk: string) => void;
+}
+
+type AIStreamSession = {
+  promise: Promise<AIInterpretationResult>;
+  cancel: () => Promise<boolean>;
+};
+
 class AIClientService {
-  // TODO: Uncomment when UniFFI bindings are generated
-  // private core: AletheiaCore | null = null;
   private initialized = false;
 
   /**
@@ -25,8 +45,9 @@ class AIClientService {
    */
   async initialize(dbPath: string, giftBackendUrl: string): Promise<void> {
     try {
-      // TODO: Uncomment when UniFFI bindings are generated
-      // this.core = new AletheiaCore(dbPath, giftBackendUrl);
+      if (shouldUseAletheiaNative()) {
+        await aletheiaNativeClient.init({ dbPath, giftBackendUrl });
+      }
       this.initialized = true;
       console.log("[AI Client] Initialized successfully");
     } catch (error) {
@@ -53,29 +74,106 @@ class AIClientService {
    * Request AI interpretation for a passage
    * Uses multi-provider failover (Claude → GPT4 → Gemini)
    */
-  async requestInterpretation(request: AIRequest): Promise<string[]> {
-    if (!this.initialized) {
-      console.warn("[AI Client] Not initialized, using fallback");
-      return this.getFallbackInterpretation(request);
-    }
-
+  async requestInterpretation(request: AIRequest): Promise<AIInterpretationResult> {
     try {
-      // TODO: Uncomment when UniFFI bindings are generated
-      // const result = await this.core.request_interpretation(
-      //   request.passage,
-      //   request.symbol,
-      //   request.situationText
-      // );
-      // return result;
+      if (shouldUseAletheiaNative()) {
+        await initializeAletheiaNative();
+        const response = await aletheiaNativeClient.requestInterpretation(
+          request.passage,
+          request.symbol,
+          request.situationText,
+        );
+        const interpretation = unwrapNativeRequestInterpretationResponse(response);
+        return {
+          chunks: interpretation.chunks,
+          usedFallback: interpretation.used_fallback,
+        };
+      }
 
-      // Temporary: use fallback until UniFFI is ready
-      console.log("[AI Client] UniFFI not ready, using fallback");
-      return this.getFallbackInterpretation(request);
+      if (!this.initialized) {
+        console.warn("[AI Client] Not initialized, using fallback");
+      }
+
+      return {
+        chunks: this.getFallbackInterpretation(request),
+        usedFallback: true,
+      };
     } catch (error) {
       console.error("[AI Client] Request failed:", error);
       // Fallback to prompts on error
-      return this.getFallbackInterpretation(request);
+      return {
+        chunks: this.getFallbackInterpretation(request),
+        usedFallback: true,
+      };
     }
+  }
+
+  streamInterpretation(
+    request: AIRequest,
+    handlers: AIStreamHandlers = {},
+  ): AIStreamSession {
+    if (!shouldUseAletheiaNative()) {
+      return {
+        promise: this.requestInterpretation(request),
+        cancel: async () => false,
+      };
+    }
+
+    let requestId: string | null = null;
+    let cancelled = false;
+
+    const promise = (async () => {
+      await initializeAletheiaNative();
+      requestId = unwrapNativeStartInterpretationStreamResponse(
+        await aletheiaNativeClient.startInterpretationStream(
+          request.passage,
+          request.symbol,
+          request.situationText,
+        ),
+      );
+
+      const chunks: string[] = [];
+
+      while (true) {
+        const state = unwrapNativeInterpretationStreamState(
+          await aletheiaNativeClient.pollInterpretationStream(requestId),
+        );
+
+        for (const chunk of state.new_chunks) {
+          chunks.push(chunk);
+          handlers.onChunk?.(chunks.join(""), chunk);
+        }
+
+        if (state.done) {
+          return {
+            chunks: state.full_text ? [state.full_text] : chunks,
+            usedFallback: state.used_fallback,
+          };
+        }
+
+        if (state.cancelled || cancelled) {
+          return {
+            chunks: state.full_text ? [state.full_text] : chunks,
+            usedFallback: state.used_fallback,
+          };
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 120));
+      }
+    })();
+
+    return {
+      promise,
+      cancel: async () => {
+        cancelled = true;
+        if (!requestId) {
+          return false;
+        }
+        return unwrapNativeCancelInterpretationResponse(
+          await aletheiaNativeClient.cancelInterpretationStream(requestId),
+        );
+      },
+    };
   }
 
   /**
@@ -93,7 +191,7 @@ class AIClientService {
    * Check if AI client is ready
    */
   isReady(): boolean {
-    return this.initialized;
+    return false;
   }
 }
 

@@ -25,6 +25,13 @@ export enum SymbolMethod {
   Auto = "auto",
 }
 
+export enum UserIntent {
+  Clarity = "clarity",     // "Sự rõ ràng" → suggest Stoic/Tao
+  Comfort = "comfort",     // "Sự an ủi" → suggest Rumi/Sufi
+  Challenge = "challenge", // "Một thách thức" → suggest I Ching
+  Guidance = "guidance",   // "Để vũ trụ dẫn lối" → truly random
+}
+
 export enum MoodTag {
   Confused = "confused",
   Hopeful = "hopeful",
@@ -41,6 +48,7 @@ export enum SubscriptionTier {
 
 export enum ReadingState {
   Idle = "idle",
+  IntentSelection = "intent_selection", // UX-01: "Which Mirror Are You"
   SituationInput = "situation_input",
   SourceSelection = "source_selection",
   WildcardReveal = "wildcard_reveal",
@@ -104,6 +112,8 @@ export interface Passage {
   reference: string;
   text: string;
   context: string | undefined;
+  /** Hidden context injected into AI prompt for deeper interpretation - not shown to user */
+  resonance_context: string | undefined;
 }
 
 export interface Reading {
@@ -118,6 +128,8 @@ export interface Reading {
   ai_interpreted: boolean;
   ai_used_fallback: boolean;
   read_duration_s: number | undefined;
+  time_to_ai_request_s: number | undefined;
+  notification_opened: boolean;
   mood_tag: MoodTag | undefined;
   is_favorite: boolean;
   shared: boolean;
@@ -143,6 +155,7 @@ export interface UserState {
   subscription_tier: SubscriptionTier;
   readings_today: number;
   ai_calls_today: number;
+  session_count: number;
   last_reading_date: string | undefined;
   notification_enabled: boolean;
   notification_time: string | undefined;
@@ -157,6 +170,7 @@ export interface ReadingSession {
   theme: Theme;
   symbols: Symbol[];
   situation_text: string | undefined;
+  user_intent: UserIntent | undefined; // UX-01: from "Which Mirror Are You"
   started_at: number;
 }
 

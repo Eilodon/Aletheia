@@ -27,6 +27,16 @@ async function getCurrentUserId(): Promise<string> {
 }
 
 class ReadingEngineService {
+  // ARCH-06: Helper to shuffle array (Fisher-Yates)
+  private shuffleArray<T>(array: T[]): T[] {
+    const result = [...array];
+    for (let i = result.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [result[i], result[j]] = [result[j], result[i]];
+    }
+    return result;
+  }
+
   async performReading(sourceId?: string, situationText?: string): Promise<ReadingSession> {
     try {
       // Get user state
@@ -69,7 +79,8 @@ class ReadingEngineService {
         throw this.createError(ErrorCode.ThemeNotFound, "No themes available");
       }
 
-      const symbols = await themeEngine.randomThreeSymbols(theme.id);
+      // ARCH-06: Use symbols from theme (already loaded) instead of separate DB query
+      const symbols = this.shuffleArray([...theme.symbols]).slice(0, 3);
       if (symbols.length !== 3) {
         throw this.createError(
           ErrorCode.SymbolInvalid,
@@ -84,6 +95,7 @@ class ReadingEngineService {
         theme,
         symbols,
         situation_text: situationText,
+        user_intent: undefined, // UX-01: will be set when user selects intent
         started_at: Date.now(),
       };
 
@@ -156,6 +168,7 @@ class ReadingEngineService {
       const userState = await store.getUserState(userId);
 
       await store.incrementReadingsToday(userId);
+      await store.incrementSessionCount(userId);
       if (reading.ai_interpreted) {
         await store.incrementAICallsToday(userId);
       }

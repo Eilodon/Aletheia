@@ -19,6 +19,7 @@ import { BUNDLED_SOURCES, BUNDLED_PASSAGES, BUNDLED_THEMES } from "@/lib/data/se
 class StoreService {
   private db: SQLite.SQLiteDatabase | null = null;
   private initialized = false;
+  private static readonly SCHEMA_VERSION = 2;
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
@@ -26,87 +27,50 @@ class StoreService {
     try {
       this.db = await SQLite.openDatabaseAsync("aletheia.db");
       
-      // Create tables
-      await this.db.execAsync(`
-        CREATE TABLE IF NOT EXISTS sources (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
-          tradition TEXT NOT NULL,
-          language TEXT NOT NULL,
-          passage_count INTEGER NOT NULL,
-          is_bundled INTEGER NOT NULL DEFAULT 1,
-          is_premium INTEGER NOT NULL DEFAULT 0,
-          fallback_prompts TEXT
-        );
-        
-        CREATE TABLE IF NOT EXISTS passages (
-          id TEXT PRIMARY KEY,
-          source_id TEXT NOT NULL,
-          reference TEXT NOT NULL,
-          text TEXT NOT NULL,
-          context TEXT,
-          FOREIGN KEY (source_id) REFERENCES sources(id)
-        );
-        
-        CREATE TABLE IF NOT EXISTS themes (
-          id TEXT PRIMARY KEY,
-          name TEXT NOT NULL,
-          is_premium INTEGER NOT NULL DEFAULT 0,
-          pack_id TEXT,
-          price_usd REAL
-        );
-        
-        CREATE TABLE IF NOT EXISTS symbols (
-          id TEXT PRIMARY KEY,
-          theme_id TEXT NOT NULL,
-          display_name TEXT NOT NULL,
-          flavor_text TEXT,
-          FOREIGN KEY (theme_id) REFERENCES themes(id)
-        );
-        
-        CREATE TABLE IF NOT EXISTS readings (
-          id TEXT PRIMARY KEY,
-          created_at INTEGER NOT NULL,
-          source_id TEXT NOT NULL,
-          passage_id TEXT NOT NULL,
-          theme_id TEXT NOT NULL,
-          symbol_chosen TEXT NOT NULL,
-          symbol_method TEXT NOT NULL,
-          situation_text TEXT,
-          ai_interpreted INTEGER NOT NULL DEFAULT 0,
-          ai_used_fallback INTEGER NOT NULL DEFAULT 0,
-          read_duration_s INTEGER,
-          mood_tag TEXT,
-          is_favorite INTEGER NOT NULL DEFAULT 0,
-          shared INTEGER NOT NULL DEFAULT 0
-        );
-        
-        CREATE TABLE IF NOT EXISTS user_state (
-          user_id TEXT PRIMARY KEY,
-          subscription_tier TEXT NOT NULL DEFAULT 'free',
-          readings_today INTEGER NOT NULL DEFAULT 0,
-          ai_calls_today INTEGER NOT NULL DEFAULT 0,
-          last_reading_date TEXT,
-          notification_enabled INTEGER NOT NULL DEFAULT 1,
-          notification_time TEXT DEFAULT '09:00',
-          preferred_language TEXT DEFAULT 'vi',
-          dark_mode INTEGER NOT NULL DEFAULT 0,
-          onboarding_complete INTEGER NOT NULL DEFAULT 0
-        );
-      `);
-
+      // ARCH-01: Run migrations with versioning
+      await this.runMigrations();
+      
       // Seed bundled data if empty
       const sourceCount = await this.db.getFirstAsync<{ count: number }>("SELECT COUNT(*) as count FROM sources");
       if (!sourceCount || sourceCount.count === 0) {
         await this.seedBundledData();
       }
-
+      
       this.initialized = true;
       console.log("[Store] Initialized successfully");
     } catch (error) {
       console.error("[Store] Failed to initialize:", error);
       throw error;
     }
+  }
+
+  // ARCH-01: Migration system with PRAGMA user_version
+  private async runMigrations(): Promise<void> {
+    if (!this.db) throw new Error("Database not initialized");
+    
+    const result = await this.db.getFirstAsync<{ version: number }>("PRAGMA user_version");
+    const currentVersion = result?.version ?? 0;
+    
+    if (currentVersion >= StoreService.SCHEMA_VERSION) {
+      return; // Already migrated
+    }
+    
+    // Version 1: Add resonance_context to passages
+    if (currentVersion < 1) {
+      await this.db.execAsync(`
+        ALTER TABLE passages ADD COLUMN resonance_context TEXT;
+      `).catch(() => {}); // Ignore if column exists
+    }
+    
+    // Version 2: Add missing user_state fields
+    if (currentVersion < 2) {
+      await this.db.execAsync(`
+        ALTER TABLE user_state ADD COLUMN session_count INTEGER NOT NULL DEFAULT 0;
+      `).catch(() => {}); // Ignore if column exists
+    }
+    
+    await this.db.execAsync(`PRAGMA user_version = ${StoreService.SCHEMA_VERSION}`);
+    console.log(`[Store] Migrated to version ${StoreService.SCHEMA_VERSION}`);
   }
 
   private async seedBundledData(): Promise<void> {
@@ -123,8 +87,8 @@ class StoreService {
     // Seed passages
     for (const passage of BUNDLED_PASSAGES) {
       await this.db.runAsync(
-        `INSERT OR REPLACE INTO passages (id, source_id, reference, text, context) VALUES (?, ?, ?, ?, ?)`,
-        [passage.id, passage.source_id, passage.reference, passage.text, passage.context || null]
+        `INSERT OR REPLACE INTO passages (id, source_id, reference, text, context, resonance_context) VALUES (?, ?, ?, ?, ?, ?)`,
+        [passage.id, passage.source_id, passage.reference, passage.text, passage.context || null, passage.resonance_context || null]
       );
     }
 
@@ -164,6 +128,7 @@ class StoreService {
         subscription_tier: SubscriptionTier.Free,
         readings_today: 0,
         ai_calls_today: 0,
+        session_count: 0,
         last_reading_date: undefined,
         notification_enabled: true,
         notification_time: "09:00",
@@ -180,6 +145,7 @@ class StoreService {
       subscription_tier: row.subscription_tier as SubscriptionTier,
       readings_today: row.readings_today,
       ai_calls_today: row.ai_calls_today,
+      session_count: row.session_count ?? 0,
       last_reading_date: row.last_reading_date || undefined,
       notification_enabled: row.notification_enabled === 1,
       notification_time: row.notification_time || undefined,
@@ -194,12 +160,13 @@ class StoreService {
     if (!this.db) throw new Error("Database not initialized");
 
     await this.db.runAsync(
-      `INSERT OR REPLACE INTO user_state (user_id, subscription_tier, readings_today, ai_calls_today, last_reading_date, notification_enabled, notification_time, preferred_language, dark_mode, onboarding_complete) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT OR REPLACE INTO user_state (user_id, subscription_tier, readings_today, ai_calls_today, session_count, last_reading_date, notification_enabled, notification_time, preferred_language, dark_mode, onboarding_complete) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         state.user_id,
         state.subscription_tier,
         state.readings_today,
         state.ai_calls_today,
+        state.session_count,
         state.last_reading_date || null,
         state.notification_enabled ? 1 : 0,
         state.notification_time || null,
@@ -227,6 +194,16 @@ class StoreService {
 
     await this.db.runAsync(
       `UPDATE user_state SET ai_calls_today = ai_calls_today + 1 WHERE user_id = ?`,
+      [userId]
+    );
+  }
+
+  async incrementSessionCount(userId: string): Promise<void> {
+    await this.initialize();
+    if (!this.db) throw new Error("Database not initialized");
+
+    await this.db.runAsync(
+      `UPDATE user_state SET session_count = session_count + 1 WHERE user_id = ?`,
       [userId]
     );
   }
@@ -296,6 +273,7 @@ class StoreService {
       reference: row.reference,
       text: row.text,
       context: row.context || undefined,
+      resonance_context: row.resonance_context || undefined,
     };
   }
 
@@ -352,7 +330,7 @@ class StoreService {
     if (!this.db) throw new Error("Database not initialized");
 
     await this.db.runAsync(
-      `INSERT INTO readings (id, created_at, source_id, passage_id, theme_id, symbol_chosen, symbol_method, situation_text, ai_interpreted, ai_used_fallback, read_duration_s, mood_tag, is_favorite, shared) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO readings (id, created_at, source_id, passage_id, theme_id, symbol_chosen, symbol_method, situation_text, ai_interpreted, ai_used_fallback, read_duration_s, time_to_ai_request_s, notification_opened, mood_tag, is_favorite, shared) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         reading.id,
         reading.created_at,
@@ -365,6 +343,8 @@ class StoreService {
         reading.ai_interpreted ? 1 : 0,
         reading.ai_used_fallback ? 1 : 0,
         reading.read_duration_s || null,
+        reading.time_to_ai_request_s || null,
+        reading.notification_opened ? 1 : 0,
         reading.mood_tag || null,
         reading.is_favorite ? 1 : 0,
         reading.shared ? 1 : 0,
@@ -393,6 +373,8 @@ class StoreService {
       ai_interpreted: row.ai_interpreted === 1,
       ai_used_fallback: row.ai_used_fallback === 1,
       read_duration_s: row.read_duration_s || undefined,
+      time_to_ai_request_s: row.time_to_ai_request_s || undefined,
+      notification_opened: row.notification_opened === 1,
       mood_tag: row.mood_tag || undefined,
       is_favorite: row.is_favorite === 1,
       shared: row.shared === 1,

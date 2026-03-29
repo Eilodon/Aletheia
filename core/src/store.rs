@@ -4,6 +4,7 @@
 use crate::contracts::*;
 use crate::errors::AletheiaError;
 use rusqlite::{params, Connection};
+use serde_json::from_str;
 use std::sync::Mutex;
 use tracing::info;
 
@@ -50,6 +51,8 @@ impl Store {
                     ai_interpreted INTEGER NOT NULL DEFAULT 0,
                     ai_used_fallback INTEGER NOT NULL DEFAULT 0,
                     read_duration_s INTEGER,
+                    time_to_ai_request_s INTEGER,
+                    notification_opened INTEGER NOT NULL DEFAULT 0,
                     mood_tag TEXT,
                     is_favorite INTEGER NOT NULL DEFAULT 0,
                     shared INTEGER NOT NULL DEFAULT 0
@@ -118,6 +121,7 @@ impl Store {
                     subscription_tier TEXT NOT NULL DEFAULT 'free',
                     readings_today INTEGER NOT NULL DEFAULT 0,
                     ai_calls_today INTEGER NOT NULL DEFAULT 0,
+                    session_count INTEGER NOT NULL DEFAULT 0,
                     last_reading_date TEXT,
                     notification_enabled INTEGER NOT NULL DEFAULT 1,
                     notification_time TEXT DEFAULT '09:00',
@@ -129,11 +133,57 @@ impl Store {
             )?;
         }
 
-        tx.execute(&format!("PRAGMA user_version = {}", 3), [])?;
+        if user_version < 4 {
+            // Ignore migration errors (column may already exist)
+            match tx.execute_batch(
+                r#"
+                ALTER TABLE readings ADD COLUMN time_to_ai_request_s INTEGER;
+                ALTER TABLE readings ADD COLUMN notification_opened INTEGER NOT NULL DEFAULT 0;
+                ALTER TABLE user_state ADD COLUMN session_count INTEGER NOT NULL DEFAULT 0;
+                "#,
+            ) {
+                Ok(_) => {},
+                Err(e) => info!("Migration v4 warning (may be expected): {}", e),
+            }
+        }
+
+        tx.execute(&format!("PRAGMA user_version = {}", 4), [])?;
         tx.commit()?;
         
-        info!("Migrations completed to version 3");
+        info!("Migrations completed to version 4");
         Ok(())
+    }
+
+    pub fn seed_bundled_data(
+        &self,
+        sources: &[Source],
+        passages: &[Passage],
+        themes: &[Theme],
+    ) -> Result<bool, AletheiaError> {
+        if self.get_sources_count()? > 0 {
+            return Ok(false);
+        }
+
+        for source in sources {
+            self.insert_source(source)?;
+        }
+
+        for passage in passages {
+            self.insert_passage(passage)?;
+        }
+
+        for theme in themes {
+            self.insert_theme(theme)?;
+        }
+
+        info!(
+            "Seeded bundled data into native store (sources={}, passages={}, themes={})",
+            sources.len(),
+            passages.len(),
+            themes.len()
+        );
+
+        Ok(true)
     }
 
     // ========================================================================
@@ -146,8 +196,8 @@ impl Store {
             r#"INSERT INTO readings (
                 id, created_at, source_id, passage_id, theme_id, symbol_chosen,
                 symbol_method, situation_text, ai_interpreted, ai_used_fallback,
-                read_duration_s, mood_tag, is_favorite, shared
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
+                read_duration_s, time_to_ai_request_s, notification_opened, mood_tag, is_favorite, shared
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
             params![
                 reading.id,
                 reading.created_at,
@@ -160,6 +210,8 @@ impl Store {
                 reading.ai_interpreted as i32,
                 reading.ai_used_fallback as i32,
                 reading.read_duration_s,
+                reading.time_to_ai_request_s,
+                reading.notification_opened as i32,
                 reading.mood_tag.as_ref().map(|m| serde_json::to_string(m).unwrap()),
                 reading.is_favorite as i32,
                 reading.shared as i32,
@@ -187,9 +239,11 @@ impl Store {
                 ai_interpreted: row.get::<_, i32>(8)? != 0,
                 ai_used_fallback: row.get::<_, i32>(9)? != 0,
                 read_duration_s: row.get(10)?,
-                mood_tag: row.get::<_, Option<String>>(11)?.and_then(|s| serde_json::from_str(&s).ok()),
-                is_favorite: row.get::<_, i32>(12)? != 0,
-                shared: row.get::<_, i32>(13)? != 0,
+                time_to_ai_request_s: row.get(11)?,
+                notification_opened: row.get::<_, i32>(12)? != 0,
+                mood_tag: row.get::<_, Option<String>>(13)?.and_then(|s| serde_json::from_str(&s).ok()),
+                is_favorite: row.get::<_, i32>(14)? != 0,
+                shared: row.get::<_, i32>(15)? != 0,
             })
         })?;
 
@@ -224,9 +278,11 @@ impl Store {
                 ai_interpreted: row.get::<_, i32>(8)? != 0,
                 ai_used_fallback: row.get::<_, i32>(9)? != 0,
                 read_duration_s: row.get(10)?,
-                mood_tag: row.get::<_, Option<String>>(11)?.and_then(|s| serde_json::from_str(&s).ok()),
-                is_favorite: row.get::<_, i32>(12)? != 0,
-                shared: row.get::<_, i32>(13)? != 0,
+                time_to_ai_request_s: row.get(11)?,
+                notification_opened: row.get::<_, i32>(12)? != 0,
+                mood_tag: row.get::<_, Option<String>>(13)?.and_then(|s| serde_json::from_str(&s).ok()),
+                is_favorite: row.get::<_, i32>(14)? != 0,
+                shared: row.get::<_, i32>(15)? != 0,
             })
         });
 
@@ -304,6 +360,12 @@ impl Store {
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(AletheiaError::from(e)),
         }
+    }
+
+    pub fn get_sources_count(&self) -> Result<u32, AletheiaError> {
+        let conn = self.conn.lock().unwrap();
+        let count: u32 = conn.query_row("SELECT COUNT(*) FROM sources", [], |row| row.get(0))?;
+        Ok(count)
     }
 
     #[allow(dead_code)]
@@ -539,6 +601,7 @@ impl Store {
 
     pub fn get_user_state(&self, user_id: &str) -> Result<UserState, AletheiaError> {
         let conn = self.conn.lock().unwrap();
+        let today = current_utc_date(&conn)?;
         let mut stmt = conn.prepare("SELECT * FROM user_state WHERE user_id = ?")?;
         
         let result = stmt.query_row(params![user_id], |row| {
@@ -547,21 +610,32 @@ impl Store {
                 subscription_tier: serde_json::from_str(&row.get::<_, String>(1)?).unwrap_or(SubscriptionTier::Free),
                 readings_today: row.get(2)?,
                 ai_calls_today: row.get(3)?,
-                last_reading_date: row.get(4)?,
-                notification_enabled: row.get::<_, i32>(5)? != 0,
-                notification_time: row.get(6)?,
-                preferred_language: row.get(7)?,
-                dark_mode: row.get::<_, i32>(8)? != 0,
-                onboarding_complete: row.get::<_, i32>(9)? != 0,
+                session_count: row.get(4)?,
+                last_reading_date: row.get(5)?,
+                notification_enabled: row.get::<_, i32>(6)? != 0,
+                notification_time: row.get(7)?,
+                preferred_language: row.get(8)?,
+                dark_mode: row.get::<_, i32>(9)? != 0,
+                onboarding_complete: row.get::<_, i32>(10)? != 0,
             })
         });
         drop(stmt);
         drop(conn);
 
         match result {
-            Ok(state) => Ok(state),
+            Ok(mut state) => {
+                if state.last_reading_date.as_deref() != Some(today.as_str()) {
+                    state.readings_today = 0;
+                    state.ai_calls_today = 0;
+                    self.update_user_state(&state)?;
+                }
+                Ok(state)
+            }
             Err(rusqlite::Error::QueryReturnedNoRows) => {
-                let default_state = UserState::default();
+                let default_state = UserState {
+                    user_id: user_id.to_string(),
+                    ..UserState::default()
+                };
                 self.insert_user_state(&default_state)?;
                 Ok(default_state)
             }
@@ -574,17 +648,21 @@ impl Store {
         conn.execute(
             r#"INSERT INTO user_state (
                 user_id, subscription_tier, readings_today, ai_calls_today,
-                notification_enabled, notification_time, preferred_language, dark_mode
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"#,
+                session_count, last_reading_date, notification_enabled, notification_time,
+                preferred_language, dark_mode, onboarding_complete
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
             params![
                 state.user_id,
                 serde_json::to_string(&state.subscription_tier).unwrap(),
                 state.readings_today,
                 state.ai_calls_today,
+                state.session_count,
+                state.last_reading_date,
                 state.notification_enabled as i32,
                 state.notification_time,
                 state.preferred_language,
                 state.dark_mode as i32,
+                state.onboarding_complete as i32,
             ],
         )?;
         Ok(())
@@ -595,7 +673,7 @@ impl Store {
         conn.execute(
             r#"UPDATE user_state SET
                 subscription_tier = ?, readings_today = ?, ai_calls_today = ?,
-                last_reading_date = ?, notification_enabled = ?,
+                session_count = ?, last_reading_date = ?, notification_enabled = ?,
                 notification_time = ?, preferred_language = ?, dark_mode = ?,
                 onboarding_complete = ?
             WHERE user_id = ?"#,
@@ -603,6 +681,7 @@ impl Store {
                 serde_json::to_string(&state.subscription_tier).unwrap(),
                 state.readings_today,
                 state.ai_calls_today,
+                state.session_count,
                 state.last_reading_date,
                 state.notification_enabled as i32,
                 state.notification_time,
@@ -617,9 +696,10 @@ impl Store {
 
     pub fn increment_readings_today(&self, user_id: &str) -> Result<(), AletheiaError> {
         let conn = self.conn.lock().unwrap();
+        let today = current_utc_date(&conn)?;
         conn.execute(
-            "UPDATE user_state SET readings_today = readings_today + 1 WHERE user_id = ?",
-            params![user_id],
+            "UPDATE user_state SET readings_today = readings_today + 1, last_reading_date = ? WHERE user_id = ?",
+            params![today, user_id],
         )?;
         Ok(())
     }
@@ -628,6 +708,15 @@ impl Store {
         let conn = self.conn.lock().unwrap();
         conn.execute(
             "UPDATE user_state SET ai_calls_today = ai_calls_today + 1 WHERE user_id = ?",
+            params![user_id],
+        )?;
+        Ok(())
+    }
+
+    pub fn increment_session_count(&self, user_id: &str) -> Result<(), AletheiaError> {
+        let conn = self.conn.lock().unwrap();
+        conn.execute(
+            "UPDATE user_state SET session_count = session_count + 1 WHERE user_id = ?",
             params![user_id],
         )?;
         Ok(())
@@ -672,11 +761,13 @@ impl Store {
         let prompts: Option<String> = stmt.query_row([source_id], |row| row.get(0)).ok();
         
         match prompts {
-            Some(p) => {
-                let vec: Vec<String> = p.lines().map(|s| s.to_string()).collect();
-                Ok(vec)
-            }
+            Some(p) => Ok(from_str::<Vec<String>>(&p).unwrap_or_default()),
             None => Ok(vec![]),
         }
     }
+}
+
+fn current_utc_date(conn: &Connection) -> Result<String, AletheiaError> {
+    let today = conn.query_row("SELECT date('now')", [], |row| row.get(0))?;
+    Ok(today)
 }
