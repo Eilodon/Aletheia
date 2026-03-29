@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { appRouter } from "../server/routers";
-import { COOKIE_NAME } from "../shared/const";
+import { COOKIE_NAME } from "../lib/constants";
 import type { TrpcContext } from "../server/_core/context";
 
 type CookieCall = {
@@ -14,14 +14,11 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
   const clearedCookies: CookieCall[] = [];
   
   const user: AuthenticatedUser = {
-    id: 1,
     openId: "sample-user",
     email: "sample@example.com",
     name: "Sample User",
     loginMethod: "manus",
     role: "user",
-    createdAt: new Date(),
-    updatedAt: new Date(),
     lastSignedIn: new Date(),
   };
   
@@ -41,8 +38,7 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
   return { ctx, clearedCookies };
 }
 
-// TODO: Remove `.skip` below once you implement user authentication
-describe.skip("auth.logout", () => {
+describe("auth.logout", () => {
   it("clears the session cookie and reports success", async () => {
     const { ctx, clearedCookies } = createAuthContext();
     const caller = appRouter.createCaller(ctx);

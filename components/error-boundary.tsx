@@ -1,7 +1,7 @@
-import { ErrorBoundary as ReactErrorBoundary, ErrorFallbackProps } from "react-error-boundary";
+import { ErrorBoundary as ReactErrorBoundary, type FallbackProps } from "react-error-boundary";
 import { View, Text, Button, StyleSheet } from "react-native";
 
-export function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps) {
+export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Đã xảy ra lỗi</Text>

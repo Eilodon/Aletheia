@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View, Text, Animated, Pressable } from "react-native";
+import { View, Text, Animated, Pressable, StyleSheet } from "react-native";
 
 type ToastKind = "success" | "warn" | "error" | "info";
 

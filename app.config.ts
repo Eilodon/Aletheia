@@ -86,7 +86,7 @@ const config: ExpoConfig = {
     favicon: "./assets/images/favicon.png",
   },
   plugins: [
-    withAletheiaCoreModule,
+    withAletheiaCoreModule as unknown as string,
     "expo-router",
     [
       "expo-splash-screen",

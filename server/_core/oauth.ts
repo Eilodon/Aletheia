@@ -1,4 +1,4 @@
-import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
+import { AXIOS_TIMEOUT_MS, COOKIE_NAME, ONE_YEAR_MS } from "../../lib/constants.js";
 import type { Express, Request, Response } from "express";
 import { getUserByOpenId, upsertUser } from "../db";
 import { getSessionCookieOptions } from "./cookies";

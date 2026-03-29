@@ -54,7 +54,7 @@ export function OnboardingProgress({
             height: "100%",
             backgroundColor: colors.primary,
             borderRadius: 2,
-            width: animated ? progress : `${((currentStep + 1) / totalSteps) * 100}%`,
+            width: animated ? (progress as any) : `${((currentStep + 1) / totalSteps) * 100}%`,
           }}
         />
       </View>
