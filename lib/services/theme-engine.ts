@@ -17,19 +17,29 @@ class ThemeEngineService {
   }
 
   /**
-   * Get 3 random symbols from a theme
-   * ARCH-06: Use theme.symbols with shuffle instead of DB query for consistency
-   * @param themeId - The theme ID to get symbols from (unused, kept for API compatibility)
+   * Get 3 random symbols from a specific theme
+   * @param themeId - The theme ID to get symbols from
    */
-  async randomThreeSymbols(themeId: string): Promise<Symbol[]> {
-    // Get random theme first
+  async getSymbolsFromTheme(themeId: string): Promise<Symbol[]> {
+    const theme = await store.getThemeById(themeId);
+    if (!theme || !theme.symbols || theme.symbols.length < 3) {
+      console.warn(`[ThemeEngine] Theme not found or not enough symbols`);
+      return [];
+    }
+    const shuffled = this.shuffleArray([...theme.symbols]);
+    return shuffled.slice(0, 3);
+  }
+
+  /**
+   * Get 3 random symbols from a random theme
+   * Use this for truly random symbol selection
+   */
+  async randomThreeSymbols(): Promise<Symbol[]> {
     const theme = await store.getRandomTheme(true);
     if (!theme || !theme.symbols || theme.symbols.length < 3) {
       console.warn(`[ThemeEngine] Not enough symbols in theme`);
       return [];
     }
-    
-    // Shuffle and take 3 (same logic as reading-engine.ts)
     const shuffled = this.shuffleArray([...theme.symbols]);
     return shuffled.slice(0, 3);
   }

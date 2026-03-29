@@ -40,11 +40,12 @@ export default function PassageScreen() {
 
   const handleRequestAI = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setShowAI(true);
     try {
       await requestAIInterpretation();
+      setShowAI(true);
     } catch (error) {
       console.error("AI request failed:", error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
   };
 
@@ -63,8 +64,7 @@ export default function PassageScreen() {
 
   const handleShare = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // TODO: Navigate to share screen
-    console.log("Share card not implemented yet");
+    router.push("/reading/share-card");
   };
 
   if (!passage || !session) {
@@ -115,7 +115,7 @@ export default function PassageScreen() {
               fontStyle: "italic",
               textAlign: "center",
             }}>
-              "{visiblePassageText || passage.text}"
+              {`"${visiblePassageText || passage.text}"`}
             </Text>
             <View style={{ alignItems: "center", marginTop: 20 }}>
               <View style={{ width: 30, height: 1, backgroundColor: colors.primary + "30" }} />

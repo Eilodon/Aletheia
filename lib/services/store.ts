@@ -55,6 +55,84 @@ class StoreService {
       return; // Already migrated
     }
     
+    // Version 0: Initial schema creation
+    if (currentVersion < 1) {
+      await this.db.execAsync(`
+        CREATE TABLE IF NOT EXISTS sources (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          tradition TEXT,
+          language TEXT,
+          passage_count INTEGER DEFAULT 0,
+          is_bundled INTEGER DEFAULT 0,
+          is_premium INTEGER DEFAULT 0,
+          fallback_prompts TEXT
+        );
+        
+        CREATE TABLE IF NOT EXISTS passages (
+          id TEXT PRIMARY KEY,
+          source_id TEXT,
+          reference TEXT,
+          text TEXT NOT NULL,
+          context TEXT,
+          resonance_context TEXT,
+          FOREIGN KEY (source_id) REFERENCES sources(id)
+        );
+        
+        CREATE TABLE IF NOT EXISTS themes (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          is_premium INTEGER DEFAULT 0,
+          pack_id TEXT,
+          price_usd REAL
+        );
+        
+        CREATE TABLE IF NOT EXISTS symbols (
+          id TEXT PRIMARY KEY,
+          display_name TEXT NOT NULL,
+          flavor_text TEXT,
+          theme_id TEXT,
+          FOREIGN KEY (theme_id) REFERENCES themes(id)
+        );
+        
+        CREATE TABLE IF NOT EXISTS user_state (
+          user_id TEXT PRIMARY KEY,
+          subscription_tier TEXT DEFAULT 'free',
+          readings_today INTEGER DEFAULT 0,
+          ai_calls_today INTEGER DEFAULT 0,
+          session_count INTEGER DEFAULT 0,
+          last_reading_date TEXT,
+          notification_enabled INTEGER DEFAULT 1,
+          notification_time TEXT,
+          preferred_language TEXT DEFAULT 'vi',
+          dark_mode INTEGER DEFAULT 1,
+          onboarding_complete INTEGER DEFAULT 0
+        );
+        
+        CREATE TABLE IF NOT EXISTS readings (
+          id TEXT PRIMARY KEY,
+          created_at INTEGER NOT NULL,
+          source_id TEXT,
+          passage_id TEXT,
+          theme_id TEXT,
+          symbol_chosen TEXT,
+          symbol_method TEXT,
+          situation_text TEXT,
+          ai_interpreted INTEGER DEFAULT 0,
+          ai_used_fallback INTEGER DEFAULT 0,
+          read_duration_s INTEGER,
+          time_to_ai_request_s INTEGER,
+          notification_opened INTEGER DEFAULT 0,
+          mood_tag TEXT,
+          is_favorite INTEGER DEFAULT 0,
+          shared INTEGER DEFAULT 0,
+          FOREIGN KEY (source_id) REFERENCES sources(id),
+          FOREIGN KEY (passage_id) REFERENCES passages(id),
+          FOREIGN KEY (theme_id) REFERENCES themes(id)
+        );
+      `);
+    }
+    
     // Version 1: Add resonance_context to passages
     if (currentVersion < 1) {
       await this.db.execAsync(`
@@ -343,6 +421,35 @@ class StoreService {
       display_name: row.display_name,
       flavor_text: row.flavor_text || undefined,
     }));
+  }
+
+  async getThemeById(themeId: string): Promise<Theme | null> {
+    await this.initialize();
+    if (!this.db) throw new Error("Database not initialized");
+
+    const row = await this.db.getFirstAsync<any>(
+      "SELECT * FROM themes WHERE id = ?",
+      [themeId]
+    );
+    if (!row) return null;
+
+    const symbols = await this.db.getAllAsync<any>(
+      "SELECT * FROM symbols WHERE theme_id = ?",
+      [row.id]
+    );
+
+    return {
+      id: row.id,
+      name: row.name,
+      is_premium: row.is_premium === 1,
+      pack_id: row.pack_id || undefined,
+      price_usd: row.price_usd || undefined,
+      symbols: symbols.map((s) => ({
+        id: s.id,
+        display_name: s.display_name,
+        flavor_text: s.flavor_text || undefined,
+      })),
+    };
   }
 
   // Readings
