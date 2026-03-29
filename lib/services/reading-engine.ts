@@ -19,12 +19,8 @@ import {
 } from "@/lib/constants";
 import { store } from "./store";
 import { themeEngine } from "./theme-engine";
-import { getUserInfo } from "@/lib/auth";
+import { getCurrentUserId } from "@/lib/services/current-user-id";
 
-async function getCurrentUserId(): Promise<string> {
-  const user = await getUserInfo();
-  return user?.id?.toString() || "local-user";
-}
 
 class ReadingEngineService {
   // ARCH-06: Helper to shuffle array (Fisher-Yates)

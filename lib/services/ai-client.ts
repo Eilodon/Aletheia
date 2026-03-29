@@ -20,6 +20,8 @@ interface AIRequest {
   situationText?: string;
   /** Hidden context injected into AI prompt, not shown to user (AI-05) */
   resonanceContext?: string;
+  sourceLanguage?: string;
+  sourceFallbackPrompts?: string[];
 }
 
 interface AIInterpretationResult {
@@ -181,10 +183,17 @@ class AIClientService {
    * Used when AI is unavailable or on first launch
    */
   private getFallbackInterpretation(request: AIRequest): string[] {
-    // Return the source's fallback prompts
-    return request.passage.context 
-      ? [request.passage.context] 
-      : ["Take a moment to reflect on this passage."];
+    // Prefer source-specific fallback prompts (CONTENT-03)
+    if (request.sourceFallbackPrompts && request.sourceFallbackPrompts.length > 0) {
+      const idx = Math.floor(Math.random() * request.sourceFallbackPrompts.length);
+      return [request.sourceFallbackPrompts[idx]];
+    }
+
+    // Language-aware generic fallback — never show English to Vietnamese users
+    if (request.sourceLanguage === "en") {
+      return ["Take a moment to sit with these words. What do they stir in you?"];
+    }
+    return ["Hãy để những lời này lắng xuống một chút. Điều gì đang dấy lên trong bạn?"];
   }
 
   /**

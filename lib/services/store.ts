@@ -140,6 +140,27 @@ class StoreService {
       return defaultState;
     }
 
+    const today = new Date().toISOString().split("T")[0];
+    if (row.last_reading_date && row.last_reading_date !== today) {
+      await this.db!.runAsync(
+        `UPDATE user_state SET readings_today = 0, ai_calls_today = 0 WHERE user_id = ?`,
+        [userId]
+      );
+      return {
+        user_id: row.user_id,
+        subscription_tier: row.subscription_tier as SubscriptionTier,
+        readings_today: 0,
+        ai_calls_today: 0,
+        session_count: row.session_count ?? 0,
+        last_reading_date: row.last_reading_date || undefined,
+        notification_enabled: row.notification_enabled === 1,
+        notification_time: row.notification_time || undefined,
+        preferred_language: row.preferred_language,
+        dark_mode: row.dark_mode === 1,
+        onboarding_complete: row.onboarding_complete === 1,
+      };
+    }
+
     return {
       user_id: row.user_id,
       subscription_tier: row.subscription_tier as SubscriptionTier,

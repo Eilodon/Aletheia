@@ -24,7 +24,7 @@ impl GiftClient {
         buyer_note: Option<String>,
     ) -> Result<GiftResponse, AletheiaError> {
         let now = chrono_timestamp();
-        let token = generate_base62_token(12);
+        let token = generate_base62_token(16);
         let deep_link = format!("https://aletheia.app/gift/{}", token);
 
         // Try to create via backend

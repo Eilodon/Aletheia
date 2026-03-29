@@ -61,6 +61,7 @@ impl Store {
                 CREATE INDEX IF NOT EXISTS idx_readings_source_id ON readings(source_id);
                 "#,
             )?;
+            tx.execute("PRAGMA user_version = 1", [])?;
         }
 
         if user_version < 2 {
@@ -111,6 +112,7 @@ impl Store {
                 );
                 "#,
             )?;
+            tx.execute("PRAGMA user_version = 2", [])?;
         }
 
         if user_version < 3 {
@@ -131,6 +133,7 @@ impl Store {
                 );
                 "#,
             )?;
+            tx.execute("PRAGMA user_version = 3", [])?;
         }
 
         if user_version < 4 {
@@ -145,9 +148,9 @@ impl Store {
                 Ok(_) => {},
                 Err(e) => info!("Migration v4 warning (may be expected): {}", e),
             }
+            tx.execute("PRAGMA user_version = 4", [])?;
         }
 
-        tx.execute(&format!("PRAGMA user_version = {}", 4), [])?;
         tx.commit()?;
         
         info!("Migrations completed to version 4");

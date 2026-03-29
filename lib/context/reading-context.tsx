@@ -12,6 +12,7 @@ import {
   Passage,
   AletheiaError,
   ErrorCode,
+  Symbol as AletheiaSymbol,
 } from "@/lib/types";
 import { readingEngine } from "@/lib/services/reading-engine";
 import { aiClient } from "@/lib/services/ai-client";
@@ -36,6 +37,7 @@ interface ReadingContextType {
   session: ReadingSession | null;
   passage: Passage | null;
   selectedSymbolId: string | null;
+  selectedSymbol: AletheiaSymbol | null;
   selectedMethod: SymbolMethod;
   visiblePassageText: string;
   passageActionsReady: boolean;
@@ -163,6 +165,8 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
           symbol: selectedSymbol,
           situationText: session.situation_text,
           resonanceContext: passage.resonance_context, // AI-05: inject hidden context
+          sourceLanguage: session.source.language,
+          sourceFallbackPrompts: session.source.fallback_prompts,
         },
         {
           onChunk: (fullText) => {
@@ -343,6 +347,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
     session,
     passage,
     selectedSymbolId,
+    selectedSymbol,
     selectedMethod,
     visiblePassageText,
     passageActionsReady,

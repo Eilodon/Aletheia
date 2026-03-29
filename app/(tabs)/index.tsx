@@ -1,24 +1,16 @@
+import { useRouter } from "expo-router";
 import { ScrollView, Text, View, Pressable } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
-import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
 import * as Haptics from "expo-haptics";
 
-
 export default function HomeScreen() {
-  const { startReading } = useReading();
   const colors = useColors();
+  const router = useRouter();
 
   const handleStartReading = async () => {
-    try {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      await startReading();
-      // Navigate to situation input screen
-      // TODO: Create situation input screen
-      console.log("Starting reading flow");
-    } catch (error) {
-      console.error("Failed to start reading:", error);
-    }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    router.push("/reading/situation");
   };
 
   return (
