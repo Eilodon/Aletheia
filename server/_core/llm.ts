@@ -206,6 +206,14 @@ const resolveApiUrl = () =>
     ? `${ENV.aiApiUrl.replace(/\/$/, "")}/v1/chat/completions`
     : "https://api.openai.com/v1/chat/completions";
 
+// Detect provider from URL or default to OpenAI
+const getProviderFromUrl = (): "openai" | "anthropic" | "custom" => {
+  const url = resolveApiUrl().toLowerCase();
+  if (url.includes("anthropic")) return "anthropic";
+  if (url.includes("openai")) return "openai";
+  return "custom";
+};
+
 const assertApiKey = () => {
   if (!ENV.aiApiKey) {
     throw new Error("OPENAI_API_KEY is not configured");
@@ -266,8 +274,15 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
     response_format,
   } = params;
 
+  const provider = getProviderFromUrl();
+  
+  // Set model based on provider - default to GPT-4 for OpenAI
+  const defaultModel = provider === "anthropic" 
+    ? "claude-sonnet-4-20250514" 
+    : "gpt-4";
+    
   const payload: Record<string, unknown> = {
-    model: process.env.AI_MODEL ?? "claude-sonnet-4-20250514",
+    model: process.env.AI_MODEL ?? defaultModel,
     messages: messages.map(normalizeMessage),
   };
 
@@ -281,9 +296,13 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   }
 
   payload.max_tokens = 32768;
-  payload.thinking = {
-    budget_tokens: 128,
-  };
+  
+  // Only add thinking for Anthropic models (Claude 3.5+)
+  if (provider === "anthropic") {
+    payload.thinking = {
+      budget_tokens: 128,
+    };
+  }
 
   const normalizedResponseFormat = normalizeResponseFormat({
     responseFormat,

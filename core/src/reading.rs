@@ -151,12 +151,40 @@ fn chrono_date() -> String {
         .unwrap()
         .as_secs();
     
-    // Simple date calculation (year 2026)
-    let days_since_epoch = now / 86400;
-    let year = 1970 + (days_since_epoch / 365);
-    let remaining_days = days_since_epoch % 365;
-    let month = (remaining_days / 30) + 1;
-    let day = (remaining_days % 30) + 1;
+    let mut days = now / 86400;
+    let mut year = 1970u64;
     
+    // Calculate year (accounting for leap years)
+    loop {
+        let days_in_year = if is_leap_year(year) { 366 } else { 365 };
+        if days < days_in_year {
+            break;
+        }
+        days -= days_in_year;
+        year += 1;
+    }
+    
+    // Days per month (non-leap year)
+    let days_in_months = if is_leap_year(year) {
+        [31u64, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    } else {
+        [31u64, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+    };
+    
+    // Calculate month
+    let mut month = 1;
+    for &days_in_m in days_in_months.iter() {
+        if days < days_in_m {
+            break;
+        }
+        days -= days_in_m;
+        month += 1;
+    }
+    
+    let day = days + 1;
     format!("{:04}-{:02}-{:02}", year, month, day)
+}
+
+fn is_leap_year(year: u64) -> bool {
+    (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
 }

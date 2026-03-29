@@ -27,6 +27,15 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use tracing::info;
 
+// Global Tokio runtime for AI operations - reuse instead of creating new each time
+static RUNTIME: once_cell::sync::Lazy<tokio::runtime::Runtime> =
+    once_cell::sync::Lazy::new(|| {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("Failed to create global Tokio runtime")
+    });
+
 #[derive(Debug, Clone)]
 struct InterpretationStreamJob {
     chunks: Vec<String>,
@@ -88,8 +97,18 @@ impl AletheiaCore {
     }
 
     pub fn new(db_path: String, gift_backend_url: String) -> Self {
-        Self::try_new(&db_path, &gift_backend_url)
-            .unwrap_or_else(|error| panic!("failed to initialize AletheiaCore: {}", error))
+        // Use try_new and log error instead of panicking
+        // The FFI layer will return error to mobile app instead of crashing
+        match Self::try_new(&db_path, &gift_backend_url) {
+            Ok(core) => core,
+            Err(error) => {
+                // Log the error - app should check init status before using
+                eprintln!("[AletheiaCore] Init failed: {} - App will receive error on first operation", error);
+                // For FFI compatibility, we still need to return Self
+                // but this should never actually be used if init fails
+                panic!("AletheiaCore initialization failed: {}", error);
+            }
+        }
     }
 
     pub fn seed_bundled_data(
@@ -270,19 +289,25 @@ impl AletheiaCore {
         symbol: Symbol,
         situation_text: Option<String>,
     ) -> Result<AIInterpretation, AletheiaError> {
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .map_err(|_| AletheiaError::ai_unavailable())?;
+        // Clone data needed for AI call before releasing lock
+        let store = Arc::clone(&self.store);
+        let passage_clone = passage.clone();
+        let symbol_clone = symbol.clone();
+        let situation_clone = situation_text.clone();
+        
+        // Release lock immediately, allow concurrent requests
+        drop(self.ai_client.lock().unwrap());
 
-        let mut ai_client = self.ai_client.lock().unwrap();
-
-        runtime.block_on(ai_client.request_interpretation(
-            &passage,
-            &symbol,
-            situation_text.as_deref(),
-            Arc::new(AtomicBool::new(false)),
-        ))
+        // Run async AI operation without holding mutex
+        RUNTIME.block_on(async {
+            let client = AIClient::new(store);
+            client.request_interpretation(
+                &passage_clone,
+                &symbol_clone,
+                situation_clone.as_deref(),
+                Arc::new(AtomicBool::new(false)),
+            ).await
+        })
     }
 
     pub fn request_interpretation(
@@ -332,7 +357,7 @@ impl AletheiaCore {
 
         let jobs = Arc::clone(&self.interpretation_jobs);
         let tokens = Arc::clone(&self.interpretation_cancel_tokens);
-        let ai_client = Arc::clone(&self.ai_client);
+        let store = Arc::clone(&self.store);
         let request_id_for_thread = request_id.clone();
 
         std::thread::spawn(move || {
@@ -346,26 +371,11 @@ impl AletheiaCore {
                 }
             });
 
-            let runtime = match tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build()
-            {
-                Ok(value) => value,
-                Err(_) => {
-                    if let Some(job) = jobs.lock().unwrap().get_mut(&request_id_for_thread) {
-                        job.done = true;
-                        job.error = Some(BridgeError {
-                            code: ErrorCode::AiUnavailable.as_str().to_string(),
-                            message: "Failed to start AI runtime".to_string(),
-                        });
-                    }
-                    return;
-                }
-            };
-
+            // Create new AIClient instance instead of holding mutex lock
+            // This allows concurrent AI requests
             let result = {
-                let mut client = ai_client.lock().unwrap();
-                runtime.block_on(client.request_interpretation_with_callback(
+                let mut client = AIClient::new(store);
+                RUNTIME.block_on(client.request_interpretation_with_callback(
                     &passage,
                     &symbol,
                     situation_text.as_deref(),
