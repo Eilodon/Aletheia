@@ -9,6 +9,7 @@
 
 import { getDb } from "../server/db";
 import { readings, userStates } from "../drizzle/schema";
+import type { DbReading, DbUserState } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 
 interface SyncConfig {
@@ -44,10 +45,10 @@ export async function syncLocalToServer(userOpenId: string, config: SyncConfig =
     // TODO: Implement actual local SQLite read
     // For now, this is a placeholder - would need to read from expo-sqlite
     // const localDb = await SQLite.openDatabaseAsync("aletheia.db");
-    // const localReadings = await localDb.getAllAsync<any>("SELECT * FROM readings");
+    // const localReadings = await localDb.getAllAsync<DbReading>("SELECT * FROM readings");
 
     // Placeholder: Get readings from local (would come from expo-sqlite)
-    const localReadings: any[] = []; // TODO: Read from local SQLite
+    const localReadings: DbReading[] = []; // TODO: Read from local SQLite
 
     if (config.syncReadings && localReadings.length > 0) {
       console.log(`[Sync] Syncing ${localReadings.length} readings...`);
@@ -57,26 +58,24 @@ export async function syncLocalToServer(userOpenId: string, config: SyncConfig =
         
         for (const reading of batch) {
           try {
-            // Check if reading already exists on server
-            const existing = await db.query.readings.findFirst({
-              where: eq(readings.id, reading.id),
-            });
+            // Check if reading already exists on server using select().from()
+            const existing = await db.select().from(readings).where(eq(readings.id, reading.id)).limit(1);
 
-            if (!existing) {
+            if (!existing.length) {
               await db.insert(readings).values({
                 id: reading.id,
                 userOpenId: userOpenId,
-                sourceId: reading.source_id,
-                passageId: reading.passage_id,
-                themeId: reading.theme_id,
-                symbolChosen: reading.symbol_chosen,
-                symbolMethod: reading.symbol_method,
-                situationText: reading.situation_text,
-                aiInterpreted: reading.ai_interpreted,
-                aiUsedFallback: reading.ai_used_fallback,
-                readDurationS: reading.read_duration_s,
-                moodTag: reading.mood_tag,
-                isFavorite: reading.is_favorite,
+                sourceId: reading.sourceId,
+                passageId: reading.passageId,
+                themeId: reading.themeId,
+                symbolChosen: reading.symbolChosen,
+                symbolMethod: reading.symbolMethod,
+                situationText: reading.situationText,
+                aiInterpreted: reading.aiInterpreted,
+                aiUsedFallback: reading.aiUsedFallback,
+                readDurationS: reading.readDurationS,
+                moodTag: reading.moodTag,
+                isFavorite: reading.isFavorite,
                 shared: reading.shared,
               });
               readingsSynced++;
@@ -92,41 +91,20 @@ export async function syncLocalToServer(userOpenId: string, config: SyncConfig =
     // Sync user state
     if (config.syncUserState) {
       try {
-        // TODO: Read from local SQLite
-        // const localUserState = await localDb.getFirstAsync<any>(
-        //   "SELECT * FROM user_state WHERE user_id = ?",
+        // TODO: Implement actual local SQLite read
+        // const localDb = await SQLite.openDatabaseAsync("aletheia.db");
+        // const localUserState = await localDb.getFirstAsync<DbUserState>(
+        //   "SELECT * FROM user_state WHERE user_open_id = ?",
         //   [userOpenId]
         // );
+        // if (localUserState) { ... }
 
-        const localUserState = null; // TODO: Read from local SQLite
+        // Placeholder - skip for now
+        const hasUserState = false;
 
-        if (localUserState) {
-          await db.insert(userStates)
-            .values({
-              userOpenId: userOpenId,
-              subscriptionTier: localUserState.subscription_tier as "free" | "pro",
-              readingsToday: localUserState.readings_today,
-              aiCallsToday: localUserState.ai_calls_today,
-              lastReadingDate: localUserState.last_reading_date,
-              notificationEnabled: localUserState.notification_enabled,
-              notificationTime: localUserState.notification_time,
-              preferredLanguage: localUserState.preferred_language,
-              darkMode: localUserState.dark_mode,
-              onboardingComplete: localUserState.onboarding_complete,
-            })
-            .onDuplicateKeyUpdate({
-              set: {
-                subscriptionTier: localUserState.subscription_tier as "free" | "pro",
-                readingsToday: localUserState.readings_today,
-                aiCallsToday: localUserState.ai_calls_today,
-                lastReadingDate: localUserState.last_reading_date,
-                notificationEnabled: localUserState.notification_enabled,
-                notificationTime: localUserState.notification_time,
-                preferredLanguage: localUserState.preferred_language,
-                darkMode: localUserState.dark_mode,
-                onboardingComplete: localUserState.onboarding_complete,
-              },
-            });
+        if (hasUserState) {
+          // When implemented, use:
+          // await db.insert(userStates).values({ ... }).onDuplicateKeyUpdate({ set: { ... } });
           userStateSynced = true;
           console.log("[Sync] User state synced");
         }

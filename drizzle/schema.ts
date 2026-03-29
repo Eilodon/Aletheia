@@ -42,8 +42,8 @@ export const sources = mysqlTable("sources", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export type Source = typeof sources.$inferSelect;
-export type InsertSource = typeof sources.$inferInsert;
+export type DbSource = typeof sources.$inferSelect;
+export type DbInsertSource = typeof sources.$inferInsert;
 
 export const passages = mysqlTable("passages", {
   id: varchar("id", { length: 64 }).primaryKey(),
@@ -55,8 +55,8 @@ export const passages = mysqlTable("passages", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export type Passage = typeof passages.$inferSelect;
-export type InsertPassage = typeof passages.$inferInsert;
+export type DbPassage = typeof passages.$inferSelect;
+export type DbInsertPassage = typeof passages.$inferInsert;
 
 export const themes = mysqlTable("themes", {
   id: varchar("id", { length: 64 }).primaryKey(),
@@ -68,8 +68,8 @@ export const themes = mysqlTable("themes", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export type Theme = typeof themes.$inferSelect;
-export type InsertTheme = typeof themes.$inferInsert;
+export type DbTheme = typeof themes.$inferSelect;
+export type DbInsertTheme = typeof themes.$inferInsert;
 
 export const symbols = mysqlTable("symbols", {
   id: varchar("id", { length: 64 }).primaryKey(),
@@ -80,8 +80,8 @@ export const symbols = mysqlTable("symbols", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export type Symbol = typeof symbols.$inferSelect;
-export type InsertSymbol = typeof symbols.$inferInsert;
+export type DbSymbol = typeof symbols.$inferSelect;
+export type DbInsertSymbol = typeof symbols.$inferInsert;
 
 export const readings = mysqlTable("readings", {
   id: varchar("id", { length: 64 }).primaryKey(),
@@ -102,8 +102,8 @@ export const readings = mysqlTable("readings", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export type Reading = typeof readings.$inferSelect;
-export type InsertReading = typeof readings.$inferInsert;
+export type DbReading = typeof readings.$inferSelect;
+export type DbInsertReading = typeof readings.$inferInsert;
 
 export const userStates = mysqlTable("user_states", {
   userOpenId: varchar("user_open_id", { length: 64 }).primaryKey(), // FK to users.openId
@@ -120,5 +120,5 @@ export const userStates = mysqlTable("user_states", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
-export type UserState = typeof userStates.$inferSelect;
-export type InsertUserState = typeof userStates.$inferInsert;
+export type DbUserState = typeof userStates.$inferSelect;
+export type DbInsertUserState = typeof userStates.$inferInsert;
