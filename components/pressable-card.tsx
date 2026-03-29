@@ -1,6 +1,7 @@
-import React, { useRef } from "react";
-import { Pressable, Animated, ViewProps, StyleSheet } from "react-native";
+import { useRef } from "react";
+import { Pressable, Animated, ViewProps } from "react-native";
 import * as Haptics from "expo-haptics";
+import { useColors } from "@/hooks/use-colors";
 
 interface PressableCardProps extends ViewProps {
   children: React.ReactNode;
@@ -17,6 +18,7 @@ export function PressableCard({
   style,
   ...props
 }: PressableCardProps) {
+  const colors = useColors();
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -43,6 +45,14 @@ export function PressableCard({
     onPress?.();
   };
 
+  const cardStyle = {
+    backgroundColor: colors.surface + "4D",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: colors.border + "4D",
+  };
+
   return (
     <Pressable
       onPress={handlePress}
@@ -52,9 +62,9 @@ export function PressableCard({
     >
       <Animated.View
         style={[
-          styles.card,
+          cardStyle,
           { transform: [{ scale: scaleAnim }] },
-          disabled && styles.disabled,
+          disabled && { opacity: 0.5 },
           style,
         ]}
         {...props}
@@ -84,6 +94,7 @@ export function AnimatedButton({
   style,
   ...props
 }: AnimatedButtonProps) {
+  const colors = useColors();
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -111,27 +122,27 @@ export function AnimatedButton({
   };
 
   const variantStyles = {
-    primary: styles.buttonPrimary,
-    secondary: styles.buttonSecondary,
-    ghost: styles.buttonGhost,
+    primary: { backgroundColor: colors.primary },
+    secondary: { backgroundColor: colors.surface + "80", borderWidth: 1, borderColor: colors.muted + "4D" },
+    ghost: { backgroundColor: "transparent" },
   };
 
   const sizeStyles = {
-    small: styles.buttonSmall,
-    medium: styles.buttonMedium,
-    large: styles.buttonLarge,
+    small: { paddingHorizontal: 16, paddingVertical: 8 },
+    medium: { paddingHorizontal: 24, paddingVertical: 12 },
+    large: { paddingHorizontal: 32, paddingVertical: 16 },
   };
 
   const textVariantStyles = {
-    primary: styles.textPrimary,
-    secondary: styles.textSecondary,
-    ghost: styles.textGhost,
+    primary: { color: "#FFFFFF" },
+    secondary: { color: colors.foreground },
+    ghost: { color: colors.primary },
   };
 
   const textSizeStyles = {
-    small: styles.textSmall,
-    medium: styles.textMedium,
-    large: styles.textLarge,
+    small: { fontSize: 14 },
+    medium: { fontSize: 16 },
+    large: { fontSize: 18 },
   };
 
   return (
@@ -143,23 +154,17 @@ export function AnimatedButton({
     >
       <Animated.View
         style={[
-          styles.button,
+          { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 24 },
           variantStyles[variant],
           sizeStyles[size],
-          disabled && styles.buttonDisabled,
+          disabled && { opacity: 0.5 },
           { transform: [{ scale: scaleAnim }] },
           style,
         ]}
         {...props}
       >
         {icon}
-        <Animated.Text
-          style={[
-            styles.buttonText,
-            textVariantStyles[variant],
-            textSizeStyles[size],
-          ]}
-        >
+        <Animated.Text style={[{ fontWeight: "600" }, textVariantStyles[variant], textSizeStyles[size]]}>
           {title}
         </Animated.Text>
       </Animated.View>
@@ -167,69 +172,4 @@ export function AnimatedButton({
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    backgroundColor: "rgba(55, 65, 81, 0.3)",
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "rgba(55, 65, 81, 0.3)",
-  },
-  disabled: {
-    opacity: 0.5,
-  },
-  button: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderRadius: 24,
-  },
-  buttonPrimary: {
-    backgroundColor: "#0a7ea4",
-  },
-  buttonSecondary: {
-    backgroundColor: "rgba(55, 65, 81, 0.5)",
-    borderWidth: 1,
-    borderColor: "rgba(155, 161, 166, 0.3)",
-  },
-  buttonGhost: {
-    backgroundColor: "transparent",
-  },
-  buttonSmall: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  buttonMedium: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-  },
-  buttonLarge: {
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonText: {
-    fontWeight: "600",
-  },
-  textPrimary: {
-    color: "#FFFFFF",
-  },
-  textSecondary: {
-    color: "#ECEDEE",
-  },
-  textGhost: {
-    color: "#0a7ea4",
-  },
-  textSmall: {
-    fontSize: 14,
-  },
-  textMedium: {
-    fontSize: 16,
-  },
-  textLarge: {
-    fontSize: 18,
-  },
-});
+export { type PressableCardProps, type AnimatedButtonProps };

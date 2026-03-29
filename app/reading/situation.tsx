@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState } from "react";
 import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { useReading } from "@/lib/context/reading-context";
@@ -71,7 +71,7 @@ export default function SituationScreen() {
               value={situationText}
               onChangeText={setSituationText}
               placeholder="Tôi đang cảm thấy... / Tôi đang đối mặt với..."
-              placeholderTextColor="#6B7280"
+              placeholderTextColor={colors.muted}
               multiline
               numberOfLines={6}
               textAlignVertical="top"

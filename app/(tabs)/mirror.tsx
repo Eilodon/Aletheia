@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { View, Text, Pressable, FlatList, Animated, RefreshControl, StyleSheet } from "react-native";
+import { View, Text, Pressable, FlatList, Animated, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
@@ -112,32 +112,42 @@ export default function HistoryScreen() {
   const renderReadingItem = ({ item }: { item: ReadingWithDetails }) => (
     <PressableCard
       onPress={() => handleReadingPress(item)}
-      style={styles.readingCard}
+      style={{
+        padding: 18,
+        borderRadius: 20,
+        backgroundColor: colors.surface + "20",
+        borderWidth: 1,
+        borderColor: colors.border + "30",
+        marginBottom: 14,
+      }}
     >
-      <View style={styles.readingHeader}>
-        <View style={styles.readingHeaderLeft}>
-          <Text style={styles.moodEmoji}>{getMoodEmoji(item.mood_tag)}</Text>
-          <Text style={styles.readingDate}>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+          <Text style={{ fontSize: 20 }}>{getMoodEmoji(item.mood_tag)}</Text>
+          <Text style={{ fontSize: 13, color: colors.muted }}>
             {formatDate(item.created_at)}
           </Text>
         </View>
         {item.ai_interpreted && (
-          <View style={styles.aiBadge}>
-            <Text style={styles.aiBadgeText}>AI</Text>
+          <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, backgroundColor: colors.primary + "20" }}>
+            <Text style={{ fontSize: 11, color: colors.primary, fontWeight: "600" }}>AI</Text>
           </View>
         )}
       </View>
       
-      <Text style={styles.readingSituation} numberOfLines={2}>
+      <Text style={{ fontSize: 15, color: colors.foreground, marginBottom: 10, lineHeight: 22 }} numberOfLines={2}>
         {item.situation_text || "Không có tình huống"}
       </Text>
       
-      <View style={styles.readingFooter}>
-        <Text style={styles.readingMeta}>
-          Biểu tượng: {item.symbol_chosen || "?"}
-        </Text>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+          <Text style={{ color: colors.primary, fontSize: 12 }}>✦</Text>
+          <Text style={{ fontSize: 12, color: colors.muted }}>
+            {item.symbol_chosen || "?"}
+          </Text>
+        </View>
         {item.read_duration_s && (
-          <Text style={styles.readingMeta}>
+          <Text style={{ fontSize: 12, color: colors.muted }}>
             {Math.floor(item.read_duration_s / 60)}p{item.read_duration_s % 60}s
           </Text>
         )}
@@ -198,56 +208,3 @@ export default function HistoryScreen() {
     </ScreenContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  readingCard: {
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: "rgba(55, 65, 81, 0.15)",
-    borderWidth: 1,
-    borderColor: "rgba(55, 65, 81, 0.25)",
-    marginBottom: 12,
-  },
-  readingHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  readingHeaderLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  moodEmoji: {
-    fontSize: 18,
-  },
-  readingDate: {
-    fontSize: 14,
-    color: "#9BA1A6",
-  },
-  aiBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    backgroundColor: "rgba(10, 126, 164, 0.2)",
-  },
-  aiBadgeText: {
-    fontSize: 12,
-    color: "#0a7ea4",
-    fontWeight: "600",
-  },
-  readingSituation: {
-    fontSize: 14,
-    color: "#ECEDEE",
-    marginBottom: 8,
-  },
-  readingFooter: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  readingMeta: {
-    fontSize: 12,
-    color: "#9BA1A6",
-  },
-});

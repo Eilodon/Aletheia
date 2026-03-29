@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { View, Text, Pressable, ScrollView, Animated, StyleSheet } from "react-native";
+import { View, Text, Pressable, ScrollView, Animated } from "react-native";
 import { useRouter } from "expo-router";
 import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
@@ -82,84 +82,115 @@ export default function PassageScreen() {
           contentContainerStyle={{ flexGrow: 1 }}
           showsVerticalScrollIndicator={false}
         >
-          {/* Header - Symbol & Source */}
-          <View className="items-center gap-2 pt-4 pb-6">
-            <Text className="text-lg font-medium text-primary">
+          {/* Header - Symbol & Source - Subtle, not competing */}
+          <View className="items-center gap-1 pt-6 pb-8">
+            <Text style={{ fontSize: 13, color: colors.primary, letterSpacing: 2, textTransform: "uppercase" }}>
               {selectedSymbol?.display_name || "Biểu tượng"}
             </Text>
-            <Text className="text-xs text-muted uppercase tracking-wider">
+            <View style={{ width: 20, height: 1, backgroundColor: colors.border + "50", marginTop: 8 }} />
+            <Text style={{ fontSize: 11, color: colors.muted, marginTop: 8, letterSpacing: 1 }}>
               {session.source.name}
             </Text>
           </View>
 
-          {/* Passage Card - Glassmorphic */}
-          <View style={styles.passageCard}>
-            <Text style={styles.passageText}>
-              {visiblePassageText || passage.text}
+          {/* Passage Card - Hero object, breathing space */}
+          <View style={{
+            borderRadius: 28,
+            padding: 28,
+            backgroundColor: colors.surface + "E6",
+            borderWidth: 1,
+            borderColor: colors.border + "40",
+            marginBottom: 20,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.1,
+            shadowRadius: 12,
+            elevation: 3,
+          }}>
+            <Text style={{
+              fontSize: 22,
+              fontWeight: "300",
+              color: colors.foreground,
+              lineHeight: 38,
+              fontStyle: "italic",
+              textAlign: "center",
+            }}>
+              "{visiblePassageText || passage.text}"
             </Text>
-            <Text style={styles.passageReference}>
+            <View style={{ alignItems: "center", marginTop: 20 }}>
+              <View style={{ width: 30, height: 1, backgroundColor: colors.primary + "30" }} />
+            </View>
+            <Text style={{
+              fontSize: 13,
+              color: colors.muted,
+              textAlign: "center",
+              marginTop: 16,
+              letterSpacing: 0.5,
+            }}>
               {passage.reference}
             </Text>
           </View>
 
-          {/* Context hint */}
+          {/* Context hint - Whisper text */}
           {passage.context && (
-            <Text className="text-sm text-muted text-center italic mb-6 px-4">
+            <Text style={{ fontSize: 13, color: colors.muted, textAlign: "center", fontStyle: "italic", marginBottom: 24, paddingHorizontal: 16 }}>
               {passage.context}
             </Text>
           )}
 
-          {/* AI Interpretation Section */}
-          <View className="gap-4 mb-6">
+          {/* AI Interpretation Section - Secondary reveal */}
+          <View className="gap-4 mb-8">
             {!aiResponse && !showAI && (
               <Pressable
                 onPress={handleRequestAI}
                 disabled={!passageActionsReady}
                 style={({ pressed }) => ({
-                  backgroundColor: pressed ? colors.primary + "20" : "transparent",
-                  borderColor: colors.primary,
+                  backgroundColor: pressed ? colors.surface + "10" : "transparent",
+                  borderColor: colors.primary + "60",
                   borderWidth: 1,
                   paddingHorizontal: 24,
-                  paddingVertical: 14,
-                  borderRadius: 12,
-                  opacity: passageActionsReady ? 1 : 0.5,
+                  paddingVertical: 16,
+                  borderRadius: 24,
+                  opacity: passageActionsReady ? 1 : 0.4,
                 })}
               >
-                <Text
-                  className="text-base font-medium text-center"
-                  style={{ color: colors.primary }}
-                >
-                  ✦ Xin diễn giải từ AI
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  <Text style={{ color: colors.primary, fontSize: 15, fontWeight: "500" }}>✦</Text>
+                  <Text style={{ color: colors.primary, fontSize: 15, fontWeight: "500" }}>Xin diễn giải</Text>
+                  <Text style={{ color: colors.primary, fontSize: 15, fontWeight: "500" }}>✦</Text>
+                </View>
               </Pressable>
             )}
 
             {showAI && !aiResponse && (
-              <View className="p-4 rounded-xl bg-muted/20">
-                <Text className="text-sm text-muted text-center">
-                  Đang diễn giải...
+              <View style={{ padding: 20, borderRadius: 16, backgroundColor: colors.surface + "15", alignItems: "center" }}>
+                <Text style={{ fontSize: 13, color: colors.muted, marginBottom: 12 }}>
+                  Đang lắng nghe...
                 </Text>
-                <View className="flex-row justify-center gap-1 mt-2">
-                  <Text className="text-primary animate-pulse">●</Text>
-                  <Text className="text-primary animate-pulse delay-75">●</Text>
-                  <Text className="text-primary animate-pulse delay-150">●</Text>
+                <View style={{ flexDirection: "row", gap: 6 }}>
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primary + "60" }} />
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primary + "60" }} />
+                  <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primary + "60" }} />
                 </View>
               </View>
             )}
 
             {aiResponse && (
               <View
-                className="p-5 rounded-xl"
                 style={{
-                  backgroundColor: isAIFallback ? "#374151" : "#1E3A5F",
-                  borderLeftWidth: 3,
-                  borderLeftColor: isAIFallback ? "#9CA3AF" : colors.primary,
+                  padding: 20,
+                  borderRadius: 20,
+                  backgroundColor: colors.surface + "E6",
+                  borderLeftWidth: 2,
+                  borderLeftColor: isAIFallback ? colors.muted : colors.primary,
                 }}
               >
-                <Text className="text-sm text-muted mb-2">
-                  {isAIFallback ? "Diễn giải nội tại:" : "Diễn giải:"}
-                </Text>
-                <Text className="text-base text-foreground leading-relaxed">
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 12 }}>
+                  <Text style={{ color: isAIFallback ? colors.muted : colors.primary, fontSize: 12, letterSpacing: 1 }}>
+                    {isAIFallback ? "DIỄN GIẢI NỘI TẠI" : "DIỄN GIẢI"}
+                  </Text>
+                </View>
+                <Text style={{ fontSize: 15, color: colors.foreground, lineHeight: 26 }}>
                   {aiResponse}
                 </Text>
               </View>
@@ -169,20 +200,20 @@ export default function PassageScreen() {
           {/* Spacer */}
           <View className="flex-1" />
 
-          {/* Actions */}
+          {/* Actions - Subdued until ready */}
           <View className="gap-3 pb-4">
             <Pressable
               onPress={handleShare}
               disabled={!passageActionsReady}
               style={({ pressed }) => ({
-                backgroundColor: "#374151",
+                backgroundColor: colors.surface + "80",
                 paddingHorizontal: 24,
-                paddingVertical: 14,
-                borderRadius: 12,
-                opacity: pressed || !passageActionsReady ? 0.7 : 1,
+                paddingVertical: 16,
+                borderRadius: 24,
+                opacity: pressed || !passageActionsReady ? 0.6 : 1,
               })}
             >
-              <Text className="text-base font-medium text-foreground text-center">
+              <Text style={{ fontSize: 15, fontWeight: "500", color: colors.foreground, textAlign: "center" }}>
                 Chia sẻ
               </Text>
             </Pressable>
@@ -192,14 +223,19 @@ export default function PassageScreen() {
               disabled={!passageActionsReady}
               style={({ pressed }) => ({
                 backgroundColor: colors.primary,
-                paddingHorizontal: 24,
-                paddingVertical: 16,
-                borderRadius: 12,
+                paddingHorizontal: 32,
+                paddingVertical: 18,
+                borderRadius: 28,
                 opacity: pressed || !passageActionsReady ? 0.8 : 1,
                 transform: [{ scale: pressed ? 0.98 : 1 }],
+                shadowColor: colors.primary,
+                shadowOffset: { width: 0, height: 6 },
+                shadowOpacity: 0.3,
+                shadowRadius: 12,
+                elevation: 4,
               })}
             >
-              <Text className="text-lg font-semibold text-white text-center">
+              <Text style={{ fontSize: 17, fontWeight: "600", color: "#FFFFFF", textAlign: "center", letterSpacing: 0.5 }}>
                 Hoàn thành
               </Text>
             </Pressable>
@@ -209,26 +245,3 @@ export default function PassageScreen() {
     </ScreenContainer>
   );
 }
-
-const styles = StyleSheet.create({
-  passageCard: {
-    borderRadius: 24,
-    padding: 24,
-    backgroundColor: "rgba(31, 41, 55, 0.8)",
-    borderWidth: 1,
-    borderColor: "rgba(55, 65, 81, 0.5)",
-    marginBottom: 24,
-  },
-  passageText: {
-    fontSize: 20,
-    fontWeight: "300",
-    color: "#ECEDEE",
-    lineHeight: 32,
-    marginBottom: 16,
-  },
-  passageReference: {
-    fontSize: 14,
-    color: "#9BA1A6",
-    textAlign: "right",
-  },
-});

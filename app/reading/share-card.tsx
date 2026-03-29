@@ -8,7 +8,7 @@ import * as Haptics from "expo-haptics";
 import * as FileSystem from "expo-file-system";
 import { captureRef } from "react-native-view-shot";
 
-// Card preview component
+// Card preview component - Premium artifact style
 function CardPreview({
   passageText,
   symbolName,
@@ -21,64 +21,59 @@ function CardPreview({
   theme: "dark" | "light" | "gold";
 }) {
   const themeStyles = {
-    dark: { bg: "#1F2937", text: "#F3F4F6", accent: "#6366F1" },
-    light: { bg: "#F9FAFB", text: "#1F2937", accent: "#6366F1" },
-    gold: { bg: "#451a03", text: "#fef3c7", accent: "#f59e0b" },
+    dark: { bg: "#0f1117", text: "#e5e7eb", accent: "#8b5cf6", secondary: "#4b5563" },
+    light: { bg: "#fafafa", text: "#1f2937", accent: "#7c3aed", secondary: "#9ca3af" },
+    gold: { bg: "#1c1917", text: "#fef3c7", accent: "#f59e0b", secondary: "#78350f" },
   };
   const style = themeStyles[theme];
 
-  const truncateText = (text: string, maxLength: number = 120) => {
+  const truncateText = (text: string, maxLength: number = 100) => {
     if (text.length <= maxLength) return text;
     return text.slice(0, maxLength - 3) + "...";
   };
 
   return (
     <View
-      className="rounded-3xl p-8 justify-between"
-      style={{ backgroundColor: style.bg, aspectRatio: 9 / 16, maxHeight: 480 }}
+      style={{ 
+        backgroundColor: style.bg, 
+        aspectRatio: 9 / 16, 
+        maxHeight: 480,
+        borderRadius: 0,
+      }}
     >
-      {/* Header ornament */}
-      <View className="items-center">
-        <Text style={{ color: style.accent, fontSize: 24 }}>✦</Text>
-        <View
-          className="h-px w-16 mt-2"
-          style={{ backgroundColor: style.accent, opacity: 0.5 }}
-        />
+      {/* Top decorative */}
+      <View style={{ alignItems: "center", paddingTop: 32 }}>
+        <Text style={{ color: style.accent, fontSize: 28 }}>✦</Text>
+        <View style={{ width: 40, height: 1, backgroundColor: style.accent, opacity: 0.4, marginTop: 12 }} />
       </View>
 
-      {/* Content */}
-      <View className="flex-1 justify-center px-2">
+      {/* Content - Centered, breathing */}
+      <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 24 }}>
         <Text
-          className="text-center leading-relaxed"
-          style={{ color: style.text, fontSize: 18, fontWeight: "300" }}
+          style={{ 
+            color: style.text, 
+            fontSize: 17, 
+            fontWeight: "300",
+            lineHeight: 28,
+            textAlign: "center",
+            fontStyle: "italic",
+          }}
         >
-          {truncateText(passageText)}
+          "{truncateText(passageText)}"
         </Text>
       </View>
 
-      {/* Footer */}
-      <View className="items-center">
-        <View
-          className="h-px w-16 mb-2"
-          style={{ backgroundColor: style.accent, opacity: 0.5 }}
-        />
-        <Text
-          className="text-sm font-medium"
-          style={{ color: style.accent }}
-        >
+      {/* Bottom - Symbol & Reference */}
+      <View style={{ alignItems: "center", paddingBottom: 32 }}>
+        <View style={{ width: 30, height: 1, backgroundColor: style.accent, opacity: 0.4, marginBottom: 16 }} />
+        <Text style={{ color: style.accent, fontSize: 13, fontWeight: "600", letterSpacing: 2, textTransform: "uppercase" }}>
           {symbolName}
         </Text>
-        <Text
-          className="text-xs mt-1"
-          style={{ color: style.text, opacity: 0.7 }}
-        >
+        <Text style={{ color: style.text, fontSize: 11, opacity: 0.6, marginTop: 6 }}>
           {reference}
         </Text>
-        <Text
-          className="text-xs mt-4"
-          style={{ color: style.text, opacity: 0.5 }}
-        >
-          aletheia.app
+        <Text style={{ color: style.text, fontSize: 10, opacity: 0.4, marginTop: 16, letterSpacing: 1 }}>
+          A L E T H E I A
         </Text>
       </View>
     </View>

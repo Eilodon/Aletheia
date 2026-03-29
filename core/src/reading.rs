@@ -151,7 +151,10 @@ fn chrono_date() -> String {
         .unwrap()
         .as_secs();
     
-    let mut days = now / 86400;
+    // Apply timezone offset (UTC+7 for Vietnam, can be made configurable)
+    // This ensures daily limit resets at local midnight, not UTC midnight
+    let utc_offset_seconds: u64 = 7 * 3600; // UTC+7
+    let mut days = (now + utc_offset_seconds) / 86400;
     let mut year = 1970u64;
     
     // Calculate year (accounting for leap years)

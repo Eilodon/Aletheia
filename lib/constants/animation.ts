@@ -42,15 +42,4 @@ export const STYLES = {
     xl: 24,
     xxl: 32,
   },
-  colors: {
-    primary: "#0a7ea4",
-    background: "#151718",
-    surface: "#1e2022",
-    foreground: "#ECEDEE",
-    muted: "#9BA1A6",
-    border: "#334155",
-    success: "#4ADE80",
-    warning: "#FBBF24",
-    error: "#F87171",
-  },
 };

@@ -174,11 +174,12 @@ export default function GiftCreateScreen() {
         >
           {/* Header */}
           <View className="items-center gap-2 pt-4 pb-6">
+            <Text className="text-3xl">🎁</Text>
             <Text className="text-xl font-semibold text-foreground">
-              Tặng một lần đọc
+              Gửi một khoảnh khắc
             </Text>
             <Text className="text-sm text-muted text-center max-w-xs">
-              Chọn nguồn triết lý để tặng cho người thân
+              Chia sẻ khoảnh khắc triết lý đến người thân
             </Text>
           </View>
 
@@ -232,7 +233,7 @@ export default function GiftCreateScreen() {
               value={buyerNote}
               onChangeText={setBuyerNote}
               placeholder="Gửi lời nhắn cho người nhận..."
-              placeholderTextColor="#6B7280"
+              placeholderTextColor={colors.muted}
               multiline
               numberOfLines={3}
               className="bg-muted/20 rounded-xl p-4 text-base text-foreground"
@@ -252,7 +253,7 @@ export default function GiftCreateScreen() {
               onPress={handleCreateGift}
               disabled={!selectedSourceId || isCreating}
               style={({ pressed }) => ({
-                backgroundColor: !selectedSourceId ? "#6B7280" : colors.primary,
+                backgroundColor: !selectedSourceId ? colors.surface + "60" : colors.primary,
                 paddingHorizontal: 24,
                 paddingVertical: 16,
                 borderRadius: 12,

@@ -55,7 +55,7 @@ function SymbolCard({
   };
 
   return (
-    <Pressable onPress={handlePress} className="flex-1 mx-2" disabled={!isRevealed || isSelected}>
+    <Pressable onPress={handlePress} className="flex-1 mx-1" disabled={!isRevealed || isSelected}>
       <View className="aspect-[2/3] relative">
         {/* Back of card (hidden initially, shown after flip) */}
         <Animated.View
@@ -66,19 +66,25 @@ function SymbolCard({
             width: "100%",
             height: "100%",
           }}
-          className="rounded-2xl p-4 justify-between"
+          className="rounded-3xl p-4 justify-between"
         >
           <View
-            className="absolute inset-0 rounded-2xl"
+            className="absolute inset-0 rounded-3xl"
             style={{
-              backgroundColor: isSelected ? colors.primary : "#1F2937",
-              opacity: isSelected ? 1 : 0.9,
+              backgroundColor: isSelected ? colors.primary : colors.surface,
+              opacity: isSelected ? 1 : 0.95,
+              borderWidth: 1,
+              borderColor: isSelected ? colors.primary : colors.border + "50",
             }}
           />
-          <View className="flex-1 justify-center items-center">
+          {/* Decorative corner */}
+          <View style={{ alignItems: "center", paddingTop: 12 }}>
+            <Text style={{ color: isSelected ? "rgba(255,255,255,0.5)" : colors.muted, fontSize: 12 }}>✦</Text>
+          </View>
+          <View className="flex-1 justify-center items-center px-2">
             <Text
               className="text-3xl font-bold text-center"
-              style={{ color: isSelected ? "white" : "#F3F4F6" }}
+              style={{ color: isSelected ? "#FFFFFF" : colors.foreground }}
             >
               {symbol.display_name}
             </Text>
@@ -86,14 +92,14 @@ function SymbolCard({
           {symbol.flavor_text && (
             <Text
               className="text-xs text-center italic"
-              style={{ color: isSelected ? "rgba(255,255,255,0.8)" : "#9CA3AF" }}
+              style={{ color: isSelected ? "rgba(255,255,255,0.7)" : colors.muted, paddingBottom: 12 }}
             >
               {symbol.flavor_text}
             </Text>
           )}
         </Animated.View>
 
-        {/* Front of card (shown initially) */}
+        {/* Front of card (shown initially) - Mystical card back */}
         <Animated.View
           style={{
             transform: [{ rotateY: frontInterpolate }],
@@ -102,10 +108,27 @@ function SymbolCard({
             width: "100%",
             height: "100%",
           }}
-          className="rounded-2xl bg-primary/20 border-2 border-primary/30 justify-center items-center"
+          className="rounded-3xl justify-center items-center"
         >
-          <Text className="text-4xl opacity-50">✦</Text>
-          <Text className="text-xs text-muted mt-2">Chạm để lật</Text>
+          <View
+            className="absolute inset-0 rounded-3xl"
+            style={{
+              backgroundColor: colors.surface + "CC",
+              borderWidth: 1,
+              borderColor: colors.primary + "30",
+            }}
+          />
+          {/* Mystical pattern */}
+          <View style={{ position: "absolute", top: 20, opacity: 0.3 }}>
+            <Text style={{ color: colors.primary, fontSize: 24 }}>✦</Text>
+          </View>
+          <View style={{ position: "absolute", bottom: 20, opacity: 0.3 }}>
+            <Text style={{ color: colors.primary, fontSize: 24 }}>✦</Text>
+          </View>
+          <View style={{ alignItems: "center", gap: 8 }}>
+            <Text style={{ color: colors.primary, fontSize: 36, opacity: 0.6 }}>✦</Text>
+            <Text style={{ color: colors.muted, fontSize: 11, letterSpacing: 1 }}>CHẠM ĐỂ LẬT</Text>
+          </View>
         </Animated.View>
       </View>
     </Pressable>
@@ -129,41 +152,7 @@ export default function WildcardScreen() {
     return () => clearTimeout(timeout);
   }, []);
 
-  // Auto-select countdown
-  useEffect(() => {
-    if (!isRevealed || isAutoSelecting || selectedSymbolId) return;
-
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          handleAutoChoose();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [isRevealed, isAutoSelecting, selectedSymbolId]);
-
-  const handleSelect = useCallback(
-    async (symbolId: string) => {
-      if (!session || isAutoSelecting) return;
-
-      setIsAutoSelecting(true);
-      try {
-        await chooseSymbol(symbolId, SymbolMethod.Manual);
-        router.push("/reading/ritual");
-      } catch (error) {
-        console.error("Failed to choose symbol:", error);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      } finally {
-        setIsAutoSelecting(false);
-      }
-    },
-    [session, chooseSymbol, router, isAutoSelecting]
-  );
-
+  // Handle auto-select (surrender to the universe)
   const handleAutoChoose = useCallback(async () => {
     if (!session || isAutoSelecting || selectedSymbolId) return;
 
@@ -182,6 +171,41 @@ export default function WildcardScreen() {
       setIsAutoSelecting(false);
     }
   }, [session, chooseSymbol, router, isAutoSelecting, selectedSymbolId]);
+
+  // Auto-select countdown - shows surrender option
+  useEffect(() => {
+    if (!isRevealed || isAutoSelecting || selectedSymbolId) return;
+
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          handleAutoChoose();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isRevealed, isAutoSelecting, selectedSymbolId, handleAutoChoose]);
+
+  const handleSelect = useCallback(
+    async (symbolId: string) => {
+      if (!session || isAutoSelecting) return;
+
+      setIsAutoSelecting(true);
+      try {
+        await chooseSymbol(symbolId, SymbolMethod.Manual);
+        router.push("/reading/ritual");
+      } catch (error) {
+        console.error("Failed to choose symbol:", error);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      } finally {
+        setIsAutoSelecting(false);
+      }
+    },
+    [session, chooseSymbol, router, isAutoSelecting]
+  );
 
   if (!session) {
     return (

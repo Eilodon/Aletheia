@@ -131,117 +131,144 @@ export default function PaywallScreen() {
             <Text className="text-2xl text-muted">×</Text>
           </Pressable>
 
-          {/* Header */}
-          <View className="items-center gap-2 pt-8 pb-6">
+          {/* Header - Ritual threshold */}
+          <View className="items-center gap-3 pt-10 pb-8">
             <View
-              className="w-16 h-16 rounded-full items-center justify-center"
-              style={{ backgroundColor: colors.primary + "20" }}
+              style={{
+                width: 72,
+                height: 72,
+                borderRadius: 36,
+                backgroundColor: colors.surface + "15",
+                borderWidth: 1,
+                borderColor: colors.primary + "30",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
             >
-              <Text className="text-3xl">✦</Text>
+              <Text style={{ color: colors.primary, fontSize: 28 }}>✦</Text>
             </View>
-            <Text className="text-2xl font-bold text-foreground">
+            <Text style={{ fontSize: 24, fontWeight: "300", color: colors.foreground, letterSpacing: 1 }}>
               Aletheia Pro
             </Text>
-            <Text className="text-sm text-muted text-center max-w-xs">
-              Mở khóa toàn bộ trải nghiệm phản chiếu
+            <Text style={{ fontSize: 14, color: colors.muted, textAlign: "center", maxWidth: 260, lineHeight: 22 }}>
+              Mở khóa chiều sâu của phản chiếu
             </Text>
           </View>
 
           {/* Current tier badge */}
           {currentTier === "pro" && (
-            <View className="items-center mb-4">
+            <View className="items-center mb-6">
               <View
-                className="px-4 py-2 rounded-full"
-                style={{ backgroundColor: colors.primary + "20" }}
+                style={{
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
+                  borderRadius: 20,
+                  backgroundColor: colors.primary + "15",
+                  borderWidth: 1,
+                  borderColor: colors.primary + "30",
+                }}
               >
-                <Text
-                  className="text-sm font-medium"
-                  style={{ color: colors.primary }}
-                >
-                  ✓ Bạn đang là Pro
+                <Text style={{ fontSize: 13, fontWeight: "500", color: colors.primary }}>
+                  ✓ Đang sử dụng Pro
                 </Text>
               </View>
             </View>
           )}
 
-          {/* Benefits */}
-          <View className="gap-3 mb-8">
+          {/* Benefits - Elegant list */}
+          <View className="gap-2 mb-8">
             {benefits.map((benefit, index) => (
               <View
                 key={index}
-                className="flex-row items-center gap-3 p-3 rounded-xl bg-muted/10"
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 14,
+                  padding: 14,
+                  borderRadius: 14,
+                  backgroundColor: colors.surface + "0A",
+                  borderWidth: 1,
+                  borderColor: colors.border + "15",
+                }}
               >
-                <Text className="text-xl">{benefit.icon}</Text>
-                <Text className="text-base text-foreground">
+                <Text style={{ fontSize: 18 }}>{benefit.icon}</Text>
+                <Text style={{ fontSize: 15, color: colors.foreground, flex: 1 }}>
                   {benefit.text}
                 </Text>
               </View>
             ))}
           </View>
 
-          {/* Free tier note */}
+          {/* Free tier note - Honest, clear */}
           {currentTier === "free" && (
-            <View className="p-4 rounded-xl bg-muted/20 mb-6">
-              <Text className="text-sm text-muted text-center">
-                Gói Miễn phí: {FREE_READINGS_PER_DAY} lần đọc/ngày,{" "}
-                {FREE_AI_PER_DAY} AI/ngày
+            <View style={{ padding: 16, borderRadius: 14, backgroundColor: colors.surface + "10", marginBottom: 8 }}>
+              <Text style={{ fontSize: 13, color: colors.muted, textAlign: "center" }}>
+                Miễn phí: {FREE_READINGS_PER_DAY} lần đọc/ngày • {FREE_AI_PER_DAY} AI/ngày
               </Text>
             </View>
           )}
 
-          {/* Plans */}
+          {/* Plans - Premium selection */}
           {currentTier === "free" && (
             <View className="gap-3 mb-6">
-              <Text className="text-sm font-medium text-foreground mb-2">
-                Chọn gói:
-              </Text>
-              
-              {/* Yearly (best value) */}
+              {/* Yearly - Recommended */}
               <Pressable
                 onPress={() => {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   setSelectedPlan("yearly");
                 }}
-                className={`p-4 rounded-xl border ${
-                  selectedPlan === "yearly"
-                    ? "border-primary bg-primary/5"
-                    : "border-muted/30"
-                }`}
+                style={({ pressed }) => ({
+                  padding: 16,
+                  borderRadius: 16,
+                  backgroundColor: selectedPlan === "yearly" ? colors.primary + "10" : colors.surface + "08",
+                  borderWidth: 1.5,
+                  borderColor: selectedPlan === "yearly" ? colors.primary : colors.border + "30",
+                  opacity: pressed ? 0.8 : 1,
+                })}
               >
-                <View className="flex-row items-center justify-between">
-                  <View>
-                    <View className="flex-row items-center gap-2">
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                       <Text
-                        className={`font-semibold ${
-                          selectedPlan === "yearly"
-                            ? "text-primary"
-                            : "text-foreground"
-                        }`}
+                        style={{
+                          fontSize: 16,
+                          fontWeight: "600",
+                          color: selectedPlan === "yearly" ? colors.primary : colors.foreground,
+                        }}
                       >
                         Gói Năm
                       </Text>
                       <View
-                        className="px-2 py-0.5 rounded-full"
-                        style={{ backgroundColor: colors.primary }}
+                        style={{
+                          paddingHorizontal: 10,
+                          paddingVertical: 4,
+                          borderRadius: 12,
+                          backgroundColor: colors.primary,
+                        }}
                       >
-                        <Text className="text-xs text-white font-medium">
-                          Tiết kiệm 50%
+                        <Text style={{ fontSize: 11, fontWeight: "600", color: "#FFFFFF" }}>
+                          TIẾT KIỆM 50%
                         </Text>
                       </View>
                     </View>
-                    <Text className="text-sm text-muted mt-1">
+                    <Text style={{ fontSize: 13, color: colors.muted, marginTop: 6 }}>
                       599.000đ/năm
                     </Text>
                   </View>
                   <View
-                    className={`w-6 h-6 rounded-full border-2 items-center justify-center ${
-                      selectedPlan === "yearly"
-                        ? "border-primary bg-primary"
-                        : "border-muted"
-                    }`}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      borderWidth: 2,
+                      borderColor: selectedPlan === "yearly" ? colors.primary : colors.border,
+                      backgroundColor: selectedPlan === "yearly" ? colors.primary : "transparent",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
                   >
                     {selectedPlan === "yearly" && (
-                      <Text className="text-white text-xs">✓</Text>
+                      <Text style={{ color: "#FFFFFF", fontSize: 12, fontWeight: "700" }}>✓</Text>
                     )}
                   </View>
                 </View>
@@ -253,36 +280,44 @@ export default function PaywallScreen() {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   setSelectedPlan("monthly");
                 }}
-                className={`p-4 rounded-xl border ${
-                  selectedPlan === "monthly"
-                    ? "border-primary bg-primary/5"
-                    : "border-muted/30"
-                }`}
+                style={({ pressed }) => ({
+                  padding: 16,
+                  borderRadius: 16,
+                  backgroundColor: selectedPlan === "monthly" ? colors.primary + "10" : colors.surface + "08",
+                  borderWidth: 1.5,
+                  borderColor: selectedPlan === "monthly" ? colors.primary : colors.border + "30",
+                  opacity: pressed ? 0.8 : 1,
+                })}
               >
-                <View className="flex-row items-center justify-between">
+                <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}>
                   <View>
                     <Text
-                      className={`font-semibold ${
-                        selectedPlan === "monthly"
-                          ? "text-primary"
-                          : "text-foreground"
-                      }`}
+                      style={{
+                        fontSize: 16,
+                        fontWeight: "600",
+                        color: selectedPlan === "monthly" ? colors.primary : colors.foreground,
+                      }}
                     >
                       Gói Tháng
                     </Text>
-                    <Text className="text-sm text-muted mt-1">
+                    <Text style={{ fontSize: 13, color: colors.muted, marginTop: 6 }}>
                       99.000đ/tháng
                     </Text>
                   </View>
                   <View
-                    className={`w-6 h-6 rounded-full border-2 items-center justify-center ${
-                      selectedPlan === "monthly"
-                        ? "border-primary bg-primary"
-                        : "border-muted"
-                    }`}
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      borderWidth: 2,
+                      borderColor: selectedPlan === "monthly" ? colors.primary : colors.border,
+                      backgroundColor: selectedPlan === "monthly" ? colors.primary : "transparent",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
                   >
                     {selectedPlan === "monthly" && (
-                      <Text className="text-white text-xs">✓</Text>
+                      <Text style={{ color: "#FFFFFF", fontSize: 12, fontWeight: "700" }}>✓</Text>
                     )}
                   </View>
                 </View>
@@ -293,7 +328,7 @@ export default function PaywallScreen() {
           {/* Spacer */}
           <View className="flex-1" />
 
-          {/* Actions */}
+          {/* Actions - Premium, not aggressive */}
           <View className="gap-3 pb-4">
             {currentTier === "free" ? (
               <>
@@ -301,26 +336,31 @@ export default function PaywallScreen() {
                   onPress={handlePurchase}
                   disabled={!selectedPlan || isPurchasing}
                   style={({ pressed }) => ({
-                    backgroundColor: !selectedPlan ? "#6B7280" : colors.primary,
-                    paddingHorizontal: 24,
-                    paddingVertical: 16,
-                    borderRadius: 12,
+                    backgroundColor: !selectedPlan ? colors.surface + "40" : colors.primary,
+                    paddingHorizontal: 32,
+                    paddingVertical: 18,
+                    borderRadius: 28,
                     opacity: pressed || !selectedPlan ? 0.7 : 1,
                     transform: [{ scale: pressed ? 0.98 : 1 }],
+                    shadowColor: colors.primary,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.25,
+                    shadowRadius: 8,
+                    elevation: 3,
                   })}
                 >
-                  <Text className="text-lg font-semibold text-white text-center">
+                  <Text style={{ fontSize: 17, fontWeight: "600", color: "#FFFFFF", textAlign: "center" }}>
                     {isPurchasing
-                      ? "Đang xử lý..."
+                      ? "Đang mở khóa..."
                       : selectedPlan
-                      ? "Đăng ký"
+                      ? "Mở khóa Pro"
                       : "Chọn gói để tiếp tục"}
                   </Text>
                 </Pressable>
 
-                <Pressable onPress={handleRestore} className="py-3">
-                  <Text className="text-sm text-muted text-center">
-                    Khôi phục gói đã mua
+                <Pressable onPress={handleRestore} style={{ paddingVertical: 10 }}>
+                  <Text style={{ fontSize: 13, color: colors.muted, textAlign: "center" }}>
+                    Đã mua trước đó? Khôi phục
                   </Text>
                 </Pressable>
               </>
@@ -329,22 +369,21 @@ export default function PaywallScreen() {
                 onPress={handleClose}
                 style={({ pressed }) => ({
                   backgroundColor: colors.primary,
-                  paddingHorizontal: 24,
-                  paddingVertical: 16,
-                  borderRadius: 12,
+                  paddingHorizontal: 32,
+                  paddingVertical: 18,
+                  borderRadius: 28,
                   opacity: pressed ? 0.8 : 1,
                   transform: [{ scale: pressed ? 0.98 : 1 }],
                 })}
               >
-                <Text className="text-lg font-semibold text-white text-center">
-                  Tiếp tục sử dụng Pro
+                <Text style={{ fontSize: 17, fontWeight: "600", color: "#FFFFFF", textAlign: "center" }}>
+                  Tiếp tục hành trình
                 </Text>
               </Pressable>
             )}
 
-            <Text className="text-xs text-muted text-center px-4">
-              Thanh toán sẽ được tính vào tài khoản của bạn. Tự động gia hạn trừ
-              khi tắt ít nhất 24 giờ trước khi hết hạn.
+            <Text style={{ fontSize: 11, color: colors.muted, textAlign: "center", paddingHorizontal: 20, lineHeight: 18 }}>
+              Thanh toán qua App Store/Google Play. Tự động gia hạn. Hủy bất kỳ lúc nào.
             </Text>
           </View>
         </ScrollView>

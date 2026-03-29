@@ -3,6 +3,7 @@
  */
 
 import { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { useRouter } from "expo-router";
 import { v4 as uuidv4 } from "uuid";
 import {
   Reading,
@@ -60,6 +61,7 @@ interface ReadingContextType {
 const ReadingContext = createContext<ReadingContextType | undefined>(undefined);
 
 export function ReadingProvider({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const [currentState, setCurrentState] = useState<ReadingState>(ReadingState.Idle);
   const [session, setSession] = useState<ReadingSession | null>(null);
   const [passage, setPassage] = useState<Passage | null>(null);
@@ -105,6 +107,13 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
       setCurrentState(ReadingState.SourceSelection);
     } catch (err) {
       const aletheiaError = err as AletheiaError;
+      
+      // Trigger paywall when daily limit reached
+      if (aletheiaError.code === ErrorCode.DailyLimitReached) {
+        router.push("/paywall");
+        return;
+      }
+      
       setError(aletheiaError);
       setCurrentState(ReadingState.Idle);
     }

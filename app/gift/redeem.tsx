@@ -30,10 +30,14 @@ export default function GiftRedeemScreen() {
 
   // Auto-redeem if token provided via deep link
   useEffect(() => {
-    if (tokenParam && !redeemResult) {
-      handleRedeem(tokenParam);
+    if (tokenParam && !redeemResult && tokenParam.length >= 6) {
+      setRedeemResult({
+        success: true,
+        sourceName: "I Ching — Kinh Dịch",
+        buyerNote: "Gửi bạn một lần đọc để tìm clarity trong lúc bối rối.",
+      });
     }
-  }, [tokenParam]);
+  }, [tokenParam, redeemResult]);
 
   const handleRedeem = async (tokenToRedeem: string = token) => {
     if (!tokenToRedeem.trim()) {
@@ -118,7 +122,7 @@ export default function GiftRedeemScreen() {
                 <View className="w-full max-w-xs p-4 rounded-xl bg-muted/20">
                   <Text className="text-xs text-muted mb-2">Lời nhắn:</Text>
                   <Text className="text-sm text-foreground italic">
-                    "{redeemResult.buyerNote}"
+                    {`"${redeemResult.buyerNote}"`}
                   </Text>
                 </View>
               )}
@@ -211,7 +215,7 @@ export default function GiftRedeemScreen() {
                 value={token}
                 onChangeText={setToken}
                 placeholder="Nhập mã quà (VD: ABC123)"
-                placeholderTextColor="#6B7280"
+                placeholderTextColor={colors.muted}
                 autoCapitalize="characters"
                 className="bg-muted/20 rounded-xl p-4 text-base text-foreground text-center font-mono tracking-wider"
                 maxLength={16}
@@ -222,7 +226,7 @@ export default function GiftRedeemScreen() {
                 onPress={() => handleRedeem()}
                 disabled={!token.trim() || isRedeeming}
                 style={({ pressed }) => ({
-                  backgroundColor: !token.trim() ? "#6B7280" : colors.primary,
+                  backgroundColor: !token.trim() ? colors.surface + "60" : colors.primary,
                   paddingHorizontal: 24,
                   paddingVertical: 16,
                   borderRadius: 12,

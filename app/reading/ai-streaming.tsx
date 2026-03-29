@@ -8,12 +8,10 @@ import * as Haptics from "expo-haptics";
 
 export default function AIStreamingScreen() {
   const {
-    passage,
     selectedSymbol,
     aiResponse,
     isAIFallback,
     cancelAIInterpretation,
-    currentState,
   } = useReading();
   const colors = useColors();
   const router = useRouter();
@@ -65,9 +63,9 @@ export default function AIStreamingScreen() {
             <View
               className="rounded-2xl p-6 mb-6"
               style={{
-                backgroundColor: isAIFallback ? "#374151" : "#1E3A5F",
+                backgroundColor: isAIFallback ? colors.surface : colors.primary + "1A",
                 borderLeftWidth: 3,
-                borderLeftColor: isAIFallback ? "#9CA3AF" : colors.primary,
+                borderLeftColor: isAIFallback ? colors.muted : colors.primary,
               }}
             >
               <Text className="text-base text-foreground leading-relaxed">
@@ -120,7 +118,7 @@ export default function AIStreamingScreen() {
         <View className="flex-1">
           <View
             className="rounded-2xl p-6 min-h-[200px]"
-            style={{ backgroundColor: "#1E3A5F" }}
+            style={{ backgroundColor: colors.primary + "1A" }}
           >
             <Text className="text-base text-foreground leading-relaxed">
               {aiResponse}

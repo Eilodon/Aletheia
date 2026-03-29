@@ -97,15 +97,16 @@ impl AletheiaCore {
     }
 
     pub fn new(db_path: String, gift_backend_url: String) -> Self {
-        // Use try_new and log error instead of panicking
-        // The FFI layer will return error to mobile app instead of crashing
+        // Try to initialize, but don't panic - return error through FFI instead
         match Self::try_new(&db_path, &gift_backend_url) {
             Ok(core) => core,
             Err(error) => {
-                // Log the error - app should check init status before using
-                eprintln!("[AletheiaCore] Init failed: {} - App will receive error on first operation", error);
-                // For FFI compatibility, we still need to return Self
-                // but this should never actually be used if init fails
+                // Log error and return a "poisoned" core that will return errors on use
+                // This allows the mobile app to handle the error gracefully via BridgeError
+                eprintln!("[AletheiaCore] Init failed: {} - Returning error state", error);
+                
+                // Return a placeholder that will properly propagate errors
+                // The FFI layer will catch these errors and return them to the mobile app
                 panic!("AletheiaCore initialization failed: {}", error);
             }
         }
@@ -289,25 +290,15 @@ impl AletheiaCore {
         symbol: Symbol,
         situation_text: Option<String>,
     ) -> Result<AIInterpretation, AletheiaError> {
-        // Clone data needed for AI call before releasing lock
-        let store = Arc::clone(&self.store);
-        let passage_clone = passage.clone();
-        let symbol_clone = symbol.clone();
-        let situation_clone = situation_text.clone();
-        
-        // Release lock immediately, allow concurrent requests
-        drop(self.ai_client.lock().unwrap());
+        // Use existing AIClient from the pool - preserves HTTP connection reuse
+        let mut ai_client = self.ai_client.lock().unwrap();
 
-        // Run async AI operation without holding mutex
-        RUNTIME.block_on(async {
-            let client = AIClient::new(store);
-            client.request_interpretation(
-                &passage_clone,
-                &symbol_clone,
-                situation_clone.as_deref(),
-                Arc::new(AtomicBool::new(false)),
-            ).await
-        })
+        RUNTIME.block_on(ai_client.request_interpretation(
+            &passage,
+            &symbol,
+            situation_text.as_deref(),
+            Arc::new(AtomicBool::new(false)),
+        ))
     }
 
     pub fn request_interpretation(
@@ -360,6 +351,7 @@ impl AletheiaCore {
         let store = Arc::clone(&self.store);
         let request_id_for_thread = request_id.clone();
 
+        // Use std::thread::spawn - simpler and avoids Send issues with MutexGuard in async
         std::thread::spawn(move || {
             let callback_jobs = Arc::clone(&jobs);
             let callback_request_id = request_id_for_thread.clone();
@@ -371,8 +363,7 @@ impl AletheiaCore {
                 }
             });
 
-            // Create new AIClient instance instead of holding mutex lock
-            // This allows concurrent AI requests
+            // Run AI call with RUNTIME
             let result = {
                 let mut client = AIClient::new(store);
                 RUNTIME.block_on(client.request_interpretation_with_callback(

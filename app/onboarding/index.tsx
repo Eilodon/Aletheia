@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { View, Text, Pressable, Animated, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
@@ -7,8 +7,10 @@ import { store } from "@/lib/services/store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
 import * as Haptics from "expo-haptics";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { UserIntent } from "@/lib/types";
 
 const ONBOARDING_COMPLETED_KEY = "@aletheia_onboarding_completed";
+const USER_INTENT_KEY = "@aletheia_user_intent";
 const { width } = Dimensions.get("window");
 
 interface OnboardingStep {
@@ -17,7 +19,15 @@ interface OnboardingStep {
   subtitle: string;
   content: string;
   icon: string;
+  isIntentStep?: boolean;
 }
+
+const intents = [
+  { intent: UserIntent.Clarity, label: "Sự rõ ràng", emoji: "🔍", desc: "Cần hiểu rõ hơn về tình huống" },
+  { intent: UserIntent.Comfort, label: "Sự an ủi", emoji: "💛", desc: "Cần được chữa lành" },
+  { intent: UserIntent.Challenge, label: "Một thách thức", emoji: "⚔️", desc: "Sẵn sàng đối mặt sự thật" },
+  { intent: UserIntent.Guidance, label: "Để vũ trụ dẫn lối", emoji: "🌙", desc: "Không cần gì cụ thể" },
+];
 
 const steps: OnboardingStep[] = [
   {
@@ -27,6 +37,14 @@ const steps: OnboardingStep[] = [
     content:
       "Aletheia không dự đoán tương lai. Đây là không gian để bạn phản chiếu — qua những đoạn trích triết lý từ khắp nơi trên thế giới.",
     icon: "✦",
+  },
+  {
+    id: "which-mirror",
+    title: "Gương nào?",
+    subtitle: "Hôm nay bạn đang cần gì?",
+    content: "Chọn gương phản chiếu phù hợp với tâm trạng của bạn",
+    icon: "🪞",
+    isIntentStep: true,
   },
   {
     id: "how-it-works",
@@ -67,11 +85,13 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [selectedIntent, setSelectedIntent] = useState<UserIntent | null>(null);
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
 
   const step = steps[currentStep];
   const isLastStep = currentStep === steps.length - 1;
+  const isIntentStep = step?.isIntentStep;
 
   const animateTransition = (direction: "next" | "prev") => {
     const toValue = direction === "next" ? -width : width;
@@ -131,6 +151,11 @@ export default function OnboardingScreen() {
       // Mark onboarding as completed
       await AsyncStorage.setItem(ONBOARDING_COMPLETED_KEY, "true");
       
+      // Save user intent if selected
+      if (selectedIntent) {
+        await AsyncStorage.setItem(USER_INTENT_KEY, selectedIntent);
+      }
+      
       // Initialize user state
       const userId = await getCurrentUserId();
       await store.getUserState(userId);
@@ -155,20 +180,28 @@ export default function OnboardingScreen() {
   return (
     <ScreenContainer className="p-6">
       <View className="flex-1">
-        {/* Progress dots */}
-        <View className="flex-row justify-center gap-2 pt-8 pb-4">
-          {steps.map((_, index) => (
-            <View
-              key={index}
-              className={`h-1.5 rounded-full transition-all duration-300 ${
-                index === currentStep
-                  ? "w-6 bg-primary"
-                  : index < currentStep
-                  ? "w-1.5 bg-primary/50"
-                  : "w-1.5 bg-muted"
-              }`}
-            />
-          ))}
+        {/* Progress - Ceremonial line */}
+        <View className="pt-6 pb-2">
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            {steps.map((_, index) => (
+              <View key={index} style={{ flexDirection: "row", alignItems: "center" }}>
+                <View
+                  style={{
+                    width: index === currentStep ? 24 : 8,
+                    height: 8,
+                    borderRadius: 4,
+                    backgroundColor: index <= currentStep ? colors.primary : colors.border + "40",
+                  }}
+                />
+                {index < steps.length - 1 && (
+                  <View style={{ width: 8, height: 1, backgroundColor: index < currentStep ? colors.primary + "40" : "transparent" }} />
+                )}
+              </View>
+            ))}
+          </View>
+          <Text style={{ textAlign: "center", fontSize: 11, color: colors.muted, marginTop: 8 }}>
+            bước {currentStep + 1} / {steps.length}
+          </Text>
         </View>
 
         {/* Skip button */}
@@ -181,69 +214,123 @@ export default function OnboardingScreen() {
           </Pressable>
         )}
 
-        {/* Content */}
+        {/* Content - Chapter card style */}
         <Animated.View
           style={{
             opacity: fadeAnim,
             transform: [{ translateX: slideAnim }],
           }}
-          className="flex-1 justify-center items-center"
+          className="flex-1 justify-center"
         >
-          <View className="items-center gap-6 max-w-xs">
-            {/* Icon */}
-            <View
-              className="w-24 h-24 rounded-full items-center justify-center"
-              style={{ backgroundColor: colors.primary + "15" }}
-            >
-              <Text className="text-5xl">{step.icon}</Text>
+          {isIntentStep ? (
+            <View className="w-full gap-4">
+              <View className="items-center gap-2 mb-6">
+                <Text style={{ fontSize: 28, fontWeight: "300", color: colors.foreground, textAlign: "center" }}>
+                  {step.title}
+                </Text>
+                <Text style={{ fontSize: 15, color: colors.primary, textAlign: "center" }}>
+                  {step.subtitle}
+                </Text>
+              </View>
+              {intents.map((item) => (
+                <Pressable
+                  key={item.intent}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    setSelectedIntent(item.intent);
+                  }}
+                  style={({ pressed }) => ({
+                    backgroundColor: selectedIntent === item.intent ? colors.surface + "20" : colors.surface + "08",
+                    padding: 18,
+                    borderRadius: 16,
+                    borderWidth: 1.5,
+                    borderColor: selectedIntent === item.intent ? colors.primary : colors.border + "30",
+                    opacity: pressed ? 0.8 : 1,
+                  })}
+                >
+                  <View className="flex-row items-center gap-4">
+                    <Text style={{ fontSize: 28 }}>{item.emoji}</Text>
+                    <View className="flex-1">
+                      <Text style={{ fontSize: 17, fontWeight: "600", color: colors.foreground }}>{item.label}</Text>
+                      <Text style={{ fontSize: 13, color: colors.muted, marginTop: 2 }}>{item.desc}</Text>
+                    </View>
+                    {selectedIntent === item.intent && (
+                      <Text style={{ fontSize: 20, color: colors.primary }}>✓</Text>
+                    )}
+                  </View>
+                </Pressable>
+              ))}
             </View>
-
-            {/* Title */}
-            <View className="items-center gap-1">
-              <Text className="text-2xl font-bold text-foreground text-center">
-                {step.title}
-              </Text>
-              <Text
-                className="text-base text-center"
-                style={{ color: colors.primary }}
+          ) : (
+            <View className="items-center px-4">
+              {/* Icon - Chapter seal style */}
+              <View
+                style={{
+                  width: 100,
+                  height: 100,
+                  borderRadius: 50,
+                  backgroundColor: colors.surface + "15",
+                  borderWidth: 1,
+                  borderColor: colors.primary + "30",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  marginBottom: 24,
+                }}
               >
-                {step.subtitle}
+                <Text style={{ fontSize: 40 }}>{step.icon}</Text>
+              </View>
+
+              {/* Title - Chapter heading */}
+              <View className="items-center gap-2 mb-4">
+                <Text style={{ fontSize: 26, fontWeight: "300", color: colors.foreground, textAlign: "center", letterSpacing: 1 }}>
+                  {step.title}
+                </Text>
+                <Text style={{ fontSize: 14, color: colors.primary, textAlign: "center" }}>
+                  {step.subtitle}
+                </Text>
+              </View>
+
+              {/* Content - Chapter body */}
+              <Text style={{ fontSize: 15, color: colors.muted, textAlign: "center", lineHeight: 24, maxWidth: 280 }}>
+                {step.content}
               </Text>
             </View>
-
-            {/* Content */}
-            <Text className="text-base text-muted text-center leading-relaxed">
-              {step.content}
-            </Text>
-          </View>
+          )}
         </Animated.View>
 
-        {/* Navigation */}
-        <View className="gap-4 pb-8">
+        {/* Navigation - Premium buttons */}
+        <View className="gap-4 pb-6">
           <Pressable
             onPress={handleNext}
-            disabled={isCompleting}
+            disabled={isCompleting || (isIntentStep && !selectedIntent)}
             style={({ pressed }) => ({
-              backgroundColor: colors.primary,
-              paddingHorizontal: 32,
-              paddingVertical: 16,
-              borderRadius: 12,
+              backgroundColor: (isIntentStep && !selectedIntent) ? colors.surface + "40" : colors.primary,
+              paddingHorizontal: 40,
+              paddingVertical: 18,
+              borderRadius: 28,
               opacity: pressed || isCompleting ? 0.8 : 1,
               transform: [{ scale: pressed ? 0.98 : 1 }],
+              shadowColor: colors.primary,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 4,
             })}
           >
-            <Text className="text-lg font-semibold text-white text-center">
+            <Text style={{ fontSize: 17, fontWeight: "600", color: "#FFFFFF", textAlign: "center" }}>
               {isCompleting
                 ? "Đang khởi tạo..."
                 : isLastStep
-                ? "Bắt đầu"
+                ? "Bước vào"
+                : isIntentStep && !selectedIntent
+                ? "Chọn một gương"
                 : "Tiếp tục"}
             </Text>
           </Pressable>
 
           {currentStep > 0 && (
-            <Pressable onPress={handleBack} className="py-3">
-              <Text className="text-sm text-muted text-center">Quay lại</Text>
+            <Pressable onPress={handleBack} style={{ paddingVertical: 8 }}>
+              <Text style={{ fontSize: 13, color: colors.muted, textAlign: "center" }}>Quay lại</Text>
             </Pressable>
           )}
         </View>

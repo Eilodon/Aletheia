@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from "react";
-import { View, Animated, StyleSheet } from "react-native";
+import { useEffect, useRef } from "react";
+import { View, Animated } from "react-native";
+import { useColors } from "@/hooks/use-colors";
 
 interface SkeletonProps {
   width?: number;
@@ -15,6 +16,7 @@ export function Skeleton({
   borderRadius = 8,
   isLoading = true,
 }: SkeletonProps) {
+  const colors = useColors();
   const shimmerAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -50,8 +52,8 @@ export function Skeleton({
   return (
     <View
       style={[
-        width ? { width } : styles.flexible,
-        { height, borderRadius, backgroundColor: "#374151", overflow: "hidden" },
+        width ? { width } : { flex: 1 },
+        { height, borderRadius, backgroundColor: colors.surface, overflow: "hidden" },
       ]}
     >
       <Animated.View
@@ -61,7 +63,7 @@ export function Skeleton({
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: "#6B7280",
+          backgroundColor: colors.muted,
           opacity,
           transform: [
             {
@@ -78,23 +80,32 @@ export function Skeleton({
 }
 
 export function SkeletonCard({ lines = 3 }: { lines?: number }) {
+  const colors = useColors();
+  
   return (
-    <View style={styles.card}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
+    <View style={{
+      padding: 16,
+      borderRadius: 16,
+      backgroundColor: colors.surface + "1A",
+      borderWidth: 1,
+      borderColor: colors.border + "33",
+      marginBottom: 12,
+    }}>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <Skeleton width={32} height={32} borderRadius={16} />
           <Skeleton width={80} height={16} />
         </View>
         <Skeleton width={40} height={20} borderRadius={10} />
       </View>
 
-      <View style={styles.lines}>
+      <View style={{ gap: 8 }}>
         <Skeleton width={undefined} height={16} />
         <Skeleton width={undefined} height={16} />
         {lines > 2 && <Skeleton width={60} height={16} />}
       </View>
 
-      <View style={styles.footer}>
+      <View style={{ flexDirection: "row", gap: 12, marginTop: 16 }}>
         <Skeleton width={100} height={12} />
         <Skeleton width={60} height={12} />
       </View>
@@ -104,7 +115,7 @@ export function SkeletonCard({ lines = 3 }: { lines?: number }) {
 
 export function SkeletonList({ count = 5 }: { count?: number }) {
   return (
-    <View style={styles.list}>
+    <View style={{ gap: 16 }}>
       <SkeletonCard lines={3} />
       <SkeletonCard lines={2} />
       <SkeletonCard lines={3} />
@@ -113,31 +124,3 @@ export function SkeletonList({ count = 5 }: { count?: number }) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  flexible: { flex: 1 },
-  card: {
-    padding: 16,
-    borderRadius: 16,
-    backgroundColor: "rgba(55, 65, 81, 0.1)",
-    borderWidth: 1,
-    borderColor: "rgba(55, 65, 81, 0.2)",
-    marginBottom: 12,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  lines: { gap: 8 },
-  lineWrapper: {},
-  itemWrapper: {},
-  footer: { flexDirection: "row", gap: 12, marginTop: 16 },
-  list: { gap: 16 },
-});

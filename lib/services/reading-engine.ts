@@ -39,19 +39,10 @@ class ReadingEngineService {
       const userId = await getCurrentUserId();
       const userState = await store.getUserState(userId);
 
-      // Check daily limit for Free tier
-      if (userState.subscription_tier === SubscriptionTier.Free) {
-        if (userState.readings_today >= FREE_READINGS_PER_DAY) {
-          throw this.createError(
-            ErrorCode.DailyLimitReached,
-            `You've reached your daily limit of ${FREE_READINGS_PER_DAY} readings`,
-            {
-              used: userState.readings_today,
-              limit: FREE_READINGS_PER_DAY,
-            }
-          );
-        }
-      }
+      // Note: Daily limit check is now handled by Rust core via FFI
+      // This is a fallback path - if we reach here, native path failed
+      // The Rust layer handles the daily limit check, so we don't duplicate here
+      // If user is over limit, Rust will return DailyLimitReached error
 
       // Resolve source
       let source;

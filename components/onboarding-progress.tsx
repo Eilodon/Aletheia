@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from "react";
-import { View, Animated, StyleSheet } from "react-native";
+import { useEffect, useRef } from "react";
+import { View, Animated } from "react-native";
+import { useColors } from "@/hooks/use-colors";
 
 interface OnboardingProgressProps {
   currentStep: number;
@@ -12,6 +13,7 @@ export function OnboardingProgress({
   totalSteps,
   animated = true,
 }: OnboardingProgressProps) {
+  const colors = useColors();
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -32,31 +34,32 @@ export function OnboardingProgress({
     : `${(currentStep / totalSteps) * 100}%`;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.dotsContainer}>
+    <View style={{ alignItems: "center", gap: 12 }}>
+      <View style={{ flexDirection: "row", gap: 8 }}>
         {Array.from({ length: totalSteps }).map((_, i) => (
           <View
             key={i}
-            style={[
-              styles.dot,
-              i <= currentStep && styles.dotActive,
-              i === currentStep && styles.dotCurrent,
-            ]}
+            style={{
+              height: 8,
+              borderRadius: 4,
+              backgroundColor: i <= currentStep ? (i === currentStep ? colors.primary : colors.primary + "80") : colors.muted + "4D",
+              width: i === currentStep ? 24 : 8,
+            }}
           />
         ))}
       </View>
-      <View style={styles.progressBarContainer}>
+      <View style={{ width: "100%", height: 4, backgroundColor: colors.border + "4D", borderRadius: 2, overflow: "hidden" }}>
         <Animated.View
-          style={[
-            styles.progressBar,
-            animated
-              ? { width: progress }
-              : { width: `${((currentStep + 1) / totalSteps) * 100}%` },
-          ]}
+          style={{
+            height: "100%",
+            backgroundColor: colors.primary,
+            borderRadius: 2,
+            width: animated ? progress : `${((currentStep + 1) / totalSteps) * 100}%`,
+          }}
         />
       </View>
-      <View style={styles.stepText}>
-        <Animated.Text style={styles.stepLabel}>
+      <View style={{ marginTop: 4 }}>
+        <Animated.Text style={{ fontSize: 12, color: colors.muted }}>
           {currentStep + 1} / {totalSteps}
         </Animated.Text>
       </View>
@@ -70,45 +73,58 @@ interface StepIndicatorProps {
 }
 
 export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
+  const colors = useColors();
+  
   return (
-    <View style={styles.stepIndicatorContainer}>
+    <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 16 }}>
       {steps.map((step, index) => (
-        <View key={index} style={styles.stepItem}>
+        <View key={index} style={{ flex: 1, alignItems: "center" }}>
           <View
-            style={[
-              styles.stepCircle,
-              index < currentStep && styles.stepCircleCompleted,
-              index === currentStep && styles.stepCircleCurrent,
-            ]}
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              backgroundColor: index < currentStep ? colors.success + "4D" : index === currentStep ? colors.primary : colors.border + "4D",
+              alignItems: "center",
+              justifyContent: "center",
+              marginBottom: 4,
+            }}
           >
             {index < currentStep ? (
-              <Animated.Text style={styles.stepCheck}>✓</Animated.Text>
+              <Animated.Text style={{ color: colors.success, fontSize: 14, fontWeight: "600" }}>✓</Animated.Text>
             ) : (
               <Animated.Text
-                style={[
-                  styles.stepNumber,
-                  index === currentStep && styles.stepNumberCurrent,
-                ]}
+                style={{
+                  fontSize: 12,
+                  fontWeight: "600",
+                  color: index === currentStep ? "#FFFFFF" : colors.muted,
+                }}
               >
                 {index + 1}
               </Animated.Text>
             )}
           </View>
           <Animated.Text
-            style={[
-              styles.stepTitle,
-              index === currentStep && styles.stepTitleCurrent,
-            ]}
+            style={{
+              fontSize: 10,
+              color: index === currentStep ? colors.foreground : colors.muted,
+              textAlign: "center",
+            }}
             numberOfLines={1}
           >
             {step}
           </Animated.Text>
           {index < steps.length - 1 && (
             <View
-              style={[
-                styles.stepLine,
-                index < currentStep && styles.stepLineCompleted,
-              ]}
+              style={{
+                position: "absolute",
+                top: 14,
+                left: "50%",
+                width: "100%",
+                height: 2,
+                backgroundColor: index < currentStep ? colors.success + "80" : colors.border + "4D",
+                zIndex: -1,
+              }}
             />
           )}
         </View>
@@ -116,103 +132,3 @@ export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    alignItems: "center",
-    gap: 12,
-  },
-  dotsContainer: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "rgba(155, 161, 166, 0.3)",
-  },
-  dotActive: {
-    backgroundColor: "rgba(10, 126, 164, 0.5)",
-  },
-  dotCurrent: {
-    backgroundColor: "#0a7ea4",
-    width: 24,
-  },
-  progressBarContainer: {
-    width: "100%",
-    height: 4,
-    backgroundColor: "rgba(55, 65, 81, 0.3)",
-    borderRadius: 2,
-    overflow: "hidden",
-  },
-  progressBar: {
-    height: "100%",
-    backgroundColor: "#0a7ea4",
-    borderRadius: 2,
-  },
-  stepText: {
-    marginTop: 4,
-  },
-  stepLabel: {
-    fontSize: 12,
-    color: "#9BA1A6",
-  },
-  stepIndicatorContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-  },
-  stepItem: {
-    flex: 1,
-    alignItems: "center",
-  },
-  stepCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "rgba(55, 65, 81, 0.3)",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 4,
-  },
-  stepCircleCompleted: {
-    backgroundColor: "rgba(34, 197, 94, 0.3)",
-  },
-  stepCircleCurrent: {
-    backgroundColor: "#0a7ea4",
-  },
-  stepCheck: {
-    color: "#4ADE80",
-    fontSize: 14,
-    fontWeight: "600",
-  },
-  stepNumber: {
-    color: "#9BA1A6",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  stepNumberCurrent: {
-    color: "#FFFFFF",
-  },
-  stepTitle: {
-    fontSize: 10,
-    color: "#9BA1A6",
-    textAlign: "center",
-  },
-  stepTitleCurrent: {
-    color: "#ECEDEE",
-  },
-  stepLine: {
-    position: "absolute",
-    top: 14,
-    left: "50%",
-    width: "100%",
-    height: 2,
-    backgroundColor: "rgba(55, 65, 81, 0.3)",
-    zIndex: -1,
-  },
-  stepLineCompleted: {
-    backgroundColor: "rgba(34, 197, 94, 0.5)",
-  },
-});
