@@ -176,6 +176,8 @@ pub struct Reading {
     pub ai_interpreted: bool,
     pub ai_used_fallback: bool,
     pub read_duration_s: Option<u32>,
+    pub time_to_ai_request_s: Option<u32>,
+    pub notification_opened: bool,
     pub mood_tag: Option<MoodTag>,
     pub is_favorite: bool,
     pub shared: bool,
@@ -202,6 +204,8 @@ impl Reading {
             ai_interpreted: false,
             ai_used_fallback: false,
             read_duration_s: None,
+            time_to_ai_request_s: None,
+            notification_opened: false,
             mood_tag: None,
             is_favorite: false,
             shared: false,
@@ -232,6 +236,7 @@ pub struct UserState {
     pub subscription_tier: SubscriptionTier,
     pub readings_today: u8,
     pub ai_calls_today: u8,
+    pub session_count: u32,
     pub last_reading_date: Option<String>,
     pub notification_enabled: bool,
     pub notification_time: Option<String>,
@@ -247,6 +252,7 @@ impl Default for UserState {
             subscription_tier: SubscriptionTier::Free,
             readings_today: 0,
             ai_calls_today: 0,
+            session_count: 0,
             last_reading_date: None,
             notification_enabled: true,
             notification_time: Some("09:00".to_string()),
@@ -275,6 +281,12 @@ pub struct ReadingSession {
 pub struct CompletedReading {
     pub reading_id: String,
     pub saved_at: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChosenPassage {
+    pub passage: Passage,
+    pub reading_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -331,6 +343,98 @@ impl AletheiaError {
         }
         self
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BridgeError {
+    pub code: String,
+    pub message: String,
+}
+
+impl BridgeError {
+    pub fn from_aletheia_error(error: &crate::errors::AletheiaError) -> Self {
+        Self {
+            code: error.code.as_str().to_string(),
+            message: error.message.clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PerformReadingResponse {
+    pub session: Option<ReadingSession>,
+    pub error: Option<BridgeError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChooseSymbolResponse {
+    pub chosen: Option<ChosenPassage>,
+    pub error: Option<BridgeError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CompleteReadingResponse {
+    pub completed: Option<CompletedReading>,
+    pub error: Option<BridgeError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FallbackPromptsResponse {
+    pub prompts: Vec<String>,
+    pub error: Option<BridgeError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UserStateResponse {
+    pub state: Option<UserState>,
+    pub error: Option<BridgeError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AIInterpretation {
+    pub chunks: Vec<String>,
+    pub used_fallback: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RequestInterpretationResponse {
+    pub interpretation: Option<AIInterpretation>,
+    pub error: Option<BridgeError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SetApiKeyResponse {
+    pub applied: bool,
+    pub error: Option<BridgeError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StartInterpretationStreamResponse {
+    pub request_id: Option<String>,
+    pub error: Option<BridgeError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InterpretationStreamState {
+    pub request_id: String,
+    pub new_chunks: Vec<String>,
+    pub full_text: String,
+    pub done: bool,
+    pub used_fallback: bool,
+    pub cancelled: bool,
+    pub error: Option<BridgeError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CancelInterpretationResponse {
+    pub cancelled: bool,
+    pub error: Option<BridgeError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SeedBundledDataResponse {
+    pub seeded: bool,
+    pub error: Option<BridgeError>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -406,11 +510,13 @@ pub fn generate_uuid() -> String {
 }
 
 pub fn generate_base62_token(length: usize) -> String {
-    let chars: Vec<char> = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-        .chars()
-        .collect();
-    let mut rng = rand::thread_rng();
-    (0..length)
-        .map(|_| chars[rand::Rng::gen_range(&mut rng, 0..chars.len())])
-        .collect()
+    const CHARSET: &[u8] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    let mut rng = rand::rngs::OsRng;
+    let mut token = String::with_capacity(length);
+
+    for _ in 0..length {
+        let idx = rand::Rng::gen_range(&mut rng, 0..CHARSET.len());
+        token.push(CHARSET[idx] as char);
+    }
+    token
 }

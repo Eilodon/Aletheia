@@ -10,6 +10,7 @@ import "@/lib/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { ReadingProvider } from "@/lib/context/reading-context";
 import { dbInit } from "@/lib/services/db-init";
+import { runAletheiaNativeProbe } from "@/lib/native/runtime-probe";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -45,6 +46,12 @@ export default function RootLayout() {
   useEffect(() => {
     dbInit.initialize().catch((err) => {
       console.error("Failed to initialize database:", err);
+    });
+  }, []);
+
+  useEffect(() => {
+    runAletheiaNativeProbe().catch((err) => {
+      console.error("Aletheia native probe failed:", err);
     });
   }, []);
 

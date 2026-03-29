@@ -1,0 +1,261 @@
+namespace aletheia {};
+
+enum Tradition {
+    "Chinese",
+    "Christian",
+    "Islamic",
+    "Sufi",
+    "Stoic",
+    "Universal"
+};
+
+enum SymbolMethod {
+    "Manual",
+    "Auto"
+};
+
+enum MoodTag {
+    "Confused",
+    "Hopeful",
+    "Anxious",
+    "Curious",
+    "Grateful",
+    "Grief"
+};
+
+enum SubscriptionTier {
+    "Free",
+    "Pro"
+};
+
+enum ReadingState {
+    "Idle",
+    "SituationInput",
+    "SourceSelection",
+    "WildcardReveal",
+    "WildcardChosen",
+    "RitualAnimation",
+    "PassageDisplayed",
+    "AiStreaming",
+    "AiFallback",
+    "Complete"
+};
+
+dictionary Symbol {
+    string id;
+    string display_name;
+    string? flavor_text;
+};
+
+dictionary Theme {
+    string id;
+    string name;
+    sequence<Symbol> symbols;
+    boolean is_premium;
+    string? pack_id;
+    float? price_usd;
+};
+
+dictionary Source {
+    string id;
+    string name;
+    Tradition tradition;
+    string language;
+    u32 passage_count;
+    boolean is_bundled;
+    boolean is_premium;
+    sequence<string> fallback_prompts;
+};
+
+dictionary Passage {
+    string id;
+    string source_id;
+    string reference;
+    string text;
+    string? context;
+};
+
+dictionary Reading {
+    string id;
+    i64 created_at;
+    string source_id;
+    string passage_id;
+    string theme_id;
+    string symbol_chosen;
+    SymbolMethod symbol_method;
+    string? situation_text;
+    boolean ai_interpreted;
+    boolean ai_used_fallback;
+    u32? read_duration_s;
+    u32? time_to_ai_request_s;
+    boolean notification_opened;
+    MoodTag? mood_tag;
+    boolean is_favorite;
+    boolean shared;
+};
+
+dictionary ReadingSession {
+    string temp_id;
+    Source source;
+    Theme theme;
+    sequence<Symbol> symbols;
+    string? situation_text;
+    i64 started_at;
+};
+
+dictionary CompletedReading {
+    string reading_id;
+    i64 saved_at;
+};
+
+dictionary ChosenPassage {
+    Passage passage;
+    string reading_id;
+};
+
+dictionary BridgeError {
+    string code;
+    string message;
+};
+
+dictionary NotificationEntry {
+    string symbol_id;
+    string question;
+};
+
+dictionary UserState {
+    string user_id;
+    SubscriptionTier subscription_tier;
+    u8 readings_today;
+    u8 ai_calls_today;
+    u32 session_count;
+    string? last_reading_date;
+    boolean notification_enabled;
+    string? notification_time;
+    string preferred_language;
+    boolean dark_mode;
+    boolean onboarding_complete;
+};
+
+dictionary PaginatedReadings {
+    sequence<Reading> items;
+    u32 total_count;
+    boolean has_more;
+};
+
+dictionary PerformReadingResponse {
+    ReadingSession? session;
+    BridgeError? error;
+};
+
+dictionary ChooseSymbolResponse {
+    ChosenPassage? chosen;
+    BridgeError? error;
+};
+
+dictionary CompleteReadingResponse {
+    CompletedReading? completed;
+    BridgeError? error;
+};
+
+dictionary FallbackPromptsResponse {
+    sequence<string> prompts;
+    BridgeError? error;
+};
+
+dictionary UserStateResponse {
+    UserState? state;
+    BridgeError? error;
+};
+
+dictionary AIInterpretation {
+    sequence<string> chunks;
+    boolean used_fallback;
+};
+
+dictionary RequestInterpretationResponse {
+    AIInterpretation? interpretation;
+    BridgeError? error;
+};
+
+dictionary SetApiKeyResponse {
+    boolean applied;
+    BridgeError? error;
+};
+
+dictionary StartInterpretationStreamResponse {
+    string? request_id;
+    BridgeError? error;
+};
+
+dictionary InterpretationStreamState {
+    string request_id;
+    sequence<string> new_chunks;
+    string full_text;
+    boolean done;
+    boolean used_fallback;
+    boolean cancelled;
+    BridgeError? error;
+};
+
+dictionary CancelInterpretationResponse {
+    boolean cancelled;
+    BridgeError? error;
+};
+
+dictionary SeedBundledDataResponse {
+    boolean seeded;
+    BridgeError? error;
+};
+
+interface AletheiaCore {
+    constructor(string db_path, string gift_backend_url);
+
+    SeedBundledDataResponse seed_bundled_data(
+        string sources_json,
+        string passages_json,
+        string themes_json
+    );
+
+    SetApiKeyResponse set_ai_api_key(
+        string provider,
+        string key
+    );
+
+    PerformReadingResponse perform_reading(
+        string user_id,
+        string? source_id,
+        string? situation_text
+    );
+
+    ChooseSymbolResponse choose_symbol(
+        ReadingSession session,
+        string symbol_id,
+        SymbolMethod method
+    );
+
+    CompleteReadingResponse complete_reading(
+        string user_id,
+        Reading reading
+    );
+
+    RequestInterpretationResponse request_interpretation(
+        Passage passage,
+        Symbol symbol,
+        string? situation_text
+    );
+
+    StartInterpretationStreamResponse start_interpretation_stream(
+        Passage passage,
+        Symbol symbol,
+        string? situation_text
+    );
+
+    InterpretationStreamState poll_interpretation_stream(string request_id);
+
+    CancelInterpretationResponse cancel_interpretation_stream(string request_id);
+
+    FallbackPromptsResponse get_fallback_prompts(string source_id);
+
+    UserStateResponse get_user_state(string user_id);
+};

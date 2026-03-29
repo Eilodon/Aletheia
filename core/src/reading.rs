@@ -76,7 +76,7 @@ impl ReadingEngine {
         session: &ReadingSession,
         symbol_id: &str,
         method: SymbolMethod,
-    ) -> Result<(Passage, String), AletheiaError> {
+    ) -> Result<ChosenPassage, AletheiaError> {
         // Validate symbol
         let symbol_exists = session.symbols.iter().any(|s| s.id == symbol_id);
         if !symbol_exists {
@@ -90,7 +90,10 @@ impl ReadingEngine {
             .ok_or_else(|| AletheiaError::passage_empty(&session.source.id))?;
 
         info!("Symbol {} chosen via {:?}, passage: {}", symbol_id, method, passage.id);
-        Ok((passage, session.temp_id.clone()))
+        Ok(ChosenPassage {
+            passage,
+            reading_id: session.temp_id.clone(),
+        })
     }
 
     pub fn complete_reading(
@@ -111,6 +114,7 @@ impl ReadingEngine {
 
         // Update user state
         self.store.increment_readings_today(user_id)?;
+        self.store.increment_session_count(user_id)?;
         if reading.ai_interpreted {
             self.store.increment_ai_calls_today(user_id)?;
         }

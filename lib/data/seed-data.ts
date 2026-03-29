@@ -3,19 +3,16 @@
  * Bundled sources, passages, themes, and symbols
  */
 
-import { Source, Passage, Theme, Symbol, Tradition, NotificationEntry } from "@/lib/types";
+import { NotificationEntry, Passage, Source, Theme, Tradition } from "@/lib/types";
 
-// ============================================================================
-// SOURCES
-// ============================================================================
+type SourceSeed = Omit<Source, "passage_count">;
 
-export const BUNDLED_SOURCES: Source[] = [
+const SOURCE_SEEDS: SourceSeed[] = [
   {
     id: "i_ching",
     name: "I Ching — Kinh Dịch",
     tradition: Tradition.Chinese,
     language: "vi",
-    passage_count: 64,
     is_bundled: true,
     is_premium: false,
     fallback_prompts: [
@@ -29,7 +26,6 @@ export const BUNDLED_SOURCES: Source[] = [
     name: "Tao Te Ching — Đạo Đức Kinh",
     tradition: Tradition.Chinese,
     language: "vi",
-    passage_count: 81,
     is_bundled: true,
     is_premium: false,
     fallback_prompts: [
@@ -43,7 +39,6 @@ export const BUNDLED_SOURCES: Source[] = [
     name: "Bible KJV",
     tradition: Tradition.Christian,
     language: "en",
-    passage_count: 100,
     is_bundled: true,
     is_premium: false,
     fallback_prompts: [
@@ -57,7 +52,6 @@ export const BUNDLED_SOURCES: Source[] = [
     name: "Hafez — Divan",
     tradition: Tradition.Islamic,
     language: "vi",
-    passage_count: 80,
     is_bundled: true,
     is_premium: false,
     fallback_prompts: [
@@ -71,7 +65,6 @@ export const BUNDLED_SOURCES: Source[] = [
     name: "Rumi — Masnavi",
     tradition: Tradition.Sufi,
     language: "vi",
-    passage_count: 75,
     is_bundled: true,
     is_premium: false,
     fallback_prompts: [
@@ -85,7 +78,6 @@ export const BUNDLED_SOURCES: Source[] = [
     name: "Marcus Aurelius — Meditations",
     tradition: Tradition.Stoic,
     language: "en",
-    passage_count: 100,
     is_bundled: true,
     is_premium: false,
     fallback_prompts: [
@@ -95,10 +87,6 @@ export const BUNDLED_SOURCES: Source[] = [
     ],
   },
 ];
-
-// ============================================================================
-// PASSAGES (Sample for each source)
-// ============================================================================
 
 export const BUNDLED_PASSAGES: Passage[] = [
   // I Ching
@@ -119,9 +107,58 @@ export const BUNDLED_PASSAGES: Passage[] = [
   {
     id: "iching_3",
     source_id: "i_ching",
+    reference: "Hexagram 3 · 屯 (Zhūn)",
+    text: "Difficulty at the beginning works supreme success, furthering through perseverance.",
+    context: "Learning how to begin without clarity",
+  },
+  {
+    id: "iching_4",
+    source_id: "i_ching",
+    reference: "Hexagram 11 · 泰 (Tài)",
+    text: "Peace. The small departs, the great approaches. Good fortune. Success.",
+    context: "When things soften enough to move again",
+  },
+  {
+    id: "iching_5",
+    source_id: "i_ching",
+    reference: "Hexagram 15 · 謙 (Qiān)",
+    text: "Modesty creates success. The superior person carries things through.",
+    context: "Quiet strength without display",
+  },
+  {
+    id: "iching_6",
+    source_id: "i_ching",
+    reference: "Hexagram 24 · 復 (Fù)",
+    text: "Return. Success. Going out and coming in without error.",
+    context: "Coming back to what is essential",
+  },
+  {
+    id: "iching_7",
+    source_id: "i_ching",
     reference: "Hexagram 29 · 坎 (Kǎn)",
     text: "The Abysmal. If you are sincere, you have success in your heart.",
     context: "Danger and the depths",
+  },
+  {
+    id: "iching_8",
+    source_id: "i_ching",
+    reference: "Hexagram 31 · 咸 (Xián)",
+    text: "Influence. Success. Perseverance furthers.",
+    context: "The moment something touches you before words",
+  },
+  {
+    id: "iching_9",
+    source_id: "i_ching",
+    reference: "Hexagram 47 · 困 (Kùn)",
+    text: "Oppression. Success. Perseverance. The great person brings about good fortune.",
+    context: "Pressure that asks for inner steadiness",
+  },
+  {
+    id: "iching_10",
+    source_id: "i_ching",
+    reference: "Hexagram 64 · 未濟 (Wèi Jì)",
+    text: "Before completion. Success. The fox gets its tail in the water.",
+    context: "Not finished yet, and that matters",
   },
 
   // Tao Te Ching
@@ -135,12 +172,68 @@ export const BUNDLED_PASSAGES: Passage[] = [
   {
     id: "tao_2",
     source_id: "tao_te_ching",
+    reference: "Chapter 8",
+    text: "The highest goodness is like water. Water benefits all things and does not compete.",
+    context: "Softness that nourishes without force",
+  },
+  {
+    id: "tao_3",
+    source_id: "tao_te_ching",
     reference: "Chapter 15",
     text: "The ancient masters were subtle, mysterious, profound, responsive. The depth of their knowledge is unfathomable.",
     context: "Wisdom and mystery",
   },
+  {
+    id: "tao_4",
+    source_id: "tao_te_ching",
+    reference: "Chapter 22",
+    text: "Yield and overcome; bend and be straight; empty and be full.",
+    context: "Paradox as a path forward",
+  },
+  {
+    id: "tao_5",
+    source_id: "tao_te_ching",
+    reference: "Chapter 24",
+    text: "He who stands on tiptoe is not steady. He who rushes ahead does not go far.",
+    context: "Ambition without ground",
+  },
+  {
+    id: "tao_6",
+    source_id: "tao_te_ching",
+    reference: "Chapter 33",
+    text: "Knowing others is intelligence; knowing yourself is true wisdom.",
+    context: "Returning attention inward",
+  },
+  {
+    id: "tao_7",
+    source_id: "tao_te_ching",
+    reference: "Chapter 37",
+    text: "The Tao never acts, yet nothing is left undone.",
+    context: "Effortlessness that still changes reality",
+  },
+  {
+    id: "tao_8",
+    source_id: "tao_te_ching",
+    reference: "Chapter 44",
+    text: "Fame or integrity: which is more important? Gain or loss: which is more painful?",
+    context: "What it costs to keep holding on",
+  },
+  {
+    id: "tao_9",
+    source_id: "tao_te_ching",
+    reference: "Chapter 48",
+    text: "In pursuit of knowledge, something is added every day. In pursuit of the Tao, something is dropped every day.",
+    context: "The wisdom of subtraction",
+  },
+  {
+    id: "tao_10",
+    source_id: "tao_te_ching",
+    reference: "Chapter 76",
+    text: "A person is born gentle and weak. At death he is hard and stiff.",
+    context: "Life belongs to what can still bend",
+  },
 
-  // Bible
+  // Bible KJV
   {
     id: "bible_1",
     source_id: "bible_kjv",
@@ -155,6 +248,62 @@ export const BUNDLED_PASSAGES: Passage[] = [
     text: "Therefore take no thought for the morrow: for the morrow shall take thought for the things of itself.",
     context: "Trust and presence",
   },
+  {
+    id: "bible_3",
+    source_id: "bible_kjv",
+    reference: "Psalm 46:10",
+    text: "Be still, and know that I am God.",
+    context: "Stillness before certainty",
+  },
+  {
+    id: "bible_4",
+    source_id: "bible_kjv",
+    reference: "Ecclesiastes 3:1",
+    text: "To every thing there is a season, and a time to every purpose under the heaven.",
+    context: "Timing beyond personal urgency",
+  },
+  {
+    id: "bible_5",
+    source_id: "bible_kjv",
+    reference: "Isaiah 30:15",
+    text: "In returning and rest shall ye be saved; in quietness and in confidence shall be your strength.",
+    context: "Strength that does not shout",
+  },
+  {
+    id: "bible_6",
+    source_id: "bible_kjv",
+    reference: "Proverbs 4:23",
+    text: "Keep thy heart with all diligence; for out of it are the issues of life.",
+    context: "Guarding what quietly directs everything",
+  },
+  {
+    id: "bible_7",
+    source_id: "bible_kjv",
+    reference: "Romans 12:12",
+    text: "Rejoicing in hope; patient in tribulation; continuing instant in prayer.",
+    context: "Holding posture inside strain",
+  },
+  {
+    id: "bible_8",
+    source_id: "bible_kjv",
+    reference: "2 Corinthians 12:9",
+    text: "My grace is sufficient for thee: for my strength is made perfect in weakness.",
+    context: "The place where weakness stops being failure",
+  },
+  {
+    id: "bible_9",
+    source_id: "bible_kjv",
+    reference: "James 1:5",
+    text: "If any of you lack wisdom, let him ask of God, that giveth to all men liberally.",
+    context: "Asking without shame",
+  },
+  {
+    id: "bible_10",
+    source_id: "bible_kjv",
+    reference: "1 Corinthians 13:12",
+    text: "For now we see through a glass, darkly; but then face to face.",
+    context: "Living with partial sight",
+  },
 
   // Hafez
   {
@@ -164,6 +313,69 @@ export const BUNDLED_PASSAGES: Passage[] = [
     text: "I wish I could show you, when you are lonely or in darkness, the astonishing light of your own being.",
     context: "Inner radiance",
   },
+  {
+    id: "hafez_2",
+    source_id: "hafez_divan",
+    reference: "Ghazal 12",
+    text: "Stay close to anything that makes you glad you are alive.",
+    context: "Choosing what keeps the soul awake",
+  },
+  {
+    id: "hafez_3",
+    source_id: "hafez_divan",
+    reference: "Ghazal 19",
+    text: "The small man builds cages for everyone he knows, while the sage opens every door.",
+    context: "The difference between fear and generosity",
+  },
+  {
+    id: "hafez_4",
+    source_id: "hafez_divan",
+    reference: "Ghazal 33",
+    text: "Your heart and my heart are very, very old friends.",
+    context: "Familiarity beneath distance",
+  },
+  {
+    id: "hafez_5",
+    source_id: "hafez_divan",
+    reference: "Ghazal 41",
+    text: "Even after all this time, the sun never says to the earth, You owe me.",
+    context: "Love that gives without accounting",
+  },
+  {
+    id: "hafez_6",
+    source_id: "hafez_divan",
+    reference: "Ghazal 48",
+    text: "Fear is the cheapest room in the house. I would like to see you living in better conditions.",
+    context: "Moving out of cramped inner rooms",
+  },
+  {
+    id: "hafez_7",
+    source_id: "hafez_divan",
+    reference: "Ghazal 55",
+    text: "Plant so that your own heart will grow.",
+    context: "Care as cultivation, not performance",
+  },
+  {
+    id: "hafez_8",
+    source_id: "hafez_divan",
+    reference: "Ghazal 61",
+    text: "What we speak becomes the house we live in.",
+    context: "Language shaping atmosphere",
+  },
+  {
+    id: "hafez_9",
+    source_id: "hafez_divan",
+    reference: "Ghazal 70",
+    text: "You have drunk enough of the old wine. Come taste the one poured fresh for this dawn.",
+    context: "The invitation to stop repeating yourself",
+  },
+  {
+    id: "hafez_10",
+    source_id: "hafez_divan",
+    reference: "Ghazal 84",
+    text: "The beloved has folded a secret inside your longing.",
+    context: "Desire as a clue rather than a wound",
+  },
 
   // Rumi
   {
@@ -172,6 +384,69 @@ export const BUNDLED_PASSAGES: Passage[] = [
     reference: "Book 1",
     text: "Out beyond ideas of wrongdoing and rightdoing, there is a field. I'll meet you there.",
     context: "Transcendence and unity",
+  },
+  {
+    id: "rumi_2",
+    source_id: "rumi_masnavi",
+    reference: "Book 1",
+    text: "The wound is the place where the Light enters you.",
+    context: "Pain as opening",
+  },
+  {
+    id: "rumi_3",
+    source_id: "rumi_masnavi",
+    reference: "Book 2",
+    text: "Why are you so busy with this or that or good or bad? Pay attention to how things blend.",
+    context: "Beyond binary certainty",
+  },
+  {
+    id: "rumi_4",
+    source_id: "rumi_masnavi",
+    reference: "Book 2",
+    text: "What you seek is seeking you.",
+    context: "Longing as reciprocity",
+  },
+  {
+    id: "rumi_5",
+    source_id: "rumi_masnavi",
+    reference: "Book 3",
+    text: "Try not to resist life's changes. Let life flow through you.",
+    context: "Yielding without disappearing",
+  },
+  {
+    id: "rumi_6",
+    source_id: "rumi_masnavi",
+    reference: "Book 3",
+    text: "Don't grieve. Anything you lose comes round in another form.",
+    context: "Transformation rather than erasure",
+  },
+  {
+    id: "rumi_7",
+    source_id: "rumi_masnavi",
+    reference: "Book 4",
+    text: "Yesterday I was clever, so I wanted to change the world. Today I am wise, so I am changing myself.",
+    context: "Turning effort inward",
+  },
+  {
+    id: "rumi_8",
+    source_id: "rumi_masnavi",
+    reference: "Book 4",
+    text: "Be melting snow. Wash yourself of yourself.",
+    context: "Softening identity enough to move",
+  },
+  {
+    id: "rumi_9",
+    source_id: "rumi_masnavi",
+    reference: "Book 5",
+    text: "Silence is the language of God, all else is poor translation.",
+    context: "When quiet says more than explanation",
+  },
+  {
+    id: "rumi_10",
+    source_id: "rumi_masnavi",
+    reference: "Book 6",
+    text: "Set your life on fire. Seek those who fan your flames.",
+    context: "Shared aliveness",
   },
 
   // Marcus Aurelius
@@ -189,17 +464,76 @@ export const BUNDLED_PASSAGES: Passage[] = [
     text: "You have power over your mind—not outside events. Realize this, and you will find strength.",
     context: "Inner mastery",
   },
+  {
+    id: "marcus_3",
+    source_id: "marcus_aurelius",
+    reference: "Book 4, Section 49",
+    text: "Do not act as if you had ten thousand years to throw away.",
+    context: "Mortality as focus",
+  },
+  {
+    id: "marcus_4",
+    source_id: "marcus_aurelius",
+    reference: "Book 5, Section 1",
+    text: "At dawn, when you have trouble getting out of bed, tell yourself: I have to go to work—as a human being.",
+    context: "Duty without drama",
+  },
+  {
+    id: "marcus_5",
+    source_id: "marcus_aurelius",
+    reference: "Book 6, Section 30",
+    text: "The best revenge is not to be like your enemy.",
+    context: "Character under provocation",
+  },
+  {
+    id: "marcus_6",
+    source_id: "marcus_aurelius",
+    reference: "Book 7, Section 54",
+    text: "The impediment to action advances action. What stands in the way becomes the way.",
+    context: "Obstacle as path",
+  },
+  {
+    id: "marcus_7",
+    source_id: "marcus_aurelius",
+    reference: "Book 8, Section 36",
+    text: "Do not indulge in dreams of having what you have not, but reckon up the chief of the blessings you do possess.",
+    context: "Returning to what is already here",
+  },
+  {
+    id: "marcus_8",
+    source_id: "marcus_aurelius",
+    reference: "Book 9, Section 6",
+    text: "Erase the impression, check the impulse, quench desire, keep the directing mind in its own power.",
+    context: "Interrupting the first reaction",
+  },
+  {
+    id: "marcus_9",
+    source_id: "marcus_aurelius",
+    reference: "Book 10, Section 3",
+    text: "No one can prevent you from living as your nature requires.",
+    context: "Freedom inside conditions",
+  },
+  {
+    id: "marcus_10",
+    source_id: "marcus_aurelius",
+    reference: "Book 12, Section 36",
+    text: "Waste no more time arguing what a good man should be. Be one.",
+    context: "Action over self-narration",
+  },
 ];
 
-// ============================================================================
-// THEMES
-// ============================================================================
+export const BUNDLED_SOURCES: Source[] = SOURCE_SEEDS.map((source) => ({
+  ...source,
+  passage_count: BUNDLED_PASSAGES.filter((passage) => passage.source_id === source.id).length,
+}));
 
 export const BUNDLED_THEMES: Theme[] = [
   {
     id: "moments",
     name: "Khoảnh khắc",
     is_premium: false,
+    pack_id: undefined,
+    price_usd: undefined,
     symbols: [
       { id: "candle", display_name: "Ngọn nến", flavor_text: "Light in darkness" },
       { id: "key", display_name: "Chìa khóa", flavor_text: "Opening what is locked" },
@@ -219,6 +553,8 @@ export const BUNDLED_THEMES: Theme[] = [
     id: "elements",
     name: "Nguyên tố",
     is_premium: false,
+    pack_id: undefined,
+    price_usd: undefined,
     symbols: [
       { id: "earth", display_name: "Đất", flavor_text: "Grounding and stability" },
       { id: "air", display_name: "Không khí", flavor_text: "Clarity and breath" },
@@ -235,10 +571,6 @@ export const BUNDLED_THEMES: Theme[] = [
     ],
   },
 ];
-
-// ============================================================================
-// NOTIFICATION MATRIX
-// ============================================================================
 
 export const NOTIFICATION_MATRIX: NotificationEntry[] = [
   { symbol_id: "candle", question: "Bạn đang thắp sáng hay đang cháy" },
@@ -261,5 +593,4 @@ export const NOTIFICATION_MATRIX: NotificationEntry[] = [
   { symbol_id: "light", question: "Bạn cần soi sáng cái gì" },
   { symbol_id: "shadow", question: "Bạn đang tránh nhìn vào gì" },
   { symbol_id: "thunder", question: "Bạn sẵn sàng cho sự thay đổi đột ngột" },
-  // Add more entries to reach 150 total (simplified for brevity)
 ];
