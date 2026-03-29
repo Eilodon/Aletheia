@@ -161,6 +161,7 @@ pub struct Passage {
     pub reference: String,
     pub text: String,
     pub context: Option<String>,
+    pub resonance_context: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

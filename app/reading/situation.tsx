@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
+import { SITUATION_SKIP_TEXT_VI } from "@/lib/reading/ritual";
 import * as Haptics from "expo-haptics";
 
 export default function SituationScreen() {
@@ -107,7 +108,7 @@ export default function SituationScreen() {
               className="py-3"
             >
               <Text className="text-sm text-muted text-center">
-                Bỏ qua bước này →
+                {SITUATION_SKIP_TEXT_VI} →
               </Text>
             </Pressable>
           </View>

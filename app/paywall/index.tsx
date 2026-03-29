@@ -5,6 +5,7 @@ import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { store } from "@/lib/services/store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
+import { SubscriptionTier } from "@/lib/types";
 import * as Haptics from "expo-haptics";
 
 // RevenueCat types (mock for now)
@@ -21,6 +22,10 @@ interface Offering {
 
 const FREE_READINGS_PER_DAY = 3;
 const FREE_AI_PER_DAY = 1;
+
+// Price constants from CONTRACTS.md
+const PRO_PRICE_MONTHLY_USD = 3.99;
+const PRO_PRICE_YEARLY_USD = 29.99;
 
 export default function PaywallScreen() {
   const colors = useColors();
@@ -50,10 +55,10 @@ export default function PaywallScreen() {
     }).start();
   }, [fadeAnim]);
 
-  // Mock packages (will be replaced with RevenueCat)
+  // Use USD prices from CONTRACTS.md (RevenueCat will auto-localize based on store country)
   const packages: Package[] = [
-    { identifier: "monthly", priceString: "99.000đ", price: 99000 },
-    { identifier: "yearly", priceString: "599.000đ", price: 599000 },
+    { identifier: "monthly", priceString: `$${PRO_PRICE_MONTHLY_USD}/mo`, price: PRO_PRICE_MONTHLY_USD },
+    { identifier: "yearly", priceString: `$${PRO_PRICE_YEARLY_USD}/yr`, price: PRO_PRICE_YEARLY_USD },
   ];
 
   const handlePurchase = async () => {
@@ -74,7 +79,7 @@ export default function PaywallScreen() {
       const userState = await store.getUserState(userId);
       await store.updateUserState({
         ...userState,
-        subscription_tier: "pro",
+        subscription_tier: SubscriptionTier.Pro,
       });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

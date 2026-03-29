@@ -453,6 +453,7 @@ impl Store {
                 reference: row.get(2)?,
                 text: row.get(3)?,
                 context: row.get(4)?,
+                resonance_context: row.get(5)?,
             })
         });
 
@@ -814,6 +815,7 @@ mod tests {
             reference: "Test 1:1".to_string(),
             text: "This is a test passage.".to_string(),
             context: Some("Test context".to_string()),
+            resonance_context: None,
         }
     }
 

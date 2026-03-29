@@ -31,21 +31,21 @@ export default function HistoryScreen() {
     try {
       await getCurrentUserId();
       
-      // Get readings from store (limit, offset)
-      const allReadings = await store.getReadings(1000, 0);
+      // Get total count and paged readings from DB
+      const [total, pagedReadings] = await Promise.all([
+        store.getReadingsCount(),
+        store.getReadings(PAGE_SIZE, pageNum * PAGE_SIZE),
+      ]);
       
-      // Transform and paginate
-      const transformed: ReadingWithDetails[] = allReadings.map((r: any) => ({
+      // Transform
+      const transformed: ReadingWithDetails[] = pagedReadings.map((r: any) => ({
         ...r,
         sourceName: r.source_id || "Unknown",
         symbolName: r.symbol_chosen || "?",
       }));
       
-      const start = pageNum * PAGE_SIZE;
-      const paged = transformed.slice(start, start + PAGE_SIZE);
-      
-      setReadings((prev) => refresh ? paged : [...prev, ...paged]);
-      setHasMore(start + PAGE_SIZE < transformed.length);
+      setReadings((prev) => refresh ? transformed : [...prev, ...transformed]);
+      setHasMore((pageNum + 1) * PAGE_SIZE < total);
       setPage(pageNum);
     } catch (error) {
       console.error("Failed to load readings:", error);

@@ -42,6 +42,7 @@ export type NativePassage = {
   reference: string;
   text: string;
   context?: string;
+  resonance_context?: string;
 };
 
 export type NativeReadingSession = {

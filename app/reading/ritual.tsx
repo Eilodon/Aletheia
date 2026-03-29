@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { View, Text, Animated } from "react-native";
 import { useRouter } from "expo-router";
 import { useReading } from "@/lib/context/reading-context";
@@ -8,8 +8,8 @@ import * as Haptics from "expo-haptics";
 export default function RitualScreen() {
   const { passage } = useReading();
   const router = useRouter();
-  const fadeAnim = new Animated.Value(0);
-  const scaleAnim = new Animated.Value(0.8);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
   useEffect(() => {
     // Haptic feedback for ritual start

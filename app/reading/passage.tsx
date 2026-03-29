@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
+import { COMPLETE_SILENCE_BEAT_MS } from "@/lib/reading/ritual";
 import * as Haptics from "expo-haptics";
 
 export default function PassageScreen() {
@@ -52,6 +53,8 @@ export default function PassageScreen() {
     try {
       await saveReading();
       completeReading();
+      // UX-04: Silence beat before navigating to home
+      await new Promise((resolve) => setTimeout(resolve, COMPLETE_SILENCE_BEAT_MS));
       router.replace("/");
     } catch (error) {
       console.error("Failed to save:", error);

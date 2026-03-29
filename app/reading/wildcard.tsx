@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { View, Text, Pressable, Animated, Easing } from "react-native";
 import { useRouter } from "expo-router";
 import { useReading } from "@/lib/context/reading-context";
@@ -22,7 +22,7 @@ function SymbolCard({
   onSelect: () => void;
 }) {
   const colors = useColors();
-  const animatedValue = new Animated.Value(0);
+  const animatedValue = useRef(new Animated.Value(0)).current;
   const frontInterpolate = animatedValue.interpolate({
     inputRange: [0, 180],
     outputRange: ["0deg", "180deg"],

@@ -419,6 +419,17 @@ Deferred: None
 **Rejected:** Tạo AI Proxy (thêm complexity + cost)
 **Initial weight:** 0.60 | **λ:** 0.25 | **Energy Tax priority:** 0.45
 
+#### ADR-AL-23 | 🔴 MANDATORY (Cycle #5)
+**Problem:** iOS app không sử dụng Rust Core - chỉ dùng TypeScript path với expo-sqlite. Điều này gây degraded experience trên iOS:
+- AI streaming không hoạt động (fallback ngay lập tức)
+- Interpretation dùng fallback prompts 100%
+- Core ritual experience bị mất
+**Evidence:** `shouldUseAletheiaNative()` trong `lib/native/runtime.ts` chỉ return true cho Android
+**Decision:** Không launch iOS cho đến khi Rust Core được link vào Xcode project. Hoặc nếu TypeScript path là intended fallback:
+- Implement proper AI call từ TypeScript (direct Claude API, không phải fallback)
+- Document rõ ràng đây là P0 limitation cho iOS launch
+**Initial weight:** 1.0 | **λ:** 0.25 | **Energy Tax priority:** 0.90
+
 ### ADR Weight Decay This Cycle
 | ADR-ID | Previous Weight | New Weight | λ | Status |
 |---|---|---|---|---|

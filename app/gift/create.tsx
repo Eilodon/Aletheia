@@ -76,8 +76,11 @@ export default function GiftCreateScreen() {
       // Simulate gift creation (API call would go here)
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // Generate mock token
-      const token = Math.random().toString(36).substring(2, 10).toUpperCase();
+      // Generate cryptographically secure token
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      const token = Array.from(bytes, (b) => charset[b % charset.length]).join("").toUpperCase();
       setGiftResult({
         token,
         deepLink: `https://aletheia.app/gift/${token}`,

@@ -75,8 +75,8 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
   const [hasSavedReading, setHasSavedReading] = useState(false);
   const [error, setError] = useState<AletheiaError | null>(null);
   const activeAIStreamCancelRef = useRef<(() => Promise<boolean>) | null>(null);
-  const passageRevealTimeoutsRef = useRef<number[]>([]);
-  const passageActionsDelayRef = useRef<number | null>(null);
+  const passageRevealTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const passageActionsDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedSymbol = useMemo(
     () => session?.symbols.find((symbol) => symbol.id === selectedSymbolId) ?? null,
     [session, selectedSymbolId],
@@ -260,11 +260,11 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
   }, [session, passage, aiResponse, isAIFallback, readingStartTime, selectedSymbolId, selectedMethod, passageDisplayedAt, aiRequestedAt]);
 
   useEffect(() => {
-    passageRevealTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    passageRevealTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
     passageRevealTimeoutsRef.current = [];
 
     if (passageActionsDelayRef.current !== null) {
-      window.clearTimeout(passageActionsDelayRef.current);
+      clearTimeout(passageActionsDelayRef.current);
       passageActionsDelayRef.current = null;
     }
 
@@ -281,21 +281,21 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
 
     for (const step of steps) {
       elapsed += step.delayMs;
-      const timeoutId = window.setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         setVisiblePassageText(step.text);
       }, elapsed);
       passageRevealTimeoutsRef.current.push(timeoutId);
     }
 
-    passageActionsDelayRef.current = window.setTimeout(() => {
+    passageActionsDelayRef.current = setTimeout(() => {
       setPassageActionsReady(true);
     }, elapsed + PASSAGE_ACTION_DELAY_MS);
 
     return () => {
-      passageRevealTimeoutsRef.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      passageRevealTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
       passageRevealTimeoutsRef.current = [];
       if (passageActionsDelayRef.current !== null) {
-        window.clearTimeout(passageActionsDelayRef.current);
+        clearTimeout(passageActionsDelayRef.current);
         passageActionsDelayRef.current = null;
       }
     };
@@ -311,7 +311,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
     }, AUTO_SAVE_DELAY_MS);
 
     return () => {
-      window.clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
     };
   }, [currentState, hasSavedReading, saveReading]);
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { View, Text, Pressable, ScrollView, Animated } from "react-native";
 import { useRouter } from "expo-router";
 import { useReading } from "@/lib/context/reading-context";
@@ -17,30 +17,10 @@ export default function AIStreamingScreen() {
   } = useReading();
   const colors = useColors();
   const router = useRouter();
-  const [displayedText, setDisplayedText] = useState("");
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // Typewriter effect for AI response
-  useEffect(() => {
-    if (!aiResponse) return;
-
-    let index = 0;
-    const interval = setInterval(() => {
-      if (index < aiResponse.length) {
-        setDisplayedText(aiResponse.slice(0, index + 1));
-        index++;
-        // Haptic feedback every few characters
-        if (index % 10 === 0) {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        }
-      } else {
-        clearInterval(interval);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-    }, 30);
-
-    return () => clearInterval(interval);
-  }, [aiResponse]);
+  // Use aiResponse directly - streaming already provides incremental "typewriter" effect
+  // No need for separate animation that causes race condition on chunk updates
 
   // Fade in animation
   useEffect(() => {
@@ -63,7 +43,7 @@ export default function AIStreamingScreen() {
   };
 
   // If we have a complete AI response, show the full screen
-  if (aiResponse && displayedText.length === aiResponse.length) {
+  if (aiResponse) {
     return (
       <ScreenContainer className="p-6">
         <Animated.View style={{ opacity: fadeAnim }} className="flex-1">
@@ -143,7 +123,7 @@ export default function AIStreamingScreen() {
             style={{ backgroundColor: "#1E3A5F" }}
           >
             <Text className="text-base text-foreground leading-relaxed">
-              {displayedText}
+              {aiResponse}
               <Text className="text-primary animate-pulse">|</Text>
             </Text>
           </View>

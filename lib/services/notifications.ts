@@ -1,8 +1,31 @@
 import * as Notifications from "expo-notifications";
 import * as Device from "expo-device";
-import { Platform } from "react-native";
 import { store } from "@/lib/services/store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
+import { NOTIFICATION_MATRIX, BUNDLED_THEMES } from "@/lib/data/seed-data";
+
+// Get oracle utterance based on userId + date hash
+function getNotificationEntry(userId: string): { symbol_id: string; question: string; symbol_display_name: string } {
+  const today = new Date();
+  const dateStr = `${userId}-${today.getFullYear()}-${today.getMonth()}-${today.getDate()}`;
+  let hash = 0;
+  for (let i = 0; i < dateStr.length; i++) {
+    hash = ((hash << 5) - hash) + dateStr.charCodeAt(i);
+    hash = hash & hash;
+  }
+  const index = Math.abs(hash) % NOTIFICATION_MATRIX.length;
+  const entry = NOTIFICATION_MATRIX[index];
+  
+  // Get symbol display name from themes
+  const theme = BUNDLED_THEMES.find(t => t.symbols.some(s => s.id === entry.symbol_id));
+  const symbol = theme?.symbols.find(s => s.id === entry.symbol_id);
+  
+  return {
+    symbol_id: entry.symbol_id,
+    question: entry.question,
+    symbol_display_name: symbol?.display_name || entry.symbol_id,
+  };
+}
 
 // Configure notification behavior
 Notifications.setNotificationHandler({
@@ -58,12 +81,16 @@ export async function scheduleDailyNotification(
     // Cancel existing daily notifications first
     await cancelAllNotifications();
 
-    // Create notification content
+    // Get user for oracle utterance
+    const userId = await getCurrentUserId();
+    const entry = getNotificationEntry(userId);
+
+    // Create notification content using oracle utterance
     const identifier = await Notifications.scheduleNotificationAsync({
       content: {
-        title: "🌟 Vũ trụ đang chờ",
-        body: "Một đoạn triết lý đang chờ bạn khám phá hôm nay",
-        data: { type: "daily_reminder" },
+        title: `✦ Hôm nay vũ trụ lật: ${entry.symbol_display_name}`,
+        body: `${entry.question}?`,
+        data: { type: "daily_reminder", symbol_id: entry.symbol_id },
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -73,7 +100,6 @@ export async function scheduleDailyNotification(
     });
 
     // Save notification time to user state
-    const userId = await getCurrentUserId();
     const userState = await store.getUserState(userId);
     await store.updateUserState({
       ...userState,
