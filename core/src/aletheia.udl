@@ -73,6 +73,7 @@ dictionary Passage {
     string reference;
     string text;
     string? context;
+    string? resonance_context;
 };
 
 dictionary Reading {

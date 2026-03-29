@@ -25,12 +25,15 @@ const ENV_API_KEYS = [
 ] as const;
 
 export function shouldUseAletheiaNative(): boolean {
-  return Platform.OS === "android" && aletheiaNativeClient.isAvailable();
+  return (Platform.OS === "android" || Platform.OS === "ios")
+    && aletheiaNativeClient.isAvailable();
 }
 
 export function getNativeDbPath(): string {
   const dbFile = new File(Paths.document, "aletheia-native.db");
-  return dbFile.uri;
+  // rusqlite::Connection::open() expects a POSIX path, not a file:// URI.
+  // expo-file-system returns "file:///absolute/path", strip the scheme prefix.
+  return dbFile.uri.replace(/^file:\/\//, "");
 }
 
 export function getGiftBackendUrl(): string {

@@ -30,7 +30,8 @@ use tracing::info;
 // Global Tokio runtime for AI operations - reuse instead of creating new each time
 static RUNTIME: once_cell::sync::Lazy<tokio::runtime::Runtime> =
     once_cell::sync::Lazy::new(|| {
-        tokio::runtime::Builder::new_current_thread()
+        tokio::runtime::Builder::new_multi_thread()
+            .worker_threads(2)  // Limit to 2 threads to conserve battery on mobile
             .enable_all()
             .build()
             .expect("Failed to create global Tokio runtime")
@@ -75,6 +76,7 @@ pub struct AletheiaCore {
     card_generator: CardGenerator,
     gift_client: GiftClient,
     notification_scheduler: NotificationScheduler,
+    init_error: Option<BridgeError>,
 }
 
 impl AletheiaCore {
@@ -93,21 +95,37 @@ impl AletheiaCore {
             card_generator: CardGenerator::new(),
             gift_client: GiftClient::new(Arc::clone(&store), gift_backend_url),
             notification_scheduler: NotificationScheduler::new(Arc::clone(&store)),
+            init_error: None,
         })
     }
 
     pub fn new(db_path: String, gift_backend_url: String) -> Self {
-        // Try to initialize, but don't panic - return error through FFI instead
         match Self::try_new(&db_path, &gift_backend_url) {
-            Ok(core) => core,
+            Ok(mut core) => {
+                core.init_error = None;
+                core
+            }
             Err(error) => {
-                // Log error and return a "poisoned" core that will return errors on use
-                // This allows the mobile app to handle the error gracefully via BridgeError
-                eprintln!("[AletheiaCore] Init failed: {} - Returning error state", error);
-                
-                // Return a placeholder that will properly propagate errors
-                // The FFI layer will catch these errors and return them to the mobile app
-                panic!("AletheiaCore initialization failed: {}", error);
+                eprintln!("[AletheiaCore] Init failed: {} — operating in error state", error);
+                // Create dummy Store to satisfy struct requirements
+                // All method calls will return BridgeError instead of crashing
+                let dummy_store = Arc::new(
+                    Store::new(":memory:")
+                        .unwrap_or_else(|_| panic!("Cannot create in-memory DB for error state"))
+                );
+                let bridge_error = BridgeError::from_aletheia_error(&error);
+                Self {
+                    store: Arc::clone(&dummy_store),
+                    reading_engine: ReadingEngine::new(Arc::clone(&dummy_store)),
+                    theme_engine: ThemeEngine::new(Arc::clone(&dummy_store)),
+                    ai_client: Arc::new(Mutex::new(AIClient::new(Arc::clone(&dummy_store)))),
+                    interpretation_cancel_tokens: Arc::new(Mutex::new(HashMap::new())),
+                    interpretation_jobs: Arc::new(Mutex::new(HashMap::new())),
+                    card_generator: CardGenerator::new(),
+                    gift_client: GiftClient::new(Arc::clone(&dummy_store), &gift_backend_url),
+                    notification_scheduler: NotificationScheduler::new(Arc::clone(&dummy_store)),
+                    init_error: Some(bridge_error),
+                }
             }
         }
     }
@@ -118,6 +136,12 @@ impl AletheiaCore {
         passages_json: String,
         themes_json: String,
     ) -> SeedBundledDataResponse {
+        if let Some(err) = &self.init_error {
+            return SeedBundledDataResponse {
+                seeded: false,
+                error: Some(err.clone()),
+            };
+        }
         let result = (|| -> Result<bool, AletheiaError> {
             let sources: Vec<Source> = serde_json::from_str(&sources_json)
                 .map_err(|_| AletheiaError::invalid_input("sources_json", "invalid JSON payload"))?;
@@ -160,6 +184,12 @@ impl AletheiaCore {
         source_id: Option<String>,
         situation_text: Option<String>,
     ) -> PerformReadingResponse {
+        if let Some(err) = &self.init_error {
+            return PerformReadingResponse {
+                session: None,
+                error: Some(err.clone()),
+            };
+        }
         match self.try_perform_reading(&user_id, source_id, situation_text) {
             Ok(session) => PerformReadingResponse {
                 session: Some(session),
@@ -272,6 +302,12 @@ impl AletheiaCore {
     }
 
     pub fn set_ai_api_key(&self, provider: String, key: String) -> SetApiKeyResponse {
+        if let Some(err) = &self.init_error {
+            return SetApiKeyResponse {
+                applied: false,
+                error: Some(err.clone()),
+            };
+        }
         match self.try_set_ai_api_key(&provider, &key) {
             Ok(()) => SetApiKeyResponse {
                 applied: true,
@@ -522,6 +558,12 @@ impl AletheiaCore {
     }
 
     pub fn get_user_state(&self, user_id: String) -> UserStateResponse {
+        if let Some(err) = &self.init_error {
+            return UserStateResponse {
+                state: None,
+                error: Some(err.clone()),
+            };
+        }
         match self.try_get_user_state(&user_id) {
             Ok(state) => UserStateResponse {
                 state: Some(state),

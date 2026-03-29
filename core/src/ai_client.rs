@@ -433,67 +433,73 @@ impl AIClient {
         F: Fn(&Value) -> Option<String>,
     {
         let mut buffer = String::new();
-        let mut chunks = Vec::new();
+        let mut chunks: Vec<String> = Vec::new();
 
         while let Some(next) = stream.next().await {
             if cancel_token.load(Ordering::SeqCst) {
-                return Err(AletheiaError::ai_unavailable());
+                break;
             }
 
             let bytes = next?;
             let fragment = String::from_utf8_lossy(&bytes);
             buffer.push_str(&fragment);
 
-            // Parse SSE events properly - only split on double newlines that are NOT inside JSON strings
-            // This handles the case where AI content contains "\n\n" as part of the text
+            // Process complete lines only.
+            // SSE spec: each event field is a line. Only lines starting with
+            // exactly "data: " are payload lines. This prevents false matches
+            // when AI-generated text contains the string "data: " mid-sentence.
             loop {
-                // Find the first complete JSON object by trying to parse from the start
-                // Look for "data: " prefix followed by JSON
-                if let Some(data_start) = buffer.find("data: ") {
-                    let rest_start = data_start + 6;
-                    
-                    // Find the end of this event (double newline or end of buffer)
-                    let event_end = if let Some(nn) = buffer[rest_start..].find("\n\n") {
-                        nn
-                    } else {
-                        break; // No complete event yet, wait for more data
-                    };
-                    
-                    // Convert to owned string to avoid borrow issues
-                    let payload = buffer[rest_start..rest_start + event_end].trim().to_string();
-                    if payload == "[DONE]" || payload.is_empty() {
-                        // Remove processed data including the double newline if present
-                        let remove_len = rest_start + event_end + 2;
-                        buffer.drain(..remove_len);
-                        if payload == "[DONE]" {
-                            break;
-                        }
-                        continue;
-                    }
+                // Find the next complete line (ends with \n)
+                let newline_pos = match buffer.find('\n') {
+                    Some(pos) => pos,
+                    None => break, // No complete line yet, wait for more data
+                };
 
-                    // Try to parse as JSON
-                    match serde_json::from_str::<Value>(&payload) {
-                        Ok(json) => {
-                            if let Some(chunk) = parser(&json) {
-                                if !chunk.is_empty() {
-                                    if let Some(callback) = &on_chunk {
-                                        callback(chunk.clone());
-                                    }
-                                    chunks.push(chunk);
+                // Extract the line (without the trailing \n)
+                let line = buffer[..newline_pos].trim_end_matches('\r').to_string();
+                // Drain processed line including the \n
+                buffer.drain(..newline_pos + 1);
+
+                // Skip empty lines (SSE event separator) and comment lines
+                if line.is_empty() || line.starts_with(':') {
+                    continue;
+                }
+
+                // Only process lines that are exactly a "data: " field
+                let payload = match line.strip_prefix("data: ") {
+                    Some(p) => p.trim(),
+                    None => continue, // "event:", "id:", "retry:" fields — ignore
+                };
+
+                // Stream termination signal
+                if payload == "[DONE]" {
+                    return if chunks.is_empty() {
+                        Err(AletheiaError::ai_unavailable())
+                    } else {
+                        Ok(chunks)
+                    };
+                }
+
+                if payload.is_empty() {
+                    continue;
+                }
+
+                // Parse JSON payload
+                match serde_json::from_str::<Value>(payload) {
+                    Ok(json) => {
+                        if let Some(chunk) = parser(&json) {
+                            if !chunk.is_empty() {
+                                if let Some(callback) = &on_chunk {
+                                    callback(chunk.clone());
                                 }
+                                chunks.push(chunk);
                             }
-                            // Remove processed data
-                            let remove_len = rest_start + event_end + 2;
-                            buffer.drain(..remove_len);
-                        }
-                        Err(_) => {
-                            // Incomplete JSON - wait for more data
-                            break;
                         }
                     }
-                } else {
-                    // No "data: " found, break to wait for more data
-                    break;
+                    Err(_) => {
+                        // Malformed JSON on a complete line — log and skip
+                        warn!("SSE: failed to parse JSON payload (len={})", payload.len());
+                    }
                 }
             }
         }

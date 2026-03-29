@@ -132,19 +132,12 @@ class StoreService {
         );
       `);
     }
-    
-    // Version 1: Add resonance_context to passages
-    if (currentVersion < 1) {
-      await this.db.execAsync(`
-        ALTER TABLE passages ADD COLUMN resonance_context TEXT;
-      `).catch(() => {}); // Ignore if column exists
-    }
-    
-    // Version 2: Add missing user_state fields
+
+    // Migration v2: Add session_count to user_state (for existing DBs from v1 that lack it)
     if (currentVersion < 2) {
       await this.db.execAsync(`
         ALTER TABLE user_state ADD COLUMN session_count INTEGER NOT NULL DEFAULT 0;
-      `).catch(() => {}); // Ignore if column exists
+      `).catch(() => {}); // Column may already exist in fresh installs (created in v1)
     }
     
     await this.db.execAsync(`PRAGMA user_version = ${StoreService.SCHEMA_VERSION}`);

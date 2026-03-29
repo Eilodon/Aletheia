@@ -56,6 +56,32 @@ function syncNativeStaging(projectRoot) {
   const iosArtifactsSource = path.join(projectRoot, "artifacts", "ios");
   const androidArtifactsSource = path.join(projectRoot, "artifacts", "android");
 
+  // ── THÊM: Artifact presence check ─────────────────────────────────────
+  const missingArtifacts = [];
+  if (!fs.existsSync(androidArtifactsSource)) {
+    missingArtifacts.push("artifacts/android (run: pnpm rust:android)");
+  }
+  if (!fs.existsSync(iosArtifactsSource)) {
+    missingArtifacts.push("artifacts/ios (run: pnpm rust:ios on macOS)");
+  }
+  if (!fs.existsSync(androidKotlinSource)) {
+    missingArtifacts.push("generated/uniffi/kotlin (run: pnpm uniffi:generate)");
+  }
+  if (!fs.existsSync(iosSwiftSource)) {
+    missingArtifacts.push("generated/uniffi/swift (run: pnpm uniffi:generate)");
+  }
+
+  if (missingArtifacts.length > 0) {
+    console.warn(
+      "\n⚠️  [AletheiaCoreModule] Missing native artifacts:\n" +
+      missingArtifacts.map((m) => `   • ${m}`).join("\n") +
+      "\n   Native module will be UNAVAILABLE. App will run in JS-only mode.\n"
+    );
+    // Do NOT throw — allow web/dev mode to continue without native module.
+    // The JS fallback path will be used automatically.
+  }
+  // ── END: Artifact presence check ───────────────────────────────────────
+
   const iosSwiftDest = path.join(stagingRoot, "ios", "uniffi");
   const androidKotlinDest = path.join(stagingRoot, "android", "uniffi");
   const iosArtifactsDest = path.join(stagingRoot, "ios", "artifacts");

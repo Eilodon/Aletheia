@@ -136,10 +136,19 @@ class AIClientService {
 
       const chunks: string[] = [];
 
+      // Adaptive polling with exponential backoff
+      let pollIntervalMs = 80;          // Start fast for first chunks
+      const MIN_POLL_MS = 80;
+      const MAX_POLL_MS = 500;
+      const BACKOFF_FACTOR = 1.5;
+      let idlePolls = 0;                // Consecutive polls with no new chunks
+
       while (true) {
         const state = unwrapNativeInterpretationStreamState(
           await aletheiaNativeClient.pollInterpretationStream(requestId),
         );
+
+        const hadNewChunks = state.new_chunks.length > 0;
 
         for (const chunk of state.new_chunks) {
           chunks.push(chunk);
@@ -160,7 +169,22 @@ class AIClientService {
           };
         }
 
-        await new Promise((resolve) => setTimeout(resolve, 120));
+        // Adaptive backoff: reset on activity, back off on silence
+        if (hadNewChunks) {
+          pollIntervalMs = MIN_POLL_MS;  // Got data — poll fast again
+          idlePolls = 0;
+        } else {
+          idlePolls++;
+          if (idlePolls > 3) {
+            // No data for 3+ polls — slow down
+            pollIntervalMs = Math.min(
+              Math.floor(pollIntervalMs * BACKOFF_FACTOR),
+              MAX_POLL_MS,
+            );
+          }
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
       }
     })();
 

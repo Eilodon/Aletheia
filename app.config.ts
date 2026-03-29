@@ -47,13 +47,17 @@ const config: ExpoConfig = {
   icon: "./assets/images/icon.png",
   scheme: env.scheme,
   userInterfaceStyle: "automatic",
+  primaryColor: "#6366F1",
   newArchEnabled: true,
   ios: {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
-    "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+    buildNumber: "1",
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+      NSCameraUsageDescription: "Aletheia cần quyền camera để chụp ảnh chia sẻ",
+      NSPhotoLibraryUsageDescription: "Aletheia cần quyền ảnh để lưu ảnh chia sẻ",
+    }
   },
   android: {
     adaptiveIcon: {
@@ -114,6 +118,17 @@ const config: ExpoConfig = {
     typedRoutes: true,
     reactCompiler: true,
   },
+  // ── THÊM: EAS config ──────────────────────────────────────────────────
+  extra: {
+    eas: {
+      // Replace with real UUID from `eas project:init` or expo.dev dashboard.
+      // Run: npx eas project:init
+      // Then paste the generated projectId here.
+      projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? "REPLACE_WITH_EAS_PROJECT_UUID",
+    },
+  },
+  owner: process.env.EXPO_PUBLIC_OWNER_NAME ?? undefined,
+  // ── END: EAS config ────────────────────────────────────────────────────
 };
 
 export default config;

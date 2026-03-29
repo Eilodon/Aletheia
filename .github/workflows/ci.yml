@@ -73,6 +73,15 @@ jobs:
           path: core/target
           key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('core/Cargo.lock') }}
 
+      - name: Cache cargo binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/uniffi-bindgen
+          key: uniffi-bindgen-0.25-${{ runner.os }}
+
+      - name: Install uniffi-bindgen (pinned version)
+        run: cargo install uniffi-bindgen --version 0.25 --locked
+
       - name: Build UniFFI bindings
         working-directory: .
         run: |

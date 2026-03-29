@@ -151,9 +151,23 @@ impl Store {
             tx.execute("PRAGMA user_version = 4", [])?;
         }
 
+        // ── THÊM MIGRATION V5 ──────────────────────────────────────────────
+        if user_version < 5 {
+            // Add resonance_context column to passages if not exists.
+            // Matches the Passage struct field resonance_context: Option<String>.
+            match tx.execute_batch(
+                r#"ALTER TABLE passages ADD COLUMN resonance_context TEXT;"#,
+            ) {
+                Ok(_) => {},
+                Err(e) => info!("Migration v5 warning (column may already exist): {}", e),
+            }
+            tx.execute("PRAGMA user_version = 5", [])?;
+        }
+        // ── END MIGRATION V5 ───────────────────────────────────────────────
+
         tx.commit()?;
         
-        info!("Migrations completed to version 4");
+        info!("Migrations completed to version 5");
         Ok(())
     }
 
@@ -434,8 +448,15 @@ impl Store {
     pub fn insert_passage(&self, passage: &Passage) -> Result<(), AletheiaError> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
-            "INSERT INTO passages (id, source_id, reference, text, context) VALUES (?, ?, ?, ?, ?)",
-            params![passage.id, passage.source_id, passage.reference, passage.text, passage.context],
+            "INSERT INTO passages (id, source_id, reference, text, context, resonance_context) VALUES (?, ?, ?, ?, ?, ?)",
+            params![
+                passage.id,
+                passage.source_id,
+                passage.reference,
+                passage.text,
+                passage.context,
+                passage.resonance_context,
+            ],
         )?;
         Ok(())
     }
