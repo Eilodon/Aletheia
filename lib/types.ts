@@ -12,44 +12,44 @@
 // ============================================================================
 
 export enum Tradition {
-  Chinese = "Chinese",
-  Christian = "Christian",
-  Islamic = "Islamic",
-  Sufi = "Sufi",
-  Stoic = "Stoic",
-  Universal = "Universal",
+  Chinese = "chinese",
+  Christian = "christian",
+  Islamic = "islamic",
+  Sufi = "sufi",
+  Stoic = "stoic",
+  Universal = "universal",
 }
 
 export enum SymbolMethod {
-  Manual = "Manual",
-  Auto = "Auto",
+  Manual = "manual",
+  Auto = "auto",
 }
 
 export enum MoodTag {
-  Confused = "Confused",
-  Hopeful = "Hopeful",
-  Anxious = "Anxious",
-  Curious = "Curious",
-  Grateful = "Grateful",
-  Grief = "Grief",
+  Confused = "confused",
+  Hopeful = "hopeful",
+  Anxious = "anxious",
+  Curious = "curious",
+  Grateful = "grateful",
+  Grief = "grief",
 }
 
 export enum SubscriptionTier {
-  Free = "Free",
-  Pro = "Pro",
+  Free = "free",
+  Pro = "pro",
 }
 
 export enum ReadingState {
-  Idle = "Idle",
-  SituationInput = "SituationInput",
-  SourceSelection = "SourceSelection",
-  WildcardReveal = "WildcardReveal",
-  WildcardChosen = "WildcardChosen",
-  RitualAnimation = "RitualAnimation",
-  PassageDisplayed = "PassageDisplayed",
-  AiStreaming = "AiStreaming",
-  AiFallback = "AiFallback",
-  Complete = "Complete",
+  Idle = "idle",
+  SituationInput = "situation_input",
+  SourceSelection = "source_selection",
+  WildcardReveal = "wildcard_reveal",
+  WildcardChosen = "wildcard_chosen",
+  RitualAnimation = "ritual_animation",
+  PassageDisplayed = "passage_displayed",
+  AiStreaming = "ai_streaming",
+  AiFallback = "ai_fallback",
+  Complete = "complete",
 }
 
 export enum ErrorCode {

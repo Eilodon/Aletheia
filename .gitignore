@@ -41,6 +41,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+*.logs/
 
 # Environment files
 .env
@@ -69,6 +70,13 @@ coverage/
 .parcel-cache/
 .eslintcache
 *.tsbuildinfo
+.swc/
+.rustup/
+.cargo/
+
+# TypeScript build info
+*.tsbuildinfo
+tsconfig.tsbuildinfo
 
 # Drizzle
 drizzle/meta/_journal.json.bak
@@ -77,3 +85,14 @@ drizzle/meta/_journal.json.bak
 *.pem
 *.crt
 *.key
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Lock files (optional - uncomment if you want to ignore)
+# pnpm-lock.yaml
+# yarn.lock
+# package-lock.json

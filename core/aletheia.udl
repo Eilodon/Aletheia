@@ -176,6 +176,32 @@ namespace aletheia {
         context: map<string, any>?
     }
 
+    // Missing types - added to match contracts.rs
+    record AIRequest {
+        reading_id: string,
+        passage: Passage,
+        symbol: Symbol,
+        situation_text: string?
+    }
+
+    record GiftRequest {
+        token: string
+    }
+
+    // ReadingState enum - for state machine
+    enum ReadingState {
+        "idle",
+        "situation_input",
+        "source_selection",
+        "wildcard_reveal",
+        "wildcard_chosen",
+        "ritual_animation",
+        "passage_displayed",
+        "ai_streaming",
+        "ai_fallback",
+        "complete"
+    }
+
     // ============================================================================
     // FUNCTIONS
     // ============================================================================
