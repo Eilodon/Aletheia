@@ -2,7 +2,7 @@ import { File, Paths } from "expo-file-system";
 import { Platform } from "react-native";
 
 import { getApiBaseUrl } from "@/constants/oauth";
-import { BUNDLED_PASSAGES, BUNDLED_SOURCES, BUNDLED_THEMES } from "@/lib/data/seed-data";
+import { BUNDLED_PASSAGES, BUNDLED_SOURCES, BUNDLED_THEMES } from "@/lib/data/content";
 import { createTRPCClient } from "@/lib/trpc";
 
 import { aletheiaNativeClient } from "./aletheia-core";
@@ -15,7 +15,7 @@ export function shouldUseAletheiaNative(): boolean {
   if (Platform.OS === "ios" && aletheiaNativeClient.isAvailable()) {
     if (!hasWarnedAboutIosNativePending) {
       console.warn(
-        "[Aletheia Native] iOS bridge is compiled into the module, but the UniFFI runtime is still pending. Using JS fallback on iOS.",
+        "[Aletheia Native] iOS native support is explicitly out of beta scope. Android uses Rust core; iOS remains held until UniFFI runtime parity exists.",
       );
       hasWarnedAboutIosNativePending = true;
     }

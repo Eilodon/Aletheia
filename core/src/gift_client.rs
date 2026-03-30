@@ -61,10 +61,7 @@ impl GiftClient {
 
                 // Store locally (simplified - in production would use backend)
                 info!("Created local gift: {}", token);
-                Ok(GiftResponse {
-                    token,
-                    deep_link,
-                })
+                Ok(GiftResponse { token, deep_link })
             }
         }
     }
@@ -81,12 +78,10 @@ impl GiftClient {
         match response {
             Ok(resp) if resp.status().is_success() => {
                 let json: serde_json::Value = resp.json().await?;
-                
+
                 // Check if already redeemed
                 if json["redeemed"].as_bool().unwrap_or(false) {
-                    let redeemed_at = json["redeemed_at"]
-                        .as_i64()
-                        .unwrap_or(chrono_timestamp());
+                    let redeemed_at = json["redeemed_at"].as_i64().unwrap_or(chrono_timestamp());
                     return Err(AletheiaError::gift_already_redeemed(redeemed_at));
                 }
 
@@ -110,9 +105,7 @@ impl GiftClient {
             Ok(resp) if resp.status() == 410 => {
                 Err(AletheiaError::gift_expired(chrono_timestamp()))
             }
-            Ok(resp) if resp.status() == 404 => {
-                Err(AletheiaError::gift_not_found(token))
-            }
+            Ok(resp) if resp.status() == 404 => Err(AletheiaError::gift_not_found(token)),
             Ok(resp) if resp.status() == 409 => {
                 Err(AletheiaError::gift_already_redeemed(chrono_timestamp()))
             }

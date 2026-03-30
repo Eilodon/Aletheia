@@ -1,10 +1,14 @@
-# CONTRACTS.md — Schema Registry
+# CONTRACTS.md — Executable Contract Reference
 ### Aletheia · v1.0
 
-> **Nguyên tắc vàng:** Mọi type, schema, enum, constant được define **MỘT LẦN DUY NHẤT** tại đây.
-> BLUEPRINT.md và code **reference** — không redefine, không copy, không paraphrase.
+> **Nguyên tắc vàng mới:** executable source mới là authority.
+> 
+> - `core/src/contracts.rs` giữ schema/enum/constant cốt lõi.
+> - `core/src/aletheia.udl` giữ surface UniFFI export.
+> - `lib/types.ts` được sync từ Rust contracts.
+> - File này là reference đã sync để đọc nhanh, không được phép thắng code chạy thật.
 >
-> Khi thấy conflict giữa file này và bất kỳ file nào khác → file này thắng.
+> Khi thấy conflict giữa file này và executable source → executable source thắng, rồi cập nhật file này theo sau.
 
 ---
 
@@ -101,6 +105,21 @@ SymbolMethod ::
 
 **Dùng ở:** `Reading`
 **Không dùng cho:** logic khác — chỉ là engagement signal & Mirror data
+
+---
+
+### UserIntent
+
+```
+UserIntent ::
+  | Clarity      // Cần nhìn rõ tình huống
+  | Comfort      // Cần được an ủi / chữa lành
+  | Challenge    // Sẵn sàng nghe sự thật khó
+  | Guidance     // Để vũ trụ dẫn lối
+```
+
+**Dùng ở:** `UserState`, `ReadingSession`, `Reading`
+**Dùng cho:** core-owned onboarding intent và prompt shaping
 
 ---
 
@@ -267,6 +286,7 @@ Passage :: {
   reference   :: string           // VD: "Hexagram 42 · 益", "John 3:16"
   text        :: string           // Nội dung passage
   context     :: string?          // Chú thích gốc nếu có
+  resonance_context :: string?    // Hidden AI-only context, không hiển thị trên UI
 }
 ```
 
@@ -304,11 +324,14 @@ Reading :: {
   ai_interpreted  :: bool           // User đã tap "Diễn giải"?
   ai_used_fallback :: bool          // True nếu dùng static prompts thay AI
   read_duration_s :: u32?           // Giây user ở lại PassageDisplayed screen
+  time_to_ai_request_s :: u32?      // Giây từ lúc hiện passage đến lúc user gọi AI
+  notification_opened :: bool       // Reading được mở từ daily notification?
   mood_tag        :: MoodTag?       // User self-tag sau reading
   is_favorite     :: bool           // Default: false
 
   // Social
   shared          :: bool           // User đã share card?
+  user_intent     :: UserIntent?    // Snapshot intent đã chọn khi bắt đầu reading
 }
 ```
 
@@ -374,14 +397,18 @@ INVARIANT: token không thể reuse sau khi redeemed = true
 
 ```
 UserState :: {
+  user_id               :: string
   subscription_tier    :: SubscriptionTier
   readings_today       :: u8              // Reset lúc midnight local time
   ai_calls_today       :: u8              // Reset lúc midnight local time
+  session_count        :: u32
   last_reading_date    :: string?         // ISO date "2026-03-18", null = chưa đọc
   notification_enabled :: bool            // Default: true
   notification_time    :: string?         // "HH:MM" local, null = disabled
   preferred_language   :: string          // Default: "vi"
   dark_mode            :: bool            // Default: false (system preference)
+  onboarding_complete  :: bool
+  user_intent          :: UserIntent?     // Core-owned onboarding intent
 }
 ```
 
@@ -420,9 +447,13 @@ INPUT :: {
 }
 
 OUTPUT :: {
+  temp_id         :: string
+  source          :: Ref<Source>
   theme          :: Ref<Theme>
   symbols        :: List<Ref<Symbol>>   // Đúng 3 symbols random từ theme
-  // Reading chưa complete — chờ choose_symbol()
+  situation_text :: string?
+  user_intent    :: UserIntent?
+  started_at     :: i64
 }
 | Ref<ERR_SOURCE_NOT_FOUND>
 | Ref<ERR_DAILY_LIMIT_REACHED>
@@ -450,8 +481,7 @@ IDEMPOTENT: KHÔNG — mỗi call random symbols mới
 INPUT :: {
   symbol_id    :: string          // Symbol được chọn
   method       :: SymbolMethod    // Manual | Auto
-  source_id    :: string
-  situation_text :: string?
+  session      :: Ref<ReadingSession>
 }
 
 OUTPUT :: {
@@ -516,6 +546,7 @@ SIDE EFFECTS:
   - INSERT INTO readings
   - UserState.readings_today += 1
   - UserState.ai_calls_today += 1 nếu ai_interpreted = true
+  - UserState.session_count += 1
 
 POST-CONDITIONS:
   - Reading có thể query từ get_history()
@@ -744,6 +775,7 @@ RULE 4 — Nullable vs default: nếu có sensible default thì dùng default, k
 | Version | Date | Schema | Thay đổi | Breaking? | ADR Ref |
 |---|---|---|---|---|---|
 | v1.0 | 2026-03-18 | — | Init schema registry — all schemas | — | ADR-AL-1 through AL-11 |
+| v1.1 | 2026-03-30 | Reading / Passage / UserState | Sync executable Rust contracts: `resonance_context`, `user_intent`, `session_count`, notification fields; docs no longer override code | KHÔNG | ADR-AL-31 through AL-35 |
 
 > **Template một entry:**
 > `| v{{X.Y}} | {{DATE}} | {{SCHEMA}} | {{ADDED/REMOVED/RENAMED}}: {{FIELD}} | {{CÓ/KHÔNG}} | ADR-{{N}} |`

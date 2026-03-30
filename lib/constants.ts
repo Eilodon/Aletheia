@@ -1,6 +1,6 @@
 /**
  * Business configuration constants
- * SYNC WITH: docs/CONTRACTS.md
+ * SYNC WITH: core/src/contracts.rs
  */
 
 // Reading limits

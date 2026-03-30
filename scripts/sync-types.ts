@@ -3,7 +3,7 @@
  * 
  * Usage: npx tsx scripts/sync-types.ts
  * 
- * This script parses contracts.rs and generates lib/types.ts
+ * This script parses executable Rust contracts and generates lib/types.ts
  * Run this whenever the Rust contracts change
  */
 
@@ -111,10 +111,11 @@ function generateTypeScript(enums: ParsedEnum[], structs: ParsedStruct[]): strin
   let output = `/**
  * Aletheia Type Definitions
  * AUTO-GENERATED - Do not edit manually
- * Sync from: core/src/contracts.rs
+ * Sync from: core/src/contracts.rs and core/src/aletheia.udl
  * Last synced: ${new Date().toISOString().split("T")[0]}
  * 
- * Based on CONTRACTS.md — single source of truth for all schemas
+ * Executable Rust contracts are the source of truth.
+ * docs/CONTRACTS.md is a synchronized reference, not the authority.
  */
 
 // ============================================================================

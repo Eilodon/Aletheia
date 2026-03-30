@@ -29,9 +29,9 @@ impl ReadingEngine {
     ) -> Result<ReadingSession, AletheiaError> {
         // Check daily limit for Free tier
         let user_state = self.store.get_user_state(user_id)?;
-        
-        if user_state.subscription_tier == SubscriptionTier::Free 
-            && user_state.readings_today >= FREE_READINGS_PER_DAY 
+
+        if user_state.subscription_tier == SubscriptionTier::Free
+            && user_state.readings_today >= FREE_READINGS_PER_DAY
         {
             let today = user_state
                 .last_reading_date
@@ -67,7 +67,7 @@ impl ReadingEngine {
             theme,
             symbols,
             situation_text,
-            user_intent: None, // Set by UI after onboarding choice
+            user_intent: user_state.user_intent.clone(),
             started_at: chrono_timestamp(),
         };
 
@@ -93,7 +93,10 @@ impl ReadingEngine {
             .get_random_passage(&session.source.id)?
             .ok_or_else(|| AletheiaError::passage_empty(&session.source.id))?;
 
-        info!("Symbol {} chosen via {:?}, passage: {}", symbol_id, method, passage.id);
+        info!(
+            "Symbol {} chosen via {:?}, passage: {}",
+            symbol_id, method, passage.id
+        );
         Ok(ChosenPassage {
             passage,
             reading_id: session.temp_id.clone(),

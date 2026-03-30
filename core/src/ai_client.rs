@@ -49,6 +49,7 @@ pub enum AIProvider {
 
 type ChunkCallback = Arc<dyn Fn(String) + Send + Sync>;
 
+#[derive(Clone)]
 pub struct AIClient {
     http_client: Client,
     store: Arc<Store>,
@@ -70,7 +71,6 @@ impl AIClient {
         self.api_keys.insert(provider, key);
     }
 
-
     pub async fn request_interpretation(
         &mut self,
         passage: &Passage,
@@ -78,15 +78,14 @@ impl AIClient {
         situation_text: Option<&str>,
         cancel_token: Arc<AtomicBool>,
     ) -> Result<AIInterpretation, AletheiaError> {
-        self
-            .request_interpretation_with_callback(
-                passage,
-                symbol,
-                situation_text,
-                cancel_token,
-                None,
-            )
-            .await
+        self.request_interpretation_with_callback(
+            passage,
+            symbol,
+            situation_text,
+            cancel_token,
+            None,
+        )
+        .await
     }
 
     pub async fn request_interpretation_with_callback(
@@ -148,7 +147,12 @@ impl AIClient {
         })
     }
 
-    fn build_prompt(&self, passage: &Passage, symbol: &Symbol, situation_text: Option<&str>) -> String {
+    fn build_prompt(
+        &self,
+        passage: &Passage,
+        symbol: &Symbol,
+        situation_text: Option<&str>,
+    ) -> String {
         let mut parts = Vec::new();
 
         let passage_language = self
@@ -173,9 +177,16 @@ impl AIClient {
         }
 
         parts.push(format!("Biểu tượng đã chọn: {}", symbol.display_name));
-        parts.push(format!("Đoạn trích ({}):\n{}", passage.reference, passage.text));
+        parts.push(format!(
+            "Đoạn trích ({}):\n{}",
+            passage.reference, passage.text
+        ));
 
-        if let Some(context) = &passage.context {
+        if let Some(context) = passage
+            .resonance_context
+            .as_ref()
+            .or(passage.context.as_ref())
+        {
             parts.push(format!(
                 "Ngữ cảnh ẩn cho người đọc (không nhắc lộ ra): {}",
                 context
@@ -202,13 +213,16 @@ impl AIClient {
 
             let result = match provider {
                 AIProvider::Claude => {
-                    self.call_claude(prompt, Arc::clone(&cancel_token), on_chunk.clone()).await
+                    self.call_claude(prompt, Arc::clone(&cancel_token), on_chunk.clone())
+                        .await
                 }
                 AIProvider::GPT4 => {
-                    self.call_gpt4(prompt, Arc::clone(&cancel_token), on_chunk.clone()).await
+                    self.call_gpt4(prompt, Arc::clone(&cancel_token), on_chunk.clone())
+                        .await
                 }
                 AIProvider::Gemini => {
-                    self.call_gemini(prompt, Arc::clone(&cancel_token), on_chunk.clone()).await
+                    self.call_gemini(prompt, Arc::clone(&cancel_token), on_chunk.clone())
+                        .await
                 }
             };
 
@@ -216,14 +230,12 @@ impl AIClient {
                 Ok(response) => return Ok(response),
                 Err(e) => {
                     last_error = Some(e);
-                    
+
                     // Check if retryable
                     if let Some(ref err) = last_error {
-                        let is_retryable = matches!(
-                            err.code,
-                            ErrorCode::AiTimeout | ErrorCode::AiUnavailable
-                        );
-                        
+                        let is_retryable =
+                            matches!(err.code, ErrorCode::AiTimeout | ErrorCode::AiUnavailable);
+
                         if !is_retryable || attempt == MAX_RETRIES - 1 {
                             break;
                         }
@@ -246,7 +258,9 @@ impl AIClient {
         cancel_token: Arc<AtomicBool>,
         on_chunk: Option<ChunkCallback>,
     ) -> Result<Vec<String>, AletheiaError> {
-        let api_key = self.api_keys.get(&AIProvider::Claude)
+        let api_key = self
+            .api_keys
+            .get(&AIProvider::Claude)
             .ok_or_else(|| AletheiaError::ai_unavailable())?;
 
         let request_body = serde_json::json!({
@@ -257,13 +271,16 @@ impl AIClient {
             "messages": [{ "role": "user", "content": prompt }]
         });
 
-        let response = self.http_client
+        let response = self
+            .http_client
             .post("https://api.anthropic.com/v1/messages")
             .header("x-api-key", api_key)
             .header("anthropic-version", "2023-06-01")
             .header("content-type", "application/json")
             .json(&request_body)
-            .timeout(std::time::Duration::from_millis(AI_STREAM_TIMEOUT_MS as u64))
+            .timeout(std::time::Duration::from_millis(
+                AI_STREAM_TIMEOUT_MS as u64,
+            ))
             .send()
             .await?;
 
@@ -275,18 +292,15 @@ impl AIClient {
             return Err(AletheiaError::ai_unavailable());
         }
 
-        self.consume_sse_stream(
-            response.bytes_stream(),
-            cancel_token,
-            on_chunk,
-            |json| {
-                if json["type"].as_str() != Some("content_block_delta") {
-                    return None;
-                }
+        self.consume_sse_stream(response.bytes_stream(), cancel_token, on_chunk, |json| {
+            if json["type"].as_str() != Some("content_block_delta") {
+                return None;
+            }
 
-                json["delta"]["text"].as_str().map(|value| value.to_string())
-            },
-        )
+            json["delta"]["text"]
+                .as_str()
+                .map(|value| value.to_string())
+        })
         .await
     }
 
@@ -296,7 +310,9 @@ impl AIClient {
         cancel_token: Arc<AtomicBool>,
         on_chunk: Option<ChunkCallback>,
     ) -> Result<Vec<String>, AletheiaError> {
-        let api_key = self.api_keys.get(&AIProvider::GPT4)
+        let api_key = self
+            .api_keys
+            .get(&AIProvider::GPT4)
             .ok_or_else(|| AletheiaError::ai_unavailable())?;
 
         let request_body = serde_json::json!({
@@ -309,12 +325,15 @@ impl AIClient {
             ]
         });
 
-        let response = self.http_client
+        let response = self
+            .http_client
             .post("https://api.openai.com/v1/chat/completions")
             .header("Authorization", format!("Bearer {}", api_key))
             .header("content-type", "application/json")
             .json(&request_body)
-            .timeout(std::time::Duration::from_millis(AI_STREAM_TIMEOUT_MS as u64))
+            .timeout(std::time::Duration::from_millis(
+                AI_STREAM_TIMEOUT_MS as u64,
+            ))
             .send()
             .await?;
 
@@ -326,20 +345,15 @@ impl AIClient {
             return Err(AletheiaError::ai_unavailable());
         }
 
-        self.consume_sse_stream(
-            response.bytes_stream(),
-            cancel_token,
-            on_chunk,
-            |json| {
-                json["choices"]
-                    .as_array()
-                    .and_then(|choices| choices.first())
-                    .and_then(|choice| choice.get("delta"))
-                    .and_then(|delta| delta.get("content"))
-                    .and_then(|content| content.as_str())
-                    .map(|value| value.to_string())
-            },
-        )
+        self.consume_sse_stream(response.bytes_stream(), cancel_token, on_chunk, |json| {
+            json["choices"]
+                .as_array()
+                .and_then(|choices| choices.first())
+                .and_then(|choice| choice.get("delta"))
+                .and_then(|delta| delta.get("content"))
+                .and_then(|content| content.as_str())
+                .map(|value| value.to_string())
+        })
         .await
     }
 
@@ -349,7 +363,9 @@ impl AIClient {
         cancel_token: Arc<AtomicBool>,
         on_chunk: Option<ChunkCallback>,
     ) -> Result<Vec<String>, AletheiaError> {
-        let api_key = self.api_keys.get(&AIProvider::Gemini)
+        let api_key = self
+            .api_keys
+            .get(&AIProvider::Gemini)
             .ok_or_else(|| AletheiaError::ai_unavailable())?;
 
         let request_body = serde_json::json!({
@@ -367,11 +383,14 @@ impl AIClient {
             GEMINI_MODEL, api_key
         );
 
-        let response = self.http_client
+        let response = self
+            .http_client
             .post(&url)
             .header("content-type", "application/json")
             .json(&request_body)
-            .timeout(std::time::Duration::from_millis(AI_STREAM_TIMEOUT_MS as u64))
+            .timeout(std::time::Duration::from_millis(
+                AI_STREAM_TIMEOUT_MS as u64,
+            ))
             .send()
             .await?;
 
@@ -416,7 +435,7 @@ impl AIClient {
 
     fn get_fallback(&self, passage: &Passage) -> Result<Vec<String>, AletheiaError> {
         let prompts = self.store.get_fallback_prompts(&passage.source_id)?;
-        
+
         info!("Using fallback prompts for source {}", passage.source_id);
         Ok(prompts)
     }

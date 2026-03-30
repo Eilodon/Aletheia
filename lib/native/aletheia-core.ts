@@ -17,7 +17,12 @@ import {
   type NativeStartInterpretationStreamResponse,
   type NativeSymbol,
   type NativePassage,
+  type NativeUserState,
   type NativeUserStateResponse,
+  type NativeUpdateUserStateResponse,
+  type NativePaginatedReadingsResponse,
+  type NativeSourcesResponse,
+  type NativeNotificationMessageResponse,
   type NativeRedeemGiftResponse,
   type NativeCreateGiftResponse,
 } from "../../modules/aletheia-core-module/src";
@@ -76,6 +81,25 @@ class AletheiaNativeClient {
 
   getUserState(userId: string): Promise<NativeUserStateResponse> {
     return this.requireModule().getUserState(userId);
+  }
+
+  updateUserState(state: NativeUserState): Promise<NativeUpdateUserStateResponse> {
+    return this.requireModule().updateUserState(state);
+  }
+
+  getReadings(limit: number, offset: number): Promise<NativePaginatedReadingsResponse> {
+    return this.requireModule().getReadings(limit, offset);
+  }
+
+  getSources(premiumAllowed: boolean): Promise<NativeSourcesResponse> {
+    return this.requireModule().getSources(premiumAllowed);
+  }
+
+  getDailyNotificationMessage(
+    userId: string,
+    date: string,
+  ): Promise<NativeNotificationMessageResponse> {
+    return this.requireModule().getDailyNotificationMessage(userId, date);
   }
 
   seedBundledData(

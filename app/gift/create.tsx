@@ -3,10 +3,9 @@ import { View, Text, Pressable, ScrollView, Animated, TextInput } from "react-na
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
-import { store } from "@/lib/services/store";
+import { coreStore } from "@/lib/services/core-store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
 import * as Haptics from "expo-haptics";
-import { BUNDLED_SOURCES } from "@/lib/data/seed-data";
 
 interface GiftSource {
   id: string;
@@ -25,14 +24,18 @@ export default function GiftCreateScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Load bundled sources
-    const bundledSources = BUNDLED_SOURCES.filter((s) => !s.is_premium).map((s) => ({
-      id: s.id,
-      name: s.name,
-      tradition: s.tradition,
-      selected: false,
-    }));
-    setSources(bundledSources);
+    coreStore.getGiftableSources()
+      .then((giftableSources) => {
+        setSources(giftableSources.map((source) => ({
+          id: source.id,
+          name: source.name,
+          tradition: source.tradition,
+          selected: false,
+        })));
+      })
+      .catch((error) => {
+        console.error("Failed to load giftable sources:", error);
+      });
 
     Animated.timing(fadeAnim, {
       toValue: 1,
@@ -64,7 +67,7 @@ export default function GiftCreateScreen() {
 
     try {
       const userId = await getCurrentUserId();
-      const userState = await store.getUserState(userId);
+      const userState = await coreStore.getUserState(userId);
 
       // Check Pro tier (only Pro can create gifts)
       if (userState.subscription_tier !== "pro") {
@@ -73,17 +76,10 @@ export default function GiftCreateScreen() {
         return;
       }
 
-      // Simulate gift creation (API call would go here)
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-
-      // Generate cryptographically secure token
-      const bytes = new Uint8Array(16);
-      crypto.getRandomValues(bytes);
-      const charset = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-      const token = Array.from(bytes, (b) => charset[b % charset.length]).join("").toUpperCase();
+      const gift = await coreStore.createGift(selectedSourceId, buyerNote.trim() || undefined);
       setGiftResult({
-        token,
-        deepLink: `https://aletheia.app/gift/${token}`,
+        token: gift.token,
+        deepLink: gift.deep_link,
       });
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);

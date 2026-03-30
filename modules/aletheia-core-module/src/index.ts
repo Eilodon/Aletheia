@@ -45,7 +45,7 @@ export type NativePassage = {
   resonance_context?: string;
 };
 
-export type NativeUserIntent = "Clarity" | "Comfort" | "Challenge" | "Guidance";
+export type NativeUserIntent = "clarity" | "comfort" | "challenge" | "guidance";
 
 export type NativeReadingSession = {
   temp_id: string;
@@ -89,6 +89,14 @@ export type NativeUserState = {
   preferred_language: string;
   dark_mode: boolean;
   onboarding_complete: boolean;
+  user_intent?: NativeUserIntent;
+};
+
+export type NativeNotificationMessage = {
+  symbol_id: string;
+  question: string;
+  title: string;
+  body: string;
 };
 
 export type NativeChosenPassage = {
@@ -166,6 +174,32 @@ export type NativeUserStateResponse = {
   error?: NativeBridgeError;
 };
 
+export type NativeUpdateUserStateResponse = {
+  updated: boolean;
+  error?: NativeBridgeError;
+};
+
+export type NativePaginatedReadings = {
+  items: NativeReading[];
+  total_count: number;
+  has_more: boolean;
+};
+
+export type NativePaginatedReadingsResponse = {
+  readings?: NativePaginatedReadings;
+  error?: NativeBridgeError;
+};
+
+export type NativeSourcesResponse = {
+  sources: NativeSource[];
+  error?: NativeBridgeError;
+};
+
+export type NativeNotificationMessageResponse = {
+  message?: NativeNotificationMessage;
+  error?: NativeBridgeError;
+};
+
 export type NativeGiftReadingData = {
   token: string;
   buyer_note?: string;
@@ -237,6 +271,13 @@ export type NativeAletheiaModule = {
   ): Promise<NativeCancelInterpretationResponse>;
   getFallbackPrompts(sourceId: string): Promise<NativeFallbackPromptsResponse>;
   getUserState(userId: string): Promise<NativeUserStateResponse>;
+  updateUserState(state: NativeUserState): Promise<NativeUpdateUserStateResponse>;
+  getSources(premiumAllowed: boolean): Promise<NativeSourcesResponse>;
+  getReadings(limit: number, offset: number): Promise<NativePaginatedReadingsResponse>;
+  getDailyNotificationMessage(
+    userId: string,
+    date: string,
+  ): Promise<NativeNotificationMessageResponse>;
   setLocalDate(localDate: string): Promise<void>;
   redeemGift(token: string): Promise<NativeRedeemGiftResponse>;
   createGift(sourceId?: string, buyerNote?: string): Promise<NativeCreateGiftResponse>;

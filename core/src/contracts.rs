@@ -1,5 +1,5 @@
 //! Aletheia Core - Type Definitions
-//! Based on CONTRACTS.md - Single source of truth
+//! Executable schema source of truth for Rust, UniFFI, and generated TS types.
 
 use serde::{Deserialize, Serialize};
 
@@ -182,6 +182,7 @@ pub struct Reading {
     pub mood_tag: Option<MoodTag>,
     pub is_favorite: bool,
     pub shared: bool,
+    pub user_intent: Option<UserIntent>,
 }
 
 impl Reading {
@@ -210,6 +211,7 @@ impl Reading {
             mood_tag: None,
             is_favorite: false,
             shared: false,
+            user_intent: None,
         }
     }
 }
@@ -218,6 +220,14 @@ impl Reading {
 pub struct NotificationEntry {
     pub symbol_id: String,
     pub question: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NotificationMessage {
+    pub symbol_id: String,
+    pub question: String,
+    pub title: String,
+    pub body: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -275,6 +285,7 @@ pub struct UserState {
     pub preferred_language: String,
     pub dark_mode: bool,
     pub onboarding_complete: bool,
+    pub user_intent: Option<UserIntent>,
 }
 
 impl Default for UserState {
@@ -291,6 +302,7 @@ impl Default for UserState {
             preferred_language: "vi".to_string(),
             dark_mode: false,
             onboarding_complete: false,
+            user_intent: None,
         }
     }
 }
@@ -337,6 +349,18 @@ pub struct PaginatedReadings {
     pub items: Vec<Reading>,
     pub total_count: u32,
     pub has_more: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SourcesResponse {
+    pub sources: Vec<Source>,
+    pub error: Option<BridgeError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NotificationMessageResponse {
+    pub message: Option<NotificationMessage>,
+    pub error: Option<BridgeError>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -420,6 +444,18 @@ pub struct FallbackPromptsResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserStateResponse {
     pub state: Option<UserState>,
+    pub error: Option<BridgeError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateUserStateResponse {
+    pub updated: bool,
+    pub error: Option<BridgeError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PaginatedReadingsResponse {
+    pub readings: Option<PaginatedReadings>,
     pub error: Option<BridgeError>,
 }
 

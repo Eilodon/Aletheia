@@ -12,6 +12,10 @@ import type {
   NativeSetApiKeyResponse,
   NativeStartInterpretationStreamResponse,
   NativeUserStateResponse,
+  NativeUpdateUserStateResponse,
+  NativePaginatedReadingsResponse,
+  NativeSourcesResponse,
+  NativeNotificationMessageResponse,
 } from "../../modules/aletheia-core-module/src";
 
 const ERROR_CODE_MAP: Record<string, ErrorCode> = {
@@ -104,6 +108,52 @@ export function unwrapNativeUserStateResponse(response: NativeUserStateResponse)
     });
   }
   return response.state;
+}
+
+export function unwrapNativeUpdateUserStateResponse(response: NativeUpdateUserStateResponse) {
+  const error = toAletheiaError(response.error);
+  if (error) {
+    throw error;
+  }
+  return response.updated;
+}
+
+export function unwrapNativePaginatedReadingsResponse(response: NativePaginatedReadingsResponse) {
+  const error = toAletheiaError(response.error);
+  if (error) {
+    throw error;
+  }
+  if (!response.readings) {
+    throw toAletheiaError({
+      code: "ERR_INVALID_INPUT",
+      message: "Native getReadings returned no readings payload.",
+    });
+  }
+  return response.readings;
+}
+
+export function unwrapNativeSourcesResponse(response: NativeSourcesResponse) {
+  const error = toAletheiaError(response.error);
+  if (error) {
+    throw error;
+  }
+  return response.sources;
+}
+
+export function unwrapNativeNotificationMessageResponse(
+  response: NativeNotificationMessageResponse,
+) {
+  const error = toAletheiaError(response.error);
+  if (error) {
+    throw error;
+  }
+  if (!response.message) {
+    throw toAletheiaError({
+      code: "ERR_INVALID_INPUT",
+      message: "Native getDailyNotificationMessage returned no payload.",
+    });
+  }
+  return response.message;
 }
 
 export function unwrapNativeRequestInterpretationResponse(

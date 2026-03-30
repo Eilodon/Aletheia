@@ -3,7 +3,7 @@ import { View, Text, Pressable, ScrollView, Animated } from "react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
-import { store } from "@/lib/services/store";
+import { coreStore } from "@/lib/services/core-store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
 import { SubscriptionTier } from "@/lib/types";
 import * as Haptics from "expo-haptics";
@@ -40,7 +40,7 @@ export default function PaywallScreen() {
     const checkTier = async () => {
       try {
         const userId = await getCurrentUserId();
-        const userState = await store.getUserState(userId);
+        const userState = await coreStore.getUserState(userId);
         setCurrentTier(userState.subscription_tier);
       } catch (error) {
         console.error("Failed to check tier:", error);
@@ -76,8 +76,8 @@ export default function PaywallScreen() {
 
       // Update user tier
       const userId = await getCurrentUserId();
-      const userState = await store.getUserState(userId);
-      await store.updateUserState({
+      const userState = await coreStore.getUserState(userId);
+      await coreStore.updateUserState({
         ...userState,
         subscription_tier: SubscriptionTier.Pro,
       });

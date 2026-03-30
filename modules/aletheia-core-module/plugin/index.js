@@ -47,7 +47,7 @@ function listFiles(rootDir) {
   return files;
 }
 
-function syncNativeStaging(projectRoot) {
+function syncNativeStaging(projectRoot, platform) {
   const moduleRoot = path.join(projectRoot, "modules", "aletheia-core-module");
   const stagingRoot = path.join(moduleRoot, ".native-staging");
 
@@ -56,31 +56,37 @@ function syncNativeStaging(projectRoot) {
   const iosArtifactsSource = path.join(projectRoot, "artifacts", "ios");
   const androidArtifactsSource = path.join(projectRoot, "artifacts", "android");
 
-  // ── THÊM: Artifact presence check ─────────────────────────────────────
-  const missingArtifacts = [];
+  const missingAndroidArtifacts = [];
   if (!fs.existsSync(androidArtifactsSource)) {
-    missingArtifacts.push("artifacts/android (run: pnpm rust:android)");
-  }
-  if (!fs.existsSync(iosArtifactsSource)) {
-    missingArtifacts.push("artifacts/ios (run: pnpm rust:ios on macOS)");
+    missingAndroidArtifacts.push("artifacts/android (run: pnpm rust:android)");
   }
   if (!fs.existsSync(androidKotlinSource)) {
-    missingArtifacts.push("generated/uniffi/kotlin (run: pnpm uniffi:generate)");
-  }
-  if (!fs.existsSync(iosSwiftSource)) {
-    missingArtifacts.push("generated/uniffi/swift (run: pnpm uniffi:generate)");
+    missingAndroidArtifacts.push("generated/uniffi/kotlin (run: pnpm uniffi:generate)");
   }
 
-  if (missingArtifacts.length > 0) {
-    console.warn(
-      "\n⚠️  [AletheiaCoreModule] Missing native artifacts:\n" +
-      missingArtifacts.map((m) => `   • ${m}`).join("\n") +
-      "\n   Native module will be UNAVAILABLE. App will run in JS-only mode.\n"
+  if (platform === "android" && missingAndroidArtifacts.length > 0) {
+    throw new Error(
+      "\n[AletheiaCoreModule] Missing required Android native artifacts:\n" +
+      missingAndroidArtifacts.map((m) => `  - ${m}`).join("\n") +
+      "\nAndroid beta requires the Rust core. JS fallback is not supported on the Android release path.\n",
     );
-    // Do NOT throw — allow web/dev mode to continue without native module.
-    // The JS fallback path will be used automatically.
   }
-  // ── END: Artifact presence check ───────────────────────────────────────
+
+  const missingIosArtifacts = [];
+  if (!fs.existsSync(iosArtifactsSource)) {
+    missingIosArtifacts.push("artifacts/ios (run: pnpm rust:ios on macOS)");
+  }
+  if (!fs.existsSync(iosSwiftSource)) {
+    missingIosArtifacts.push("generated/uniffi/swift (run: pnpm uniffi:generate)");
+  }
+
+  if (platform === "ios" && missingIosArtifacts.length > 0) {
+    console.warn(
+      "\n[AletheiaCoreModule] iOS native artifacts are missing:\n" +
+      missingIosArtifacts.map((m) => `  - ${m}`).join("\n") +
+      "\niOS is currently out of beta scope, so staging continues without a native runtime.\n",
+    );
+  }
 
   const iosSwiftDest = path.join(stagingRoot, "ios", "uniffi");
   const androidKotlinDest = path.join(stagingRoot, "android", "uniffi");
@@ -150,7 +156,7 @@ function withAletheiaCoreModule(config) {
   config = withDangerousMod(config, [
     "ios",
     async (modConfig) => {
-      syncNativeStaging(modConfig.modRequest.projectRoot);
+      syncNativeStaging(modConfig.modRequest.projectRoot, "ios");
       return modConfig;
     },
   ]);
@@ -158,7 +164,7 @@ function withAletheiaCoreModule(config) {
   config = withDangerousMod(config, [
     "android",
     async (modConfig) => {
-      syncNativeStaging(modConfig.modRequest.projectRoot);
+      syncNativeStaging(modConfig.modRequest.projectRoot, "android");
       return modConfig;
     },
   ]);

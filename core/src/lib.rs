@@ -22,20 +22,19 @@ pub use store::Store;
 pub use theme::ThemeEngine;
 
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::sync::Mutex;
 use tracing::info;
 
 // Global Tokio runtime for AI operations - reuse instead of creating new each time
-static RUNTIME: once_cell::sync::Lazy<tokio::runtime::Runtime> =
-    once_cell::sync::Lazy::new(|| {
-        tokio::runtime::Builder::new_multi_thread()
-            .worker_threads(2)  // Limit to 2 threads to conserve battery on mobile
-            .enable_all()
-            .build()
-            .expect("Failed to create global Tokio runtime")
-    });
+static RUNTIME: once_cell::sync::Lazy<tokio::runtime::Runtime> = once_cell::sync::Lazy::new(|| {
+    tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(2) // Limit to 2 threads to conserve battery on mobile
+        .enable_all()
+        .build()
+        .expect("Failed to create global Tokio runtime")
+});
 
 #[derive(Debug, Clone)]
 struct InterpretationStreamJob {
@@ -82,9 +81,9 @@ pub struct AletheiaCore {
 impl AletheiaCore {
     pub fn try_new(db_path: &str, gift_backend_url: &str) -> Result<Self, AletheiaError> {
         let store = Arc::new(Store::new(db_path)?);
-        
+
         info!("Initializing Aletheia Core...");
-        
+
         Ok(Self {
             store: Arc::clone(&store),
             reading_engine: ReadingEngine::new(Arc::clone(&store)),
@@ -106,12 +105,15 @@ impl AletheiaCore {
                 core
             }
             Err(error) => {
-                eprintln!("[AletheiaCore] Init failed: {} — operating in error state", error);
+                eprintln!(
+                    "[AletheiaCore] Init failed: {} — operating in error state",
+                    error
+                );
                 // Create dummy Store to satisfy struct requirements
                 // All method calls will return BridgeError instead of crashing
                 let dummy_store = Arc::new(
                     Store::new(":memory:")
-                        .unwrap_or_else(|_| panic!("Cannot create in-memory DB for error state"))
+                        .unwrap_or_else(|_| panic!("Cannot create in-memory DB for error state")),
                 );
                 let bridge_error = BridgeError::from_aletheia_error(&error);
                 Self {
@@ -143,10 +145,12 @@ impl AletheiaCore {
             };
         }
         let result = (|| -> Result<bool, AletheiaError> {
-            let sources: Vec<Source> = serde_json::from_str(&sources_json)
-                .map_err(|_| AletheiaError::invalid_input("sources_json", "invalid JSON payload"))?;
-            let passages: Vec<Passage> = serde_json::from_str(&passages_json)
-                .map_err(|_| AletheiaError::invalid_input("passages_json", "invalid JSON payload"))?;
+            let sources: Vec<Source> = serde_json::from_str(&sources_json).map_err(|_| {
+                AletheiaError::invalid_input("sources_json", "invalid JSON payload")
+            })?;
+            let passages: Vec<Passage> = serde_json::from_str(&passages_json).map_err(|_| {
+                AletheiaError::invalid_input("passages_json", "invalid JSON payload")
+            })?;
             let themes: Vec<Theme> = serde_json::from_str(&themes_json)
                 .map_err(|_| AletheiaError::invalid_input("themes_json", "invalid JSON payload"))?;
 
@@ -175,7 +179,8 @@ impl AletheiaCore {
         source_id: Option<String>,
         situation_text: Option<String>,
     ) -> Result<ReadingSession, AletheiaError> {
-        self.reading_engine.perform_reading(user_id, source_id, situation_text)
+        self.reading_engine
+            .perform_reading(user_id, source_id, situation_text)
     }
 
     pub fn perform_reading(
@@ -208,7 +213,8 @@ impl AletheiaCore {
         symbol_id: &str,
         method: SymbolMethod,
     ) -> Result<ChosenPassage, AletheiaError> {
-        self.reading_engine.choose_symbol(session, symbol_id, method)
+        self.reading_engine
+            .choose_symbol(session, symbol_id, method)
     }
 
     pub fn choose_symbol(
@@ -237,11 +243,7 @@ impl AletheiaCore {
         self.reading_engine.complete_reading(user_id, reading)
     }
 
-    pub fn complete_reading(
-        &self,
-        user_id: String,
-        reading: Reading,
-    ) -> CompleteReadingResponse {
+    pub fn complete_reading(&self, user_id: String, reading: Reading) -> CompleteReadingResponse {
         match self.try_complete_reading(&user_id, reading) {
             Ok(completed) => CompleteReadingResponse {
                 completed: Some(completed),
@@ -384,7 +386,7 @@ impl AletheiaCore {
 
         let jobs = Arc::clone(&self.interpretation_jobs);
         let tokens = Arc::clone(&self.interpretation_cancel_tokens);
-        let store = Arc::clone(&self.store);
+        let ai_client = self.ai_client.lock().unwrap().clone();
         let request_id_for_thread = request_id.clone();
 
         // Use std::thread::spawn - simpler and avoids Send issues with MutexGuard in async
@@ -401,7 +403,7 @@ impl AletheiaCore {
 
             // Run AI call with RUNTIME
             let result = {
-                let mut client = AIClient::new(store);
+                let mut client = ai_client;
                 RUNTIME.block_on(client.request_interpretation_with_callback(
                     &passage,
                     &symbol,
@@ -476,7 +478,12 @@ impl AletheiaCore {
             cancelled = true;
         }
 
-        if let Some(job) = self.interpretation_jobs.lock().unwrap().get_mut(&request_id) {
+        if let Some(job) = self
+            .interpretation_jobs
+            .lock()
+            .unwrap()
+            .get_mut(&request_id)
+        {
             job.cancelled = cancelled || job.cancelled;
             if cancelled {
                 job.done = true;
@@ -510,7 +517,8 @@ impl AletheiaCore {
         user_id: &str,
         date: &str,
     ) -> Result<NotificationEntry, AletheiaError> {
-        self.notification_scheduler.get_daily_notification(user_id, date)
+        self.notification_scheduler
+            .get_daily_notification(user_id, date)
     }
 
     pub fn format_notification(&self, entry: &NotificationEntry) -> (String, String) {
@@ -521,7 +529,11 @@ impl AletheiaCore {
     // HISTORY OPERATIONS (Paginated)
     // ========================================================================
 
-    pub fn get_readings(&self, limit: u32, offset: u32) -> Result<PaginatedReadings, AletheiaError> {
+    pub fn try_get_readings(
+        &self,
+        limit: u32,
+        offset: u32,
+    ) -> Result<PaginatedReadings, AletheiaError> {
         let items = self.store.get_readings(limit, offset)?;
         let total_count = self.store.get_readings_count()?;
         let has_more = (offset + limit as u32) < total_count;
@@ -535,6 +547,30 @@ impl AletheiaCore {
 
     pub fn get_readings_count(&self) -> Result<u32, AletheiaError> {
         self.store.get_readings_count()
+    }
+
+    pub fn try_get_sources(&self, premium_allowed: bool) -> Result<Vec<Source>, AletheiaError> {
+        self.store.get_sources(premium_allowed)
+    }
+
+    pub fn get_sources(&self, premium_allowed: bool) -> SourcesResponse {
+        if let Some(err) = &self.init_error {
+            return SourcesResponse {
+                sources: Vec::new(),
+                error: Some(err.clone()),
+            };
+        }
+
+        match self.try_get_sources(premium_allowed) {
+            Ok(sources) => SourcesResponse {
+                sources,
+                error: None,
+            },
+            Err(error) => SourcesResponse {
+                sources: Vec::new(),
+                error: Some(BridgeError::from_aletheia_error(&error)),
+            },
+        }
     }
 
     // ========================================================================
@@ -564,8 +600,83 @@ impl AletheiaCore {
         }
     }
 
-    pub fn update_user_state(&self, state: &UserState) -> Result<(), AletheiaError> {
+    pub fn try_update_user_state(&self, state: &UserState) -> Result<(), AletheiaError> {
         self.store.update_user_state(state)
+    }
+
+    pub fn update_user_state(&self, state: UserState) -> UpdateUserStateResponse {
+        if let Some(err) = &self.init_error {
+            return UpdateUserStateResponse {
+                updated: false,
+                error: Some(err.clone()),
+            };
+        }
+
+        match self.try_update_user_state(&state) {
+            Ok(()) => UpdateUserStateResponse {
+                updated: true,
+                error: None,
+            },
+            Err(error) => UpdateUserStateResponse {
+                updated: false,
+                error: Some(BridgeError::from_aletheia_error(&error)),
+            },
+        }
+    }
+
+    pub fn get_readings(&self, limit: u32, offset: u32) -> PaginatedReadingsResponse {
+        if let Some(err) = &self.init_error {
+            return PaginatedReadingsResponse {
+                readings: None,
+                error: Some(err.clone()),
+            };
+        }
+
+        match self.try_get_readings(limit, offset) {
+            Ok(readings) => PaginatedReadingsResponse {
+                readings: Some(readings),
+                error: None,
+            },
+            Err(error) => PaginatedReadingsResponse {
+                readings: None,
+                error: Some(BridgeError::from_aletheia_error(&error)),
+            },
+        }
+    }
+
+    pub fn get_daily_notification_message(
+        &self,
+        user_id: String,
+        date: String,
+    ) -> NotificationMessageResponse {
+        if let Some(err) = &self.init_error {
+            return NotificationMessageResponse {
+                message: None,
+                error: Some(err.clone()),
+            };
+        }
+
+        let result = (|| -> Result<NotificationMessage, AletheiaError> {
+            let entry = self.get_daily_notification(&user_id, &date)?;
+            let (title, body) = self.format_notification(&entry);
+            Ok(NotificationMessage {
+                symbol_id: entry.symbol_id,
+                question: entry.question,
+                title,
+                body,
+            })
+        })();
+
+        match result {
+            Ok(message) => NotificationMessageResponse {
+                message: Some(message),
+                error: None,
+            },
+            Err(error) => NotificationMessageResponse {
+                message: None,
+                error: Some(BridgeError::from_aletheia_error(&error)),
+            },
+        }
     }
 
     // ========================================================================

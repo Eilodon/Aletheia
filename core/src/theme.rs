@@ -24,7 +24,7 @@ impl ThemeEngine {
 
     pub fn random_three_symbols(&self, theme_id: &str) -> Result<Vec<Symbol>, AletheiaError> {
         let symbols = self.store.get_random_symbols(theme_id, 3)?;
-        
+
         if symbols.len() != 3 {
             return Err(AletheiaError::invalid_input(
                 "symbols",

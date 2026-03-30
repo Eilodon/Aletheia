@@ -100,6 +100,7 @@ dictionary Reading {
     MoodTag? mood_tag;
     boolean is_favorite;
     boolean shared;
+    UserIntent? user_intent;
 };
 
 dictionary ReadingSession {
@@ -132,6 +133,13 @@ dictionary NotificationEntry {
     string question;
 };
 
+dictionary NotificationMessage {
+    string symbol_id;
+    string question;
+    string title;
+    string body;
+};
+
 dictionary UserState {
     string user_id;
     SubscriptionTier subscription_tier;
@@ -144,6 +152,7 @@ dictionary UserState {
     string preferred_language;
     boolean dark_mode;
     boolean onboarding_complete;
+    UserIntent? user_intent;
 };
 
 dictionary PaginatedReadings {
@@ -174,6 +183,26 @@ dictionary FallbackPromptsResponse {
 
 dictionary UserStateResponse {
     UserState? state;
+    BridgeError? error;
+};
+
+dictionary UpdateUserStateResponse {
+    boolean updated;
+    BridgeError? error;
+};
+
+dictionary PaginatedReadingsResponse {
+    PaginatedReadings? readings;
+    BridgeError? error;
+};
+
+dictionary SourcesResponse {
+    sequence<Source> sources;
+    BridgeError? error;
+};
+
+dictionary NotificationMessageResponse {
+    NotificationMessage? message;
     BridgeError? error;
 };
 
@@ -287,6 +316,17 @@ interface AletheiaCore {
     FallbackPromptsResponse get_fallback_prompts(string source_id);
 
     UserStateResponse get_user_state(string user_id);
+
+    UpdateUserStateResponse update_user_state(UserState state);
+
+    SourcesResponse get_sources(boolean premium_allowed);
+
+    PaginatedReadingsResponse get_readings(u32 limit, u32 offset);
+
+    NotificationMessageResponse get_daily_notification_message(
+        string user_id,
+        string date
+    );
 
     void set_local_date(string local_date);
 

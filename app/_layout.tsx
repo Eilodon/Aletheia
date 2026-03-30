@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import { Platform } from "react-native";
@@ -31,6 +32,7 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
+  const isIosHold = Platform.OS === "ios";
   const initialInsets = initialWindowMetrics?.insets ?? DEFAULT_WEB_INSETS;
   const initialFrame = initialWindowMetrics?.frame ?? DEFAULT_WEB_FRAME;
 
@@ -44,16 +46,18 @@ export default function RootLayout() {
 
   // Initialize database on app launch
   useEffect(() => {
+    if (isIosHold) return;
     dbInit.initialize().catch((err) => {
       console.error("Failed to initialize database:", err);
     });
-  }, []);
+  }, [isIosHold]);
 
   useEffect(() => {
+    if (isIosHold) return;
     runAletheiaNativeProbe().catch((err) => {
       console.error("Aletheia native probe failed:", err);
     });
-  }, []);
+  }, [isIosHold]);
 
   const handleSafeAreaUpdate = useCallback((metrics: Metrics) => {
     setInsets(metrics.insets);
@@ -116,6 +120,24 @@ export default function RootLayout() {
   );
 
   const shouldOverrideSafeArea = Platform.OS === "web";
+
+  if (isIosHold) {
+    return (
+      <ThemeProvider>
+        <SafeAreaProvider initialMetrics={providerInitialMetrics}>
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
+            <Text style={{ fontSize: 28, marginBottom: 16 }}>Aletheia</Text>
+            <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 10, textAlign: "center" }}>
+              iOS đang tạm hold
+            </Text>
+            <Text style={{ fontSize: 14, lineHeight: 22, textAlign: "center", maxWidth: 320 }}>
+              Bản hiện tại chỉ hỗ trợ Android với Rust core làm nguồn sự thật duy nhất, cùng bản web dùng đường chạy riêng.
+            </Text>
+          </View>
+        </SafeAreaProvider>
+      </ThemeProvider>
+    );
+  }
 
   if (shouldOverrideSafeArea) {
     return (

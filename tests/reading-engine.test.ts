@@ -49,6 +49,7 @@ describe("ReadingEngine", () => {
         preferred_language: "vi",
         dark_mode: false,
         onboarding_complete: false,
+        user_intent: undefined,
       });
 
       // ACT & ASSERT
@@ -71,6 +72,7 @@ describe("ReadingEngine", () => {
         preferred_language: "vi",
         dark_mode: false,
         onboarding_complete: false,
+        user_intent: undefined,
       });
 
       vi.mocked(store.getRandomSource).mockResolvedValue({
@@ -119,6 +121,7 @@ describe("ReadingEngine", () => {
         preferred_language: "vi",
         dark_mode: false,
         onboarding_complete: false,
+        user_intent: undefined,
       });
 
       vi.mocked(store.getRandomSource).mockResolvedValue({
@@ -276,6 +279,7 @@ describe("ReadingEngine", () => {
         preferred_language: "vi",
         dark_mode: false,
         onboarding_complete: false,
+        user_intent: undefined,
       });
 
       vi.mocked(store.getRandomSource).mockResolvedValue({

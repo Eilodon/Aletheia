@@ -1,9 +1,9 @@
 //! Aletheia Core - Error Types
-//! Error handling based on CONTRACTS.md Section 5
+//! Error handling aligned with executable contracts in core/src/contracts.rs
 
 use crate::contracts::ErrorCode;
-use std::collections::HashMap;
 use serde_json::Value;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct AletheiaError {
@@ -32,18 +32,27 @@ impl AletheiaError {
     }
 
     pub fn source_not_found(source_id: &str) -> Self {
-        Self::new(ErrorCode::SourceNotFound, &format!("Source '{}' not found", source_id))
-            .with_context("source_id", Value::String(source_id.to_string()))
+        Self::new(
+            ErrorCode::SourceNotFound,
+            &format!("Source '{}' not found", source_id),
+        )
+        .with_context("source_id", Value::String(source_id.to_string()))
     }
 
     pub fn passage_empty(source_id: &str) -> Self {
-        Self::new(ErrorCode::PassageEmpty, &format!("Source '{}' has no passages", source_id))
-            .with_context("source_id", Value::String(source_id.to_string()))
+        Self::new(
+            ErrorCode::PassageEmpty,
+            &format!("Source '{}' has no passages", source_id),
+        )
+        .with_context("source_id", Value::String(source_id.to_string()))
     }
 
     pub fn theme_not_found(theme_id: &str) -> Self {
-        Self::new(ErrorCode::ThemeNotFound, &format!("Theme '{}' not found", theme_id))
-            .with_context("theme_id", Value::String(theme_id.to_string()))
+        Self::new(
+            ErrorCode::ThemeNotFound,
+            &format!("Theme '{}' not found", theme_id),
+        )
+        .with_context("theme_id", Value::String(theme_id.to_string()))
     }
 
     pub fn symbol_invalid(symbol_id: &str, theme_id: &str) -> Self {
@@ -56,12 +65,18 @@ impl AletheiaError {
     }
 
     pub fn ai_timeout(timeout_ms: u32) -> Self {
-        Self::new(ErrorCode::AiTimeout, &format!("No response after {}ms", timeout_ms))
-            .with_context("timeout_ms", Value::Number(timeout_ms.into()))
+        Self::new(
+            ErrorCode::AiTimeout,
+            &format!("No response after {}ms", timeout_ms),
+        )
+        .with_context("timeout_ms", Value::Number(timeout_ms.into()))
     }
 
     pub fn ai_unavailable() -> Self {
-        Self::new(ErrorCode::AiUnavailable, "AI service temporarily unavailable")
+        Self::new(
+            ErrorCode::AiUnavailable,
+            "AI service temporarily unavailable",
+        )
     }
 
     pub fn gift_expired(expired_at: i64) -> Self {
@@ -90,19 +105,28 @@ impl AletheiaError {
     }
 
     pub fn subscription_required(feature: &str) -> Self {
-        Self::new(ErrorCode::SubscriptionRequired, &format!("Feature '{}' requires Pro", feature))
-            .with_context("feature", Value::String(feature.to_string()))
+        Self::new(
+            ErrorCode::SubscriptionRequired,
+            &format!("Feature '{}' requires Pro", feature),
+        )
+        .with_context("feature", Value::String(feature.to_string()))
     }
 
     pub fn storage_write_fail(operation: &str) -> Self {
-        Self::new(ErrorCode::StorageWriteFail, &format!("Failed to write: {}", operation))
-            .with_context("operation", Value::String(operation.to_string()))
+        Self::new(
+            ErrorCode::StorageWriteFail,
+            &format!("Failed to write: {}", operation),
+        )
+        .with_context("operation", Value::String(operation.to_string()))
     }
 
     pub fn invalid_input(field: &str, reason: &str) -> Self {
-        Self::new(ErrorCode::InvalidInput, &format!("Invalid {}: {}", field, reason))
-            .with_context("field", Value::String(field.to_string()))
-            .with_context("reason", Value::String(reason.to_string()))
+        Self::new(
+            ErrorCode::InvalidInput,
+            &format!("Invalid {}: {}", field, reason),
+        )
+        .with_context("field", Value::String(field.to_string()))
+        .with_context("reason", Value::String(reason.to_string()))
     }
 }
 

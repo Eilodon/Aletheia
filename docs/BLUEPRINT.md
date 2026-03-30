@@ -28,28 +28,28 @@
 │                         ALETHEIA v1.0                            │
 │                  "Not a fortune. A mirror."                      │
 │                                                                  │
-│  ┌──────────────────────────────────────────────────────────┐   │
-│  │                    UI Layer (Native)                      │   │
-│  │         SwiftUI (iOS)  │  Jetpack Compose (Android)       │   │
-│  └───────────────────┬──────────────────────────────────────┘   │
-│                      │ UniFFI bindings                           │
-│  ┌───────────────────▼──────────────────────────────────────┐   │
-│  │                    Rust Core                              │   │
-│  │  ┌─────────────┐  ┌──────────┐  ┌──────────────────────┐│   │
-│  │  │   Reading   │  │  Store   │  │     API Client       ││   │
-│  │  │   Engine    │  │ (SQLite) │  │  (Claude + Gift BE)  ││   │
-│  │  └─────────────┘  └──────────┘  └──────────────────────┘│   │
-│  │  ┌─────────────┐  ┌──────────┐                           │   │
-│  │  │   Theme     │  │  Card    │                           │   │
-│  │  │   Engine    │  │   Gen    │                           │   │
-│  │  └─────────────┘  └──────────┘                           │   │
-│  └──────────────────────────────────────────────────────────┘   │
+│  ┌───────────────────────┐    ┌───────────────────────────────┐ │
+│  │ Android App Shell     │    │ Web App Shell                 │ │
+│  │ Expo RN + Expo Router │    │ Expo Web + TS Services        │ │
+│  └───────────┬───────────┘    └──────────────┬────────────────┘ │
+│              │ Expo Module / UniFFI                         │   │
+│  ┌───────────▼──────────────────────────────────────────────▼─┐ │
+│  │                 Rust Core (Android SSOT)                   │ │
+│  │  ReadingEngine │ Store │ ThemeEngine │ AIClient │ Gifts    │ │
+│  │  Notifications │ CardGen │ History Pagination             │ │
+│  └────────────────────────────────────────────────────────────┘ │
 │                                                                  │
-│  External:  Claude API  │  Gift Backend  │  RevenueCat           │
+│  External: Claude/OpenAI/Gemini │ Gift Backend │ Node/tRPC      │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-**Luồng chính một câu:** User mở app → đi qua wildcard ceremony (chọn tay hoặc auto) → nhận passage từ source → đọc, optionally request AI interpretation → save và/hoặc share.
+**Luồng chính một câu:** User mở app Android → Expo shell gọi Rust core cho reading flow và persistence; web app chạy path TS riêng; iOS hiện không nằm trong beta scope.
+
+**Architectural guardrails for next rewrite phase:**
+- Android UI không được gọi `aletheiaNativeClient` hay `shouldUseAletheiaNative()` trực tiếp ngoài adapter layer.
+- Android không được phụ thuộc vào `seed-data.ts` cho domain data trong release path.
+- Mọi Android read/write domain model phải đi qua UniFFI surface hoặc facade bọc UniFFI đó.
+- Web có thể giữ TS path riêng, nhưng không được quyết định contract cho Android.
 
 **Những gì hệ thống này KHÔNG làm:**
 - Không predict tương lai, không đưa ra lời khuyên — xem triết lý app
@@ -70,6 +70,8 @@
 | **CardGenerator** | `core/card_gen.rs` | Render SVG → PNG share card | `Ref<ShareCard>` | `bytes` (PNG) | Không |
 | **GiftClient** | `core/gift_client.rs` | Create/redeem gift qua Gift Backend | `Ref<GiftRequest>` | `Ref<GiftReading>` | Không |
 | **NotificationScheduler** | `core/notif.rs` | Seed daily notification từ matrix, schedule via OS | `user_id`, `date` | `Ref<NotificationEntry>` | Không |
+| **Android App Shell** | `app/**`, `lib/context/**`, `lib/native/**` | UI, navigation, bridge orchestration | User interaction | Native calls, UI state | Có |
+| **Web TS Core Path** | `lib/services/*.ts` | Web runtime persistence + reading fallback path | Browser events | TS domain output | Có |
 
 > **Stateful component:** Store giữ SQLite connection pool. Khởi tạo một lần lúc app launch, đóng lúc app terminate.
 

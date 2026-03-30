@@ -1,6 +1,7 @@
 /**
  * ReadingEngine Service - Core Reading Flow Orchestration
  * Handles: perform_reading, choose_symbol, complete_reading
+ * Web-only orchestration path. Android beta must use the Rust core.
  */
 
 import { v4 as uuidv4 } from "uuid";
@@ -91,7 +92,7 @@ class ReadingEngineService {
         theme,
         symbols,
         situation_text: situationText,
-        user_intent: undefined, // UX-01: will be set when user selects intent
+        user_intent: userState.user_intent,
         started_at: Date.now(),
       };
 

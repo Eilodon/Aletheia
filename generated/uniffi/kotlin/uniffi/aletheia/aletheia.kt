@@ -3,7 +3,7 @@
 
 @file:Suppress("NAME_SHADOWING")
 
-package uniffi.aletheia
+package uniffi.aletheia;
 
 // Common helper code.
 //
@@ -28,62 +28,82 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.CharBuffer
 import java.nio.charset.CodingErrorAction
-import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 
 // This is a helper for safely working with byte buffers returned from the Rust code.
 // A rust-owned buffer is represented by its capacity, its current length, and a
 // pointer to the underlying data.
 
-/**
- * @suppress
- */
 @Structure.FieldOrder("capacity", "len", "data")
 open class RustBuffer : Structure() {
-    // Note: `capacity` and `len` are actually `ULong` values, but JVM only supports signed values.
-    // When dealing with these fields, make sure to call `toULong()`.
-    @JvmField var capacity: Long = 0
-    @JvmField var len: Long = 0
+    @JvmField var capacity: Int = 0
+    @JvmField var len: Int = 0
     @JvmField var data: Pointer? = null
 
     class ByValue: RustBuffer(), Structure.ByValue
     class ByReference: RustBuffer(), Structure.ByReference
 
-   internal fun setValue(other: RustBuffer) {
-        capacity = other.capacity
-        len = other.len
-        data = other.data
-    }
-
     companion object {
-        internal fun alloc(size: ULong = 0UL) = uniffiRustCall() { status ->
-            // Note: need to convert the size to a `Long` value to make this work with JVM.
-            UniffiLib.ffi_aletheia_core_rustbuffer_alloc(size.toLong(), status)
+        internal fun alloc(size: Int = 0) = rustCall() { status ->
+            _UniFFILib.INSTANCE.ffi_aletheia_core_rustbuffer_alloc(size, status)
         }.also {
             if(it.data == null) {
                throw RuntimeException("RustBuffer.alloc() returned null data pointer (size=${size})")
            }
         }
 
-        internal fun create(capacity: ULong, len: ULong, data: Pointer?): RustBuffer.ByValue {
+        internal fun create(capacity: Int, len: Int, data: Pointer?): RustBuffer.ByValue {
             var buf = RustBuffer.ByValue()
-            buf.capacity = capacity.toLong()
-            buf.len = len.toLong()
+            buf.capacity = capacity
+            buf.len = len
             buf.data = data
             return buf
         }
 
-        internal fun free(buf: RustBuffer.ByValue) = uniffiRustCall() { status ->
-            UniffiLib.ffi_aletheia_core_rustbuffer_free(buf, status)
+        internal fun free(buf: RustBuffer.ByValue) = rustCall() { status ->
+            _UniFFILib.INSTANCE.ffi_aletheia_core_rustbuffer_free(buf, status)
         }
     }
 
     @Suppress("TooGenericExceptionThrown")
     fun asByteBuffer() =
-        this.data?.getByteBuffer(0, this.len)?.also {
+        this.data?.getByteBuffer(0, this.len.toLong())?.also {
             it.order(ByteOrder.BIG_ENDIAN)
         }
+}
+
+/**
+ * The equivalent of the `*mut RustBuffer` type.
+ * Required for callbacks taking in an out pointer.
+ *
+ * Size is the sum of all values in the struct.
+ */
+class RustBufferByReference : ByReference(16) {
+    /**
+     * Set the pointed-to `RustBuffer` to the given value.
+     */
+    fun setValue(value: RustBuffer.ByValue) {
+        // NOTE: The offsets are as they are in the C-like struct.
+        val pointer = getPointer()
+        pointer.setInt(0, value.capacity)
+        pointer.setInt(4, value.len)
+        pointer.setPointer(8, value.data)
+    }
+
+    /**
+     * Get a `RustBuffer.ByValue` from this reference.
+     */
+    fun getValue(): RustBuffer.ByValue {
+        val pointer = getPointer()
+        val value = RustBuffer.ByValue()
+        value.writeField("capacity", pointer.getInt(0))
+        value.writeField("len", pointer.getInt(4))
+        value.writeField("data", pointer.getPointer(8))
+
+        return value
+    }
 }
 
 // This is a helper for safely passing byte references into the rust code.
@@ -93,20 +113,16 @@ open class RustBuffer : Structure() {
 // completeness.
 
 @Structure.FieldOrder("len", "data")
-internal open class ForeignBytes : Structure() {
+open class ForeignBytes : Structure() {
     @JvmField var len: Int = 0
     @JvmField var data: Pointer? = null
 
     class ByValue : ForeignBytes(), Structure.ByValue
 }
-/**
- * The FfiConverter interface handles converter types to and from the FFI
- *
- * All implementing objects should be public to support external types.  When a
- * type is external we need to import it's FfiConverter.
- *
- * @suppress
- */
+// The FfiConverter interface handles converter types to and from the FFI
+//
+// All implementing objects should be public to support external types.  When a
+// type is external we need to import it's FfiConverter.
 public interface FfiConverter<KotlinType, FfiType> {
     // Convert an FFI type to a Kotlin type
     fun lift(value: FfiType): KotlinType
@@ -125,7 +141,7 @@ public interface FfiConverter<KotlinType, FfiType> {
     // encoding, so we pessimistically allocate the largest size possible (3
     // bytes per codepoint).  Allocating extra bytes is not really a big deal
     // because the `RustBuffer` is short-lived.
-    fun allocationSize(value: KotlinType): ULong
+    fun allocationSize(value: KotlinType): Int
 
     // Write a Kotlin type to a `ByteBuffer`
     fun write(value: KotlinType, buf: ByteBuffer)
@@ -139,11 +155,11 @@ public interface FfiConverter<KotlinType, FfiType> {
     fun lowerIntoRustBuffer(value: KotlinType): RustBuffer.ByValue {
         val rbuf = RustBuffer.alloc(allocationSize(value))
         try {
-            val bbuf = rbuf.data!!.getByteBuffer(0, rbuf.capacity).also {
+            val bbuf = rbuf.data!!.getByteBuffer(0, rbuf.capacity.toLong()).also {
                 it.order(ByteOrder.BIG_ENDIAN)
             }
             write(value, bbuf)
-            rbuf.writeField("len", bbuf.position().toLong())
+            rbuf.writeField("len", bbuf.position())
             return rbuf
         } catch (e: Throwable) {
             RustBuffer.free(rbuf)
@@ -169,59 +185,38 @@ public interface FfiConverter<KotlinType, FfiType> {
     }
 }
 
-/**
- * FfiConverter that uses `RustBuffer` as the FfiType
- *
- * @suppress
- */
+// FfiConverter that uses `RustBuffer` as the FfiType
 public interface FfiConverterRustBuffer<KotlinType>: FfiConverter<KotlinType, RustBuffer.ByValue> {
     override fun lift(value: RustBuffer.ByValue) = liftFromRustBuffer(value)
     override fun lower(value: KotlinType) = lowerIntoRustBuffer(value)
 }
 // A handful of classes and functions to support the generated data structures.
 // This would be a good candidate for isolating in its own ffi-support lib.
-
-internal const val UNIFFI_CALL_SUCCESS = 0.toByte()
-internal const val UNIFFI_CALL_ERROR = 1.toByte()
-internal const val UNIFFI_CALL_UNEXPECTED_ERROR = 2.toByte()
-
+// Error runtime.
 @Structure.FieldOrder("code", "error_buf")
-internal open class UniffiRustCallStatus : Structure() {
+internal open class RustCallStatus : Structure() {
     @JvmField var code: Byte = 0
     @JvmField var error_buf: RustBuffer.ByValue = RustBuffer.ByValue()
 
-    class ByValue: UniffiRustCallStatus(), Structure.ByValue
+    class ByValue: RustCallStatus(), Structure.ByValue
 
     fun isSuccess(): Boolean {
-        return code == UNIFFI_CALL_SUCCESS
+        return code == 0.toByte()
     }
 
     fun isError(): Boolean {
-        return code == UNIFFI_CALL_ERROR
+        return code == 1.toByte()
     }
 
     fun isPanic(): Boolean {
-        return code == UNIFFI_CALL_UNEXPECTED_ERROR
-    }
-
-    companion object {
-        fun create(code: Byte, errorBuf: RustBuffer.ByValue): UniffiRustCallStatus.ByValue {
-            val callStatus = UniffiRustCallStatus.ByValue()
-            callStatus.code = code
-            callStatus.error_buf = errorBuf
-            return callStatus
-        }
+        return code == 2.toByte()
     }
 }
 
-class InternalException(message: String) : kotlin.Exception(message)
+class InternalException(message: String) : Exception(message)
 
-/**
- * Each top-level error class has a companion object that can lift the error from the call status's rust buffer
- *
- * @suppress
- */
-interface UniffiRustCallStatusErrorHandler<E> {
+// Each top-level error class has a companion object that can lift the error from the call status's rust buffer
+interface CallStatusErrorHandler<E> {
     fun lift(error_buf: RustBuffer.ByValue): E;
 }
 
@@ -230,15 +225,15 @@ interface UniffiRustCallStatusErrorHandler<E> {
 // synchronize itself
 
 // Call a rust function that returns a Result<>.  Pass in the Error class companion that corresponds to the Err
-private inline fun <U, E: kotlin.Exception> uniffiRustCallWithError(errorHandler: UniffiRustCallStatusErrorHandler<E>, callback: (UniffiRustCallStatus) -> U): U {
-    var status = UniffiRustCallStatus()
+private inline fun <U, E: Exception> rustCallWithError(errorHandler: CallStatusErrorHandler<E>, callback: (RustCallStatus) -> U): U {
+    var status = RustCallStatus();
     val return_value = callback(status)
-    uniffiCheckCallStatus(errorHandler, status)
+    checkCallStatus(errorHandler, status)
     return return_value
 }
 
-// Check UniffiRustCallStatus and throw an error if the call wasn't successful
-private fun<E: kotlin.Exception> uniffiCheckCallStatus(errorHandler: UniffiRustCallStatusErrorHandler<E>, status: UniffiRustCallStatus) {
+// Check RustCallStatus and throw an error if the call wasn't successful
+private fun<E: Exception> checkCallStatus(errorHandler: CallStatusErrorHandler<E>, status: RustCallStatus) {
     if (status.isSuccess()) {
         return
     } else if (status.isError()) {
@@ -257,12 +252,8 @@ private fun<E: kotlin.Exception> uniffiCheckCallStatus(errorHandler: UniffiRustC
     }
 }
 
-/**
- * UniffiRustCallStatusErrorHandler implementation for times when we don't expect a CALL_ERROR
- *
- * @suppress
- */
-object UniffiNullRustCallStatusErrorHandler: UniffiRustCallStatusErrorHandler<InternalException> {
+// CallStatusErrorHandler implementation for times when we don't expect a CALL_ERROR
+object NullCallStatusErrorHandler: CallStatusErrorHandler<InternalException> {
     override fun lift(error_buf: RustBuffer.ByValue): InternalException {
         RustBuffer.free(error_buf)
         return InternalException("Unexpected CALL_ERROR")
@@ -270,81 +261,95 @@ object UniffiNullRustCallStatusErrorHandler: UniffiRustCallStatusErrorHandler<In
 }
 
 // Call a rust function that returns a plain value
-private inline fun <U> uniffiRustCall(callback: (UniffiRustCallStatus) -> U): U {
-    return uniffiRustCallWithError(UniffiNullRustCallStatusErrorHandler, callback)
+private inline fun <U> rustCall(callback: (RustCallStatus) -> U): U {
+    return rustCallWithError(NullCallStatusErrorHandler, callback);
 }
 
-internal inline fun<T> uniffiTraitInterfaceCall(
-    callStatus: UniffiRustCallStatus,
-    makeCall: () -> T,
-    writeReturn: (T) -> Unit,
-) {
-    try {
-        writeReturn(makeCall())
-    } catch(e: kotlin.Exception) {
-        val err = try { e.stackTraceToString() } catch(_: Throwable) { "" }
-        callStatus.code = UNIFFI_CALL_UNEXPECTED_ERROR
-        callStatus.error_buf = FfiConverterString.lower(err)
+// IntegerType that matches Rust's `usize` / C's `size_t`
+public class USize(value: Long = 0) : IntegerType(Native.SIZE_T_SIZE, value, true) {
+    // This is needed to fill in the gaps of IntegerType's implementation of Number for Kotlin.
+    override fun toByte() = toInt().toByte()
+    // Needed until https://youtrack.jetbrains.com/issue/KT-47902 is fixed.
+    @Deprecated("`toInt().toChar()` is deprecated")
+    override fun toChar() = toInt().toChar()
+    override fun toShort() = toInt().toShort()
+
+    fun writeToBuffer(buf: ByteBuffer) {
+        // Make sure we always write usize integers using native byte-order, since they may be
+        // casted to pointer values
+        buf.order(ByteOrder.nativeOrder())
+        try {
+            when (Native.SIZE_T_SIZE) {
+                4 -> buf.putInt(toInt())
+                8 -> buf.putLong(toLong())
+                else -> throw RuntimeException("Invalid SIZE_T_SIZE: ${Native.SIZE_T_SIZE}")
+            }
+        } finally {
+            buf.order(ByteOrder.BIG_ENDIAN)
+        }
     }
-}
 
-internal inline fun<T, reified E: Throwable> uniffiTraitInterfaceCallWithError(
-    callStatus: UniffiRustCallStatus,
-    makeCall: () -> T,
-    writeReturn: (T) -> Unit,
-    lowerError: (E) -> RustBuffer.ByValue
-) {
-    try {
-        writeReturn(makeCall())
-    } catch(e: kotlin.Exception) {
-        if (e is E) {
-            callStatus.code = UNIFFI_CALL_ERROR
-            callStatus.error_buf = lowerError(e)
-        } else {
-            val err = try { e.stackTraceToString() } catch(_: Throwable) { "" }
-            callStatus.code = UNIFFI_CALL_UNEXPECTED_ERROR
-            callStatus.error_buf = FfiConverterString.lower(err)
+    companion object {
+        val size: Int
+            get() = Native.SIZE_T_SIZE
+
+        fun readFromBuffer(buf: ByteBuffer) : USize {
+            // Make sure we always read usize integers using native byte-order, since they may be
+            // casted from pointer values
+            buf.order(ByteOrder.nativeOrder())
+            try {
+                return when (Native.SIZE_T_SIZE) {
+                    4 -> USize(buf.getInt().toLong())
+                    8 -> USize(buf.getLong())
+                    else -> throw RuntimeException("Invalid SIZE_T_SIZE: ${Native.SIZE_T_SIZE}")
+                }
+            } finally {
+                buf.order(ByteOrder.BIG_ENDIAN)
+            }
         }
     }
 }
-// Initial value and increment amount for handles. 
-// These ensure that Kotlin-generated handles always have the lowest bit set
-private const val UNIFFI_HANDLEMAP_INITIAL = 1.toLong()
-private const val UNIFFI_HANDLEMAP_DELTA = 2.toLong()
+
 
 // Map handles to objects
 //
-// This is used pass an opaque 64-bit handle representing a foreign object to the Rust code.
-internal class UniffiHandleMap<T: Any> {
-    private val map = ConcurrentHashMap<Long, T>()
-    // Start 
-    private val counter = java.util.concurrent.atomic.AtomicLong(UNIFFI_HANDLEMAP_INITIAL)
+// This is used when the Rust code expects an opaque pointer to represent some foreign object.
+// Normally we would pass a pointer to the object, but JNA doesn't support getting a pointer from an
+// object reference , nor does it support leaking a reference to Rust.
+//
+// Instead, this class maps USize values to objects so that we can pass a pointer-sized type to
+// Rust when it needs an opaque pointer.
+//
+// TODO: refactor callbacks to use this class
+internal class UniFfiHandleMap<T: Any> {
+    private val map = ConcurrentHashMap<USize, T>()
+    // Use AtomicInteger for our counter, since we may be on a 32-bit system.  4 billion possible
+    // values seems like enough. If somehow we generate 4 billion handles, then this will wrap
+    // around back to zero and we can assume the first handle generated will have been dropped by
+    // then.
+    private val counter = java.util.concurrent.atomic.AtomicInteger(0)
 
     val size: Int
         get() = map.size
 
-    // Insert a new object into the handle map and get a handle for it
-    fun insert(obj: T): Long {
-        val handle = counter.getAndAdd(UNIFFI_HANDLEMAP_DELTA)
+    fun insert(obj: T): USize {
+        val handle = USize(counter.getAndAdd(1).toLong())
         map.put(handle, obj)
         return handle
     }
 
-    // Clone a handle, creating a new one
-    fun clone(handle: Long): Long {
-        val obj = map.get(handle) ?: throw InternalException("UniffiHandleMap.clone: Invalid handle")
-        return insert(obj)
+    fun get(handle: USize): T? {
+        return map.get(handle)
     }
 
-    // Get an object from the handle map
-    fun get(handle: Long): T {
-        return map.get(handle) ?: throw InternalException("UniffiHandleMap.get: Invalid handle")
+    fun remove(handle: USize): T? {
+        return map.remove(handle)
     }
+}
 
-    // Remove an entry from the handlemap and get the Kotlin object back
-    fun remove(handle: Long): T {
-        return map.remove(handle) ?: throw InternalException("UniffiHandleMap: Invalid handle")
-    }
+// FFI type for Rust future continuations
+internal interface UniFffiRustFutureContinuationCallbackType : com.sun.jna.Callback {
+    fun callback(continuationHandle: USize, pollResult: Short);
 }
 
 // Contains loading, initialization code,
@@ -358,519 +363,292 @@ private fun findLibraryName(componentName: String): String {
     return "uniffi_aletheia"
 }
 
-// Define FFI callback types
-internal interface UniffiRustFutureContinuationCallback : com.sun.jna.Callback {
-    fun callback(`data`: Long,`pollResult`: Byte,)
-}
-internal interface UniffiForeignFutureDroppedCallback : com.sun.jna.Callback {
-    fun callback(`handle`: Long,)
-}
-internal interface UniffiCallbackInterfaceFree : com.sun.jna.Callback {
-    fun callback(`handle`: Long,)
-}
-internal interface UniffiCallbackInterfaceClone : com.sun.jna.Callback {
-    fun callback(`handle`: Long,)
-    : Long
-}
-@Structure.FieldOrder("handle", "free")
-internal open class UniffiForeignFutureDroppedCallbackStruct(
-    @JvmField internal var `handle`: Long = 0.toLong(),
-    @JvmField internal var `free`: UniffiForeignFutureDroppedCallback? = null,
-) : Structure() {
-    class UniffiByValue(
-        `handle`: Long = 0.toLong(),
-        `free`: UniffiForeignFutureDroppedCallback? = null,
-    ): UniffiForeignFutureDroppedCallbackStruct(`handle`,`free`,), Structure.ByValue
-
-   internal fun uniffiSetValue(other: UniffiForeignFutureDroppedCallbackStruct) {
-        `handle` = other.`handle`
-        `free` = other.`free`
-    }
-
-}
-@Structure.FieldOrder("returnValue", "callStatus")
-internal open class UniffiForeignFutureResultU8(
-    @JvmField internal var `returnValue`: Byte = 0.toByte(),
-    @JvmField internal var `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-) : Structure() {
-    class UniffiByValue(
-        `returnValue`: Byte = 0.toByte(),
-        `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-    ): UniffiForeignFutureResultU8(`returnValue`,`callStatus`,), Structure.ByValue
-
-   internal fun uniffiSetValue(other: UniffiForeignFutureResultU8) {
-        `returnValue` = other.`returnValue`
-        `callStatus` = other.`callStatus`
-    }
-
-}
-internal interface UniffiForeignFutureCompleteU8 : com.sun.jna.Callback {
-    fun callback(`callbackData`: Long,`result`: UniffiForeignFutureResultU8.UniffiByValue,)
-}
-@Structure.FieldOrder("returnValue", "callStatus")
-internal open class UniffiForeignFutureResultI8(
-    @JvmField internal var `returnValue`: Byte = 0.toByte(),
-    @JvmField internal var `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-) : Structure() {
-    class UniffiByValue(
-        `returnValue`: Byte = 0.toByte(),
-        `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-    ): UniffiForeignFutureResultI8(`returnValue`,`callStatus`,), Structure.ByValue
-
-   internal fun uniffiSetValue(other: UniffiForeignFutureResultI8) {
-        `returnValue` = other.`returnValue`
-        `callStatus` = other.`callStatus`
-    }
-
-}
-internal interface UniffiForeignFutureCompleteI8 : com.sun.jna.Callback {
-    fun callback(`callbackData`: Long,`result`: UniffiForeignFutureResultI8.UniffiByValue,)
-}
-@Structure.FieldOrder("returnValue", "callStatus")
-internal open class UniffiForeignFutureResultU16(
-    @JvmField internal var `returnValue`: Short = 0.toShort(),
-    @JvmField internal var `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-) : Structure() {
-    class UniffiByValue(
-        `returnValue`: Short = 0.toShort(),
-        `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-    ): UniffiForeignFutureResultU16(`returnValue`,`callStatus`,), Structure.ByValue
-
-   internal fun uniffiSetValue(other: UniffiForeignFutureResultU16) {
-        `returnValue` = other.`returnValue`
-        `callStatus` = other.`callStatus`
-    }
-
-}
-internal interface UniffiForeignFutureCompleteU16 : com.sun.jna.Callback {
-    fun callback(`callbackData`: Long,`result`: UniffiForeignFutureResultU16.UniffiByValue,)
-}
-@Structure.FieldOrder("returnValue", "callStatus")
-internal open class UniffiForeignFutureResultI16(
-    @JvmField internal var `returnValue`: Short = 0.toShort(),
-    @JvmField internal var `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-) : Structure() {
-    class UniffiByValue(
-        `returnValue`: Short = 0.toShort(),
-        `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-    ): UniffiForeignFutureResultI16(`returnValue`,`callStatus`,), Structure.ByValue
-
-   internal fun uniffiSetValue(other: UniffiForeignFutureResultI16) {
-        `returnValue` = other.`returnValue`
-        `callStatus` = other.`callStatus`
-    }
-
-}
-internal interface UniffiForeignFutureCompleteI16 : com.sun.jna.Callback {
-    fun callback(`callbackData`: Long,`result`: UniffiForeignFutureResultI16.UniffiByValue,)
-}
-@Structure.FieldOrder("returnValue", "callStatus")
-internal open class UniffiForeignFutureResultU32(
-    @JvmField internal var `returnValue`: Int = 0,
-    @JvmField internal var `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-) : Structure() {
-    class UniffiByValue(
-        `returnValue`: Int = 0,
-        `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-    ): UniffiForeignFutureResultU32(`returnValue`,`callStatus`,), Structure.ByValue
-
-   internal fun uniffiSetValue(other: UniffiForeignFutureResultU32) {
-        `returnValue` = other.`returnValue`
-        `callStatus` = other.`callStatus`
-    }
-
-}
-internal interface UniffiForeignFutureCompleteU32 : com.sun.jna.Callback {
-    fun callback(`callbackData`: Long,`result`: UniffiForeignFutureResultU32.UniffiByValue,)
-}
-@Structure.FieldOrder("returnValue", "callStatus")
-internal open class UniffiForeignFutureResultI32(
-    @JvmField internal var `returnValue`: Int = 0,
-    @JvmField internal var `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-) : Structure() {
-    class UniffiByValue(
-        `returnValue`: Int = 0,
-        `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-    ): UniffiForeignFutureResultI32(`returnValue`,`callStatus`,), Structure.ByValue
-
-   internal fun uniffiSetValue(other: UniffiForeignFutureResultI32) {
-        `returnValue` = other.`returnValue`
-        `callStatus` = other.`callStatus`
-    }
-
-}
-internal interface UniffiForeignFutureCompleteI32 : com.sun.jna.Callback {
-    fun callback(`callbackData`: Long,`result`: UniffiForeignFutureResultI32.UniffiByValue,)
-}
-@Structure.FieldOrder("returnValue", "callStatus")
-internal open class UniffiForeignFutureResultU64(
-    @JvmField internal var `returnValue`: Long = 0.toLong(),
-    @JvmField internal var `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-) : Structure() {
-    class UniffiByValue(
-        `returnValue`: Long = 0.toLong(),
-        `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-    ): UniffiForeignFutureResultU64(`returnValue`,`callStatus`,), Structure.ByValue
-
-   internal fun uniffiSetValue(other: UniffiForeignFutureResultU64) {
-        `returnValue` = other.`returnValue`
-        `callStatus` = other.`callStatus`
-    }
-
-}
-internal interface UniffiForeignFutureCompleteU64 : com.sun.jna.Callback {
-    fun callback(`callbackData`: Long,`result`: UniffiForeignFutureResultU64.UniffiByValue,)
-}
-@Structure.FieldOrder("returnValue", "callStatus")
-internal open class UniffiForeignFutureResultI64(
-    @JvmField internal var `returnValue`: Long = 0.toLong(),
-    @JvmField internal var `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-) : Structure() {
-    class UniffiByValue(
-        `returnValue`: Long = 0.toLong(),
-        `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-    ): UniffiForeignFutureResultI64(`returnValue`,`callStatus`,), Structure.ByValue
-
-   internal fun uniffiSetValue(other: UniffiForeignFutureResultI64) {
-        `returnValue` = other.`returnValue`
-        `callStatus` = other.`callStatus`
-    }
-
-}
-internal interface UniffiForeignFutureCompleteI64 : com.sun.jna.Callback {
-    fun callback(`callbackData`: Long,`result`: UniffiForeignFutureResultI64.UniffiByValue,)
-}
-@Structure.FieldOrder("returnValue", "callStatus")
-internal open class UniffiForeignFutureResultF32(
-    @JvmField internal var `returnValue`: Float = 0.0f,
-    @JvmField internal var `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-) : Structure() {
-    class UniffiByValue(
-        `returnValue`: Float = 0.0f,
-        `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-    ): UniffiForeignFutureResultF32(`returnValue`,`callStatus`,), Structure.ByValue
-
-   internal fun uniffiSetValue(other: UniffiForeignFutureResultF32) {
-        `returnValue` = other.`returnValue`
-        `callStatus` = other.`callStatus`
-    }
-
-}
-internal interface UniffiForeignFutureCompleteF32 : com.sun.jna.Callback {
-    fun callback(`callbackData`: Long,`result`: UniffiForeignFutureResultF32.UniffiByValue,)
-}
-@Structure.FieldOrder("returnValue", "callStatus")
-internal open class UniffiForeignFutureResultF64(
-    @JvmField internal var `returnValue`: Double = 0.0,
-    @JvmField internal var `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-) : Structure() {
-    class UniffiByValue(
-        `returnValue`: Double = 0.0,
-        `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-    ): UniffiForeignFutureResultF64(`returnValue`,`callStatus`,), Structure.ByValue
-
-   internal fun uniffiSetValue(other: UniffiForeignFutureResultF64) {
-        `returnValue` = other.`returnValue`
-        `callStatus` = other.`callStatus`
-    }
-
-}
-internal interface UniffiForeignFutureCompleteF64 : com.sun.jna.Callback {
-    fun callback(`callbackData`: Long,`result`: UniffiForeignFutureResultF64.UniffiByValue,)
-}
-@Structure.FieldOrder("returnValue", "callStatus")
-internal open class UniffiForeignFutureResultRustBuffer(
-    @JvmField internal var `returnValue`: RustBuffer.ByValue = RustBuffer.ByValue(),
-    @JvmField internal var `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-) : Structure() {
-    class UniffiByValue(
-        `returnValue`: RustBuffer.ByValue = RustBuffer.ByValue(),
-        `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-    ): UniffiForeignFutureResultRustBuffer(`returnValue`,`callStatus`,), Structure.ByValue
-
-   internal fun uniffiSetValue(other: UniffiForeignFutureResultRustBuffer) {
-        `returnValue` = other.`returnValue`
-        `callStatus` = other.`callStatus`
-    }
-
-}
-internal interface UniffiForeignFutureCompleteRustBuffer : com.sun.jna.Callback {
-    fun callback(`callbackData`: Long,`result`: UniffiForeignFutureResultRustBuffer.UniffiByValue,)
-}
-@Structure.FieldOrder("callStatus")
-internal open class UniffiForeignFutureResultVoid(
-    @JvmField internal var `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-) : Structure() {
-    class UniffiByValue(
-        `callStatus`: UniffiRustCallStatus.ByValue = UniffiRustCallStatus.ByValue(),
-    ): UniffiForeignFutureResultVoid(`callStatus`,), Structure.ByValue
-
-   internal fun uniffiSetValue(other: UniffiForeignFutureResultVoid) {
-        `callStatus` = other.`callStatus`
-    }
-
-}
-internal interface UniffiForeignFutureCompleteVoid : com.sun.jna.Callback {
-    fun callback(`callbackData`: Long,`result`: UniffiForeignFutureResultVoid.UniffiByValue,)
+private inline fun <reified Lib : Library> loadIndirect(
+    componentName: String
+): Lib {
+    return Native.load<Lib>(findLibraryName(componentName), Lib::class.java)
 }
 
 // A JNA Library to expose the extern-C FFI definitions.
 // This is an implementation detail which will be called internally by the public API.
 
-// For large crates we prevent `MethodTooLargeException` (see #2340)
-// N.B. the name of the extension is very misleading, since it is
-// rather `InterfaceTooLargeException`, caused by too many methods
-// in the interface for large crates.
-//
-// By splitting the otherwise huge interface into two parts
-// * UniffiLib (this)
-// * IntegrityCheckingUniffiLib
-// And all checksum methods are put into `IntegrityCheckingUniffiLib`
-// we allow for ~2x as many methods in the UniffiLib interface.
-//
-// Note: above all written when we used JNA's `loadIndirect` etc.
-// We now use JNA's "direct mapping" - unclear if same considerations apply exactly.
-internal object IntegrityCheckingUniffiLib {
-    init {
-        Native.register(IntegrityCheckingUniffiLib::class.java, findLibraryName(componentName = "aletheia"))
-        uniffiCheckContractApiVersion(this)
-        uniffiCheckApiChecksums(this)
+internal interface _UniFFILib : Library {
+    companion object {
+        internal val INSTANCE: _UniFFILib by lazy {
+            loadIndirect<_UniFFILib>(componentName = "aletheia")
+            .also { lib: _UniFFILib ->
+                uniffiCheckContractApiVersion(lib)
+                uniffiCheckApiChecksums(lib)
+                }
+        }
     }
-    external fun uniffi_aletheia_core_checksum_method_aletheiacore_cancel_interpretation_stream(
-    ): Short
-    external fun uniffi_aletheia_core_checksum_method_aletheiacore_choose_symbol(
-    ): Short
-    external fun uniffi_aletheia_core_checksum_method_aletheiacore_complete_reading(
-    ): Short
-    external fun uniffi_aletheia_core_checksum_method_aletheiacore_get_fallback_prompts(
-    ): Short
-    external fun uniffi_aletheia_core_checksum_method_aletheiacore_get_user_state(
-    ): Short
-    external fun uniffi_aletheia_core_checksum_method_aletheiacore_perform_reading(
-    ): Short
-    external fun uniffi_aletheia_core_checksum_method_aletheiacore_poll_interpretation_stream(
-    ): Short
-    external fun uniffi_aletheia_core_checksum_method_aletheiacore_request_interpretation(
-    ): Short
-    external fun uniffi_aletheia_core_checksum_method_aletheiacore_seed_bundled_data(
-    ): Short
-    external fun uniffi_aletheia_core_checksum_method_aletheiacore_set_ai_api_key(
-    ): Short
-    external fun uniffi_aletheia_core_checksum_method_aletheiacore_start_interpretation_stream(
-    ): Short
-    external fun uniffi_aletheia_core_checksum_constructor_aletheiacore_new(
-    ): Short
-    external fun ffi_aletheia_core_uniffi_contract_version(
-    ): Int
 
-        
-}
-
-internal object UniffiLib {
-    
-    // The Cleaner for the whole library
-    internal val CLEANER: UniffiCleaner by lazy {
-        UniffiCleaner.create()
-    }
-    
-
-    init {
-        Native.register(UniffiLib::class.java, findLibraryName(componentName = "aletheia"))
-        
-    }
-    external fun uniffi_aletheia_core_fn_clone_aletheiacore(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
-    ): Long
-    external fun uniffi_aletheia_core_fn_free_aletheiacore(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_aletheia_core_fn_free_aletheiacore(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
-    external fun uniffi_aletheia_core_fn_constructor_aletheiacore_new(`dbPath`: RustBuffer.ByValue,`giftBackendUrl`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
-    ): Long
-    external fun uniffi_aletheia_core_fn_method_aletheiacore_cancel_interpretation_stream(`ptr`: Long,`requestId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_aletheia_core_fn_constructor_aletheiacore_new(`dbPath`: RustBuffer.ByValue,`giftBackendUrl`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
+    ): Pointer
+    fun uniffi_aletheia_core_fn_method_aletheiacore_cancel_interpretation_stream(`ptr`: Pointer,`requestId`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    external fun uniffi_aletheia_core_fn_method_aletheiacore_choose_symbol(`ptr`: Long,`session`: RustBuffer.ByValue,`symbolId`: RustBuffer.ByValue,`method`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_aletheia_core_fn_method_aletheiacore_choose_symbol(`ptr`: Pointer,`session`: RustBuffer.ByValue,`symbolId`: RustBuffer.ByValue,`method`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    external fun uniffi_aletheia_core_fn_method_aletheiacore_complete_reading(`ptr`: Long,`userId`: RustBuffer.ByValue,`reading`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_aletheia_core_fn_method_aletheiacore_complete_reading(`ptr`: Pointer,`userId`: RustBuffer.ByValue,`reading`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    external fun uniffi_aletheia_core_fn_method_aletheiacore_get_fallback_prompts(`ptr`: Long,`sourceId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_aletheia_core_fn_method_aletheiacore_create_gift(`ptr`: Pointer,`sourceId`: RustBuffer.ByValue,`buyerNote`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    external fun uniffi_aletheia_core_fn_method_aletheiacore_get_user_state(`ptr`: Long,`userId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_aletheia_core_fn_method_aletheiacore_get_daily_notification_message(`ptr`: Pointer,`userId`: RustBuffer.ByValue,`date`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    external fun uniffi_aletheia_core_fn_method_aletheiacore_perform_reading(`ptr`: Long,`userId`: RustBuffer.ByValue,`sourceId`: RustBuffer.ByValue,`situationText`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_aletheia_core_fn_method_aletheiacore_get_fallback_prompts(`ptr`: Pointer,`sourceId`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    external fun uniffi_aletheia_core_fn_method_aletheiacore_poll_interpretation_stream(`ptr`: Long,`requestId`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_aletheia_core_fn_method_aletheiacore_get_readings(`ptr`: Pointer,`limit`: Int,`offset`: Int,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    external fun uniffi_aletheia_core_fn_method_aletheiacore_request_interpretation(`ptr`: Long,`passage`: RustBuffer.ByValue,`symbol`: RustBuffer.ByValue,`situationText`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_aletheia_core_fn_method_aletheiacore_get_sources(`ptr`: Pointer,`premiumAllowed`: Byte,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    external fun uniffi_aletheia_core_fn_method_aletheiacore_seed_bundled_data(`ptr`: Long,`sourcesJson`: RustBuffer.ByValue,`passagesJson`: RustBuffer.ByValue,`themesJson`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_aletheia_core_fn_method_aletheiacore_get_user_state(`ptr`: Pointer,`userId`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    external fun uniffi_aletheia_core_fn_method_aletheiacore_set_ai_api_key(`ptr`: Long,`provider`: RustBuffer.ByValue,`key`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_aletheia_core_fn_method_aletheiacore_perform_reading(`ptr`: Pointer,`userId`: RustBuffer.ByValue,`sourceId`: RustBuffer.ByValue,`situationText`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    external fun uniffi_aletheia_core_fn_method_aletheiacore_start_interpretation_stream(`ptr`: Long,`passage`: RustBuffer.ByValue,`symbol`: RustBuffer.ByValue,`situationText`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_aletheia_core_fn_method_aletheiacore_poll_interpretation_stream(`ptr`: Pointer,`requestId`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    external fun ffi_aletheia_core_rustbuffer_alloc(`size`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_aletheia_core_fn_method_aletheiacore_redeem_gift(`ptr`: Pointer,`token`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    external fun ffi_aletheia_core_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_aletheia_core_fn_method_aletheiacore_request_interpretation(`ptr`: Pointer,`passage`: RustBuffer.ByValue,`symbol`: RustBuffer.ByValue,`situationText`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    external fun ffi_aletheia_core_rustbuffer_free(`buf`: RustBuffer.ByValue,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_aletheia_core_fn_method_aletheiacore_seed_bundled_data(`ptr`: Pointer,`sourcesJson`: RustBuffer.ByValue,`passagesJson`: RustBuffer.ByValue,`themesJson`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_aletheia_core_fn_method_aletheiacore_set_ai_api_key(`ptr`: Pointer,`provider`: RustBuffer.ByValue,`key`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_aletheia_core_fn_method_aletheiacore_set_local_date(`ptr`: Pointer,`localDate`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Unit
-    external fun ffi_aletheia_core_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun uniffi_aletheia_core_fn_method_aletheiacore_start_interpretation_stream(`ptr`: Pointer,`passage`: RustBuffer.ByValue,`symbol`: RustBuffer.ByValue,`situationText`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    external fun ffi_aletheia_core_rust_future_poll_u8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_update_user_state(`ptr`: Pointer,`state`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
+    ): RustBuffer.ByValue
+    fun ffi_aletheia_core_rustbuffer_alloc(`size`: Int,_uniffi_out_err: RustCallStatus, 
+    ): RustBuffer.ByValue
+    fun ffi_aletheia_core_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,_uniffi_out_err: RustCallStatus, 
+    ): RustBuffer.ByValue
+    fun ffi_aletheia_core_rustbuffer_free(`buf`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Unit
-    external fun ffi_aletheia_core_rust_future_cancel_u8(`handle`: Long,
+    fun ffi_aletheia_core_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Int,_uniffi_out_err: RustCallStatus, 
+    ): RustBuffer.ByValue
+    fun ffi_aletheia_core_rust_future_continuation_callback_set(`callback`: UniFffiRustFutureContinuationCallbackType,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_free_u8(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_poll_u8(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_complete_u8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_aletheia_core_rust_future_cancel_u8(`handle`: Pointer,
+    ): Unit
+    fun ffi_aletheia_core_rust_future_free_u8(`handle`: Pointer,
+    ): Unit
+    fun ffi_aletheia_core_rust_future_complete_u8(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Byte
-    external fun ffi_aletheia_core_rust_future_poll_i8(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_aletheia_core_rust_future_poll_i8(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_cancel_i8(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_cancel_i8(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_free_i8(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_free_i8(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_complete_i8(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_aletheia_core_rust_future_complete_i8(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Byte
-    external fun ffi_aletheia_core_rust_future_poll_u16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_aletheia_core_rust_future_poll_u16(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_cancel_u16(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_cancel_u16(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_free_u16(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_free_u16(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_complete_u16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_aletheia_core_rust_future_complete_u16(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Short
-    external fun ffi_aletheia_core_rust_future_poll_i16(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_aletheia_core_rust_future_poll_i16(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_cancel_i16(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_cancel_i16(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_free_i16(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_free_i16(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_complete_i16(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_aletheia_core_rust_future_complete_i16(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Short
-    external fun ffi_aletheia_core_rust_future_poll_u32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_aletheia_core_rust_future_poll_u32(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_cancel_u32(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_cancel_u32(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_free_u32(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_free_u32(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_complete_u32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_aletheia_core_rust_future_complete_u32(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Int
-    external fun ffi_aletheia_core_rust_future_poll_i32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_aletheia_core_rust_future_poll_i32(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_cancel_i32(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_cancel_i32(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_free_i32(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_free_i32(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_complete_i32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_aletheia_core_rust_future_complete_i32(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Int
-    external fun ffi_aletheia_core_rust_future_poll_u64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_aletheia_core_rust_future_poll_u64(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_cancel_u64(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_cancel_u64(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_free_u64(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_free_u64(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_complete_u64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_aletheia_core_rust_future_complete_u64(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Long
-    external fun ffi_aletheia_core_rust_future_poll_i64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_aletheia_core_rust_future_poll_i64(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_cancel_i64(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_cancel_i64(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_free_i64(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_free_i64(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_complete_i64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_aletheia_core_rust_future_complete_i64(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Long
-    external fun ffi_aletheia_core_rust_future_poll_f32(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_aletheia_core_rust_future_poll_f32(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_cancel_f32(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_cancel_f32(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_free_f32(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_free_f32(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_complete_f32(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_aletheia_core_rust_future_complete_f32(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Float
-    external fun ffi_aletheia_core_rust_future_poll_f64(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_aletheia_core_rust_future_poll_f64(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_cancel_f64(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_cancel_f64(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_free_f64(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_free_f64(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_complete_f64(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_aletheia_core_rust_future_complete_f64(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Double
-    external fun ffi_aletheia_core_rust_future_poll_rust_buffer(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_aletheia_core_rust_future_poll_pointer(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_cancel_rust_buffer(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_cancel_pointer(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_free_rust_buffer(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_free_pointer(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_complete_rust_buffer(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_aletheia_core_rust_future_complete_pointer(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
+    ): Pointer
+    fun ffi_aletheia_core_rust_future_poll_rust_buffer(`handle`: Pointer,`uniffiCallback`: USize,
+    ): Unit
+    fun ffi_aletheia_core_rust_future_cancel_rust_buffer(`handle`: Pointer,
+    ): Unit
+    fun ffi_aletheia_core_rust_future_free_rust_buffer(`handle`: Pointer,
+    ): Unit
+    fun ffi_aletheia_core_rust_future_complete_rust_buffer(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    external fun ffi_aletheia_core_rust_future_poll_void(`handle`: Long,`callback`: UniffiRustFutureContinuationCallback,`callbackData`: Long,
+    fun ffi_aletheia_core_rust_future_poll_void(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_cancel_void(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_cancel_void(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_free_void(`handle`: Long,
+    fun ffi_aletheia_core_rust_future_free_void(`handle`: Pointer,
     ): Unit
-    external fun ffi_aletheia_core_rust_future_complete_void(`handle`: Long,uniffi_out_err: UniffiRustCallStatus, 
+    fun ffi_aletheia_core_rust_future_complete_void(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
-
-        
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_cancel_interpretation_stream(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_choose_symbol(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_complete_reading(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_create_gift(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_get_daily_notification_message(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_get_fallback_prompts(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_get_readings(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_get_sources(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_get_user_state(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_perform_reading(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_poll_interpretation_stream(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_redeem_gift(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_request_interpretation(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_seed_bundled_data(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_set_ai_api_key(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_set_local_date(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_start_interpretation_stream(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_update_user_state(
+    ): Short
+    fun uniffi_aletheia_core_checksum_constructor_aletheiacore_new(
+    ): Short
+    fun ffi_aletheia_core_uniffi_contract_version(
+    ): Int
+    
 }
 
-private fun uniffiCheckContractApiVersion(lib: IntegrityCheckingUniffiLib) {
+private fun uniffiCheckContractApiVersion(lib: _UniFFILib) {
     // Get the bindings contract version from our ComponentInterface
-    val bindings_contract_version = 30
+    val bindings_contract_version = 24
     // Get the scaffolding contract version by calling the into the dylib
     val scaffolding_contract_version = lib.ffi_aletheia_core_uniffi_contract_version()
     if (bindings_contract_version != scaffolding_contract_version) {
         throw RuntimeException("UniFFI contract version mismatch: try cleaning and rebuilding your project")
     }
 }
-@Suppress("UNUSED_PARAMETER")
-private fun uniffiCheckApiChecksums(lib: IntegrityCheckingUniffiLib) {
-    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_cancel_interpretation_stream() != 20127.toShort()) {
-        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    }
-    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_choose_symbol() != 10745.toShort()) {
-        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    }
-    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_complete_reading() != 64734.toShort()) {
-        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    }
-    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_get_fallback_prompts() != 49675.toShort()) {
-        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    }
-    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_get_user_state() != 31908.toShort()) {
-        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    }
-    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_perform_reading() != 20296.toShort()) {
-        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    }
-    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_poll_interpretation_stream() != 59188.toShort()) {
-        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    }
-    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_request_interpretation() != 61584.toShort()) {
-        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    }
-    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_seed_bundled_data() != 29940.toShort()) {
-        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    }
-    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_set_ai_api_key() != 63012.toShort()) {
-        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    }
-    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_start_interpretation_stream() != 47979.toShort()) {
-        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    }
-    if (lib.uniffi_aletheia_core_checksum_constructor_aletheiacore_new() != 17923.toShort()) {
-        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
-    }
-}
 
-/**
- * @suppress
- */
-public fun uniffiEnsureInitialized() {
-    IntegrityCheckingUniffiLib
-    // UniffiLib() initialized as objects are used, but we still need to explicitly
-    // reference it so initialization across crates works as expected.
-    UniffiLib
+@Suppress("UNUSED_PARAMETER")
+private fun uniffiCheckApiChecksums(lib: _UniFFILib) {
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_cancel_interpretation_stream() != 8803.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_choose_symbol() != 49755.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_complete_reading() != 56725.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_create_gift() != 53160.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_get_daily_notification_message() != 39691.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_get_fallback_prompts() != 14357.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_get_readings() != 62455.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_get_sources() != 26269.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_get_user_state() != 57766.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_perform_reading() != 45741.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_poll_interpretation_stream() != 1154.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_redeem_gift() != 36624.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_request_interpretation() != 48174.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_seed_bundled_data() != 24203.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_set_ai_api_key() != 44249.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_set_local_date() != 21811.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_start_interpretation_stream() != 22165.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_update_user_state() != 57698.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_constructor_aletheiacore_new() != 37378.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
 }
 
 // Async support
@@ -878,149 +656,6 @@ public fun uniffiEnsureInitialized() {
 // Public interface members begin here.
 
 
-// Interface implemented by anything that can contain an object reference.
-//
-// Such types expose a `destroy()` method that must be called to cleanly
-// dispose of the contained objects. Failure to call this method may result
-// in memory leaks.
-//
-// The easiest way to ensure this method is called is to use the `.use`
-// helper method to execute a block and destroy the object at the end.
-interface Disposable {
-    fun destroy()
-    companion object {
-        fun destroy(vararg args: Any?) {
-            for (arg in args) {
-                when (arg) {
-                    is Disposable -> arg.destroy()
-                    is ArrayList<*> -> {
-                        for (idx in arg.indices) {
-                            val element = arg[idx]
-                            if (element is Disposable) {
-                                element.destroy()
-                            }
-                        }
-                    }
-                    is Map<*, *> -> {
-                        for (element in arg.values) {
-                            if (element is Disposable) {
-                                element.destroy()
-                            }
-                        }
-                    }
-                    is Iterable<*> -> {
-                        for (element in arg) {
-                            if (element is Disposable) {
-                                element.destroy()
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * @suppress
- */
-inline fun <T : Disposable?, R> T.use(block: (T) -> R) =
-    try {
-        block(this)
-    } finally {
-        try {
-            // N.B. our implementation is on the nullable type `Disposable?`.
-            this?.destroy()
-        } catch (e: Throwable) {
-            // swallow
-        }
-    }
-
-/** 
- * Placeholder object used to signal that we're constructing an interface with a FFI handle.
- *
- * This is the first argument for interface constructors that input a raw handle. It exists is that
- * so we can avoid signature conflicts when an interface has a regular constructor than inputs a
- * Long.
- *
- * @suppress
- * */
-object UniffiWithHandle
-
-/** 
- * Used to instantiate an interface without an actual pointer, for fakes in tests, mostly.
- *
- * @suppress
- * */
-object NoHandle
-/**
- * The cleaner interface for Object finalization code to run.
- * This is the entry point to any implementation that we're using.
- *
- * The cleaner registers objects and returns cleanables, so now we are
- * defining a `UniffiCleaner` with a `UniffiClenaer.Cleanable` to abstract the
- * different implmentations available at compile time.
- *
- * @suppress
- */
-interface UniffiCleaner {
-    interface Cleanable {
-        fun clean()
-    }
-
-    fun register(value: Any, cleanUpTask: Runnable): UniffiCleaner.Cleanable
-
-    companion object
-}
-
-// The fallback Jna cleaner, which is available for both Android, and the JVM.
-private class UniffiJnaCleaner : UniffiCleaner {
-    private val cleaner = com.sun.jna.internal.Cleaner.getCleaner()
-
-    override fun register(value: Any, cleanUpTask: Runnable): UniffiCleaner.Cleanable =
-        UniffiJnaCleanable(cleaner.register(value, cleanUpTask))
-}
-
-private class UniffiJnaCleanable(
-    private val cleanable: com.sun.jna.internal.Cleaner.Cleanable,
-) : UniffiCleaner.Cleanable {
-    override fun clean() = cleanable.clean()
-}
-
-
-// We decide at uniffi binding generation time whether we were
-// using Android or not.
-// There are further runtime checks to chose the correct implementation
-// of the cleaner.
-private fun UniffiCleaner.Companion.create(): UniffiCleaner =
-    try {
-        // For safety's sake: if the library hasn't been run in android_cleaner = true
-        // mode, but is being run on Android, then we still need to think about
-        // Android API versions.
-        // So we check if java.lang.ref.Cleaner is there, and use that…
-        java.lang.Class.forName("java.lang.ref.Cleaner")
-        JavaLangRefCleaner()
-    } catch (e: ClassNotFoundException) {
-        // … otherwise, fallback to the JNA cleaner.
-        UniffiJnaCleaner()
-    }
-
-private class JavaLangRefCleaner : UniffiCleaner {
-    val cleaner = java.lang.ref.Cleaner.create()
-
-    override fun register(value: Any, cleanUpTask: Runnable): UniffiCleaner.Cleanable =
-        JavaLangRefCleanable(cleaner.register(value, cleanUpTask))
-}
-
-private class JavaLangRefCleanable(
-    val cleanable: java.lang.ref.Cleaner.Cleanable
-) : UniffiCleaner.Cleanable {
-    override fun clean() = cleanable.clean()
-}
-
-/**
- * @suppress
- */
 public object FfiConverterUByte: FfiConverter<UByte, Byte> {
     override fun lift(value: Byte): UByte {
         return value.toUByte()
@@ -1034,16 +669,13 @@ public object FfiConverterUByte: FfiConverter<UByte, Byte> {
         return value.toByte()
     }
 
-    override fun allocationSize(value: UByte) = 1UL
+    override fun allocationSize(value: UByte) = 1
 
     override fun write(value: UByte, buf: ByteBuffer) {
         buf.put(value.toByte())
     }
 }
 
-/**
- * @suppress
- */
 public object FfiConverterUInt: FfiConverter<UInt, Int> {
     override fun lift(value: Int): UInt {
         return value.toUInt()
@@ -1057,16 +689,13 @@ public object FfiConverterUInt: FfiConverter<UInt, Int> {
         return value.toInt()
     }
 
-    override fun allocationSize(value: UInt) = 4UL
+    override fun allocationSize(value: UInt) = 4
 
     override fun write(value: UInt, buf: ByteBuffer) {
         buf.putInt(value.toInt())
     }
 }
 
-/**
- * @suppress
- */
 public object FfiConverterLong: FfiConverter<Long, Long> {
     override fun lift(value: Long): Long {
         return value
@@ -1080,16 +709,13 @@ public object FfiConverterLong: FfiConverter<Long, Long> {
         return value
     }
 
-    override fun allocationSize(value: Long) = 8UL
+    override fun allocationSize(value: Long) = 8
 
     override fun write(value: Long, buf: ByteBuffer) {
         buf.putLong(value)
     }
 }
 
-/**
- * @suppress
- */
 public object FfiConverterFloat: FfiConverter<Float, Float> {
     override fun lift(value: Float): Float {
         return value
@@ -1103,16 +729,13 @@ public object FfiConverterFloat: FfiConverter<Float, Float> {
         return value
     }
 
-    override fun allocationSize(value: Float) = 4UL
+    override fun allocationSize(value: Float) = 4
 
     override fun write(value: Float, buf: ByteBuffer) {
         buf.putFloat(value)
     }
 }
 
-/**
- * @suppress
- */
 public object FfiConverterBoolean: FfiConverter<Boolean, Byte> {
     override fun lift(value: Byte): Boolean {
         return value.toInt() != 0
@@ -1126,23 +749,20 @@ public object FfiConverterBoolean: FfiConverter<Boolean, Byte> {
         return if (value) 1.toByte() else 0.toByte()
     }
 
-    override fun allocationSize(value: Boolean) = 1UL
+    override fun allocationSize(value: Boolean) = 1
 
     override fun write(value: Boolean, buf: ByteBuffer) {
         buf.put(lower(value))
     }
 }
 
-/**
- * @suppress
- */
 public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
     // Note: we don't inherit from FfiConverterRustBuffer, because we use a
     // special encoding when lowering/lifting.  We can use `RustBuffer.len` to
     // store our length and avoid writing it out to the buffer.
     override fun lift(value: RustBuffer.ByValue): String {
         try {
-            val byteArr = ByteArray(value.len.toInt())
+            val byteArr = ByteArray(value.len)
             value.asByteBuffer()!!.get(byteArr)
             return byteArr.toString(Charsets.UTF_8)
         } finally {
@@ -1169,7 +789,7 @@ public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
         val byteBuf = toUtf8(value)
         // Ideally we'd pass these bytes to `ffi_bytebuffer_from_bytes`, but doing so would require us
         // to copy them into a JNA `Memory`. So we might as well directly copy them into a `RustBuffer`.
-        val rbuf = RustBuffer.alloc(byteBuf.limit().toULong())
+        val rbuf = RustBuffer.alloc(byteBuf.limit())
         rbuf.asByteBuffer()!!.put(byteBuf)
         return rbuf
     }
@@ -1177,9 +797,9 @@ public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
     // We aren't sure exactly how many bytes our string will be once it's UTF-8
     // encoded.  Allocate 3 bytes per UTF-16 code unit which will always be
     // enough.
-    override fun allocationSize(value: String): ULong {
-        val sizeForLength = 4UL
-        val sizeForString = value.length.toULong() * 3UL
+    override fun allocationSize(value: String): Int {
+        val sizeForLength = 4
+        val sizeForString = value.length * 3
         return sizeForLength + sizeForString
     }
 
@@ -1191,25 +811,57 @@ public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
 }
 
 
-// This template implements a class for working with a Rust struct via a handle
-// to the live Rust struct on the other side of the FFI.
+// Interface implemented by anything that can contain an object reference.
+//
+// Such types expose a `destroy()` method that must be called to cleanly
+// dispose of the contained objects. Failure to call this method may result
+// in memory leaks.
+//
+// The easiest way to ensure this method is called is to use the `.use`
+// helper method to execute a block and destroy the object at the end.
+interface Disposable {
+    fun destroy()
+    companion object {
+        fun destroy(vararg args: Any?) {
+            args.filterIsInstance<Disposable>()
+                .forEach(Disposable::destroy)
+        }
+    }
+}
+
+inline fun <T : Disposable?, R> T.use(block: (T) -> R) =
+    try {
+        block(this)
+    } finally {
+        try {
+            // N.B. our implementation is on the nullable type `Disposable?`.
+            this?.destroy()
+        } catch (e: Throwable) {
+            // swallow
+        }
+    }
+
+// The base class for all UniFFI Object types.
+//
+// This class provides core operations for working with the Rust `Arc<T>` pointer to
+// the live Rust struct on the other side of the FFI.
 //
 // There's some subtlety here, because we have to be careful not to operate on a Rust
 // struct after it has been dropped, and because we must expose a public API for freeing
-// theq Kotlin wrapper object in lieu of reliable finalizers. The core requirements are:
+// the Kotlin wrapper object in lieu of reliable finalizers. The core requirements are:
 //
-//   * Each instance holds an opaque handle to the underlying Rust struct.
-//     Method calls need to read this handle from the object's state and pass it in to
+//   * Each `FFIObject` instance holds an opaque pointer to the underlying Rust struct.
+//     Method calls need to read this pointer from the object's state and pass it in to
 //     the Rust FFI.
 //
-//   * When an instance is no longer needed, its handle should be passed to a
+//   * When an `FFIObject` is no longer needed, its pointer should be passed to a
 //     special destructor function provided by the Rust FFI, which will drop the
 //     underlying Rust struct.
 //
-//   * Given an instance, calling code is expected to call the special
+//   * Given an `FFIObject` instance, calling code is expected to call the special
 //     `destroy` method in order to free it after use, either by calling it explicitly
-//     or by using a higher-level helper like the `use` method. Failing to do so risks
-//     leaking the underlying Rust struct.
+//     or by using a higher-level helper like the `use` method. Failing to do so will
+//     leak the underlying Rust struct.
 //
 //   * We can't assume that calling code will do the right thing, and must be prepared
 //     to handle Kotlin method calls executing concurrently with or even after a call to
@@ -1219,21 +871,13 @@ public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
 //     the destructor has been called, and must never call the destructor more than once.
 //     Doing so may trigger memory unsafety.
 //
-//   * To mitigate many of the risks of leaking memory and use-after-free unsafety, a `Cleaner`
-//     is implemented to call the destructor when the Kotlin object becomes unreachable.
-//     This is done in a background thread. This is not a panacea, and client code should be aware that
-//      1. the thread may starve if some there are objects that have poorly performing
-//     `drop` methods or do significant work in their `drop` methods.
-//      2. the thread is shared across the whole library. This can be tuned by using `android_cleaner = true`,
-//         or `android = true` in the [`kotlin` section of the `uniffi.toml` file](https://mozilla.github.io/uniffi-rs/kotlin/configuration.html).
-//
-// If we try to implement this with mutual exclusion on access to the handle, there is the
+// If we try to implement this with mutual exclusion on access to the pointer, there is the
 // possibility of a race between a method call and a concurrent call to `destroy`:
 //
-//    * Thread A starts a method call, reads the value of the handle, but is interrupted
-//      before it can pass the handle over the FFI to Rust.
+//    * Thread A starts a method call, reads the value of the pointer, but is interrupted
+//      before it can pass the pointer over the FFI to Rust.
 //    * Thread B calls `destroy` and frees the underlying Rust struct.
-//    * Thread A resumes, passing the already-read handle value to Rust and triggering
+//    * Thread A resumes, passing the already-read pointer value to Rust and triggering
 //      a use-after-free.
 //
 // One possible solution would be to use a `ReadWriteLock`, with each method call taking
@@ -1242,7 +886,7 @@ public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
 // generate methods with any hidden blocking semantics, and a `destroy` method that might
 // block if called incorrectly seems to meet that bar.
 //
-// So, we achieve our goals by giving each instance an associated `AtomicLong` counter to track
+// So, we achieve our goals by giving each `FFIObject` an associated `AtomicLong` counter to track
 // the number of in-flight method calls, and an `AtomicBoolean` flag to indicate whether `destroy`
 // has been called. These are updated according to the following rules:
 //
@@ -1268,89 +912,26 @@ public object FfiConverterString: FfiConverter<String, RustBuffer.ByValue> {
 // called *and* all in-flight method calls have completed, avoiding violating any of the expectations
 // of the underlying Rust code.
 //
-// This makes a cleaner a better alternative to _not_ calling `destroy()` as
-// and when the object is finished with, but the abstraction is not perfect: if the Rust object's `drop`
-// method is slow, and/or there are many objects to cleanup, and it's on a low end Android device, then the cleaner
-// thread may be starved, and the app will leak memory.
+// In the future we may be able to replace some of this with automatic finalization logic, such as using
+// the new "Cleaner" functionaility in Java 9. The above scheme has been designed to work even if `destroy` is
+// invoked by garbage-collection machinery rather than by calling code (which by the way, it's apparently also
+// possible for the JVM to finalize an object while there is an in-flight call to one of its methods [1],
+// so there would still be some complexity here).
 //
-// In this case, `destroy`ing manually may be a better solution.
-//
-// The cleaner can live side by side with the manual calling of `destroy`. In the order of responsiveness, uniffi objects
-// with Rust peers are reclaimed:
-//
-// 1. By calling the `destroy` method of the object, which calls `rustObject.free()`. If that doesn't happen:
-// 2. When the object becomes unreachable, AND the Cleaner thread gets to call `rustObject.free()`. If the thread is starved then:
-// 3. The memory is reclaimed when the process terminates.
+// Sigh...all of this for want of a robust finalization mechanism.
 //
 // [1] https://stackoverflow.com/questions/24376768/can-java-finalize-an-object-when-it-is-still-in-scope/24380219
 //
-
-
-public interface AletheiaCoreInterface {
-    
-    fun `cancelInterpretationStream`(`requestId`: kotlin.String): CancelInterpretationResponse
-    
-    fun `chooseSymbol`(`session`: ReadingSession, `symbolId`: kotlin.String, `method`: SymbolMethod): ChooseSymbolResponse
-    
-    fun `completeReading`(`userId`: kotlin.String, `reading`: Reading): CompleteReadingResponse
-    
-    fun `getFallbackPrompts`(`sourceId`: kotlin.String): FallbackPromptsResponse
-    
-    fun `getUserState`(`userId`: kotlin.String): UserStateResponse
-    
-    fun `performReading`(`userId`: kotlin.String, `sourceId`: kotlin.String?, `situationText`: kotlin.String?): PerformReadingResponse
-    
-    fun `pollInterpretationStream`(`requestId`: kotlin.String): InterpretationStreamState
-    
-    fun `requestInterpretation`(`passage`: Passage, `symbol`: Symbol, `situationText`: kotlin.String?): RequestInterpretationResponse
-    
-    fun `seedBundledData`(`sourcesJson`: kotlin.String, `passagesJson`: kotlin.String, `themesJson`: kotlin.String): SeedBundledDataResponse
-    
-    fun `setAiApiKey`(`provider`: kotlin.String, `key`: kotlin.String): SetApiKeyResponse
-    
-    fun `startInterpretationStream`(`passage`: Passage, `symbol`: Symbol, `situationText`: kotlin.String?): StartInterpretationStreamResponse
-    
-    companion object
-}
-
-open class AletheiaCore: Disposable, AutoCloseable, AletheiaCoreInterface
-{
-
-    @Suppress("UNUSED_PARAMETER")
-    /**
-     * @suppress
-     */
-    constructor(withHandle: UniffiWithHandle, handle: Long) {
-        this.handle = handle
-        this.cleanable = UniffiLib.CLEANER.register(this, UniffiCleanAction(handle))
-    }
-
-    /**
-     * @suppress
-     *
-     * This constructor can be used to instantiate a fake object. Only used for tests. Any
-     * attempt to actually use an object constructed this way will fail as there is no
-     * connected Rust object.
-     */
-    @Suppress("UNUSED_PARAMETER")
-    constructor(noHandle: NoHandle) {
-        this.handle = 0
-        this.cleanable = null
-    }
-    constructor(`dbPath`: kotlin.String, `giftBackendUrl`: kotlin.String) :
-        this(UniffiWithHandle, 
-    uniffiRustCall() { _status ->
-    UniffiLib.uniffi_aletheia_core_fn_constructor_aletheiacore_new(
-    
-        FfiConverterString.lower(`dbPath`),FfiConverterString.lower(`giftBackendUrl`),_status)
-}
-    )
-
-    protected val handle: Long
-    protected val cleanable: UniffiCleaner.Cleanable?
+abstract class FFIObject(
+    protected val pointer: Pointer
+): Disposable, AutoCloseable {
 
     private val wasDestroyed = AtomicBoolean(false)
     private val callCounter = AtomicLong(1)
+
+    open protected fun freeRustArcPtr() {
+        // To be overridden in subclasses.
+    }
 
     override fun destroy() {
         // Only allow a single call to this method.
@@ -1358,7 +939,7 @@ open class AletheiaCore: Disposable, AutoCloseable, AletheiaCoreInterface
         if (this.wasDestroyed.compareAndSet(false, true)) {
             // This decrement always matches the initial count of 1 given at creation time.
             if (this.callCounter.decrementAndGet() == 0L) {
-                cleanable?.clean()
+                this.freeRustArcPtr()
             }
         }
     }
@@ -1368,7 +949,7 @@ open class AletheiaCore: Disposable, AutoCloseable, AletheiaCoreInterface
         this.destroy()
     }
 
-    internal inline fun <R> callWithHandle(block: (handle: Long) -> R): R {
+    internal inline fun <R> callWithPointer(block: (ptr: Pointer) -> R): R {
         // Check and increment the call counter, to keep the object alive.
         // This needs a compare-and-set retry loop in case of concurrent updates.
         do {
@@ -1380,243 +961,301 @@ open class AletheiaCore: Disposable, AutoCloseable, AletheiaCoreInterface
                 throw IllegalStateException("${this.javaClass.simpleName} call counter would overflow")
             }
         } while (! this.callCounter.compareAndSet(c, c + 1L))
-        // Now we can safely do the method call without the handle being freed concurrently.
+        // Now we can safely do the method call without the pointer being freed concurrently.
         try {
-            return block(this.uniffiCloneHandle())
+            return block(this.pointer)
         } finally {
             // This decrement always matches the increment we performed above.
             if (this.callCounter.decrementAndGet() == 0L) {
-                cleanable?.clean()
+                this.freeRustArcPtr()
             }
         }
     }
+}
 
-    // Use a static inner class instead of a closure so as not to accidentally
-    // capture `this` as part of the cleanable's action.
-    private class UniffiCleanAction(private val handle: Long) : Runnable {
-        override fun run() {
-            if (handle == 0.toLong()) {
-                // Fake object created with `NoHandle`, don't try to free.
-                return;
-            }
-            uniffiRustCall { status ->
-                UniffiLib.uniffi_aletheia_core_fn_free_aletheiacore(handle, status)
-            }
-        }
-    }
+public interface AletheiaCoreInterface {
+    
+    fun `cancelInterpretationStream`(`requestId`: String): CancelInterpretationResponse
+    fun `chooseSymbol`(`session`: ReadingSession, `symbolId`: String, `method`: SymbolMethod): ChooseSymbolResponse
+    fun `completeReading`(`userId`: String, `reading`: Reading): CompleteReadingResponse
+    fun `createGift`(`sourceId`: String?, `buyerNote`: String?): CreateGiftResponse
+    fun `getDailyNotificationMessage`(`userId`: String, `date`: String): NotificationMessageResponse
+    fun `getFallbackPrompts`(`sourceId`: String): FallbackPromptsResponse
+    fun `getReadings`(`limit`: UInt, `offset`: UInt): PaginatedReadingsResponse
+    fun `getSources`(`premiumAllowed`: Boolean): SourcesResponse
+    fun `getUserState`(`userId`: String): UserStateResponse
+    fun `performReading`(`userId`: String, `sourceId`: String?, `situationText`: String?): PerformReadingResponse
+    fun `pollInterpretationStream`(`requestId`: String): InterpretationStreamState
+    fun `redeemGift`(`token`: String): RedeemGiftResponse
+    fun `requestInterpretation`(`passage`: Passage, `symbol`: Symbol, `situationText`: String?): RequestInterpretationResponse
+    fun `seedBundledData`(`sourcesJson`: String, `passagesJson`: String, `themesJson`: String): SeedBundledDataResponse
+    fun `setAiApiKey`(`provider`: String, `key`: String): SetApiKeyResponse
+    fun `setLocalDate`(`localDate`: String)
+    fun `startInterpretationStream`(`passage`: Passage, `symbol`: Symbol, `situationText`: String?): StartInterpretationStreamResponse
+    fun `updateUserState`(`state`: UserState): UpdateUserStateResponse
+    companion object
+}
+
+class AletheiaCore(
+    pointer: Pointer
+) : FFIObject(pointer), AletheiaCoreInterface {
+    constructor(`dbPath`: String, `giftBackendUrl`: String) :
+        this(
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_constructor_aletheiacore_new(FfiConverterString.lower(`dbPath`),FfiConverterString.lower(`giftBackendUrl`),_status)
+})
 
     /**
-     * @suppress
+     * Disconnect the object from the underlying Rust object.
+     *
+     * It can be called more than once, but once called, interacting with the object
+     * causes an `IllegalStateException`.
+     *
+     * Clients **must** call this method once done with the object, or cause a memory leak.
      */
-    fun uniffiCloneHandle(): Long {
-        if (handle == 0.toLong()) {
-            throw InternalException("uniffiCloneHandle() called on NoHandle object");
-        }
-        return uniffiRustCall() { status ->
-            UniffiLib.uniffi_aletheia_core_fn_clone_aletheiacore(handle, status)
+    override protected fun freeRustArcPtr() {
+        rustCall() { status ->
+            _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_free_aletheiacore(this.pointer, status)
         }
     }
 
-    override fun `cancelInterpretationStream`(`requestId`: kotlin.String): CancelInterpretationResponse {
-            return FfiConverterTypeCancelInterpretationResponse.lift(
-    callWithHandle {
-    uniffiRustCall() { _status ->
-    UniffiLib.uniffi_aletheia_core_fn_method_aletheiacore_cancel_interpretation_stream(
-        it,
-        FfiConverterString.lower(`requestId`),_status)
+    override fun `cancelInterpretationStream`(`requestId`: String): CancelInterpretationResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_cancel_interpretation_stream(it,
+        FfiConverterString.lower(`requestId`),
+        _status)
 }
-    }
-    )
-    }
+        }.let {
+            FfiConverterTypeCancelInterpretationResponse.lift(it)
+        }
     
-
-    override fun `chooseSymbol`(`session`: ReadingSession, `symbolId`: kotlin.String, `method`: SymbolMethod): ChooseSymbolResponse {
-            return FfiConverterTypeChooseSymbolResponse.lift(
-    callWithHandle {
-    uniffiRustCall() { _status ->
-    UniffiLib.uniffi_aletheia_core_fn_method_aletheiacore_choose_symbol(
-        it,
-        FfiConverterTypeReadingSession.lower(`session`),FfiConverterString.lower(`symbolId`),FfiConverterTypeSymbolMethod.lower(`method`),_status)
+    override fun `chooseSymbol`(`session`: ReadingSession, `symbolId`: String, `method`: SymbolMethod): ChooseSymbolResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_choose_symbol(it,
+        FfiConverterTypeReadingSession.lower(`session`),FfiConverterString.lower(`symbolId`),FfiConverterTypeSymbolMethod.lower(`method`),
+        _status)
 }
-    }
-    )
-    }
+        }.let {
+            FfiConverterTypeChooseSymbolResponse.lift(it)
+        }
     
-
-    override fun `completeReading`(`userId`: kotlin.String, `reading`: Reading): CompleteReadingResponse {
-            return FfiConverterTypeCompleteReadingResponse.lift(
-    callWithHandle {
-    uniffiRustCall() { _status ->
-    UniffiLib.uniffi_aletheia_core_fn_method_aletheiacore_complete_reading(
-        it,
-        FfiConverterString.lower(`userId`),FfiConverterTypeReading.lower(`reading`),_status)
+    override fun `completeReading`(`userId`: String, `reading`: Reading): CompleteReadingResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_complete_reading(it,
+        FfiConverterString.lower(`userId`),FfiConverterTypeReading.lower(`reading`),
+        _status)
 }
-    }
-    )
-    }
+        }.let {
+            FfiConverterTypeCompleteReadingResponse.lift(it)
+        }
     
-
-    override fun `getFallbackPrompts`(`sourceId`: kotlin.String): FallbackPromptsResponse {
-            return FfiConverterTypeFallbackPromptsResponse.lift(
-    callWithHandle {
-    uniffiRustCall() { _status ->
-    UniffiLib.uniffi_aletheia_core_fn_method_aletheiacore_get_fallback_prompts(
-        it,
-        FfiConverterString.lower(`sourceId`),_status)
+    override fun `createGift`(`sourceId`: String?, `buyerNote`: String?): CreateGiftResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_create_gift(it,
+        FfiConverterOptionalString.lower(`sourceId`),FfiConverterOptionalString.lower(`buyerNote`),
+        _status)
 }
-    }
-    )
-    }
+        }.let {
+            FfiConverterTypeCreateGiftResponse.lift(it)
+        }
     
-
-    override fun `getUserState`(`userId`: kotlin.String): UserStateResponse {
-            return FfiConverterTypeUserStateResponse.lift(
-    callWithHandle {
-    uniffiRustCall() { _status ->
-    UniffiLib.uniffi_aletheia_core_fn_method_aletheiacore_get_user_state(
-        it,
-        FfiConverterString.lower(`userId`),_status)
+    override fun `getDailyNotificationMessage`(`userId`: String, `date`: String): NotificationMessageResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_get_daily_notification_message(it,
+        FfiConverterString.lower(`userId`),FfiConverterString.lower(`date`),
+        _status)
 }
-    }
-    )
-    }
+        }.let {
+            FfiConverterTypeNotificationMessageResponse.lift(it)
+        }
     
-
-    override fun `performReading`(`userId`: kotlin.String, `sourceId`: kotlin.String?, `situationText`: kotlin.String?): PerformReadingResponse {
-            return FfiConverterTypePerformReadingResponse.lift(
-    callWithHandle {
-    uniffiRustCall() { _status ->
-    UniffiLib.uniffi_aletheia_core_fn_method_aletheiacore_perform_reading(
-        it,
-        FfiConverterString.lower(`userId`),FfiConverterOptionalString.lower(`sourceId`),FfiConverterOptionalString.lower(`situationText`),_status)
+    override fun `getFallbackPrompts`(`sourceId`: String): FallbackPromptsResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_get_fallback_prompts(it,
+        FfiConverterString.lower(`sourceId`),
+        _status)
 }
-    }
-    )
-    }
+        }.let {
+            FfiConverterTypeFallbackPromptsResponse.lift(it)
+        }
     
-
-    override fun `pollInterpretationStream`(`requestId`: kotlin.String): InterpretationStreamState {
-            return FfiConverterTypeInterpretationStreamState.lift(
-    callWithHandle {
-    uniffiRustCall() { _status ->
-    UniffiLib.uniffi_aletheia_core_fn_method_aletheiacore_poll_interpretation_stream(
-        it,
-        FfiConverterString.lower(`requestId`),_status)
+    override fun `getReadings`(`limit`: UInt, `offset`: UInt): PaginatedReadingsResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_get_readings(it,
+        FfiConverterUInt.lower(`limit`),FfiConverterUInt.lower(`offset`),
+        _status)
 }
-    }
-    )
-    }
+        }.let {
+            FfiConverterTypePaginatedReadingsResponse.lift(it)
+        }
     
-
-    override fun `requestInterpretation`(`passage`: Passage, `symbol`: Symbol, `situationText`: kotlin.String?): RequestInterpretationResponse {
-            return FfiConverterTypeRequestInterpretationResponse.lift(
-    callWithHandle {
-    uniffiRustCall() { _status ->
-    UniffiLib.uniffi_aletheia_core_fn_method_aletheiacore_request_interpretation(
-        it,
-        FfiConverterTypePassage.lower(`passage`),FfiConverterTypeSymbol.lower(`symbol`),FfiConverterOptionalString.lower(`situationText`),_status)
+    override fun `getSources`(`premiumAllowed`: Boolean): SourcesResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_get_sources(it,
+        FfiConverterBoolean.lower(`premiumAllowed`),
+        _status)
 }
-    }
-    )
-    }
+        }.let {
+            FfiConverterTypeSourcesResponse.lift(it)
+        }
     
-
-    override fun `seedBundledData`(`sourcesJson`: kotlin.String, `passagesJson`: kotlin.String, `themesJson`: kotlin.String): SeedBundledDataResponse {
-            return FfiConverterTypeSeedBundledDataResponse.lift(
-    callWithHandle {
-    uniffiRustCall() { _status ->
-    UniffiLib.uniffi_aletheia_core_fn_method_aletheiacore_seed_bundled_data(
-        it,
-        FfiConverterString.lower(`sourcesJson`),FfiConverterString.lower(`passagesJson`),FfiConverterString.lower(`themesJson`),_status)
+    override fun `getUserState`(`userId`: String): UserStateResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_get_user_state(it,
+        FfiConverterString.lower(`userId`),
+        _status)
 }
-    }
-    )
-    }
+        }.let {
+            FfiConverterTypeUserStateResponse.lift(it)
+        }
     
-
-    override fun `setAiApiKey`(`provider`: kotlin.String, `key`: kotlin.String): SetApiKeyResponse {
-            return FfiConverterTypeSetApiKeyResponse.lift(
-    callWithHandle {
-    uniffiRustCall() { _status ->
-    UniffiLib.uniffi_aletheia_core_fn_method_aletheiacore_set_ai_api_key(
-        it,
-        FfiConverterString.lower(`provider`),FfiConverterString.lower(`key`),_status)
+    override fun `performReading`(`userId`: String, `sourceId`: String?, `situationText`: String?): PerformReadingResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_perform_reading(it,
+        FfiConverterString.lower(`userId`),FfiConverterOptionalString.lower(`sourceId`),FfiConverterOptionalString.lower(`situationText`),
+        _status)
 }
-    }
-    )
-    }
+        }.let {
+            FfiConverterTypePerformReadingResponse.lift(it)
+        }
     
-
-    override fun `startInterpretationStream`(`passage`: Passage, `symbol`: Symbol, `situationText`: kotlin.String?): StartInterpretationStreamResponse {
-            return FfiConverterTypeStartInterpretationStreamResponse.lift(
-    callWithHandle {
-    uniffiRustCall() { _status ->
-    UniffiLib.uniffi_aletheia_core_fn_method_aletheiacore_start_interpretation_stream(
-        it,
-        FfiConverterTypePassage.lower(`passage`),FfiConverterTypeSymbol.lower(`symbol`),FfiConverterOptionalString.lower(`situationText`),_status)
+    override fun `pollInterpretationStream`(`requestId`: String): InterpretationStreamState =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_poll_interpretation_stream(it,
+        FfiConverterString.lower(`requestId`),
+        _status)
 }
-    }
-    )
-    }
+        }.let {
+            FfiConverterTypeInterpretationStreamState.lift(it)
+        }
+    
+    override fun `redeemGift`(`token`: String): RedeemGiftResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_redeem_gift(it,
+        FfiConverterString.lower(`token`),
+        _status)
+}
+        }.let {
+            FfiConverterTypeRedeemGiftResponse.lift(it)
+        }
+    
+    override fun `requestInterpretation`(`passage`: Passage, `symbol`: Symbol, `situationText`: String?): RequestInterpretationResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_request_interpretation(it,
+        FfiConverterTypePassage.lower(`passage`),FfiConverterTypeSymbol.lower(`symbol`),FfiConverterOptionalString.lower(`situationText`),
+        _status)
+}
+        }.let {
+            FfiConverterTypeRequestInterpretationResponse.lift(it)
+        }
+    
+    override fun `seedBundledData`(`sourcesJson`: String, `passagesJson`: String, `themesJson`: String): SeedBundledDataResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_seed_bundled_data(it,
+        FfiConverterString.lower(`sourcesJson`),FfiConverterString.lower(`passagesJson`),FfiConverterString.lower(`themesJson`),
+        _status)
+}
+        }.let {
+            FfiConverterTypeSeedBundledDataResponse.lift(it)
+        }
+    
+    override fun `setAiApiKey`(`provider`: String, `key`: String): SetApiKeyResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_set_ai_api_key(it,
+        FfiConverterString.lower(`provider`),FfiConverterString.lower(`key`),
+        _status)
+}
+        }.let {
+            FfiConverterTypeSetApiKeyResponse.lift(it)
+        }
+    
+    override fun `setLocalDate`(`localDate`: String) =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_set_local_date(it,
+        FfiConverterString.lower(`localDate`),
+        _status)
+}
+        }
+    
+    
+    override fun `startInterpretationStream`(`passage`: Passage, `symbol`: Symbol, `situationText`: String?): StartInterpretationStreamResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_start_interpretation_stream(it,
+        FfiConverterTypePassage.lower(`passage`),FfiConverterTypeSymbol.lower(`symbol`),FfiConverterOptionalString.lower(`situationText`),
+        _status)
+}
+        }.let {
+            FfiConverterTypeStartInterpretationStreamResponse.lift(it)
+        }
+    
+    override fun `updateUserState`(`state`: UserState): UpdateUserStateResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_update_user_state(it,
+        FfiConverterTypeUserState.lower(`state`),
+        _status)
+}
+        }.let {
+            FfiConverterTypeUpdateUserStateResponse.lift(it)
+        }
+    
     
 
     
-
-    
-
-
-    
-    
-    /**
-     * @suppress
-     */
     companion object
     
 }
 
+public object FfiConverterTypeAletheiaCore: FfiConverter<AletheiaCore, Pointer> {
+    override fun lower(value: AletheiaCore): Pointer = value.callWithPointer { it }
 
-/**
- * @suppress
- */
-public object FfiConverterTypeAletheiaCore: FfiConverter<AletheiaCore, Long> {
-    override fun lower(value: AletheiaCore): Long {
-        return value.uniffiCloneHandle()
-    }
-
-    override fun lift(value: Long): AletheiaCore {
-        return AletheiaCore(UniffiWithHandle, value)
+    override fun lift(value: Pointer): AletheiaCore {
+        return AletheiaCore(value)
     }
 
     override fun read(buf: ByteBuffer): AletheiaCore {
-        return lift(buf.getLong())
+        // The Rust code always writes pointers as 8 bytes, and will
+        // fail to compile if they don't fit.
+        return lift(Pointer(buf.getLong()))
     }
 
-    override fun allocationSize(value: AletheiaCore) = 8UL
+    override fun allocationSize(value: AletheiaCore) = 8
 
     override fun write(value: AletheiaCore, buf: ByteBuffer) {
-        buf.putLong(lower(value))
+        // The Rust code always expects pointers written as 8 bytes,
+        // and will fail to compile if they don't fit.
+        buf.putLong(Pointer.nativeValue(lower(value)))
     }
 }
+
 
 
 
 data class AiInterpretation (
-    var `chunks`: List<kotlin.String>
-    , 
-    var `usedFallback`: kotlin.Boolean
-    
-){
-    
-
-    
-
+    var `chunks`: List<String>, 
+    var `usedFallback`: Boolean
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
 public object FfiConverterTypeAIInterpretation: FfiConverterRustBuffer<AiInterpretation> {
     override fun read(buf: ByteBuffer): AiInterpretation {
         return AiInterpretation(
@@ -1638,23 +1277,15 @@ public object FfiConverterTypeAIInterpretation: FfiConverterRustBuffer<AiInterpr
 
 
 
+
 data class BridgeError (
-    var `code`: kotlin.String
-    , 
-    var `message`: kotlin.String
-    
-){
-    
-
-    
-
+    var `code`: String, 
+    var `message`: String
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
 public object FfiConverterTypeBridgeError: FfiConverterRustBuffer<BridgeError> {
     override fun read(buf: ByteBuffer): BridgeError {
         return BridgeError(
@@ -1676,23 +1307,15 @@ public object FfiConverterTypeBridgeError: FfiConverterRustBuffer<BridgeError> {
 
 
 
+
 data class CancelInterpretationResponse (
-    var `cancelled`: kotlin.Boolean
-    , 
+    var `cancelled`: Boolean, 
     var `error`: BridgeError?
-    
-){
-    
-
-    
-
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
 public object FfiConverterTypeCancelInterpretationResponse: FfiConverterRustBuffer<CancelInterpretationResponse> {
     override fun read(buf: ByteBuffer): CancelInterpretationResponse {
         return CancelInterpretationResponse(
@@ -1714,23 +1337,15 @@ public object FfiConverterTypeCancelInterpretationResponse: FfiConverterRustBuff
 
 
 
+
 data class ChooseSymbolResponse (
-    var `chosen`: ChosenPassage?
-    , 
+    var `chosen`: ChosenPassage?, 
     var `error`: BridgeError?
-    
-){
-    
-
-    
-
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
 public object FfiConverterTypeChooseSymbolResponse: FfiConverterRustBuffer<ChooseSymbolResponse> {
     override fun read(buf: ByteBuffer): ChooseSymbolResponse {
         return ChooseSymbolResponse(
@@ -1752,23 +1367,15 @@ public object FfiConverterTypeChooseSymbolResponse: FfiConverterRustBuffer<Choos
 
 
 
+
 data class ChosenPassage (
-    var `passage`: Passage
-    , 
-    var `readingId`: kotlin.String
-    
-){
-    
-
-    
-
+    var `passage`: Passage, 
+    var `readingId`: String
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
 public object FfiConverterTypeChosenPassage: FfiConverterRustBuffer<ChosenPassage> {
     override fun read(buf: ByteBuffer): ChosenPassage {
         return ChosenPassage(
@@ -1790,23 +1397,15 @@ public object FfiConverterTypeChosenPassage: FfiConverterRustBuffer<ChosenPassag
 
 
 
+
 data class CompleteReadingResponse (
-    var `completed`: CompletedReading?
-    , 
+    var `completed`: CompletedReading?, 
     var `error`: BridgeError?
-    
-){
-    
-
-    
-
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
 public object FfiConverterTypeCompleteReadingResponse: FfiConverterRustBuffer<CompleteReadingResponse> {
     override fun read(buf: ByteBuffer): CompleteReadingResponse {
         return CompleteReadingResponse(
@@ -1828,23 +1427,15 @@ public object FfiConverterTypeCompleteReadingResponse: FfiConverterRustBuffer<Co
 
 
 
+
 data class CompletedReading (
-    var `readingId`: kotlin.String
-    , 
-    var `savedAt`: kotlin.Long
-    
-){
-    
-
-    
-
+    var `readingId`: String, 
+    var `savedAt`: Long
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
 public object FfiConverterTypeCompletedReading: FfiConverterRustBuffer<CompletedReading> {
     override fun read(buf: ByteBuffer): CompletedReading {
         return CompletedReading(
@@ -1866,23 +1457,49 @@ public object FfiConverterTypeCompletedReading: FfiConverterRustBuffer<Completed
 
 
 
-data class FallbackPromptsResponse (
-    var `prompts`: List<kotlin.String>
-    , 
+
+data class CreateGiftResponse (
+    var `token`: String?, 
+    var `deepLink`: String?, 
     var `error`: BridgeError?
-    
-){
-    
-
-    
-
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
+public object FfiConverterTypeCreateGiftResponse: FfiConverterRustBuffer<CreateGiftResponse> {
+    override fun read(buf: ByteBuffer): CreateGiftResponse {
+        return CreateGiftResponse(
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalTypeBridgeError.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: CreateGiftResponse) = (
+            FfiConverterOptionalString.allocationSize(value.`token`) +
+            FfiConverterOptionalString.allocationSize(value.`deepLink`) +
+            FfiConverterOptionalTypeBridgeError.allocationSize(value.`error`)
+    )
+
+    override fun write(value: CreateGiftResponse, buf: ByteBuffer) {
+            FfiConverterOptionalString.write(value.`token`, buf)
+            FfiConverterOptionalString.write(value.`deepLink`, buf)
+            FfiConverterOptionalTypeBridgeError.write(value.`error`, buf)
+    }
+}
+
+
+
+
+data class FallbackPromptsResponse (
+    var `prompts`: List<String>, 
+    var `error`: BridgeError?
+) {
+    
+    companion object
+}
+
 public object FfiConverterTypeFallbackPromptsResponse: FfiConverterRustBuffer<FallbackPromptsResponse> {
     override fun read(buf: ByteBuffer): FallbackPromptsResponse {
         return FallbackPromptsResponse(
@@ -1904,33 +1521,66 @@ public object FfiConverterTypeFallbackPromptsResponse: FfiConverterRustBuffer<Fa
 
 
 
-data class InterpretationStreamState (
-    var `requestId`: kotlin.String
-    , 
-    var `newChunks`: List<kotlin.String>
-    , 
-    var `fullText`: kotlin.String
-    , 
-    var `done`: kotlin.Boolean
-    , 
-    var `usedFallback`: kotlin.Boolean
-    , 
-    var `cancelled`: kotlin.Boolean
-    , 
-    var `error`: BridgeError?
-    
-){
-    
 
-    
-
+data class GiftReadingData (
+    var `token`: String, 
+    var `buyerNote`: String?, 
+    var `sourceId`: String?, 
+    var `createdAt`: Long, 
+    var `expiresAt`: Long, 
+    var `redeemed`: Boolean
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
+public object FfiConverterTypeGiftReadingData: FfiConverterRustBuffer<GiftReadingData> {
+    override fun read(buf: ByteBuffer): GiftReadingData {
+        return GiftReadingData(
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterLong.read(buf),
+            FfiConverterBoolean.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: GiftReadingData) = (
+            FfiConverterString.allocationSize(value.`token`) +
+            FfiConverterOptionalString.allocationSize(value.`buyerNote`) +
+            FfiConverterOptionalString.allocationSize(value.`sourceId`) +
+            FfiConverterLong.allocationSize(value.`createdAt`) +
+            FfiConverterLong.allocationSize(value.`expiresAt`) +
+            FfiConverterBoolean.allocationSize(value.`redeemed`)
+    )
+
+    override fun write(value: GiftReadingData, buf: ByteBuffer) {
+            FfiConverterString.write(value.`token`, buf)
+            FfiConverterOptionalString.write(value.`buyerNote`, buf)
+            FfiConverterOptionalString.write(value.`sourceId`, buf)
+            FfiConverterLong.write(value.`createdAt`, buf)
+            FfiConverterLong.write(value.`expiresAt`, buf)
+            FfiConverterBoolean.write(value.`redeemed`, buf)
+    }
+}
+
+
+
+
+data class InterpretationStreamState (
+    var `requestId`: String, 
+    var `newChunks`: List<String>, 
+    var `fullText`: String, 
+    var `done`: Boolean, 
+    var `usedFallback`: Boolean, 
+    var `cancelled`: Boolean, 
+    var `error`: BridgeError?
+) {
+    
+    companion object
+}
+
 public object FfiConverterTypeInterpretationStreamState: FfiConverterRustBuffer<InterpretationStreamState> {
     override fun read(buf: ByteBuffer): InterpretationStreamState {
         return InterpretationStreamState(
@@ -1967,23 +1617,15 @@ public object FfiConverterTypeInterpretationStreamState: FfiConverterRustBuffer<
 
 
 
+
 data class NotificationEntry (
-    var `symbolId`: kotlin.String
-    , 
-    var `question`: kotlin.String
-    
-){
-    
-
-    
-
+    var `symbolId`: String, 
+    var `question`: String
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
 public object FfiConverterTypeNotificationEntry: FfiConverterRustBuffer<NotificationEntry> {
     override fun read(buf: ByteBuffer): NotificationEntry {
         return NotificationEntry(
@@ -2005,25 +1647,84 @@ public object FfiConverterTypeNotificationEntry: FfiConverterRustBuffer<Notifica
 
 
 
-data class PaginatedReadings (
-    var `items`: List<Reading>
-    , 
-    var `totalCount`: kotlin.UInt
-    , 
-    var `hasMore`: kotlin.Boolean
-    
-){
-    
 
-    
-
+data class NotificationMessage (
+    var `symbolId`: String, 
+    var `question`: String, 
+    var `title`: String, 
+    var `body`: String
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
+public object FfiConverterTypeNotificationMessage: FfiConverterRustBuffer<NotificationMessage> {
+    override fun read(buf: ByteBuffer): NotificationMessage {
+        return NotificationMessage(
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NotificationMessage) = (
+            FfiConverterString.allocationSize(value.`symbolId`) +
+            FfiConverterString.allocationSize(value.`question`) +
+            FfiConverterString.allocationSize(value.`title`) +
+            FfiConverterString.allocationSize(value.`body`)
+    )
+
+    override fun write(value: NotificationMessage, buf: ByteBuffer) {
+            FfiConverterString.write(value.`symbolId`, buf)
+            FfiConverterString.write(value.`question`, buf)
+            FfiConverterString.write(value.`title`, buf)
+            FfiConverterString.write(value.`body`, buf)
+    }
+}
+
+
+
+
+data class NotificationMessageResponse (
+    var `message`: NotificationMessage?, 
+    var `error`: BridgeError?
+) {
+    
+    companion object
+}
+
+public object FfiConverterTypeNotificationMessageResponse: FfiConverterRustBuffer<NotificationMessageResponse> {
+    override fun read(buf: ByteBuffer): NotificationMessageResponse {
+        return NotificationMessageResponse(
+            FfiConverterOptionalTypeNotificationMessage.read(buf),
+            FfiConverterOptionalTypeBridgeError.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: NotificationMessageResponse) = (
+            FfiConverterOptionalTypeNotificationMessage.allocationSize(value.`message`) +
+            FfiConverterOptionalTypeBridgeError.allocationSize(value.`error`)
+    )
+
+    override fun write(value: NotificationMessageResponse, buf: ByteBuffer) {
+            FfiConverterOptionalTypeNotificationMessage.write(value.`message`, buf)
+            FfiConverterOptionalTypeBridgeError.write(value.`error`, buf)
+    }
+}
+
+
+
+
+data class PaginatedReadings (
+    var `items`: List<Reading>, 
+    var `totalCount`: UInt, 
+    var `hasMore`: Boolean
+) {
+    
+    companion object
+}
+
 public object FfiConverterTypePaginatedReadings: FfiConverterRustBuffer<PaginatedReadings> {
     override fun read(buf: ByteBuffer): PaginatedReadings {
         return PaginatedReadings(
@@ -2048,29 +1749,49 @@ public object FfiConverterTypePaginatedReadings: FfiConverterRustBuffer<Paginate
 
 
 
-data class Passage (
-    var `id`: kotlin.String
-    , 
-    var `sourceId`: kotlin.String
-    , 
-    var `reference`: kotlin.String
-    , 
-    var `text`: kotlin.String
-    , 
-    var `context`: kotlin.String?
-    
-){
-    
 
-    
-
+data class PaginatedReadingsResponse (
+    var `readings`: PaginatedReadings?, 
+    var `error`: BridgeError?
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
+public object FfiConverterTypePaginatedReadingsResponse: FfiConverterRustBuffer<PaginatedReadingsResponse> {
+    override fun read(buf: ByteBuffer): PaginatedReadingsResponse {
+        return PaginatedReadingsResponse(
+            FfiConverterOptionalTypePaginatedReadings.read(buf),
+            FfiConverterOptionalTypeBridgeError.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: PaginatedReadingsResponse) = (
+            FfiConverterOptionalTypePaginatedReadings.allocationSize(value.`readings`) +
+            FfiConverterOptionalTypeBridgeError.allocationSize(value.`error`)
+    )
+
+    override fun write(value: PaginatedReadingsResponse, buf: ByteBuffer) {
+            FfiConverterOptionalTypePaginatedReadings.write(value.`readings`, buf)
+            FfiConverterOptionalTypeBridgeError.write(value.`error`, buf)
+    }
+}
+
+
+
+
+data class Passage (
+    var `id`: String, 
+    var `sourceId`: String, 
+    var `reference`: String, 
+    var `text`: String, 
+    var `context`: String?, 
+    var `resonanceContext`: String?
+) {
+    
+    companion object
+}
+
 public object FfiConverterTypePassage: FfiConverterRustBuffer<Passage> {
     override fun read(buf: ByteBuffer): Passage {
         return Passage(
@@ -2078,6 +1799,7 @@ public object FfiConverterTypePassage: FfiConverterRustBuffer<Passage> {
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
             FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
             FfiConverterOptionalString.read(buf),
         )
     }
@@ -2087,7 +1809,8 @@ public object FfiConverterTypePassage: FfiConverterRustBuffer<Passage> {
             FfiConverterString.allocationSize(value.`sourceId`) +
             FfiConverterString.allocationSize(value.`reference`) +
             FfiConverterString.allocationSize(value.`text`) +
-            FfiConverterOptionalString.allocationSize(value.`context`)
+            FfiConverterOptionalString.allocationSize(value.`context`) +
+            FfiConverterOptionalString.allocationSize(value.`resonanceContext`)
     )
 
     override fun write(value: Passage, buf: ByteBuffer) {
@@ -2096,28 +1819,21 @@ public object FfiConverterTypePassage: FfiConverterRustBuffer<Passage> {
             FfiConverterString.write(value.`reference`, buf)
             FfiConverterString.write(value.`text`, buf)
             FfiConverterOptionalString.write(value.`context`, buf)
+            FfiConverterOptionalString.write(value.`resonanceContext`, buf)
     }
 }
 
 
 
+
 data class PerformReadingResponse (
-    var `session`: ReadingSession?
-    , 
+    var `session`: ReadingSession?, 
     var `error`: BridgeError?
-    
-){
-    
-
-    
-
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
 public object FfiConverterTypePerformReadingResponse: FfiConverterRustBuffer<PerformReadingResponse> {
     override fun read(buf: ByteBuffer): PerformReadingResponse {
         return PerformReadingResponse(
@@ -2139,51 +1855,30 @@ public object FfiConverterTypePerformReadingResponse: FfiConverterRustBuffer<Per
 
 
 
+
 data class Reading (
-    var `id`: kotlin.String
-    , 
-    var `createdAt`: kotlin.Long
-    , 
-    var `sourceId`: kotlin.String
-    , 
-    var `passageId`: kotlin.String
-    , 
-    var `themeId`: kotlin.String
-    , 
-    var `symbolChosen`: kotlin.String
-    , 
-    var `symbolMethod`: SymbolMethod
-    , 
-    var `situationText`: kotlin.String?
-    , 
-    var `aiInterpreted`: kotlin.Boolean
-    , 
-    var `aiUsedFallback`: kotlin.Boolean
-    , 
-    var `readDurationS`: kotlin.UInt?
-    , 
-    var `timeToAiRequestS`: kotlin.UInt?
-    , 
-    var `notificationOpened`: kotlin.Boolean
-    , 
-    var `moodTag`: MoodTag?
-    , 
-    var `isFavorite`: kotlin.Boolean
-    , 
-    var `shared`: kotlin.Boolean
-    
-){
-    
-
-    
-
+    var `id`: String, 
+    var `createdAt`: Long, 
+    var `sourceId`: String, 
+    var `passageId`: String, 
+    var `themeId`: String, 
+    var `symbolChosen`: String, 
+    var `symbolMethod`: SymbolMethod, 
+    var `situationText`: String?, 
+    var `aiInterpreted`: Boolean, 
+    var `aiUsedFallback`: Boolean, 
+    var `readDurationS`: UInt?, 
+    var `timeToAiRequestS`: UInt?, 
+    var `notificationOpened`: Boolean, 
+    var `moodTag`: MoodTag?, 
+    var `isFavorite`: Boolean, 
+    var `shared`: Boolean, 
+    var `userIntent`: UserIntent?
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
 public object FfiConverterTypeReading: FfiConverterRustBuffer<Reading> {
     override fun read(buf: ByteBuffer): Reading {
         return Reading(
@@ -2203,6 +1898,7 @@ public object FfiConverterTypeReading: FfiConverterRustBuffer<Reading> {
             FfiConverterOptionalTypeMoodTag.read(buf),
             FfiConverterBoolean.read(buf),
             FfiConverterBoolean.read(buf),
+            FfiConverterOptionalTypeUserIntent.read(buf),
         )
     }
 
@@ -2222,7 +1918,8 @@ public object FfiConverterTypeReading: FfiConverterRustBuffer<Reading> {
             FfiConverterBoolean.allocationSize(value.`notificationOpened`) +
             FfiConverterOptionalTypeMoodTag.allocationSize(value.`moodTag`) +
             FfiConverterBoolean.allocationSize(value.`isFavorite`) +
-            FfiConverterBoolean.allocationSize(value.`shared`)
+            FfiConverterBoolean.allocationSize(value.`shared`) +
+            FfiConverterOptionalTypeUserIntent.allocationSize(value.`userIntent`)
     )
 
     override fun write(value: Reading, buf: ByteBuffer) {
@@ -2242,36 +1939,26 @@ public object FfiConverterTypeReading: FfiConverterRustBuffer<Reading> {
             FfiConverterOptionalTypeMoodTag.write(value.`moodTag`, buf)
             FfiConverterBoolean.write(value.`isFavorite`, buf)
             FfiConverterBoolean.write(value.`shared`, buf)
+            FfiConverterOptionalTypeUserIntent.write(value.`userIntent`, buf)
     }
 }
 
 
 
+
 data class ReadingSession (
-    var `tempId`: kotlin.String
-    , 
-    var `source`: Source
-    , 
-    var `theme`: Theme
-    , 
-    var `symbols`: List<Symbol>
-    , 
-    var `situationText`: kotlin.String?
-    , 
-    var `startedAt`: kotlin.Long
-    
-){
-    
-
-    
-
+    var `tempId`: String, 
+    var `source`: Source, 
+    var `theme`: Theme, 
+    var `symbols`: List<Symbol>, 
+    var `situationText`: String?, 
+    var `userIntent`: UserIntent?, 
+    var `startedAt`: Long
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
 public object FfiConverterTypeReadingSession: FfiConverterRustBuffer<ReadingSession> {
     override fun read(buf: ByteBuffer): ReadingSession {
         return ReadingSession(
@@ -2280,6 +1967,7 @@ public object FfiConverterTypeReadingSession: FfiConverterRustBuffer<ReadingSess
             FfiConverterTypeTheme.read(buf),
             FfiConverterSequenceTypeSymbol.read(buf),
             FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalTypeUserIntent.read(buf),
             FfiConverterLong.read(buf),
         )
     }
@@ -2290,6 +1978,7 @@ public object FfiConverterTypeReadingSession: FfiConverterRustBuffer<ReadingSess
             FfiConverterTypeTheme.allocationSize(value.`theme`) +
             FfiConverterSequenceTypeSymbol.allocationSize(value.`symbols`) +
             FfiConverterOptionalString.allocationSize(value.`situationText`) +
+            FfiConverterOptionalTypeUserIntent.allocationSize(value.`userIntent`) +
             FfiConverterLong.allocationSize(value.`startedAt`)
     )
 
@@ -2299,29 +1988,52 @@ public object FfiConverterTypeReadingSession: FfiConverterRustBuffer<ReadingSess
             FfiConverterTypeTheme.write(value.`theme`, buf)
             FfiConverterSequenceTypeSymbol.write(value.`symbols`, buf)
             FfiConverterOptionalString.write(value.`situationText`, buf)
+            FfiConverterOptionalTypeUserIntent.write(value.`userIntent`, buf)
             FfiConverterLong.write(value.`startedAt`, buf)
     }
 }
 
 
 
-data class RequestInterpretationResponse (
-    var `interpretation`: AiInterpretation?
-    , 
+
+data class RedeemGiftResponse (
+    var `gift`: GiftReadingData?, 
     var `error`: BridgeError?
-    
-){
-    
-
-    
-
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
+public object FfiConverterTypeRedeemGiftResponse: FfiConverterRustBuffer<RedeemGiftResponse> {
+    override fun read(buf: ByteBuffer): RedeemGiftResponse {
+        return RedeemGiftResponse(
+            FfiConverterOptionalTypeGiftReadingData.read(buf),
+            FfiConverterOptionalTypeBridgeError.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: RedeemGiftResponse) = (
+            FfiConverterOptionalTypeGiftReadingData.allocationSize(value.`gift`) +
+            FfiConverterOptionalTypeBridgeError.allocationSize(value.`error`)
+    )
+
+    override fun write(value: RedeemGiftResponse, buf: ByteBuffer) {
+            FfiConverterOptionalTypeGiftReadingData.write(value.`gift`, buf)
+            FfiConverterOptionalTypeBridgeError.write(value.`error`, buf)
+    }
+}
+
+
+
+
+data class RequestInterpretationResponse (
+    var `interpretation`: AiInterpretation?, 
+    var `error`: BridgeError?
+) {
+    
+    companion object
+}
+
 public object FfiConverterTypeRequestInterpretationResponse: FfiConverterRustBuffer<RequestInterpretationResponse> {
     override fun read(buf: ByteBuffer): RequestInterpretationResponse {
         return RequestInterpretationResponse(
@@ -2343,23 +2055,15 @@ public object FfiConverterTypeRequestInterpretationResponse: FfiConverterRustBuf
 
 
 
+
 data class SeedBundledDataResponse (
-    var `seeded`: kotlin.Boolean
-    , 
+    var `seeded`: Boolean, 
     var `error`: BridgeError?
-    
-){
-    
-
-    
-
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
 public object FfiConverterTypeSeedBundledDataResponse: FfiConverterRustBuffer<SeedBundledDataResponse> {
     override fun read(buf: ByteBuffer): SeedBundledDataResponse {
         return SeedBundledDataResponse(
@@ -2381,23 +2085,15 @@ public object FfiConverterTypeSeedBundledDataResponse: FfiConverterRustBuffer<Se
 
 
 
+
 data class SetApiKeyResponse (
-    var `applied`: kotlin.Boolean
-    , 
+    var `applied`: Boolean, 
     var `error`: BridgeError?
-    
-){
-    
-
-    
-
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
 public object FfiConverterTypeSetApiKeyResponse: FfiConverterRustBuffer<SetApiKeyResponse> {
     override fun read(buf: ByteBuffer): SetApiKeyResponse {
         return SetApiKeyResponse(
@@ -2419,35 +2115,21 @@ public object FfiConverterTypeSetApiKeyResponse: FfiConverterRustBuffer<SetApiKe
 
 
 
+
 data class Source (
-    var `id`: kotlin.String
-    , 
-    var `name`: kotlin.String
-    , 
-    var `tradition`: Tradition
-    , 
-    var `language`: kotlin.String
-    , 
-    var `passageCount`: kotlin.UInt
-    , 
-    var `isBundled`: kotlin.Boolean
-    , 
-    var `isPremium`: kotlin.Boolean
-    , 
-    var `fallbackPrompts`: List<kotlin.String>
-    
-){
-    
-
-    
-
+    var `id`: String, 
+    var `name`: String, 
+    var `tradition`: Tradition, 
+    var `language`: String, 
+    var `passageCount`: UInt, 
+    var `isBundled`: Boolean, 
+    var `isPremium`: Boolean, 
+    var `fallbackPrompts`: List<String>
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
 public object FfiConverterTypeSource: FfiConverterRustBuffer<Source> {
     override fun read(buf: ByteBuffer): Source {
         return Source(
@@ -2487,23 +2169,45 @@ public object FfiConverterTypeSource: FfiConverterRustBuffer<Source> {
 
 
 
-data class StartInterpretationStreamResponse (
-    var `requestId`: kotlin.String?
-    , 
+
+data class SourcesResponse (
+    var `sources`: List<Source>, 
     var `error`: BridgeError?
-    
-){
-    
-
-    
-
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
+public object FfiConverterTypeSourcesResponse: FfiConverterRustBuffer<SourcesResponse> {
+    override fun read(buf: ByteBuffer): SourcesResponse {
+        return SourcesResponse(
+            FfiConverterSequenceTypeSource.read(buf),
+            FfiConverterOptionalTypeBridgeError.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: SourcesResponse) = (
+            FfiConverterSequenceTypeSource.allocationSize(value.`sources`) +
+            FfiConverterOptionalTypeBridgeError.allocationSize(value.`error`)
+    )
+
+    override fun write(value: SourcesResponse, buf: ByteBuffer) {
+            FfiConverterSequenceTypeSource.write(value.`sources`, buf)
+            FfiConverterOptionalTypeBridgeError.write(value.`error`, buf)
+    }
+}
+
+
+
+
+data class StartInterpretationStreamResponse (
+    var `requestId`: String?, 
+    var `error`: BridgeError?
+) {
+    
+    companion object
+}
+
 public object FfiConverterTypeStartInterpretationStreamResponse: FfiConverterRustBuffer<StartInterpretationStreamResponse> {
     override fun read(buf: ByteBuffer): StartInterpretationStreamResponse {
         return StartInterpretationStreamResponse(
@@ -2525,25 +2229,16 @@ public object FfiConverterTypeStartInterpretationStreamResponse: FfiConverterRus
 
 
 
+
 data class Symbol (
-    var `id`: kotlin.String
-    , 
-    var `displayName`: kotlin.String
-    , 
-    var `flavorText`: kotlin.String?
-    
-){
-    
-
-    
-
+    var `id`: String, 
+    var `displayName`: String, 
+    var `flavorText`: String?
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
 public object FfiConverterTypeSymbol: FfiConverterRustBuffer<Symbol> {
     override fun read(buf: ByteBuffer): Symbol {
         return Symbol(
@@ -2568,31 +2263,19 @@ public object FfiConverterTypeSymbol: FfiConverterRustBuffer<Symbol> {
 
 
 
+
 data class Theme (
-    var `id`: kotlin.String
-    , 
-    var `name`: kotlin.String
-    , 
-    var `symbols`: List<Symbol>
-    , 
-    var `isPremium`: kotlin.Boolean
-    , 
-    var `packId`: kotlin.String?
-    , 
-    var `priceUsd`: kotlin.Float?
-    
-){
-    
-
-    
-
+    var `id`: String, 
+    var `name`: String, 
+    var `symbols`: List<Symbol>, 
+    var `isPremium`: Boolean, 
+    var `packId`: String?, 
+    var `priceUsd`: Float?
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
 public object FfiConverterTypeTheme: FfiConverterRustBuffer<Theme> {
     override fun read(buf: ByteBuffer): Theme {
         return Theme(
@@ -2626,41 +2309,55 @@ public object FfiConverterTypeTheme: FfiConverterRustBuffer<Theme> {
 
 
 
-data class UserState (
-    var `userId`: kotlin.String
-    , 
-    var `subscriptionTier`: SubscriptionTier
-    , 
-    var `readingsToday`: kotlin.UByte
-    , 
-    var `aiCallsToday`: kotlin.UByte
-    , 
-    var `sessionCount`: kotlin.UInt
-    , 
-    var `lastReadingDate`: kotlin.String?
-    , 
-    var `notificationEnabled`: kotlin.Boolean
-    , 
-    var `notificationTime`: kotlin.String?
-    , 
-    var `preferredLanguage`: kotlin.String
-    , 
-    var `darkMode`: kotlin.Boolean
-    , 
-    var `onboardingComplete`: kotlin.Boolean
-    
-){
-    
 
-    
-
+data class UpdateUserStateResponse (
+    var `updated`: Boolean, 
+    var `error`: BridgeError?
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
+public object FfiConverterTypeUpdateUserStateResponse: FfiConverterRustBuffer<UpdateUserStateResponse> {
+    override fun read(buf: ByteBuffer): UpdateUserStateResponse {
+        return UpdateUserStateResponse(
+            FfiConverterBoolean.read(buf),
+            FfiConverterOptionalTypeBridgeError.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: UpdateUserStateResponse) = (
+            FfiConverterBoolean.allocationSize(value.`updated`) +
+            FfiConverterOptionalTypeBridgeError.allocationSize(value.`error`)
+    )
+
+    override fun write(value: UpdateUserStateResponse, buf: ByteBuffer) {
+            FfiConverterBoolean.write(value.`updated`, buf)
+            FfiConverterOptionalTypeBridgeError.write(value.`error`, buf)
+    }
+}
+
+
+
+
+data class UserState (
+    var `userId`: String, 
+    var `subscriptionTier`: SubscriptionTier, 
+    var `readingsToday`: UByte, 
+    var `aiCallsToday`: UByte, 
+    var `sessionCount`: UInt, 
+    var `lastReadingDate`: String?, 
+    var `notificationEnabled`: Boolean, 
+    var `notificationTime`: String?, 
+    var `preferredLanguage`: String, 
+    var `darkMode`: Boolean, 
+    var `onboardingComplete`: Boolean, 
+    var `userIntent`: UserIntent?
+) {
+    
+    companion object
+}
+
 public object FfiConverterTypeUserState: FfiConverterRustBuffer<UserState> {
     override fun read(buf: ByteBuffer): UserState {
         return UserState(
@@ -2675,6 +2372,7 @@ public object FfiConverterTypeUserState: FfiConverterRustBuffer<UserState> {
             FfiConverterString.read(buf),
             FfiConverterBoolean.read(buf),
             FfiConverterBoolean.read(buf),
+            FfiConverterOptionalTypeUserIntent.read(buf),
         )
     }
 
@@ -2689,7 +2387,8 @@ public object FfiConverterTypeUserState: FfiConverterRustBuffer<UserState> {
             FfiConverterOptionalString.allocationSize(value.`notificationTime`) +
             FfiConverterString.allocationSize(value.`preferredLanguage`) +
             FfiConverterBoolean.allocationSize(value.`darkMode`) +
-            FfiConverterBoolean.allocationSize(value.`onboardingComplete`)
+            FfiConverterBoolean.allocationSize(value.`onboardingComplete`) +
+            FfiConverterOptionalTypeUserIntent.allocationSize(value.`userIntent`)
     )
 
     override fun write(value: UserState, buf: ByteBuffer) {
@@ -2704,28 +2403,21 @@ public object FfiConverterTypeUserState: FfiConverterRustBuffer<UserState> {
             FfiConverterString.write(value.`preferredLanguage`, buf)
             FfiConverterBoolean.write(value.`darkMode`, buf)
             FfiConverterBoolean.write(value.`onboardingComplete`, buf)
+            FfiConverterOptionalTypeUserIntent.write(value.`userIntent`, buf)
     }
 }
 
 
 
+
 data class UserStateResponse (
-    var `state`: UserState?
-    , 
+    var `state`: UserState?, 
     var `error`: BridgeError?
-    
-){
-    
-
-    
-
+) {
     
     companion object
 }
 
-/**
- * @suppress
- */
 public object FfiConverterTypeUserStateResponse: FfiConverterRustBuffer<UserStateResponse> {
     override fun read(buf: ByteBuffer): UserStateResponse {
         return UserStateResponse(
@@ -2749,24 +2441,10 @@ public object FfiConverterTypeUserStateResponse: FfiConverterRustBuffer<UserStat
 
 
 enum class MoodTag {
-    
-    CONFUSED,
-    HOPEFUL,
-    ANXIOUS,
-    CURIOUS,
-    GRATEFUL,
-    GRIEF;
-
-    
-
-
+    CONFUSED,HOPEFUL,ANXIOUS,CURIOUS,GRATEFUL,GRIEF;
     companion object
 }
 
-
-/**
- * @suppress
- */
 public object FfiConverterTypeMoodTag: FfiConverterRustBuffer<MoodTag> {
     override fun read(buf: ByteBuffer) = try {
         MoodTag.values()[buf.getInt() - 1]
@@ -2774,7 +2452,7 @@ public object FfiConverterTypeMoodTag: FfiConverterRustBuffer<MoodTag> {
         throw RuntimeException("invalid enum value, something is very wrong!!", e)
     }
 
-    override fun allocationSize(value: MoodTag) = 4UL
+    override fun allocationSize(value: MoodTag) = 4
 
     override fun write(value: MoodTag, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
@@ -2787,28 +2465,10 @@ public object FfiConverterTypeMoodTag: FfiConverterRustBuffer<MoodTag> {
 
 
 enum class ReadingState {
-    
-    IDLE,
-    SITUATION_INPUT,
-    SOURCE_SELECTION,
-    WILDCARD_REVEAL,
-    WILDCARD_CHOSEN,
-    RITUAL_ANIMATION,
-    PASSAGE_DISPLAYED,
-    AI_STREAMING,
-    AI_FALLBACK,
-    COMPLETE;
-
-    
-
-
+    IDLE,SITUATION_INPUT,SOURCE_SELECTION,WILDCARD_REVEAL,WILDCARD_CHOSEN,RITUAL_ANIMATION,PASSAGE_DISPLAYED,AI_STREAMING,AI_FALLBACK,COMPLETE;
     companion object
 }
 
-
-/**
- * @suppress
- */
 public object FfiConverterTypeReadingState: FfiConverterRustBuffer<ReadingState> {
     override fun read(buf: ByteBuffer) = try {
         ReadingState.values()[buf.getInt() - 1]
@@ -2816,7 +2476,7 @@ public object FfiConverterTypeReadingState: FfiConverterRustBuffer<ReadingState>
         throw RuntimeException("invalid enum value, something is very wrong!!", e)
     }
 
-    override fun allocationSize(value: ReadingState) = 4UL
+    override fun allocationSize(value: ReadingState) = 4
 
     override fun write(value: ReadingState, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
@@ -2829,20 +2489,10 @@ public object FfiConverterTypeReadingState: FfiConverterRustBuffer<ReadingState>
 
 
 enum class SubscriptionTier {
-    
-    FREE,
-    PRO;
-
-    
-
-
+    FREE,PRO;
     companion object
 }
 
-
-/**
- * @suppress
- */
 public object FfiConverterTypeSubscriptionTier: FfiConverterRustBuffer<SubscriptionTier> {
     override fun read(buf: ByteBuffer) = try {
         SubscriptionTier.values()[buf.getInt() - 1]
@@ -2850,7 +2500,7 @@ public object FfiConverterTypeSubscriptionTier: FfiConverterRustBuffer<Subscript
         throw RuntimeException("invalid enum value, something is very wrong!!", e)
     }
 
-    override fun allocationSize(value: SubscriptionTier) = 4UL
+    override fun allocationSize(value: SubscriptionTier) = 4
 
     override fun write(value: SubscriptionTier, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
@@ -2863,20 +2513,10 @@ public object FfiConverterTypeSubscriptionTier: FfiConverterRustBuffer<Subscript
 
 
 enum class SymbolMethod {
-    
-    MANUAL,
-    AUTO;
-
-    
-
-
+    MANUAL,AUTO;
     companion object
 }
 
-
-/**
- * @suppress
- */
 public object FfiConverterTypeSymbolMethod: FfiConverterRustBuffer<SymbolMethod> {
     override fun read(buf: ByteBuffer) = try {
         SymbolMethod.values()[buf.getInt() - 1]
@@ -2884,7 +2524,7 @@ public object FfiConverterTypeSymbolMethod: FfiConverterRustBuffer<SymbolMethod>
         throw RuntimeException("invalid enum value, something is very wrong!!", e)
     }
 
-    override fun allocationSize(value: SymbolMethod) = 4UL
+    override fun allocationSize(value: SymbolMethod) = 4
 
     override fun write(value: SymbolMethod, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
@@ -2897,24 +2537,10 @@ public object FfiConverterTypeSymbolMethod: FfiConverterRustBuffer<SymbolMethod>
 
 
 enum class Tradition {
-    
-    CHINESE,
-    CHRISTIAN,
-    ISLAMIC,
-    SUFI,
-    STOIC,
-    UNIVERSAL;
-
-    
-
-
+    CHINESE,CHRISTIAN,ISLAMIC,SUFI,STOIC,UNIVERSAL;
     companion object
 }
 
-
-/**
- * @suppress
- */
 public object FfiConverterTypeTradition: FfiConverterRustBuffer<Tradition> {
     override fun read(buf: ByteBuffer) = try {
         Tradition.values()[buf.getInt() - 1]
@@ -2922,7 +2548,7 @@ public object FfiConverterTypeTradition: FfiConverterRustBuffer<Tradition> {
         throw RuntimeException("invalid enum value, something is very wrong!!", e)
     }
 
-    override fun allocationSize(value: Tradition) = 4UL
+    override fun allocationSize(value: Tradition) = 4
 
     override fun write(value: Tradition, buf: ByteBuffer) {
         buf.putInt(value.ordinal + 1)
@@ -2934,26 +2560,47 @@ public object FfiConverterTypeTradition: FfiConverterRustBuffer<Tradition> {
 
 
 
-/**
- * @suppress
- */
-public object FfiConverterOptionalUInt: FfiConverterRustBuffer<kotlin.UInt?> {
-    override fun read(buf: ByteBuffer): kotlin.UInt? {
+enum class UserIntent {
+    CLARITY,COMFORT,CHALLENGE,GUIDANCE;
+    companion object
+}
+
+public object FfiConverterTypeUserIntent: FfiConverterRustBuffer<UserIntent> {
+    override fun read(buf: ByteBuffer) = try {
+        UserIntent.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: UserIntent) = 4
+
+    override fun write(value: UserIntent, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+
+public object FfiConverterOptionalUInt: FfiConverterRustBuffer<UInt?> {
+    override fun read(buf: ByteBuffer): UInt? {
         if (buf.get().toInt() == 0) {
             return null
         }
         return FfiConverterUInt.read(buf)
     }
 
-    override fun allocationSize(value: kotlin.UInt?): ULong {
+    override fun allocationSize(value: UInt?): Int {
         if (value == null) {
-            return 1UL
+            return 1
         } else {
-            return 1UL + FfiConverterUInt.allocationSize(value)
+            return 1 + FfiConverterUInt.allocationSize(value)
         }
     }
 
-    override fun write(value: kotlin.UInt?, buf: ByteBuffer) {
+    override fun write(value: UInt?, buf: ByteBuffer) {
         if (value == null) {
             buf.put(0)
         } else {
@@ -2966,26 +2613,23 @@ public object FfiConverterOptionalUInt: FfiConverterRustBuffer<kotlin.UInt?> {
 
 
 
-/**
- * @suppress
- */
-public object FfiConverterOptionalFloat: FfiConverterRustBuffer<kotlin.Float?> {
-    override fun read(buf: ByteBuffer): kotlin.Float? {
+public object FfiConverterOptionalFloat: FfiConverterRustBuffer<Float?> {
+    override fun read(buf: ByteBuffer): Float? {
         if (buf.get().toInt() == 0) {
             return null
         }
         return FfiConverterFloat.read(buf)
     }
 
-    override fun allocationSize(value: kotlin.Float?): ULong {
+    override fun allocationSize(value: Float?): Int {
         if (value == null) {
-            return 1UL
+            return 1
         } else {
-            return 1UL + FfiConverterFloat.allocationSize(value)
+            return 1 + FfiConverterFloat.allocationSize(value)
         }
     }
 
-    override fun write(value: kotlin.Float?, buf: ByteBuffer) {
+    override fun write(value: Float?, buf: ByteBuffer) {
         if (value == null) {
             buf.put(0)
         } else {
@@ -2998,26 +2642,23 @@ public object FfiConverterOptionalFloat: FfiConverterRustBuffer<kotlin.Float?> {
 
 
 
-/**
- * @suppress
- */
-public object FfiConverterOptionalString: FfiConverterRustBuffer<kotlin.String?> {
-    override fun read(buf: ByteBuffer): kotlin.String? {
+public object FfiConverterOptionalString: FfiConverterRustBuffer<String?> {
+    override fun read(buf: ByteBuffer): String? {
         if (buf.get().toInt() == 0) {
             return null
         }
         return FfiConverterString.read(buf)
     }
 
-    override fun allocationSize(value: kotlin.String?): ULong {
+    override fun allocationSize(value: String?): Int {
         if (value == null) {
-            return 1UL
+            return 1
         } else {
-            return 1UL + FfiConverterString.allocationSize(value)
+            return 1 + FfiConverterString.allocationSize(value)
         }
     }
 
-    override fun write(value: kotlin.String?, buf: ByteBuffer) {
+    override fun write(value: String?, buf: ByteBuffer) {
         if (value == null) {
             buf.put(0)
         } else {
@@ -3030,9 +2671,6 @@ public object FfiConverterOptionalString: FfiConverterRustBuffer<kotlin.String?>
 
 
 
-/**
- * @suppress
- */
 public object FfiConverterOptionalTypeAIInterpretation: FfiConverterRustBuffer<AiInterpretation?> {
     override fun read(buf: ByteBuffer): AiInterpretation? {
         if (buf.get().toInt() == 0) {
@@ -3041,11 +2679,11 @@ public object FfiConverterOptionalTypeAIInterpretation: FfiConverterRustBuffer<A
         return FfiConverterTypeAIInterpretation.read(buf)
     }
 
-    override fun allocationSize(value: AiInterpretation?): ULong {
+    override fun allocationSize(value: AiInterpretation?): Int {
         if (value == null) {
-            return 1UL
+            return 1
         } else {
-            return 1UL + FfiConverterTypeAIInterpretation.allocationSize(value)
+            return 1 + FfiConverterTypeAIInterpretation.allocationSize(value)
         }
     }
 
@@ -3062,9 +2700,6 @@ public object FfiConverterOptionalTypeAIInterpretation: FfiConverterRustBuffer<A
 
 
 
-/**
- * @suppress
- */
 public object FfiConverterOptionalTypeBridgeError: FfiConverterRustBuffer<BridgeError?> {
     override fun read(buf: ByteBuffer): BridgeError? {
         if (buf.get().toInt() == 0) {
@@ -3073,11 +2708,11 @@ public object FfiConverterOptionalTypeBridgeError: FfiConverterRustBuffer<Bridge
         return FfiConverterTypeBridgeError.read(buf)
     }
 
-    override fun allocationSize(value: BridgeError?): ULong {
+    override fun allocationSize(value: BridgeError?): Int {
         if (value == null) {
-            return 1UL
+            return 1
         } else {
-            return 1UL + FfiConverterTypeBridgeError.allocationSize(value)
+            return 1 + FfiConverterTypeBridgeError.allocationSize(value)
         }
     }
 
@@ -3094,9 +2729,6 @@ public object FfiConverterOptionalTypeBridgeError: FfiConverterRustBuffer<Bridge
 
 
 
-/**
- * @suppress
- */
 public object FfiConverterOptionalTypeChosenPassage: FfiConverterRustBuffer<ChosenPassage?> {
     override fun read(buf: ByteBuffer): ChosenPassage? {
         if (buf.get().toInt() == 0) {
@@ -3105,11 +2737,11 @@ public object FfiConverterOptionalTypeChosenPassage: FfiConverterRustBuffer<Chos
         return FfiConverterTypeChosenPassage.read(buf)
     }
 
-    override fun allocationSize(value: ChosenPassage?): ULong {
+    override fun allocationSize(value: ChosenPassage?): Int {
         if (value == null) {
-            return 1UL
+            return 1
         } else {
-            return 1UL + FfiConverterTypeChosenPassage.allocationSize(value)
+            return 1 + FfiConverterTypeChosenPassage.allocationSize(value)
         }
     }
 
@@ -3126,9 +2758,6 @@ public object FfiConverterOptionalTypeChosenPassage: FfiConverterRustBuffer<Chos
 
 
 
-/**
- * @suppress
- */
 public object FfiConverterOptionalTypeCompletedReading: FfiConverterRustBuffer<CompletedReading?> {
     override fun read(buf: ByteBuffer): CompletedReading? {
         if (buf.get().toInt() == 0) {
@@ -3137,11 +2766,11 @@ public object FfiConverterOptionalTypeCompletedReading: FfiConverterRustBuffer<C
         return FfiConverterTypeCompletedReading.read(buf)
     }
 
-    override fun allocationSize(value: CompletedReading?): ULong {
+    override fun allocationSize(value: CompletedReading?): Int {
         if (value == null) {
-            return 1UL
+            return 1
         } else {
-            return 1UL + FfiConverterTypeCompletedReading.allocationSize(value)
+            return 1 + FfiConverterTypeCompletedReading.allocationSize(value)
         }
     }
 
@@ -3158,9 +2787,93 @@ public object FfiConverterOptionalTypeCompletedReading: FfiConverterRustBuffer<C
 
 
 
-/**
- * @suppress
- */
+public object FfiConverterOptionalTypeGiftReadingData: FfiConverterRustBuffer<GiftReadingData?> {
+    override fun read(buf: ByteBuffer): GiftReadingData? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeGiftReadingData.read(buf)
+    }
+
+    override fun allocationSize(value: GiftReadingData?): Int {
+        if (value == null) {
+            return 1
+        } else {
+            return 1 + FfiConverterTypeGiftReadingData.allocationSize(value)
+        }
+    }
+
+    override fun write(value: GiftReadingData?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeGiftReadingData.write(value, buf)
+        }
+    }
+}
+
+
+
+
+public object FfiConverterOptionalTypeNotificationMessage: FfiConverterRustBuffer<NotificationMessage?> {
+    override fun read(buf: ByteBuffer): NotificationMessage? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeNotificationMessage.read(buf)
+    }
+
+    override fun allocationSize(value: NotificationMessage?): Int {
+        if (value == null) {
+            return 1
+        } else {
+            return 1 + FfiConverterTypeNotificationMessage.allocationSize(value)
+        }
+    }
+
+    override fun write(value: NotificationMessage?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeNotificationMessage.write(value, buf)
+        }
+    }
+}
+
+
+
+
+public object FfiConverterOptionalTypePaginatedReadings: FfiConverterRustBuffer<PaginatedReadings?> {
+    override fun read(buf: ByteBuffer): PaginatedReadings? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypePaginatedReadings.read(buf)
+    }
+
+    override fun allocationSize(value: PaginatedReadings?): Int {
+        if (value == null) {
+            return 1
+        } else {
+            return 1 + FfiConverterTypePaginatedReadings.allocationSize(value)
+        }
+    }
+
+    override fun write(value: PaginatedReadings?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypePaginatedReadings.write(value, buf)
+        }
+    }
+}
+
+
+
+
 public object FfiConverterOptionalTypeReadingSession: FfiConverterRustBuffer<ReadingSession?> {
     override fun read(buf: ByteBuffer): ReadingSession? {
         if (buf.get().toInt() == 0) {
@@ -3169,11 +2882,11 @@ public object FfiConverterOptionalTypeReadingSession: FfiConverterRustBuffer<Rea
         return FfiConverterTypeReadingSession.read(buf)
     }
 
-    override fun allocationSize(value: ReadingSession?): ULong {
+    override fun allocationSize(value: ReadingSession?): Int {
         if (value == null) {
-            return 1UL
+            return 1
         } else {
-            return 1UL + FfiConverterTypeReadingSession.allocationSize(value)
+            return 1 + FfiConverterTypeReadingSession.allocationSize(value)
         }
     }
 
@@ -3190,9 +2903,6 @@ public object FfiConverterOptionalTypeReadingSession: FfiConverterRustBuffer<Rea
 
 
 
-/**
- * @suppress
- */
 public object FfiConverterOptionalTypeUserState: FfiConverterRustBuffer<UserState?> {
     override fun read(buf: ByteBuffer): UserState? {
         if (buf.get().toInt() == 0) {
@@ -3201,11 +2911,11 @@ public object FfiConverterOptionalTypeUserState: FfiConverterRustBuffer<UserStat
         return FfiConverterTypeUserState.read(buf)
     }
 
-    override fun allocationSize(value: UserState?): ULong {
+    override fun allocationSize(value: UserState?): Int {
         if (value == null) {
-            return 1UL
+            return 1
         } else {
-            return 1UL + FfiConverterTypeUserState.allocationSize(value)
+            return 1 + FfiConverterTypeUserState.allocationSize(value)
         }
     }
 
@@ -3222,9 +2932,6 @@ public object FfiConverterOptionalTypeUserState: FfiConverterRustBuffer<UserStat
 
 
 
-/**
- * @suppress
- */
 public object FfiConverterOptionalTypeMoodTag: FfiConverterRustBuffer<MoodTag?> {
     override fun read(buf: ByteBuffer): MoodTag? {
         if (buf.get().toInt() == 0) {
@@ -3233,11 +2940,11 @@ public object FfiConverterOptionalTypeMoodTag: FfiConverterRustBuffer<MoodTag?> 
         return FfiConverterTypeMoodTag.read(buf)
     }
 
-    override fun allocationSize(value: MoodTag?): ULong {
+    override fun allocationSize(value: MoodTag?): Int {
         if (value == null) {
-            return 1UL
+            return 1
         } else {
-            return 1UL + FfiConverterTypeMoodTag.allocationSize(value)
+            return 1 + FfiConverterTypeMoodTag.allocationSize(value)
         }
     }
 
@@ -3254,26 +2961,52 @@ public object FfiConverterOptionalTypeMoodTag: FfiConverterRustBuffer<MoodTag?> 
 
 
 
-/**
- * @suppress
- */
-public object FfiConverterSequenceString: FfiConverterRustBuffer<List<kotlin.String>> {
-    override fun read(buf: ByteBuffer): List<kotlin.String> {
+public object FfiConverterOptionalTypeUserIntent: FfiConverterRustBuffer<UserIntent?> {
+    override fun read(buf: ByteBuffer): UserIntent? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeUserIntent.read(buf)
+    }
+
+    override fun allocationSize(value: UserIntent?): Int {
+        if (value == null) {
+            return 1
+        } else {
+            return 1 + FfiConverterTypeUserIntent.allocationSize(value)
+        }
+    }
+
+    override fun write(value: UserIntent?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeUserIntent.write(value, buf)
+        }
+    }
+}
+
+
+
+
+public object FfiConverterSequenceString: FfiConverterRustBuffer<List<String>> {
+    override fun read(buf: ByteBuffer): List<String> {
         val len = buf.getInt()
-        return List<kotlin.String>(len) {
+        return List<String>(len) {
             FfiConverterString.read(buf)
         }
     }
 
-    override fun allocationSize(value: List<kotlin.String>): ULong {
-        val sizeForLength = 4UL
+    override fun allocationSize(value: List<String>): Int {
+        val sizeForLength = 4
         val sizeForItems = value.map { FfiConverterString.allocationSize(it) }.sum()
         return sizeForLength + sizeForItems
     }
 
-    override fun write(value: List<kotlin.String>, buf: ByteBuffer) {
+    override fun write(value: List<String>, buf: ByteBuffer) {
         buf.putInt(value.size)
-        value.iterator().forEach {
+        value.forEach {
             FfiConverterString.write(it, buf)
         }
     }
@@ -3282,9 +3015,6 @@ public object FfiConverterSequenceString: FfiConverterRustBuffer<List<kotlin.Str
 
 
 
-/**
- * @suppress
- */
 public object FfiConverterSequenceTypeReading: FfiConverterRustBuffer<List<Reading>> {
     override fun read(buf: ByteBuffer): List<Reading> {
         val len = buf.getInt()
@@ -3293,15 +3023,15 @@ public object FfiConverterSequenceTypeReading: FfiConverterRustBuffer<List<Readi
         }
     }
 
-    override fun allocationSize(value: List<Reading>): ULong {
-        val sizeForLength = 4UL
+    override fun allocationSize(value: List<Reading>): Int {
+        val sizeForLength = 4
         val sizeForItems = value.map { FfiConverterTypeReading.allocationSize(it) }.sum()
         return sizeForLength + sizeForItems
     }
 
     override fun write(value: List<Reading>, buf: ByteBuffer) {
         buf.putInt(value.size)
-        value.iterator().forEach {
+        value.forEach {
             FfiConverterTypeReading.write(it, buf)
         }
     }
@@ -3310,9 +3040,31 @@ public object FfiConverterSequenceTypeReading: FfiConverterRustBuffer<List<Readi
 
 
 
-/**
- * @suppress
- */
+public object FfiConverterSequenceTypeSource: FfiConverterRustBuffer<List<Source>> {
+    override fun read(buf: ByteBuffer): List<Source> {
+        val len = buf.getInt()
+        return List<Source>(len) {
+            FfiConverterTypeSource.read(buf)
+        }
+    }
+
+    override fun allocationSize(value: List<Source>): Int {
+        val sizeForLength = 4
+        val sizeForItems = value.map { FfiConverterTypeSource.allocationSize(it) }.sum()
+        return sizeForLength + sizeForItems
+    }
+
+    override fun write(value: List<Source>, buf: ByteBuffer) {
+        buf.putInt(value.size)
+        value.forEach {
+            FfiConverterTypeSource.write(it, buf)
+        }
+    }
+}
+
+
+
+
 public object FfiConverterSequenceTypeSymbol: FfiConverterRustBuffer<List<Symbol>> {
     override fun read(buf: ByteBuffer): List<Symbol> {
         val len = buf.getInt()
@@ -3321,15 +3073,15 @@ public object FfiConverterSequenceTypeSymbol: FfiConverterRustBuffer<List<Symbol
         }
     }
 
-    override fun allocationSize(value: List<Symbol>): ULong {
-        val sizeForLength = 4UL
+    override fun allocationSize(value: List<Symbol>): Int {
+        val sizeForLength = 4
         val sizeForItems = value.map { FfiConverterTypeSymbol.allocationSize(it) }.sum()
         return sizeForLength + sizeForItems
     }
 
     override fun write(value: List<Symbol>, buf: ByteBuffer) {
         buf.putInt(value.size)
-        value.iterator().forEach {
+        value.forEach {
             FfiConverterTypeSymbol.write(it, buf)
         }
     }

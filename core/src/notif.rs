@@ -51,14 +51,18 @@ impl NotificationScheduler {
         Self { store }
     }
 
-    pub fn get_daily_notification(&self, user_id: &str, date: &str) -> Result<NotificationEntry, AletheiaError> {
+    pub fn get_daily_notification(
+        &self,
+        user_id: &str,
+        date: &str,
+    ) -> Result<NotificationEntry, AletheiaError> {
         // Seed based on user_id + date (consistent per user per day)
         let seed = self.hash_string(&format!("{}{}", user_id, date)) as u16;
         let index = seed % NOTIFICATION_MATRIX_SIZE;
 
         // Try to get from DB first
         let matrix = self.store.get_notification_matrix()?;
-        
+
         let entry = if matrix.is_empty() {
             // Use default matrix
             let idx = index as usize % DEFAULT_NOTIFICATION_MATRIX.len();
@@ -71,7 +75,10 @@ impl NotificationScheduler {
             matrix[index as usize % matrix.len()].clone()
         };
 
-        info!("Daily notification for {} on {}: {}", user_id, date, entry.symbol_id);
+        info!(
+            "Daily notification for {} on {}: {}",
+            user_id, date, entry.symbol_id
+        );
         Ok(entry)
     }
 

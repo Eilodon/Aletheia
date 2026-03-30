@@ -8,8 +8,8 @@ import { aletheiaNativeClient } from "@/lib/native/aletheia-core";
 import {
   unwrapNativeCancelInterpretationResponse,
   unwrapNativeInterpretationStreamState,
-  unwrapNativeFallbackPromptsResponse,
   unwrapNativeRequestInterpretationResponse,
+  unwrapNativeSetApiKeyResponse,
   unwrapNativeStartInterpretationStreamResponse,
 } from "@/lib/native/bridge";
 import { initializeAletheiaNative, shouldUseAletheiaNative } from "@/lib/native/runtime";
@@ -40,16 +40,22 @@ type AIStreamSession = {
 
 class AIClientService {
   private initialized = false;
+  private isNativePath(): boolean {
+    return shouldUseAletheiaNative();
+  }
 
   /**
    * Initialize the AI client with Rust Core
    * Call this once on app startup after dbInit
    */
-  async initialize(dbPath: string, giftBackendUrl: string): Promise<void> {
+  async initialize(_dbPath: string, _giftBackendUrl: string): Promise<void> {
     try {
-      if (shouldUseAletheiaNative()) {
-        await aletheiaNativeClient.init({ dbPath, giftBackendUrl });
+      if (this.isNativePath()) {
+        await initializeAletheiaNative();
+        this.initialized = true;
+        return;
       }
+
       this.initialized = true;
       console.log("[AI Client] Initialized successfully");
     } catch (error) {
@@ -63,8 +69,14 @@ class AIClientService {
    */
   async setApiKey(provider: "claude" | "gpt4" | "gemini", key: string): Promise<void> {
     try {
-      // TODO: Uncomment when UniFFI bindings are generated
-      // this.core?.set_ai_api_key(provider, key);
+      if (this.isNativePath()) {
+        await initializeAletheiaNative();
+        await unwrapNativeSetApiKeyResponse(
+          await aletheiaNativeClient.setApiKey({ provider, key }),
+        );
+        return;
+      }
+
       console.log(`[AI Client] API key set for ${provider}`);
     } catch (error) {
       console.error("[AI Client] Failed to set API key:", error);
@@ -77,21 +89,25 @@ class AIClientService {
    * Uses multi-provider failover (Claude → GPT4 → Gemini)
    */
   async requestInterpretation(request: AIRequest): Promise<AIInterpretationResult> {
-    try {
-      if (shouldUseAletheiaNative()) {
-        await initializeAletheiaNative();
-        const response = await aletheiaNativeClient.requestInterpretation(
-          request.passage,
-          request.symbol,
-          request.situationText,
-        );
-        const interpretation = unwrapNativeRequestInterpretationResponse(response);
-        return {
-          chunks: interpretation.chunks,
-          usedFallback: interpretation.used_fallback,
-        };
-      }
+    if (this.isNativePath()) {
+      await initializeAletheiaNative();
+      const passage = {
+        ...request.passage,
+        resonance_context: request.resonanceContext ?? request.passage.resonance_context,
+      };
+      const response = await aletheiaNativeClient.requestInterpretation(
+        passage,
+        request.symbol,
+        request.situationText,
+      );
+      const interpretation = unwrapNativeRequestInterpretationResponse(response);
+      return {
+        chunks: interpretation.chunks,
+        usedFallback: interpretation.used_fallback,
+      };
+    }
 
+    try {
       if (!this.initialized) {
         console.warn("[AI Client] Not initialized, using fallback");
       }
@@ -102,7 +118,6 @@ class AIClientService {
       };
     } catch (error) {
       console.error("[AI Client] Request failed:", error);
-      // Fallback to prompts on error
       return {
         chunks: this.getFallbackInterpretation(request),
         usedFallback: true,
@@ -114,7 +129,7 @@ class AIClientService {
     request: AIRequest,
     handlers: AIStreamHandlers = {},
   ): AIStreamSession {
-    if (!shouldUseAletheiaNative()) {
+    if (!this.isNativePath()) {
       return {
         promise: this.requestInterpretation(request),
         cancel: async () => false,
@@ -126,9 +141,13 @@ class AIClientService {
 
     const promise = (async () => {
       await initializeAletheiaNative();
+      const passage = {
+        ...request.passage,
+        resonance_context: request.resonanceContext ?? request.passage.resonance_context,
+      };
       requestId = unwrapNativeStartInterpretationStreamResponse(
         await aletheiaNativeClient.startInterpretationStream(
-          request.passage,
+          passage,
           request.symbol,
           request.situationText,
         ),
@@ -224,7 +243,7 @@ class AIClientService {
    * Check if AI client is ready
    */
   isReady(): boolean {
-    return false;
+    return this.isNativePath() || this.initialized;
   }
 }
 

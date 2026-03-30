@@ -56,12 +56,12 @@ const mockDb = vi.hoisted(() => ({
           "ai_used_fallback", "read_duration_s", "time_to_ai_request_s",
           "notification_opened", "mood_tag", "is_favorite", "shared", "user_intent",
         ],
-        user_state: [
-          "user_id", "subscription_tier", "readings_today", "ai_calls_today",
-          "session_count", "last_reading_date", "notification_enabled",
-          "notification_time", "preferred_language", "dark_mode", "onboarding_complete",
-        ],
-      };
+          user_state: [
+            "user_id", "subscription_tier", "readings_today", "ai_calls_today",
+            "session_count", "last_reading_date", "notification_enabled",
+            "notification_time", "preferred_language", "dark_mode", "onboarding_complete", "user_intent",
+          ],
+        };
       return (knownColumns[table] ?? []).map((name) => ({ name }));
     }
 
@@ -233,6 +233,7 @@ describe("StoreService", () => {
         preferred_language: "vi",
         dark_mode: false,
         onboarding_complete: false,
+        user_intent: undefined,
       });
 
       // ACT
@@ -257,6 +258,7 @@ describe("StoreService", () => {
         preferred_language: "vi",
         dark_mode: false,
         onboarding_complete: false,
+        user_intent: undefined,
       });
 
       // ACT
@@ -281,6 +283,7 @@ describe("StoreService", () => {
         preferred_language: "vi",
         dark_mode: false,
         onboarding_complete: false,
+        user_intent: undefined,
       });
 
       // ACT
@@ -311,7 +314,7 @@ describe("StoreService", () => {
       expect(result.user_id).toBe("new-user-idempotent");
     });
 
-    it("migration v5/v6 existence checks do not emit ALTER TABLE when columns already exist", async () => {
+    it("migration v5/v6/v7 existence checks do not emit ALTER TABLE when columns already exist", async () => {
       await store.initialize();
       const alterCallCountAfterFirstInit = mockDb.execAsync.mock.calls
         .map((call) => call[0] as string)

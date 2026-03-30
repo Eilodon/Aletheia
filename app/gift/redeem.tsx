@@ -4,7 +4,8 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import * as Haptics from "expo-haptics";
-import { aletheiaNativeClient } from "@/lib/native/aletheia-core";
+
+import { coreStore } from "@/lib/services/core-store";
 
 export default function GiftRedeemScreen() {
   const colors = useColors();
@@ -29,18 +30,7 @@ export default function GiftRedeemScreen() {
     }).start();
   }, [fadeAnim]);
 
-  // Auto-redeem if token provided via deep link
-  useEffect(() => {
-    if (tokenParam && !redeemResult && tokenParam.length >= 6) {
-      setRedeemResult({
-        success: true,
-        sourceName: "I Ching — Kinh Dịch",
-        buyerNote: "Gửi bạn một lần đọc để tìm clarity trong lúc bối rối.",
-      });
-    }
-  }, [tokenParam, redeemResult]);
-
-  const handleRedeem = async (tokenToRedeem: string = token) => {
+  async function handleRedeem(tokenToRedeem: string = token) {
     if (!tokenToRedeem.trim()) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
@@ -50,41 +40,46 @@ export default function GiftRedeemScreen() {
     setIsRedeeming(true);
 
     try {
-      // Call native bridge (Rust GiftClient → Gift Backend)
-      const response = await aletheiaNativeClient.redeemGift(tokenToRedeem.trim());
+      const gift = await coreStore.redeemGift(tokenToRedeem.trim());
 
-      if (response.error) {
-        const errorMsg = response.error.code === "ERR_GIFT_EXPIRED"
-          ? "Mã quà đã hết hạn."
-          : response.error.code === "ERR_GIFT_ALREADY_REDEEMED"
-          ? "Mã quà này đã được sử dụng."
-          : response.error.code === "ERR_GIFT_NOT_FOUND"
-          ? "Mã quà không hợp lệ."
-          : "Không thể xác nhận mã quà. Vui lòng thử lại.";
-        setRedeemResult({ success: false, error: errorMsg });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-        return;
-      }
-
-      if (response.gift) {
+      if (gift) {
         setRedeemResult({
           success: true,
-          sourceName: response.gift.source_id ?? undefined,
-          buyerNote: response.gift.buyer_note ?? undefined,
+          sourceName: gift.source_id ?? undefined,
+          buyerNote: gift.buyer_note ?? undefined,
         });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (error) {
       console.error("Redeem failed:", error);
+      const raw = error instanceof Error ? error.message : "";
+      const errorMsg = raw === "ERR_GIFT_EXPIRED"
+          ? "Mã quà đã hết hạn."
+          : raw === "ERR_GIFT_ALREADY_REDEEMED"
+          ? "Mã quà này đã được sử dụng."
+          : raw === "ERR_GIFT_NOT_FOUND"
+          ? "Mã quà không hợp lệ."
+          : raw
+          ? raw
+          : "Không thể xác nhận mã quà. Vui lòng thử lại.";
       setRedeemResult({
         success: false,
-        error: "Không thể kết nối. Vui lòng thử lại.",
+        error: errorMsg,
       });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsRedeeming(false);
     }
-  };
+  }
+
+  // Auto-redeem if token provided via deep link
+  useEffect(() => {
+    if (tokenParam && !redeemResult && tokenParam.length >= 6) {
+      handleRedeem(tokenParam).catch((error) => {
+        console.error("Auto-redeem failed:", error);
+      });
+    }
+  }, [redeemResult, tokenParam]);
 
   const handleStartReading = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

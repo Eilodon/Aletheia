@@ -5,7 +5,7 @@ import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { SkeletonList } from "@/components/skeleton";
 import { PressableCard } from "@/components/pressable-card";
-import { store } from "@/lib/services/store";
+import { coreStore } from "@/lib/services/core-store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
 import { Reading, MoodTag } from "@/lib/types";
 import * as Haptics from "expo-haptics";
@@ -31,11 +31,9 @@ export default function HistoryScreen() {
     try {
       await getCurrentUserId();
       
-      // Get total count and paged readings from DB
-      const [total, pagedReadings] = await Promise.all([
-        store.getReadingsCount(),
-        store.getReadings(PAGE_SIZE, pageNum * PAGE_SIZE),
-      ]);
+      const pageResult = await coreStore.getReadingsPage(PAGE_SIZE, pageNum * PAGE_SIZE);
+      const total = pageResult.total_count;
+      const pagedReadings = pageResult.items;
       
       // Transform
       const transformed: ReadingWithDetails[] = pagedReadings.map((r: any) => ({

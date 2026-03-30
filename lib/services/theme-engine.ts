@@ -1,7 +1,7 @@
 /**
  * Theme Engine Service - Theme and Symbol operations
  * Wraps store operations for theme-related functionality
- * TODO: Replace with UniFFI bindings when available
+ * Web-only helper path. Android beta must source theme logic from Rust.
  */
 
 import { store } from "./store";

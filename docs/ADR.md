@@ -4,7 +4,7 @@
 > **Mục đích file này:** Ghi lại *tại sao* hệ thống được thiết kế như vậy.
 > Không phải *cái gì* (CONTRACTS.md) hay *như thế nào* (BLUEPRINT.md) — mà là *tại sao*.
 >
-> Mọi ADR trong file này là output đã verified của 2 VHEATM 5.0 cycles.
+> Mọi ADR trong file này là output đã verified của 6 VHEATM 5.0 cycles.
 > "No patch without proof — and no proof is free."
 
 ---
@@ -24,6 +24,15 @@
 | [ADR-AL-9](#adr-al-9--gift-reading--deferred-deep-link--minimal-backend) | Gift Reading — Deferred Deep Link | ✅ ACCEPTED |
 | [ADR-AL-10](#adr-al-10--notification-formula--static-symbol--tension-matrix) | Notification Formula — Static Matrix | ✅ ACCEPTED |
 | [ADR-AL-11](#adr-al-11--readings-schema-phải-include-full-mirror-data-từ-v10) | Readings Schema — Full Mirror Data từ v1.0 | ✅ ACCEPTED |
+| [ADR-AL-27](#adr-al-27--android-prebuild-phải-fail-fast-khi-thiếu-rust-artifacts) | Android Prebuild Fail-Fast on Missing Rust Artifacts | ✅ ACCEPTED |
+| [ADR-AL-28](#adr-al-28--beta-ci-chỉ-gate-android--web) | Beta CI chỉ gate Android + Web | ✅ ACCEPTED |
+| [ADR-AL-29](#adr-al-29--mọi-user_state-mutation-trên-app-phải-đi-qua-corestore) | User State mutations go through `coreStore` | ✅ ACCEPTED |
+| [ADR-AL-30](#adr-al-30--gỡ-drizzlemysql-khỏi-release-surface) | Remove Drizzle/MySQL from active release surface | ✅ ACCEPTED |
+| [ADR-AL-31](#adr-al-31--không-được-gọi-nativeclienthay-runtime-switch-trực-tiếp-từ-ui) | No direct native/runtime branching above adapters | ✅ ACCEPTED |
+| [ADR-AL-32](#adr-al-32--android-bundled-content-không-thể-owned-bởi-ts) | Android bundled content cannot be TS-owned | ✅ ACCEPTED |
+| [ADR-AL-33](#adr-al-33--user_intent-phải-trở-thành-core-owned-state) | `user_intent` must become core-owned state | ✅ ACCEPTED |
+| [ADR-AL-34](#adr-al-34--schema-registry-phải-trở-lại-một-nguồn-duy-nhất) | Schema registry must become singular again | ✅ ACCEPTED |
+| [ADR-AL-35](#adr-al-35--uniffi-phải-expose-đủ-read-model-cho-android-ui) | UniFFI must expose Android read models fully | ✅ ACCEPTED |
 
 ---
 
@@ -701,3 +710,210 @@ let cancel_token = CancellationToken::new();
 let stream = ai_client.stream_interpretation(cancel_token.clone());
 // Khi UI dispose: cancel_token.cancel();
 ```
+
+---
+
+## ADR-AL-27 — Android Prebuild phải Fail Fast khi thiếu Rust Artifacts
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-03-30
+**VHEATM Level:** 🔴 MANDATORY
+**Tags:** `android` `build` `release` `native`
+
+### Context
+
+Android beta đã chốt dùng Rust core làm SSOT. Nếu Expo plugin tiếp tục cho phép thiếu `generated/uniffi/kotlin` hoặc `artifacts/android`, build path sẽ silently rơi về một trạng thái không có native core, trái với kiến trúc hiện tại.
+
+### Decision
+
+Android prebuild phải `throw` ngay khi thiếu UniFFI bindings hoặc Rust Android artifacts. Không còn JS fallback trên Android release path.
+
+### Consequences
+
+- **Positive:** Build sai cấu hình fail sớm, đúng bản chất kiến trúc.
+- **Trade-off:** Dev phải chạy đúng `pnpm uniffi:generate` và `pnpm rust:android` trước Android prebuild.
+
+---
+
+## ADR-AL-28 — Beta CI chỉ gate Android + Web
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-03-30
+**VHEATM Level:** 🟠 REQUIRED
+**Tags:** `ci` `scope` `beta`
+
+### Context
+
+Product scope hiện tại là Android + web; iOS đang hold explicit. Việc giữ iOS build trong CI chính làm nhiễu release signal và tiêu tốn thời gian cho một target chưa nằm trong beta scope.
+
+### Decision
+
+Workflow CI mặc định chỉ gate:
+- Rust core quality
+- Android native packaging path
+- Web/server quality gates
+
+iOS build được giữ ngoài đường beta chính cho đến khi platform parity thật sự tồn tại.
+
+### Consequences
+
+- **Positive:** CI phản ánh đúng scope ship hiện tại.
+- **Trade-off:** iOS regressions không còn được bắt trong PR gate mặc định.
+
+---
+
+## ADR-AL-29 — Mọi `user_state` mutation trên app phải đi qua `coreStore`
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-03-30
+**VHEATM Level:** 🟠 REQUIRED
+**Tags:** `ssot` `state` `android`
+
+### Context
+
+Ngay cả khi reading flow chính đã đi qua Rust, các service phụ như notifications vẫn có thể lách qua TS `store` và tạo ra drift trên Android. Điều này phá nguyên tắc SSOT ở tầng state.
+
+### Decision
+
+Mọi app-side read/write vào `user_state` phải đi qua `coreStore`. `coreStore` chịu trách nhiệm route:
+- Android → native Rust core
+- Web → TS store path
+
+### Consequences
+
+- **Positive:** Android giữ đúng một nguồn sự thật cho user state.
+- **Trade-off:** Các service phụ phải tuân theo adapter chung thay vì gọi store trực tiếp.
+
+---
+
+## ADR-AL-30 — Gỡ Drizzle/MySQL khỏi release surface
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-03-30
+**VHEATM Level:** 🟡 RECOMMENDED
+**Tags:** `cleanup` `dependencies` `release`
+
+### Context
+
+Release path hiện tại không dùng Drizzle hay MySQL. Giữ các dependency và script legacy này trong package surface làm mờ data model thật của dự án và tạo tín hiệu sai cho maintainers.
+
+### Decision
+
+Gỡ `drizzle-orm`, `drizzle-kit`, `mysql2` khỏi package surface chính khi chúng không còn được code path thật sử dụng.
+
+### Consequences
+
+- **Positive:** Package surface phản ánh đúng runtime thật.
+- **Trade-off:** Nếu sau này khôi phục persistence server-side, phải thêm lại toolchain có chủ đích.
+
+---
+
+## ADR-AL-31 — Không được gọi `nativeClient`/hay runtime switch trực tiếp từ UI
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-03-30
+**VHEATM Level:** 🔴 MANDATORY
+**Tags:** `ssot` `architecture` `adapter`
+
+### Context
+
+Android đã chốt Rust là SSOT, nhưng app shell vẫn có route/context gọi `aletheiaNativeClient` trực tiếp hoặc tự branch trên `shouldUseAletheiaNative()`. Điều này làm platform decision và domain logic rò lên UI.
+
+### Decision
+
+Mọi app-facing domain operation phải đi qua facade/adapters rõ ràng.  
+Ngoại lệ duy nhất: tầng `lib/native/**` hoặc implementation adapter nội bộ.
+
+### Consequences
+
+- **Positive:** Có thể kiểm soát Android/Web divergence ở đúng một lớp.
+- **Trade-off:** Phải thiết kế facade đủ đầy trước khi refactor tiếp.
+
+---
+
+## ADR-AL-32 — Android bundled content không thể owned bởi TS
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-03-30
+**VHEATM Level:** 🔴 MANDATORY
+**Tags:** `ssot` `content` `android`
+
+### Context
+
+Android runtime hiện seed Rust bằng `BUNDLED_*` từ `lib/data/seed-data.ts`. Điều đó có nghĩa là Rust chỉ sở hữu bản copy đã nạp, không sở hữu nguồn dữ liệu gốc.
+
+### Decision
+
+Bundled content cho Android phải được sở hữu bởi Rust hoặc sinh ra từ một artifact trung lập trong build pipeline. TS constants không được là upstream source cho Android domain data.
+
+### Consequences
+
+- **Positive:** Android content path khớp với mục tiêu SSOT thật sự.
+- **Trade-off:** Cần thêm bước chuẩn hóa asset/build generation.
+
+---
+
+## ADR-AL-33 — `user_intent` phải trở thành core-owned state
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-03-30
+**VHEATM Level:** 🟠 REQUIRED
+**Tags:** `state` `onboarding` `ssot`
+
+### Context
+
+Intent onboarding hiện chỉ nằm trong AsyncStorage, trong khi Rust reading session không nhận giá trị này. Kết quả là `user_intent` xuất hiện trong schema nhưng không có owner thực thi.
+
+### Decision
+
+`user_intent` phải được persist và truy xuất qua core-owned state trước khi `perform_reading()` tạo session. Không chấp nhận AsyncStorage-only domain state cho Android.
+
+### Consequences
+
+- **Positive:** Session và reading data phản ánh đúng intent đã chọn.
+- **Trade-off:** Cần mở rộng core state model hoặc thêm dedicated preference API.
+
+---
+
+## ADR-AL-34 — Schema registry phải trở lại một nguồn duy nhất
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-03-30
+**VHEATM Level:** 🟠 REQUIRED
+**Tags:** `contracts` `schema` `governance`
+
+### Context
+
+`CONTRACTS.md` tuyên bố là schema registry duy nhất, nhưng thực tế đã drift khỏi UDL/Rust/TS types. Khi đó mọi quyết định thiết kế dựa trên contract đều không còn đáng tin.
+
+### Decision
+
+Schema registry phải có đúng một nguồn sự thật thực thi được.  
+Hoặc `CONTRACTS.md` được cập nhật theo executable contract mỗi cycle, hoặc contract docs phải được generate/reference trực tiếp từ UDL/Rust types.
+
+### Consequences
+
+- **Positive:** Giảm drift giữa docs và runtime.
+- **Trade-off:** Tăng kỷ luật cập nhật contract trong mỗi refactor cycle.
+
+---
+
+## ADR-AL-35 — UniFFI phải expose đủ read model cho Android UI
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-03-30
+**VHEATM Level:** 🟠 REQUIRED
+**Tags:** `bridge` `android` `read-model`
+
+### Context
+
+Rust store đã có các query cho sources/themes/symbols/notifications, nhưng UniFFI surface chưa export chúng. Android UI vì vậy vẫn phải quay về TS seed/catalog data.
+
+### Decision
+
+Mọi read model mà Android UI tiêu thụ trong release path phải được cung cấp từ UniFFI/Rust, không từ TS mirrors.
+
+### Consequences
+
+- **Positive:** Android UI không còn phải “mượn” catalog data từ TS.
+- **Trade-off:** Bridge surface sẽ rộng hơn và cần test contract kỹ hơn.

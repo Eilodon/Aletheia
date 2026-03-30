@@ -12,6 +12,8 @@ if ! command -v cargo >/dev/null 2>&1; then
   exit 1
 fi
 
+bash "$ROOT_DIR/scripts/build-uniffi-bindings.sh"
+
 if ! command -v cargo-ndk >/dev/null 2>&1 && ! cargo ndk --version >/dev/null 2>&1; then
   echo "cargo-ndk is required" >&2
   exit 1
@@ -39,4 +41,6 @@ mkdir -p "$ARTIFACTS_DIR"
 cd "$CORE_DIR"
 cargo ndk -t armeabi-v7a -t arm64-v8a -o ../artifacts/android/jniLibs build --release
 
-echo "Android artifacts ready in $ARTIFACTS_DIR"
+echo "Android artifacts and UniFFI bindings are ready in:"
+echo "  JNI libs -> $ARTIFACTS_DIR"
+echo "  Bindings -> $ROOT_DIR/generated/uniffi"

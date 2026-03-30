@@ -3,14 +3,10 @@ import { View, Text, Pressable, Animated, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
-import { store } from "@/lib/services/store";
+import { coreStore } from "@/lib/services/core-store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
 import * as Haptics from "expo-haptics";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { UserIntent } from "@/lib/types";
-
-const ONBOARDING_COMPLETED_KEY = "@aletheia_onboarding_completed";
-const USER_INTENT_KEY = "@aletheia_user_intent";
+import { SubscriptionTier, UserIntent } from "@/lib/types";
 const { width } = Dimensions.get("window");
 
 interface OnboardingStep {
@@ -148,17 +144,16 @@ export default function OnboardingScreen() {
     setIsCompleting(true);
     
     try {
-      // Mark onboarding as completed
-      await AsyncStorage.setItem(ONBOARDING_COMPLETED_KEY, "true");
-      
-      // Save user intent if selected
-      if (selectedIntent) {
-        await AsyncStorage.setItem(USER_INTENT_KEY, selectedIntent);
-      }
-      
       // Initialize user state
       const userId = await getCurrentUserId();
-      await store.getUserState(userId);
+      const userState = await coreStore.getUserState(userId);
+      await coreStore.updateUserState({
+        ...userState,
+        user_id: userId,
+        subscription_tier: userState.subscription_tier ?? SubscriptionTier.Free,
+        onboarding_complete: true,
+        user_intent: selectedIntent ?? userState.user_intent,
+      });
       
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       

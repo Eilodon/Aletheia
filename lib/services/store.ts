@@ -1,7 +1,7 @@
 /**
  * Store Service - SQLite operations wrapper
  * Interfaces with local SQLite database via expo-sqlite
- * TODO: Replace with UniFFI bindings when available
+ * Web-only persistence path. Android beta must use the Rust core as SSOT.
  */
 
 import * as SQLite from "expo-sqlite";
@@ -14,12 +14,12 @@ import {
   UserState,
   SubscriptionTier,
 } from "@/lib/types";
-import { BUNDLED_SOURCES, BUNDLED_PASSAGES, BUNDLED_THEMES } from "@/lib/data/seed-data";
+import { BUNDLED_SOURCES, BUNDLED_PASSAGES, BUNDLED_THEMES } from "@/lib/data/content";
 
 class StoreService {
   private db: SQLite.SQLiteDatabase | null = null;
   private initialized = false;
-  private static readonly SCHEMA_VERSION = 6;
+  private static readonly SCHEMA_VERSION = 7;
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
@@ -106,7 +106,8 @@ class StoreService {
           notification_time TEXT,
           preferred_language TEXT DEFAULT 'vi',
           dark_mode INTEGER DEFAULT 1,
-          onboarding_complete INTEGER DEFAULT 0
+          onboarding_complete INTEGER DEFAULT 0,
+          user_intent TEXT
         );
         
         CREATE TABLE IF NOT EXISTS readings (
@@ -126,6 +127,7 @@ class StoreService {
           mood_tag TEXT,
           is_favorite INTEGER DEFAULT 0,
           shared INTEGER DEFAULT 0,
+          user_intent TEXT,
           FOREIGN KEY (source_id) REFERENCES sources(id),
           FOREIGN KEY (passage_id) REFERENCES passages(id),
           FOREIGN KEY (theme_id) REFERENCES themes(id)
@@ -181,6 +183,18 @@ class StoreService {
       if (!hasUserIntent) {
         await this.db.execAsync(
           `ALTER TABLE readings ADD COLUMN user_intent TEXT;`
+        );
+      }
+    }
+
+    if (currentVersion < 7) {
+      const userStateInfo = await this.db.getAllAsync<{ name: string }>(
+        `PRAGMA table_info(user_state)`
+      );
+      const hasUserIntent = userStateInfo.some((col) => col.name === "user_intent");
+      if (!hasUserIntent) {
+        await this.db.execAsync(
+          `ALTER TABLE user_state ADD COLUMN user_intent TEXT;`
         );
       }
     }
@@ -251,6 +265,7 @@ class StoreService {
         preferred_language: "vi",
         dark_mode: false,
         onboarding_complete: false,
+        user_intent: undefined,
       };
       await this.updateUserState(defaultState);
       return defaultState;
@@ -274,6 +289,7 @@ class StoreService {
         preferred_language: row.preferred_language,
         dark_mode: row.dark_mode === 1,
         onboarding_complete: row.onboarding_complete === 1,
+        user_intent: row.user_intent || undefined,
       };
     }
 
@@ -289,6 +305,7 @@ class StoreService {
       preferred_language: row.preferred_language,
       dark_mode: row.dark_mode === 1,
       onboarding_complete: row.onboarding_complete === 1,
+      user_intent: row.user_intent || undefined,
     };
   }
 
@@ -297,7 +314,7 @@ class StoreService {
     if (!this.db) throw new Error("Database not initialized");
 
     await this.db.runAsync(
-      `INSERT OR REPLACE INTO user_state (user_id, subscription_tier, readings_today, ai_calls_today, session_count, last_reading_date, notification_enabled, notification_time, preferred_language, dark_mode, onboarding_complete) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT OR REPLACE INTO user_state (user_id, subscription_tier, readings_today, ai_calls_today, session_count, last_reading_date, notification_enabled, notification_time, preferred_language, dark_mode, onboarding_complete, user_intent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         state.user_id,
         state.subscription_tier,
@@ -310,6 +327,7 @@ class StoreService {
         state.preferred_language,
         state.dark_mode ? 1 : 0,
         state.onboarding_complete ? 1 : 0,
+        state.user_intent ?? null,
       ]
     );
   }
@@ -346,6 +364,27 @@ class StoreService {
   }
 
   // Sources
+  async getSources(premiumAllowed: boolean): Promise<Source[]> {
+    await this.initialize();
+    if (!this.db) throw new Error("Database not initialized");
+
+    const query = premiumAllowed
+      ? "SELECT * FROM sources ORDER BY name ASC"
+      : "SELECT * FROM sources WHERE is_premium = 0 ORDER BY name ASC";
+
+    const rows = await this.db.getAllAsync<any>(query);
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      tradition: row.tradition,
+      language: row.language,
+      passage_count: row.passage_count,
+      is_bundled: row.is_bundled === 1,
+      is_premium: row.is_premium === 1,
+      fallback_prompts: row.fallback_prompts ? JSON.parse(row.fallback_prompts) : [],
+    }));
+  }
+
   async getSource(sourceId: string): Promise<Source | null> {
     await this.initialize();
     if (!this.db) throw new Error("Database not initialized");

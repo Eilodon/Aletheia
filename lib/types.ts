@@ -1,10 +1,11 @@
 /**
  * Aletheia Type Definitions
  * AUTO-GENERATED - Do not edit manually
- * Sync from: core/src/contracts.rs
- * Last synced: 2026-03-28
+ * Sync from: core/src/contracts.rs and core/src/aletheia.udl
+ * Last synced: 2026-03-30
  * 
- * Based on CONTRACTS.md — single source of truth for all schemas
+ * Executable Rust contracts are the source of truth.
+ * docs/CONTRACTS.md is a synchronized reference, not the authority.
  */
 
 // ============================================================================
@@ -48,7 +49,6 @@ export enum SubscriptionTier {
 
 export enum ReadingState {
   Idle = "idle",
-  IntentSelection = "intent_selection", // UX-01: "Which Mirror Are You"
   SituationInput = "situation_input",
   SourceSelection = "source_selection",
   WildcardReveal = "wildcard_reveal",
@@ -141,6 +141,13 @@ export interface NotificationEntry {
   question: string;
 }
 
+export interface NotificationMessage {
+  symbol_id: string;
+  question: string;
+  title: string;
+  body: string;
+}
+
 export interface GiftReading {
   token: string;
   buyer_note: string | undefined;
@@ -163,6 +170,7 @@ export interface UserState {
   preferred_language: string;
   dark_mode: boolean;
   onboarding_complete: boolean;
+  user_intent: UserIntent | undefined;
 }
 
 export interface ReadingSession {
@@ -178,6 +186,11 @@ export interface ReadingSession {
 export interface CompletedReading {
   reading_id: string;
   saved_at: number;
+}
+
+export interface ChosenPassage {
+  passage: Passage;
+  reading_id: string;
 }
 
 export interface ShareCard {

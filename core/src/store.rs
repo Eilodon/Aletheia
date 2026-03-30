@@ -32,10 +32,10 @@ impl Store {
 
     fn run_migrations(&self) -> Result<(), AletheiaError> {
         let conn = self.conn.lock().unwrap();
-        
+
         // Use transaction for atomic migrations (ADR-AL-13)
         let tx = conn.unchecked_transaction()?;
-        
+
         let user_version: i32 = tx
             .query_row("PRAGMA user_version", [], |row| row.get(0))
             .unwrap_or(0);
@@ -59,7 +59,8 @@ impl Store {
                     notification_opened INTEGER NOT NULL DEFAULT 0,
                     mood_tag TEXT,
                     is_favorite INTEGER NOT NULL DEFAULT 0,
-                    shared INTEGER NOT NULL DEFAULT 0
+                    shared INTEGER NOT NULL DEFAULT 0,
+                    user_intent TEXT
                 );
                 CREATE INDEX IF NOT EXISTS idx_readings_created_at ON readings(created_at DESC);
                 CREATE INDEX IF NOT EXISTS idx_readings_source_id ON readings(source_id);
@@ -133,7 +134,8 @@ impl Store {
                     notification_time TEXT DEFAULT '09:00',
                     preferred_language TEXT DEFAULT 'vi',
                     dark_mode INTEGER NOT NULL DEFAULT 0,
-                    onboarding_complete INTEGER NOT NULL DEFAULT 0
+                    onboarding_complete INTEGER NOT NULL DEFAULT 0,
+                    user_intent TEXT
                 );
                 "#,
             )?;
@@ -165,7 +167,9 @@ impl Store {
                 [], |r| r.get::<_, i32>(0),
             ).unwrap_or(0) > 0;
             if !has_session_col {
-                tx.execute_batch("ALTER TABLE user_state ADD COLUMN session_count INTEGER NOT NULL DEFAULT 0;")?;
+                tx.execute_batch(
+                    "ALTER TABLE user_state ADD COLUMN session_count INTEGER NOT NULL DEFAULT 0;",
+                )?;
             }
 
             tx.execute("PRAGMA user_version = 4", [])?;
@@ -191,11 +195,14 @@ impl Store {
 
         // ── MIGRATION V6: Add user_intent to readings table ──────────────
         if user_version < 6 {
-            let col_exists: bool = tx.query_row(
-                "SELECT COUNT(*) FROM pragma_table_info('readings') WHERE name='user_intent'",
-                [],
-                |r| r.get::<_, i32>(0),
-            ).unwrap_or(0) > 0;
+            let col_exists: bool = tx
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('readings') WHERE name='user_intent'",
+                    [],
+                    |r| r.get::<_, i32>(0),
+                )
+                .unwrap_or(0)
+                > 0;
 
             if !col_exists {
                 tx.execute_batch("ALTER TABLE readings ADD COLUMN user_intent TEXT;")?;
@@ -204,9 +211,25 @@ impl Store {
         }
         // ── END MIGRATION V6 ───────────────────────────────────────────────
 
+        if user_version < 7 {
+            let col_exists: bool = tx
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('user_state') WHERE name='user_intent'",
+                    [],
+                    |r| r.get::<_, i32>(0),
+                )
+                .unwrap_or(0)
+                > 0;
+
+            if !col_exists {
+                tx.execute_batch("ALTER TABLE user_state ADD COLUMN user_intent TEXT;")?;
+            }
+            tx.execute("PRAGMA user_version = 7", [])?;
+        }
+
         tx.commit()?;
-        
-        info!("Migrations completed to version 6");
+
+        info!("Migrations completed to version 7");
         Ok(())
     }
 
@@ -251,9 +274,9 @@ impl Store {
         conn.execute(
             r#"INSERT INTO readings (
                 id, created_at, source_id, passage_id, theme_id, symbol_chosen,
-                symbol_method, situation_text, ai_interpreted, ai_used_fallback,
+                symbol_method, situation_text, ai_interpreted, ai_used_fallback, user_intent,
                 read_duration_s, time_to_ai_request_s, notification_opened, mood_tag, is_favorite, shared
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
             params![
                 reading.id,
                 reading.created_at,
@@ -265,6 +288,10 @@ impl Store {
                 reading.situation_text,
                 reading.ai_interpreted as i32,
                 reading.ai_used_fallback as i32,
+                reading
+                    .user_intent
+                    .as_ref()
+                    .map(|intent| serde_json::to_string(intent).unwrap()),
                 reading.read_duration_s,
                 reading.time_to_ai_request_s,
                 reading.notification_opened as i32,
@@ -279,9 +306,29 @@ impl Store {
     pub fn get_readings(&self, limit: u32, offset: u32) -> Result<Vec<Reading>, AletheiaError> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
-            "SELECT * FROM readings ORDER BY created_at DESC LIMIT ? OFFSET ?",
+            r#"SELECT
+                id,
+                created_at,
+                source_id,
+                passage_id,
+                theme_id,
+                symbol_chosen,
+                symbol_method,
+                situation_text,
+                ai_interpreted,
+                ai_used_fallback,
+                read_duration_s,
+                time_to_ai_request_s,
+                notification_opened,
+                mood_tag,
+                is_favorite,
+                shared,
+                user_intent
+            FROM readings
+            ORDER BY created_at DESC
+            LIMIT ? OFFSET ?"#,
         )?;
-        
+
         let rows = stmt.query_map(params![limit, offset], |row| {
             Ok(Reading {
                 id: row.get(0)?,
@@ -290,16 +337,22 @@ impl Store {
                 passage_id: row.get(3)?,
                 theme_id: row.get(4)?,
                 symbol_chosen: row.get(5)?,
-                symbol_method: serde_json::from_str(&row.get::<_, String>(6)?).unwrap_or(SymbolMethod::Manual),
+                symbol_method: serde_json::from_str(&row.get::<_, String>(6)?)
+                    .unwrap_or(SymbolMethod::Manual),
                 situation_text: row.get(7)?,
                 ai_interpreted: row.get::<_, i32>(8)? != 0,
                 ai_used_fallback: row.get::<_, i32>(9)? != 0,
                 read_duration_s: row.get(10)?,
                 time_to_ai_request_s: row.get(11)?,
                 notification_opened: row.get::<_, i32>(12)? != 0,
-                mood_tag: row.get::<_, Option<String>>(13)?.and_then(|s| serde_json::from_str(&s).ok()),
+                mood_tag: row
+                    .get::<_, Option<String>>(13)?
+                    .and_then(|s| serde_json::from_str(&s).ok()),
                 is_favorite: row.get::<_, i32>(14)? != 0,
                 shared: row.get::<_, i32>(15)? != 0,
+                user_intent: row
+                    .get::<_, Option<String>>(16)?
+                    .and_then(|s| serde_json::from_str(&s).ok()),
             })
         })?;
 
@@ -319,8 +372,29 @@ impl Store {
     #[allow(dead_code)]
     pub fn get_reading_by_id(&self, id: &str) -> Result<Option<Reading>, AletheiaError> {
         let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare("SELECT * FROM readings WHERE id = ?")?;
-        
+        let mut stmt = conn.prepare(
+            r#"SELECT
+                id,
+                created_at,
+                source_id,
+                passage_id,
+                theme_id,
+                symbol_chosen,
+                symbol_method,
+                situation_text,
+                ai_interpreted,
+                ai_used_fallback,
+                read_duration_s,
+                time_to_ai_request_s,
+                notification_opened,
+                mood_tag,
+                is_favorite,
+                shared,
+                user_intent
+            FROM readings
+            WHERE id = ?"#,
+        )?;
+
         let result = stmt.query_row(params![id], |row| {
             Ok(Reading {
                 id: row.get(0)?,
@@ -329,16 +403,22 @@ impl Store {
                 passage_id: row.get(3)?,
                 theme_id: row.get(4)?,
                 symbol_chosen: row.get(5)?,
-                symbol_method: serde_json::from_str(&row.get::<_, String>(6)?).unwrap_or(SymbolMethod::Manual),
+                symbol_method: serde_json::from_str(&row.get::<_, String>(6)?)
+                    .unwrap_or(SymbolMethod::Manual),
                 situation_text: row.get(7)?,
                 ai_interpreted: row.get::<_, i32>(8)? != 0,
                 ai_used_fallback: row.get::<_, i32>(9)? != 0,
                 read_duration_s: row.get(10)?,
                 time_to_ai_request_s: row.get(11)?,
                 notification_opened: row.get::<_, i32>(12)? != 0,
-                mood_tag: row.get::<_, Option<String>>(13)?.and_then(|s| serde_json::from_str(&s).ok()),
+                mood_tag: row
+                    .get::<_, Option<String>>(13)?
+                    .and_then(|s| serde_json::from_str(&s).ok()),
                 is_favorite: row.get::<_, i32>(14)? != 0,
                 shared: row.get::<_, i32>(15)? != 0,
+                user_intent: row
+                    .get::<_, Option<String>>(16)?
+                    .and_then(|s| serde_json::from_str(&s).ok()),
             })
         });
 
@@ -361,7 +441,10 @@ impl Store {
                 reading.ai_interpreted as i32,
                 reading.ai_used_fallback as i32,
                 reading.read_duration_s,
-                reading.mood_tag.as_ref().map(|m| serde_json::to_string(m).unwrap()),
+                reading
+                    .mood_tag
+                    .as_ref()
+                    .map(|m| serde_json::to_string(m).unwrap()),
                 reading.is_favorite as i32,
                 reading.shared as i32,
                 reading.id,
@@ -397,17 +480,19 @@ impl Store {
     pub fn get_source(&self, id: &str) -> Result<Option<Source>, AletheiaError> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT * FROM sources WHERE id = ?")?;
-        
+
         let result = stmt.query_row(params![id], |row| {
             Ok(Source {
                 id: row.get(0)?,
                 name: row.get(1)?,
-                tradition: serde_json::from_str(&row.get::<_, String>(2)?).unwrap_or(Tradition::Universal),
+                tradition: serde_json::from_str(&row.get::<_, String>(2)?)
+                    .unwrap_or(Tradition::Universal),
                 language: row.get(3)?,
                 passage_count: row.get(4)?,
                 is_bundled: row.get::<_, i32>(5)? != 0,
                 is_premium: row.get::<_, i32>(6)? != 0,
-                fallback_prompts: serde_json::from_str(&row.get::<_, String>(7)?).unwrap_or_default(),
+                fallback_prompts: serde_json::from_str(&row.get::<_, String>(7)?)
+                    .unwrap_or_default(),
             })
         });
 
@@ -432,18 +517,20 @@ impl Store {
         } else {
             "SELECT * FROM sources WHERE is_premium = 0"
         };
-        
+
         let mut stmt = conn.prepare(query)?;
         let rows = stmt.query_map([], |row| {
             Ok(Source {
                 id: row.get(0)?,
                 name: row.get(1)?,
-                tradition: serde_json::from_str(&row.get::<_, String>(2)?).unwrap_or(Tradition::Universal),
+                tradition: serde_json::from_str(&row.get::<_, String>(2)?)
+                    .unwrap_or(Tradition::Universal),
                 language: row.get(3)?,
                 passage_count: row.get(4)?,
                 is_bundled: row.get::<_, i32>(5)? != 0,
                 is_premium: row.get::<_, i32>(6)? != 0,
-                fallback_prompts: serde_json::from_str(&row.get::<_, String>(7)?).unwrap_or_default(),
+                fallback_prompts: serde_json::from_str(&row.get::<_, String>(7)?)
+                    .unwrap_or_default(),
             })
         })?;
 
@@ -454,25 +541,30 @@ impl Store {
         Ok(sources)
     }
 
-    pub fn get_random_source(&self, premium_allowed: bool) -> Result<Option<Source>, AletheiaError> {
+    pub fn get_random_source(
+        &self,
+        premium_allowed: bool,
+    ) -> Result<Option<Source>, AletheiaError> {
         let conn = self.conn.lock().unwrap();
         let query = if premium_allowed {
             "SELECT * FROM sources ORDER BY RANDOM() LIMIT 1"
         } else {
             "SELECT * FROM sources WHERE is_premium = 0 ORDER BY RANDOM() LIMIT 1"
         };
-        
+
         let mut stmt = conn.prepare(query)?;
         let result = stmt.query_row([], |row| {
             Ok(Source {
                 id: row.get(0)?,
                 name: row.get(1)?,
-                tradition: serde_json::from_str(&row.get::<_, String>(2)?).unwrap_or(Tradition::Universal),
+                tradition: serde_json::from_str(&row.get::<_, String>(2)?)
+                    .unwrap_or(Tradition::Universal),
                 language: row.get(3)?,
                 passage_count: row.get(4)?,
                 is_bundled: row.get::<_, i32>(5)? != 0,
                 is_premium: row.get::<_, i32>(6)? != 0,
-                fallback_prompts: serde_json::from_str(&row.get::<_, String>(7)?).unwrap_or_default(),
+                fallback_prompts: serde_json::from_str(&row.get::<_, String>(7)?)
+                    .unwrap_or_default(),
             })
         });
 
@@ -502,10 +594,9 @@ impl Store {
 
     pub fn get_random_passage(&self, source_id: &str) -> Result<Option<Passage>, AletheiaError> {
         let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare(
-            "SELECT * FROM passages WHERE source_id = ? ORDER BY RANDOM() LIMIT 1",
-        )?;
-        
+        let mut stmt =
+            conn.prepare("SELECT * FROM passages WHERE source_id = ? ORDER BY RANDOM() LIMIT 1")?;
+
         let result = stmt.query_row(params![source_id], |row| {
             Ok(Passage {
                 id: row.get(0)?,
@@ -533,7 +624,13 @@ impl Store {
         let conn = self.conn.lock().unwrap();
         conn.execute(
             "INSERT INTO themes (id, name, is_premium, pack_id, price_usd) VALUES (?, ?, ?, ?, ?)",
-            params![theme.id, theme.name, theme.is_premium as i32, theme.pack_id, theme.price_usd],
+            params![
+                theme.id,
+                theme.name,
+                theme.is_premium as i32,
+                theme.pack_id,
+                theme.price_usd
+            ],
         )?;
 
         for symbol in &theme.symbols {
@@ -549,7 +646,7 @@ impl Store {
     pub fn get_theme(&self, id: &str) -> Result<Option<Theme>, AletheiaError> {
         let conn = self.conn.lock().unwrap();
         let mut theme_stmt = conn.prepare("SELECT * FROM themes WHERE id = ?")?;
-        
+
         let theme_result = theme_stmt.query_row(params![id], |row| {
             Ok(Theme {
                 id: row.get(0)?,
@@ -571,7 +668,7 @@ impl Store {
                         flavor_text: row.get(3)?,
                     })
                 })?;
-                
+
                 theme.symbols = symbols.filter_map(|s| s.ok()).collect();
                 Ok(Some(theme))
             }
@@ -587,7 +684,7 @@ impl Store {
         } else {
             "SELECT * FROM themes WHERE is_premium = 0 ORDER BY RANDOM() LIMIT 1"
         };
-        
+
         let mut theme_stmt = conn.prepare(query)?;
         let theme_result = theme_stmt.query_row([], |row| {
             Ok(Theme {
@@ -610,7 +707,7 @@ impl Store {
                         flavor_text: row.get(3)?,
                     })
                 })?;
-                
+
                 theme.symbols = symbols.filter_map(|s| s.ok()).collect();
                 Ok(Some(theme))
             }
@@ -619,12 +716,17 @@ impl Store {
         }
     }
 
-    pub fn get_random_symbols(&self, theme_id: &str, count: usize) -> Result<Vec<Symbol>, AletheiaError> {
+    pub fn get_random_symbols(
+        &self,
+        theme_id: &str,
+        count: usize,
+    ) -> Result<Vec<Symbol>, AletheiaError> {
         let conn = self.conn.lock().unwrap();
-        let mut stmt = conn.prepare(
-            &format!("SELECT * FROM symbols WHERE theme_id = ? ORDER BY RANDOM() LIMIT {}", count),
-        )?;
-        
+        let mut stmt = conn.prepare(&format!(
+            "SELECT * FROM symbols WHERE theme_id = ? ORDER BY RANDOM() LIMIT {}",
+            count
+        ))?;
+
         let rows = stmt.query_map(params![theme_id], |row| {
             Ok(Symbol {
                 id: row.get(0)?,
@@ -643,7 +745,7 @@ impl Store {
     pub fn get_symbol_by_id(&self, id: &str) -> Result<Option<Symbol>, AletheiaError> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT * FROM symbols WHERE id = ?")?;
-        
+
         let result = stmt.query_row(params![id], |row| {
             Ok(Symbol {
                 id: row.get(0)?,
@@ -667,11 +769,12 @@ impl Store {
         let conn = self.conn.lock().unwrap();
         let today = self.get_today(&conn)?;
         let mut stmt = conn.prepare("SELECT * FROM user_state WHERE user_id = ?")?;
-        
+
         let result = stmt.query_row(params![user_id], |row| {
             Ok(UserState {
                 user_id: row.get(0)?,
-                subscription_tier: serde_json::from_str(&row.get::<_, String>(1)?).unwrap_or(SubscriptionTier::Free),
+                subscription_tier: serde_json::from_str(&row.get::<_, String>(1)?)
+                    .unwrap_or(SubscriptionTier::Free),
                 readings_today: row.get(2)?,
                 ai_calls_today: row.get(3)?,
                 session_count: row.get(4)?,
@@ -681,6 +784,9 @@ impl Store {
                 preferred_language: row.get(8)?,
                 dark_mode: row.get::<_, i32>(9)? != 0,
                 onboarding_complete: row.get::<_, i32>(10)? != 0,
+                user_intent: row
+                    .get::<_, Option<String>>(11)?
+                    .and_then(|s| serde_json::from_str(&s).ok()),
             })
         });
         drop(stmt);
@@ -713,8 +819,8 @@ impl Store {
             r#"INSERT INTO user_state (
                 user_id, subscription_tier, readings_today, ai_calls_today,
                 session_count, last_reading_date, notification_enabled, notification_time,
-                preferred_language, dark_mode, onboarding_complete
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
+                preferred_language, dark_mode, onboarding_complete, user_intent
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"#,
             params![
                 state.user_id,
                 serde_json::to_string(&state.subscription_tier).unwrap(),
@@ -727,6 +833,10 @@ impl Store {
                 state.preferred_language,
                 state.dark_mode as i32,
                 state.onboarding_complete as i32,
+                state
+                    .user_intent
+                    .as_ref()
+                    .map(|intent| serde_json::to_string(intent).unwrap()),
             ],
         )?;
         Ok(())
@@ -739,7 +849,7 @@ impl Store {
                 subscription_tier = ?, readings_today = ?, ai_calls_today = ?,
                 session_count = ?, last_reading_date = ?, notification_enabled = ?,
                 notification_time = ?, preferred_language = ?, dark_mode = ?,
-                onboarding_complete = ?
+                onboarding_complete = ?, user_intent = ?
             WHERE user_id = ?"#,
             params![
                 serde_json::to_string(&state.subscription_tier).unwrap(),
@@ -752,6 +862,10 @@ impl Store {
                 state.preferred_language,
                 state.dark_mode as i32,
                 state.onboarding_complete as i32,
+                state
+                    .user_intent
+                    .as_ref()
+                    .map(|intent| serde_json::to_string(intent).unwrap()),
                 state.user_id,
             ],
         )?;
@@ -791,7 +905,10 @@ impl Store {
     // ========================================================================
 
     #[allow(dead_code)]
-    pub fn insert_notification_entry(&self, entry: &NotificationEntry) -> Result<(), AletheiaError> {
+    pub fn insert_notification_entry(
+        &self,
+        entry: &NotificationEntry,
+    ) -> Result<(), AletheiaError> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
             "INSERT INTO notification_matrix (symbol_id, question) VALUES (?, ?)",
@@ -803,7 +920,7 @@ impl Store {
     pub fn get_notification_matrix(&self) -> Result<Vec<NotificationEntry>, AletheiaError> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT * FROM notification_matrix")?;
-        
+
         let rows = stmt.query_map([], |row| {
             Ok(NotificationEntry {
                 symbol_id: row.get(1)?,
@@ -821,9 +938,9 @@ impl Store {
     pub fn get_fallback_prompts(&self, source_id: &str) -> Result<Vec<String>, AletheiaError> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare("SELECT fallback_prompts FROM sources WHERE id = ?")?;
-        
+
         let prompts: Option<String> = stmt.query_row([source_id], |row| row.get(0)).ok();
-        
+
         match prompts {
             Some(p) => Ok(from_str::<Vec<String>>(&p).unwrap_or_default()),
             None => Ok(vec![]),
@@ -870,7 +987,11 @@ mod tests {
             passage_count: 10,
             is_bundled: true,
             is_premium: false,
-            fallback_prompts: vec!["prompt1".to_string(), "prompt2".to_string(), "prompt3".to_string()],
+            fallback_prompts: vec![
+                "prompt1".to_string(),
+                "prompt2".to_string(),
+                "prompt3".to_string(),
+            ],
         }
     }
 
@@ -908,10 +1029,18 @@ mod tests {
         let source = create_test_source();
 
         let insert_result = store.insert_source(&source);
-        assert!(insert_result.is_ok(), "Failed to insert source: {:?}", insert_result.err());
+        assert!(
+            insert_result.is_ok(),
+            "Failed to insert source: {:?}",
+            insert_result.err()
+        );
 
         let get_result = store.get_source(&source.id);
-        assert!(get_result.is_ok(), "Failed to get source: {:?}", get_result.err());
+        assert!(
+            get_result.is_ok(),
+            "Failed to get source: {:?}",
+            get_result.err()
+        );
 
         let retrieved = get_result.unwrap();
         assert!(retrieved.is_some(), "Source should exist");
@@ -923,7 +1052,10 @@ mod tests {
         let store = create_test_store().unwrap();
         let result = store.get_source("nonexistent");
         assert!(result.is_ok(), "Failed to get source: {:?}", result.err());
-        assert!(result.unwrap().is_none(), "Should return None for nonexistent source");
+        assert!(
+            result.unwrap().is_none(),
+            "Should return None for nonexistent source"
+        );
     }
 
     #[test]
@@ -947,7 +1079,11 @@ mod tests {
 
         store.insert_source(&source).unwrap();
         let result = store.insert_passage(&passage);
-        assert!(result.is_ok(), "Failed to insert passage: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to insert passage: {:?}",
+            result.err()
+        );
 
         // Verify by getting random passage
         let random_passage = store.get_random_passage(&source.id).unwrap();
@@ -962,7 +1098,11 @@ mod tests {
         store.insert_source(&source).unwrap();
 
         let result = store.get_random_source(false);
-        assert!(result.is_ok(), "Failed to get random source: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to get random source: {:?}",
+            result.err()
+        );
 
         let random_source = result.unwrap();
         assert!(random_source.is_some(), "Should return a source");
@@ -975,7 +1115,11 @@ mod tests {
         store.insert_theme(&theme).unwrap();
 
         let result = store.get_random_theme(false);
-        assert!(result.is_ok(), "Failed to get random theme: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to get random theme: {:?}",
+            result.err()
+        );
 
         let random_theme = result.unwrap();
         assert!(random_theme.is_some(), "Should return a theme");
@@ -1010,14 +1154,22 @@ mod tests {
             mood_tag: None,
             is_favorite: false,
             shared: false,
+            user_intent: None,
         };
 
         let result = store.insert_reading(&reading);
-        assert!(result.is_ok(), "Failed to insert reading: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to insert reading: {:?}",
+            result.err()
+        );
 
         let readings = store.get_readings(10, 0).unwrap();
         assert_eq!(readings.len(), 1, "Should have 1 reading");
-        assert_eq!(readings[0].situation_text, Some("Test situation".to_string()));
+        assert_eq!(
+            readings[0].situation_text,
+            Some("Test situation".to_string())
+        );
     }
 
     #[test]
@@ -1049,6 +1201,7 @@ mod tests {
             mood_tag: None,
             is_favorite: false,
             shared: false,
+            user_intent: None,
         };
 
         store.insert_reading(&reading).unwrap();
@@ -1062,7 +1215,11 @@ mod tests {
         let store = create_test_store().unwrap();
 
         let result = store.get_user_state("test-user");
-        assert!(result.is_ok(), "Failed to get user state: {:?}", result.err());
+        assert!(
+            result.is_ok(),
+            "Failed to get user state: {:?}",
+            result.err()
+        );
 
         let state = result.unwrap();
         assert_eq!(state.user_id, "test-user");
@@ -1085,7 +1242,9 @@ mod tests {
         let result = store.seed_bundled_data(&sources, &passages, &themes);
         assert!(result.is_ok(), "Failed to seed data: {:?}", result.err());
 
-        let seeded = store.seed_bundled_data(&sources, &passages, &themes).unwrap();
+        let seeded = store
+            .seed_bundled_data(&sources, &passages, &themes)
+            .unwrap();
         assert!(!seeded, "Second seed should return false (already seeded)");
     }
 }

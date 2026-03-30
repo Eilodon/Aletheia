@@ -15,22 +15,15 @@ import {
   ErrorCode,
   Symbol as AletheiaSymbol,
 } from "@/lib/types";
-import { readingEngine } from "@/lib/services/reading-engine";
 import { aiClient } from "@/lib/services/ai-client";
 import { dbInit } from "@/lib/services/db-init";
-import { getCurrentUserId } from "@/lib/services/current-user-id";
-import { aletheiaNativeClient } from "@/lib/native/aletheia-core";
-import {
-  unwrapNativeChooseSymbolResponse,
-  unwrapNativeCompleteReadingResponse,
-  unwrapNativePerformReadingResponse,
-} from "@/lib/native/bridge";
-import { shouldUseAletheiaNative } from "@/lib/native/runtime";
 import {
   AUTO_SAVE_DELAY_MS,
   PASSAGE_ACTION_DELAY_MS,
   buildPassageRevealSteps,
 } from "@/lib/reading/ritual";
+
+import { coreStore } from "@/lib/services/core-store";
 
 interface ReadingContextType {
   // State
@@ -89,21 +82,8 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
       setError(null);
       setCurrentState(ReadingState.SituationInput);
       await dbInit.initialize();
-
-      // Sync local date each time starting a reading (handle midnight edge case)
-      if (shouldUseAletheiaNative()) {
-        const localDate = new Date().toLocaleDateString("en-CA");
-        await aletheiaNativeClient.setLocalDate(localDate).catch(() => {});
-      }
-
-      let newSession: ReadingSession;
-      if (shouldUseAletheiaNative()) {
-        const userId = await getCurrentUserId();
-        const response = await aletheiaNativeClient.performReading(userId, sourceId, situationText);
-        newSession = unwrapNativePerformReadingResponse(response) as ReadingSession;
-      } else {
-        newSession = await readingEngine.performReading(sourceId, situationText);
-      }
+      await coreStore.syncLocalDate().catch(() => {});
+      const newSession = await coreStore.performReading(sourceId, situationText);
 
       setSession(newSession);
       setReadingStartTime(Date.now());
@@ -136,11 +116,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
       setPassageActionsReady(false);
       setCurrentState(ReadingState.WildcardChosen);
 
-      const newPassage = shouldUseAletheiaNative()
-        ? (unwrapNativeChooseSymbolResponse(
-            await aletheiaNativeClient.chooseSymbol(session as any, symbolId, method),
-          ).passage as Passage)
-        : (await readingEngine.chooseSymbol(session, symbolId, method)).passage;
+      const newPassage = (await coreStore.chooseSymbol(session, symbolId, method)).passage as Passage;
       setPassage(newPassage);
 
       // Ritual animation
@@ -256,17 +232,10 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
         user_intent: session.user_intent,
       };
 
-      if (shouldUseAletheiaNative()) {
-        const userId = await getCurrentUserId();
-        await unwrapNativeCompleteReadingResponse(
-          await aletheiaNativeClient.completeReading(userId, {
-            ...reading,
-            symbol_method: selectedMethod,
-          } as any),
-        );
-      } else {
-        await readingEngine.completeReading(reading);
-      }
+      await coreStore.completeReading({
+        ...reading,
+        symbol_method: selectedMethod,
+      });
       setHasSavedReading(true);
       setCurrentState(ReadingState.Complete);
     } catch (err) {
