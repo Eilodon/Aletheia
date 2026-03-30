@@ -7,6 +7,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { validateServerEnv } from "./env";
+import { apiLimiter, aiApiLimiter } from "./rateLimit";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -63,8 +64,12 @@ async function startServer() {
     res.json({ ok: true, timestamp: Date.now() });
   });
 
+  // Apply rate limiting to all /api routes
+  app.use("/api", apiLimiter);
+
   app.use(
     "/api/trpc",
+    aiApiLimiter,
     createExpressMiddleware({
       router: appRouter,
       createContext,
