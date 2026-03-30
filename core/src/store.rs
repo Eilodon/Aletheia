@@ -137,37 +137,72 @@ impl Store {
         }
 
         if user_version < 4 {
-            // Ignore migration errors (column may already exist)
-            match tx.execute_batch(
-                r#"
-                ALTER TABLE readings ADD COLUMN time_to_ai_request_s INTEGER;
-                ALTER TABLE readings ADD COLUMN notification_opened INTEGER NOT NULL DEFAULT 0;
-                ALTER TABLE user_state ADD COLUMN session_count INTEGER NOT NULL DEFAULT 0;
-                "#,
-            ) {
-                Ok(_) => {},
-                Err(e) => info!("Migration v4 warning (may be expected): {}", e),
+            // ALTER TABLE readings: time_to_ai_request_s
+            let has_time_col: bool = tx.query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('readings') WHERE name='time_to_ai_request_s'",
+                [], |r| r.get::<_, i32>(0),
+            ).unwrap_or(0) > 0;
+            if !has_time_col {
+                tx.execute_batch("ALTER TABLE readings ADD COLUMN time_to_ai_request_s INTEGER;")?;
             }
+
+            // ALTER TABLE readings: notification_opened
+            let has_notif_col: bool = tx.query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('readings') WHERE name='notification_opened'",
+                [], |r| r.get::<_, i32>(0),
+            ).unwrap_or(0) > 0;
+            if !has_notif_col {
+                tx.execute_batch("ALTER TABLE readings ADD COLUMN notification_opened INTEGER NOT NULL DEFAULT 0;")?;
+            }
+
+            // ALTER TABLE user_state: session_count
+            let has_session_col: bool = tx.query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('user_state') WHERE name='session_count'",
+                [], |r| r.get::<_, i32>(0),
+            ).unwrap_or(0) > 0;
+            if !has_session_col {
+                tx.execute_batch("ALTER TABLE user_state ADD COLUMN session_count INTEGER NOT NULL DEFAULT 0;")?;
+            }
+
             tx.execute("PRAGMA user_version = 4", [])?;
         }
 
         // ── THÊM MIGRATION V5 ──────────────────────────────────────────────
         if user_version < 5 {
-            // Add resonance_context column to passages if not exists.
-            // Matches the Passage struct field resonance_context: Option<String>.
-            match tx.execute_batch(
-                r#"ALTER TABLE passages ADD COLUMN resonance_context TEXT;"#,
-            ) {
-                Ok(_) => {},
-                Err(e) => info!("Migration v5 warning (column may already exist): {}", e),
+            // Check if resonance_context column already exists before adding.
+            // Using PRAGMA table_info is the idiomatic SQLite way — avoids
+            // swallowing real errors (disk full, corruption) with try/catch.
+            let col_exists: bool = tx.query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('passages') WHERE name='resonance_context'",
+                [],
+                |r| r.get::<_, i32>(0),
+            ).unwrap_or(0) > 0;
+
+            if !col_exists {
+                tx.execute_batch("ALTER TABLE passages ADD COLUMN resonance_context TEXT;")?;
             }
             tx.execute("PRAGMA user_version = 5", [])?;
         }
         // ── END MIGRATION V5 ───────────────────────────────────────────────
 
+        // ── MIGRATION V6: Add user_intent to readings table ──────────────
+        if user_version < 6 {
+            let col_exists: bool = tx.query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('readings') WHERE name='user_intent'",
+                [],
+                |r| r.get::<_, i32>(0),
+            ).unwrap_or(0) > 0;
+
+            if !col_exists {
+                tx.execute_batch("ALTER TABLE readings ADD COLUMN user_intent TEXT;")?;
+            }
+            tx.execute("PRAGMA user_version = 6", [])?;
+        }
+        // ── END MIGRATION V6 ───────────────────────────────────────────────
+
         tx.commit()?;
         
-        info!("Migrations completed to version 5");
+        info!("Migrations completed to version 6");
         Ok(())
     }
 

@@ -77,6 +77,7 @@ pub struct AletheiaCore {
     gift_client: GiftClient,
     notification_scheduler: NotificationScheduler,
     init_error: Option<BridgeError>,
+    local_date_override: Arc<Mutex<Option<String>>>,
 }
 
 impl AletheiaCore {
@@ -96,6 +97,7 @@ impl AletheiaCore {
             gift_client: GiftClient::new(Arc::clone(&store), gift_backend_url),
             notification_scheduler: NotificationScheduler::new(Arc::clone(&store)),
             init_error: None,
+            local_date_override: Arc::new(Mutex::new(None)),
         })
     }
 
@@ -125,6 +127,7 @@ impl AletheiaCore {
                     gift_client: GiftClient::new(Arc::clone(&dummy_store), &gift_backend_url),
                     notification_scheduler: NotificationScheduler::new(Arc::clone(&dummy_store)),
                     init_error: Some(bridge_error),
+                    local_date_override: Arc::new(Mutex::new(None)),
                 }
             }
         }
@@ -501,18 +504,6 @@ impl AletheiaCore {
     // GIFT OPERATIONS
     // ========================================================================
 
-    pub async fn create_gift(
-        &self,
-        source_id: Option<String>,
-        buyer_note: Option<String>,
-    ) -> Result<GiftResponse, AletheiaError> {
-        self.gift_client.create_gift(source_id, buyer_note).await
-    }
-
-    pub async fn redeem_gift(&self, token: &str) -> Result<GiftReading, AletheiaError> {
-        self.gift_client.redeem_gift(token).await
-    }
-
     // ========================================================================
     // NOTIFICATION OPERATIONS
     // ========================================================================
@@ -578,6 +569,74 @@ impl AletheiaCore {
 
     pub fn update_user_state(&self, state: &UserState) -> Result<(), AletheiaError> {
         self.store.update_user_state(state)
+    }
+
+    // ========================================================================
+    // LOCAL DATE (for daily reset timezone)
+    // ========================================================================
+
+    pub fn set_local_date(&self, local_date: String) {
+        if local_date.len() == 10 && local_date.chars().nth(4) == Some('-') {
+            if let Ok(mut lock) = self.local_date_override.lock() {
+                *lock = Some(local_date);
+            }
+        }
+    }
+
+    // ========================================================================
+    // GIFT OPERATIONS (UniFFI exposed)
+    // ========================================================================
+
+    pub fn redeem_gift(&self, token: String) -> RedeemGiftResponse {
+        if let Some(err) = &self.init_error {
+            return RedeemGiftResponse {
+                gift: None,
+                error: Some(err.clone()),
+            };
+        }
+        match RUNTIME.block_on(self.gift_client.redeem_gift(&token)) {
+            Ok(gift_reading) => RedeemGiftResponse {
+                gift: Some(GiftReadingData {
+                    token: gift_reading.token,
+                    buyer_note: gift_reading.buyer_note,
+                    source_id: gift_reading.source_id,
+                    created_at: gift_reading.created_at,
+                    expires_at: gift_reading.expires_at,
+                    redeemed: gift_reading.redeemed,
+                }),
+                error: None,
+            },
+            Err(e) => RedeemGiftResponse {
+                gift: None,
+                error: Some(BridgeError::from_aletheia_error(&e)),
+            },
+        }
+    }
+
+    pub fn create_gift(
+        &self,
+        source_id: Option<String>,
+        buyer_note: Option<String>,
+    ) -> CreateGiftResponse {
+        if let Some(err) = &self.init_error {
+            return CreateGiftResponse {
+                token: None,
+                deep_link: None,
+                error: Some(err.clone()),
+            };
+        }
+        match RUNTIME.block_on(self.gift_client.create_gift(source_id, buyer_note)) {
+            Ok(resp) => CreateGiftResponse {
+                token: Some(resp.token),
+                deep_link: Some(resp.deep_link),
+                error: None,
+            },
+            Err(e) => CreateGiftResponse {
+                token: None,
+                deep_link: None,
+                error: Some(BridgeError::from_aletheia_error(&e)),
+            },
+        }
     }
 }
 

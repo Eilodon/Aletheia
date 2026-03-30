@@ -4,6 +4,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import * as Haptics from "expo-haptics";
+import { aletheiaNativeClient } from "@/lib/native/aletheia-core";
 
 export default function GiftRedeemScreen() {
   const colors = useColors();
@@ -49,23 +50,29 @@ export default function GiftRedeemScreen() {
     setIsRedeeming(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Call native bridge (Rust GiftClient → Gift Backend)
+      const response = await aletheiaNativeClient.redeemGift(tokenToRedeem.trim());
 
-      // Mock success (in real implementation, call gift backend)
-      if (tokenToRedeem.length >= 6) {
+      if (response.error) {
+        const errorMsg = response.error.code === "ERR_GIFT_EXPIRED"
+          ? "Mã quà đã hết hạn."
+          : response.error.code === "ERR_GIFT_ALREADY_REDEEMED"
+          ? "Mã quà này đã được sử dụng."
+          : response.error.code === "ERR_GIFT_NOT_FOUND"
+          ? "Mã quà không hợp lệ."
+          : "Không thể xác nhận mã quà. Vui lòng thử lại.";
+        setRedeemResult({ success: false, error: errorMsg });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        return;
+      }
+
+      if (response.gift) {
         setRedeemResult({
           success: true,
-          sourceName: "I Ching — Kinh Dịch",
-          buyerNote: "Gửi bạn một lần đọc để tìm clarity trong lúc bối rối.",
+          sourceName: response.gift.source_id ?? undefined,
+          buyerNote: response.gift.buyer_note ?? undefined,
         });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      } else {
-        setRedeemResult({
-          success: false,
-          error: "Mã quà không hợp lệ hoặc đã được sử dụng.",
-        });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } catch (error) {
       console.error("Redeem failed:", error);

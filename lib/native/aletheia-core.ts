@@ -18,6 +18,8 @@ import {
   type NativeSymbol,
   type NativePassage,
   type NativeUserStateResponse,
+  type NativeRedeemGiftResponse,
+  type NativeCreateGiftResponse,
 } from "../../modules/aletheia-core-module/src";
 
 class AletheiaNativeClient {
@@ -114,6 +116,18 @@ class AletheiaNativeClient {
     requestId: string,
   ): Promise<NativeCancelInterpretationResponse> {
     return this.requireModule().cancelInterpretationStream(requestId);
+  }
+
+  setLocalDate(localDate: string): Promise<void> {
+    return this.requireModule().setLocalDate(localDate);
+  }
+
+  redeemGift(token: string): Promise<NativeRedeemGiftResponse> {
+    return this.requireModule().redeemGift(token);
+  }
+
+  createGift(sourceId?: string, buyerNote?: string): Promise<NativeCreateGiftResponse> {
+    return this.requireModule().createGift(sourceId, buyerNote);
   }
 }
 

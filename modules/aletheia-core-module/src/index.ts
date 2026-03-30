@@ -45,12 +45,15 @@ export type NativePassage = {
   resonance_context?: string;
 };
 
+export type NativeUserIntent = "Clarity" | "Comfort" | "Challenge" | "Guidance";
+
 export type NativeReadingSession = {
   temp_id: string;
   source: NativeSource;
   theme: NativeTheme;
   symbols: NativeSymbol[];
   situation_text?: string;
+  user_intent?: NativeUserIntent;
   started_at: number;
 };
 
@@ -162,6 +165,26 @@ export type NativeUserStateResponse = {
   error?: NativeBridgeError;
 };
 
+export type NativeGiftReadingData = {
+  token: string;
+  buyer_note?: string;
+  source_id?: string;
+  created_at: number;
+  expires_at: number;
+  redeemed: boolean;
+};
+
+export type NativeRedeemGiftResponse = {
+  gift?: NativeGiftReadingData;
+  error?: NativeBridgeError;
+};
+
+export type NativeCreateGiftResponse = {
+  token?: string;
+  deep_link?: string;
+  error?: NativeBridgeError;
+};
+
 export type NativeSeedBundledDataOptions = {
   sourcesJson: string;
   passagesJson: string;
@@ -213,6 +236,9 @@ export type NativeAletheiaModule = {
   ): Promise<NativeCancelInterpretationResponse>;
   getFallbackPrompts(sourceId: string): Promise<NativeFallbackPromptsResponse>;
   getUserState(userId: string): Promise<NativeUserStateResponse>;
+  setLocalDate(localDate: string): Promise<void>;
+  redeemGift(token: string): Promise<NativeRedeemGiftResponse>;
+  createGift(sourceId?: string, buyerNote?: string): Promise<NativeCreateGiftResponse>;
 };
 
 const nativeModule =

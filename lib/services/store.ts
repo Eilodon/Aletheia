@@ -19,7 +19,7 @@ import { BUNDLED_SOURCES, BUNDLED_PASSAGES, BUNDLED_THEMES } from "@/lib/data/se
 class StoreService {
   private db: SQLite.SQLiteDatabase | null = null;
   private initialized = false;
-  private static readonly SCHEMA_VERSION = 2;
+  private static readonly SCHEMA_VERSION = 5;
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
@@ -138,6 +138,39 @@ class StoreService {
       await this.db.execAsync(`
         ALTER TABLE user_state ADD COLUMN session_count INTEGER NOT NULL DEFAULT 0;
       `).catch(() => {}); // Column may already exist in fresh installs (created in v1)
+    }
+
+    // Migration v3: Ensure user_state table has all required columns with correct constraints
+    // Mirrors Rust store migration v3. Safe to run on existing DBs (CREATE TABLE IF NOT EXISTS).
+    if (currentVersion < 3) {
+      // No-op: TS v1 migration already creates user_state with the same schema.
+      // Bump version to align with Rust.
+    }
+
+    // Migration v4: Add time_to_ai_request_s and notification_opened columns to readings
+    // Mirrors Rust store migration v4.
+    if (currentVersion < 4) {
+      await this.db.execAsync(
+        `ALTER TABLE readings ADD COLUMN time_to_ai_request_s INTEGER;` 
+      ).catch(() => {}); // Column may already exist
+      await this.db.execAsync(
+        `ALTER TABLE readings ADD COLUMN notification_opened INTEGER NOT NULL DEFAULT 0;` 
+      ).catch(() => {}); // Column may already exist
+    }
+
+    // Migration v5: Add resonance_context column to passages
+    // Mirrors Rust store migration v5.
+    if (currentVersion < 5) {
+      // Check if column already exists before altering
+      const tableInfo = await this.db.getAllAsync<{ name: string }>(
+        `PRAGMA table_info(passages)` 
+      );
+      const hasResonanceContext = tableInfo.some((col) => col.name === "resonance_context");
+      if (!hasResonanceContext) {
+        await this.db.execAsync(
+          `ALTER TABLE passages ADD COLUMN resonance_context TEXT;` 
+        );
+      }
     }
     
     await this.db.execAsync(`PRAGMA user_version = ${StoreService.SCHEMA_VERSION}`);

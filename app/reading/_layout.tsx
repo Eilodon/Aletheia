@@ -13,6 +13,12 @@ export default function ReadingLayout() {
       <Stack.Screen name="ritual" />
       <Stack.Screen name="passage" />
       <Stack.Screen name="ai-streaming" />
+      <Stack.Screen
+        name="share-card"
+        options={{
+          animation: "slide_from_bottom",
+        }}
+      />
     </Stack>
   );
 }

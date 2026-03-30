@@ -90,6 +90,12 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
       setCurrentState(ReadingState.SituationInput);
       await dbInit.initialize();
 
+      // Sync local date each time starting a reading (handle midnight edge case)
+      if (shouldUseAletheiaNative()) {
+        const localDate = new Date().toLocaleDateString("en-CA");
+        await aletheiaNativeClient.setLocalDate(localDate).catch(() => {});
+      }
+
       let newSession: ReadingSession;
       if (shouldUseAletheiaNative()) {
         const userId = await getCurrentUserId();
@@ -117,7 +123,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
       setError(aletheiaError);
       setCurrentState(ReadingState.Idle);
     }
-  }, []);
+  }, [router]);
 
   const chooseSymbol = useCallback(async (symbolId: string, method: SymbolMethod) => {
     try {

@@ -23,6 +23,13 @@ enum MoodTag {
     "Grief"
 };
 
+enum UserIntent {
+    "Clarity",
+    "Comfort",
+    "Challenge",
+    "Guidance"
+};
+
 enum SubscriptionTier {
     "Free",
     "Pro"
@@ -101,6 +108,7 @@ dictionary ReadingSession {
     Theme theme;
     sequence<Symbol> symbols;
     string? situation_text;
+    UserIntent? user_intent;
     i64 started_at;
 };
 
@@ -166,6 +174,26 @@ dictionary FallbackPromptsResponse {
 
 dictionary UserStateResponse {
     UserState? state;
+    BridgeError? error;
+};
+
+dictionary GiftReadingData {
+    string token;
+    string? buyer_note;
+    string? source_id;
+    i64 created_at;
+    i64 expires_at;
+    boolean redeemed;
+};
+
+dictionary RedeemGiftResponse {
+    GiftReadingData? gift;
+    BridgeError? error;
+};
+
+dictionary CreateGiftResponse {
+    string? token;
+    string? deep_link;
     BridgeError? error;
 };
 
@@ -259,4 +287,13 @@ interface AletheiaCore {
     FallbackPromptsResponse get_fallback_prompts(string source_id);
 
     UserStateResponse get_user_state(string user_id);
+
+    void set_local_date(string local_date);
+
+    RedeemGiftResponse redeem_gift(string token);
+
+    CreateGiftResponse create_gift(
+        string? source_id,
+        string? buyer_note
+    );
 };

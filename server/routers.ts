@@ -17,6 +17,21 @@ export const appRouter = router({
     }),
   }),
 
+  aiConfig: router({
+    getProviderConfig: publicProcedure.query(() => {
+      return {
+        claude: process.env.ALETHEIA_CLAUDE_API_KEY ? "configured" : "missing",
+        gpt4: process.env.ALETHEIA_OPENAI_API_KEY ? "configured" : "missing",
+        gemini: process.env.ALETHEIA_GEMINI_API_KEY ? "configured" : "missing",
+        keys: {
+          claude: process.env.ALETHEIA_CLAUDE_API_KEY ?? null,
+          gpt4: process.env.ALETHEIA_OPENAI_API_KEY ?? null,
+          gemini: process.env.ALETHEIA_GEMINI_API_KEY ?? null,
+        },
+      };
+    }),
+  }),
+
   // TODO: add feature routers here, e.g.
   // todo: router({
   //   list: protectedProcedure.query(({ ctx }) =>

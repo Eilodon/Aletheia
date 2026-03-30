@@ -220,6 +220,14 @@ pub struct NotificationEntry {
     pub question: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum UserIntent {
+    Clarity,
+    Comfort,
+    Challenge,
+    Guidance,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GiftReading {
     pub token: String,
@@ -229,6 +237,29 @@ pub struct GiftReading {
     pub expires_at: i64,
     pub redeemed: bool,
     pub redeemed_at: Option<i64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GiftReadingData {
+    pub token: String,
+    pub buyer_note: Option<String>,
+    pub source_id: Option<String>,
+    pub created_at: i64,
+    pub expires_at: i64,
+    pub redeemed: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RedeemGiftResponse {
+    pub gift: Option<GiftReadingData>,
+    pub error: Option<BridgeError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateGiftResponse {
+    pub token: Option<String>,
+    pub deep_link: Option<String>,
+    pub error: Option<BridgeError>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -275,6 +306,7 @@ pub struct ReadingSession {
     pub theme: Theme,
     pub symbols: Vec<Symbol>,
     pub situation_text: Option<String>,
+    pub user_intent: Option<UserIntent>,
     pub started_at: i64,
 }
 

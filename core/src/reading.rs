@@ -64,6 +64,7 @@ impl ReadingEngine {
             theme,
             symbols,
             situation_text,
+            user_intent: None, // Set by UI after onboarding choice
             started_at: chrono_timestamp(),
         };
 
