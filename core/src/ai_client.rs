@@ -16,6 +16,23 @@ use tracing::{info, warn};
 const MAX_RETRIES: u32 = 3;
 const INITIAL_BACKOFF_MS: u64 = 500;
 
+// SSL Pinning - Domain allowlist for production security
+// In production, uncomment and add your actual API domains
+// This prevents requests to unknown endpoints even with valid certs
+#[allow(dead_code)]
+const ALLOWED_DOMAINS: &[&str] = &[
+    // "api.anthropic.com",
+    // "api.openai.com", 
+    // "generativelanguage.googleapis.com",
+];
+
+fn is_domain_allowed(url: &str) -> bool {
+    if ALLOWED_DOMAINS.is_empty() {
+        return true; // No restriction in dev
+    }
+    ALLOWED_DOMAINS.iter().any(|&domain| url.contains(domain))
+}
+
 const SYSTEM_PROMPT: &str = r#"Bạn là một chiếc gương, không phải nhà tiên tri, không phải chuyên gia tư vấn.
 Bạn phản chiếu lại điều đã hiện ra, để người đọc tự nghe thấy mình rõ hơn.
 
