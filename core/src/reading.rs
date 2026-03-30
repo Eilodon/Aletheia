@@ -33,7 +33,10 @@ impl ReadingEngine {
         if user_state.subscription_tier == SubscriptionTier::Free 
             && user_state.readings_today >= FREE_READINGS_PER_DAY 
         {
-            let today = chrono_date();
+            let today = user_state
+                .last_reading_date
+                .clone()
+                .unwrap_or_else(|| "today".to_string());
             return Err(AletheiaError::daily_limit_reached(
                 user_state.readings_today,
                 FREE_READINGS_PER_DAY,
@@ -144,51 +147,4 @@ impl ReadingEngine {
 
         Ok(source.fallback_prompts)
     }
-}
-
-fn chrono_date() -> String {
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
-    
-    // Apply timezone offset (UTC+7 for Vietnam, can be made configurable)
-    // This ensures daily limit resets at local midnight, not UTC midnight
-    let utc_offset_seconds: u64 = 7 * 3600; // UTC+7
-    let mut days = (now + utc_offset_seconds) / 86400;
-    let mut year = 1970u64;
-    
-    // Calculate year (accounting for leap years)
-    loop {
-        let days_in_year = if is_leap_year(year) { 366 } else { 365 };
-        if days < days_in_year {
-            break;
-        }
-        days -= days_in_year;
-        year += 1;
-    }
-    
-    // Days per month (non-leap year)
-    let days_in_months = if is_leap_year(year) {
-        [31u64, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-    } else {
-        [31u64, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
-    };
-    
-    // Calculate month
-    let mut month = 1;
-    for &days_in_m in days_in_months.iter() {
-        if days < days_in_m {
-            break;
-        }
-        days -= days_in_m;
-        month += 1;
-    }
-    
-    let day = days + 1;
-    format!("{:04}-{:02}-{:02}", year, month, day)
-}
-
-fn is_leap_year(year: u64) -> bool {
-    (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
 }

@@ -74,6 +74,7 @@ export type NativeReading = {
   mood_tag?: string;
   is_favorite: boolean;
   shared: boolean;
+  user_intent?: string;
 };
 
 export type NativeUserState = {

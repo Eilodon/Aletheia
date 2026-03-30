@@ -10,6 +10,9 @@ use tracing::info;
 
 pub struct Store {
     conn: Mutex<Connection>,
+    /// Date override from JS client in YYYY-MM-DD format.
+    /// When absent, daily reset falls back to UTC date from SQLite.
+    local_date_override: Mutex<Option<String>>,
 }
 
 impl Store {
@@ -19,6 +22,7 @@ impl Store {
 
         let store = Self {
             conn: Mutex::new(conn),
+            local_date_override: Mutex::new(None),
         };
 
         store.run_migrations()?;
@@ -661,7 +665,7 @@ impl Store {
 
     pub fn get_user_state(&self, user_id: &str) -> Result<UserState, AletheiaError> {
         let conn = self.conn.lock().unwrap();
-        let today = current_utc_date(&conn)?;
+        let today = self.get_today(&conn)?;
         let mut stmt = conn.prepare("SELECT * FROM user_state WHERE user_id = ?")?;
         
         let result = stmt.query_row(params![user_id], |row| {
@@ -756,7 +760,7 @@ impl Store {
 
     pub fn increment_readings_today(&self, user_id: &str) -> Result<(), AletheiaError> {
         let conn = self.conn.lock().unwrap();
-        let today = current_utc_date(&conn)?;
+        let today = self.get_today(&conn)?;
         conn.execute(
             "UPDATE user_state SET readings_today = readings_today + 1, last_reading_date = ? WHERE user_id = ?",
             params![today, user_id],
@@ -824,6 +828,23 @@ impl Store {
             Some(p) => Ok(from_str::<Vec<String>>(&p).unwrap_or_default()),
             None => Ok(vec![]),
         }
+    }
+
+    pub fn set_local_date(&self, date: String) {
+        if date.len() == 10 && date.chars().nth(4) == Some('-') {
+            if let Ok(mut lock) = self.local_date_override.lock() {
+                *lock = Some(date);
+            }
+        }
+    }
+
+    fn get_today(&self, conn: &Connection) -> Result<String, AletheiaError> {
+        if let Ok(lock) = self.local_date_override.lock() {
+            if let Some(date) = lock.as_ref() {
+                return Ok(date.clone());
+            }
+        }
+        current_utc_date(conn)
     }
 }
 

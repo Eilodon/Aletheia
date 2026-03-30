@@ -19,7 +19,7 @@ import { BUNDLED_SOURCES, BUNDLED_PASSAGES, BUNDLED_THEMES } from "@/lib/data/se
 class StoreService {
   private db: SQLite.SQLiteDatabase | null = null;
   private initialized = false;
-  private static readonly SCHEMA_VERSION = 5;
+  private static readonly SCHEMA_VERSION = 6;
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
@@ -169,6 +169,18 @@ class StoreService {
       if (!hasResonanceContext) {
         await this.db.execAsync(
           `ALTER TABLE passages ADD COLUMN resonance_context TEXT;` 
+        );
+      }
+    }
+
+    if (currentVersion < 6) {
+      const readingsInfo = await this.db.getAllAsync<{ name: string }>(
+        `PRAGMA table_info(readings)`
+      );
+      const hasUserIntent = readingsInfo.some((col) => col.name === "user_intent");
+      if (!hasUserIntent) {
+        await this.db.execAsync(
+          `ALTER TABLE readings ADD COLUMN user_intent TEXT;`
         );
       }
     }
@@ -484,7 +496,7 @@ class StoreService {
     if (!this.db) throw new Error("Database not initialized");
 
     await this.db.runAsync(
-      `INSERT INTO readings (id, created_at, source_id, passage_id, theme_id, symbol_chosen, symbol_method, situation_text, ai_interpreted, ai_used_fallback, read_duration_s, time_to_ai_request_s, notification_opened, mood_tag, is_favorite, shared) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO readings (id, created_at, source_id, passage_id, theme_id, symbol_chosen, symbol_method, situation_text, ai_interpreted, ai_used_fallback, read_duration_s, time_to_ai_request_s, notification_opened, mood_tag, is_favorite, shared, user_intent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         reading.id,
         reading.created_at,
@@ -502,6 +514,7 @@ class StoreService {
         reading.mood_tag || null,
         reading.is_favorite ? 1 : 0,
         reading.shared ? 1 : 0,
+        reading.user_intent ?? null,
       ]
     );
   }
@@ -532,6 +545,7 @@ class StoreService {
       mood_tag: row.mood_tag || undefined,
       is_favorite: row.is_favorite === 1,
       shared: row.shared === 1,
+      user_intent: row.user_intent || undefined,
     }));
   }
 

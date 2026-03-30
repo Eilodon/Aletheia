@@ -23,6 +23,10 @@ import { getCurrentUserId } from "@/lib/services/current-user-id";
 
 
 class ReadingEngineService {
+  private isAletheiaError(error: unknown): error is AletheiaError {
+    return typeof error === "object" && error !== null && "code" in error && "message" in error;
+  }
+
   // ARCH-06: Helper to shuffle array (Fisher-Yates)
   private shuffleArray<T>(array: T[]): T[] {
     const result = [...array];
@@ -39,10 +43,15 @@ class ReadingEngineService {
       const userId = await getCurrentUserId();
       const userState = await store.getUserState(userId);
 
-      // Note: Daily limit check is now handled by Rust core via FFI
-      // This is a fallback path - if we reach here, native path failed
-      // The Rust layer handles the daily limit check, so we don't duplicate here
-      // If user is over limit, Rust will return DailyLimitReached error
+      if (
+        userState.subscription_tier === SubscriptionTier.Free &&
+        userState.readings_today >= FREE_READINGS_PER_DAY
+      ) {
+        throw this.createError(
+          ErrorCode.DailyLimitReached,
+          `Daily reading limit reached for ${userState.last_reading_date ?? "today"}`
+        );
+      }
 
       // Resolve source
       let source;
@@ -88,7 +97,7 @@ class ReadingEngineService {
 
       return session;
     } catch (error) {
-      if (error instanceof Error && "code" in error) {
+      if (this.isAletheiaError(error)) {
         throw error;
       }
       throw this.createError(
@@ -127,7 +136,7 @@ class ReadingEngineService {
         reading_id: session.temp_id,
       };
     } catch (error) {
-      if (error instanceof Error && "code" in error) {
+      if (this.isAletheiaError(error)) {
         throw error;
       }
       throw this.createError(
@@ -152,7 +161,7 @@ class ReadingEngineService {
 
       // Update user state
       const userId = await getCurrentUserId();
-      const userState = await store.getUserState(userId);
+      await store.getUserState(userId);
 
       await store.incrementReadingsToday(userId);
       await store.incrementSessionCount(userId);
@@ -167,7 +176,7 @@ class ReadingEngineService {
         saved_at,
       };
     } catch (error) {
-      if (error instanceof Error && "code" in error) {
+      if (this.isAletheiaError(error)) {
         throw error;
       }
       if (error instanceof Error && error.message.includes("database")) {
@@ -189,7 +198,7 @@ class ReadingEngineService {
 
       return source.fallback_prompts;
     } catch (error) {
-      if (error instanceof Error && "code" in error) {
+      if (this.isAletheiaError(error)) {
         throw error;
       }
       throw this.createError(

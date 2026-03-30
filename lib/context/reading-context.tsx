@@ -253,6 +253,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
         mood_tag: moodTag as any,
         is_favorite: false,
         shared: false,
+        user_intent: session.user_intent,
       };
 
       if (shouldUseAletheiaNative()) {

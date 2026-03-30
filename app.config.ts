@@ -121,10 +121,7 @@ const config: ExpoConfig = {
   // ── THÊM: EAS config ──────────────────────────────────────────────────
   extra: {
     eas: {
-      // Replace with real UUID from `eas project:init` or expo.dev dashboard.
-      // Run: npx eas project:init
-      // Then paste the generated projectId here.
-      projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID ?? "REPLACE_WITH_EAS_PROJECT_UUID",
+      projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID,
     },
   },
   owner: process.env.EXPO_PUBLIC_OWNER_NAME ?? undefined,

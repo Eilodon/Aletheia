@@ -77,7 +77,6 @@ pub struct AletheiaCore {
     gift_client: GiftClient,
     notification_scheduler: NotificationScheduler,
     init_error: Option<BridgeError>,
-    local_date_override: Arc<Mutex<Option<String>>>,
 }
 
 impl AletheiaCore {
@@ -97,7 +96,6 @@ impl AletheiaCore {
             gift_client: GiftClient::new(Arc::clone(&store), gift_backend_url),
             notification_scheduler: NotificationScheduler::new(Arc::clone(&store)),
             init_error: None,
-            local_date_override: Arc::new(Mutex::new(None)),
         })
     }
 
@@ -127,7 +125,6 @@ impl AletheiaCore {
                     gift_client: GiftClient::new(Arc::clone(&dummy_store), &gift_backend_url),
                     notification_scheduler: NotificationScheduler::new(Arc::clone(&dummy_store)),
                     init_error: Some(bridge_error),
-                    local_date_override: Arc::new(Mutex::new(None)),
                 }
             }
         }
@@ -576,11 +573,7 @@ impl AletheiaCore {
     // ========================================================================
 
     pub fn set_local_date(&self, local_date: String) {
-        if local_date.len() == 10 && local_date.chars().nth(4) == Some('-') {
-            if let Ok(mut lock) = self.local_date_override.lock() {
-                *lock = Some(local_date);
-            }
-        }
+        self.store.set_local_date(local_date);
     }
 
     // ========================================================================

@@ -3,7 +3,7 @@ import { Platform } from "react-native";
 
 import { getApiBaseUrl } from "@/constants/oauth";
 import { BUNDLED_PASSAGES, BUNDLED_SOURCES, BUNDLED_THEMES } from "@/lib/data/seed-data";
-import { trpc } from "@/lib/trpc";
+import { createTRPCClient } from "@/lib/trpc";
 
 import { aletheiaNativeClient } from "./aletheia-core";
 import { unwrapNativeSetApiKeyResponse } from "./bridge";
@@ -43,8 +43,8 @@ export async function initializeAletheiaNative(): Promise<void> {
 
     // Fetch API keys from server (keys live in server env vars, not client bundle)
     try {
-      // Use the trpc client directly - it's initialized in app/_layout.tsx
-      const config = await (trpc as any).aiConfig.getProviderConfig.query();
+      const client = createTRPCClient();
+      const config = await client.aiConfig.getProviderConfig.query();
       const providers = [
         { provider: "claude", key: config.keys.claude },
         { provider: "gpt4", key: config.keys.gpt4 },

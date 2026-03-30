@@ -133,6 +133,7 @@ export interface Reading {
   mood_tag: MoodTag | undefined;
   is_favorite: boolean;
   shared: boolean;
+  user_intent: UserIntent | undefined;
 }
 
 export interface NotificationEntry {
@@ -220,4 +221,3 @@ export interface GiftResponse {
   token: string;
   deep_link: string;
 }
-
