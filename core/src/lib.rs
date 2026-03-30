@@ -328,7 +328,8 @@ impl AletheiaCore {
         symbol: Symbol,
         situation_text: Option<String>,
     ) -> Result<AIInterpretation, AletheiaError> {
-        // Use existing AIClient from the pool - preserves HTTP connection reuse
+        // Hold lock during AI call - acceptable for UniFFI bridge path
+        // which is not frequently called compared to streaming
         let mut ai_client = self.ai_client.lock().unwrap();
 
         RUNTIME.block_on(ai_client.request_interpretation(
@@ -456,15 +457,22 @@ impl AletheiaCore {
         let new_chunks = job.chunks[job.delivered_chunks..].to_vec();
         job.delivered_chunks = job.chunks.len();
 
-        InterpretationStreamState {
-            request_id,
+        let state = InterpretationStreamState {
+            request_id: request_id.clone(),
             new_chunks,
             full_text: job.full_text.clone(),
             done: job.done,
             used_fallback: job.used_fallback,
             cancelled: job.cancelled,
             error: job.error.clone(),
+        };
+
+        // Clean up completed job to prevent memory leak
+        if job.done {
+            guard.remove(&request_id);
         }
+
+        state
     }
 
     pub fn cancel_interpretation_stream(&self, request_id: String) -> CancelInterpretationResponse {

@@ -137,9 +137,11 @@ class StoreService {
 
     // Migration v2: Add session_count to user_state (for existing DBs from v1 that lack it)
     if (currentVersion < 2) {
-      await this.db.execAsync(`
-        ALTER TABLE user_state ADD COLUMN session_count INTEGER NOT NULL DEFAULT 0;
-      `).catch(() => {}); // Column may already exist in fresh installs (created in v1)
+      try {
+        await this.db.execAsync(`ALTER TABLE user_state ADD COLUMN session_count INTEGER NOT NULL DEFAULT 0;`);
+      } catch (e: any) {
+        if (!e.message?.includes("duplicate column")) throw e;
+      }
     }
 
     // Migration v3: Ensure user_state table has all required columns with correct constraints
@@ -152,12 +154,16 @@ class StoreService {
     // Migration v4: Add time_to_ai_request_s and notification_opened columns to readings
     // Mirrors Rust store migration v4.
     if (currentVersion < 4) {
-      await this.db.execAsync(
-        `ALTER TABLE readings ADD COLUMN time_to_ai_request_s INTEGER;` 
-      ).catch(() => {}); // Column may already exist
-      await this.db.execAsync(
-        `ALTER TABLE readings ADD COLUMN notification_opened INTEGER NOT NULL DEFAULT 0;` 
-      ).catch(() => {}); // Column may already exist
+      try {
+        await this.db.execAsync(`ALTER TABLE readings ADD COLUMN time_to_ai_request_s INTEGER;`);
+      } catch (e: any) {
+        if (!e.message?.includes("duplicate column")) throw e;
+      }
+      try {
+        await this.db.execAsync(`ALTER TABLE readings ADD COLUMN notification_opened INTEGER NOT NULL DEFAULT 0;`);
+      } catch (e: any) {
+        if (!e.message?.includes("duplicate column")) throw e;
+      }
     }
 
     // Migration v5: Add resonance_context column to passages
@@ -271,7 +277,7 @@ class StoreService {
       return defaultState;
     }
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toLocaleDateString("en-CA"); // Local date YYYY-MM-DD
     if (row.last_reading_date && row.last_reading_date !== today) {
       await this.db!.runAsync(
         `UPDATE user_state SET readings_today = 0, ai_calls_today = 0 WHERE user_id = ?`,
@@ -336,7 +342,7 @@ class StoreService {
     await this.initialize();
     if (!this.db) throw new Error("Database not initialized");
 
-    const today = new Date().toISOString().split("T")[0];
+    const today = new Date().toLocaleDateString("en-CA"); // Local date YYYY-MM-DD
     await this.db.runAsync(
       `UPDATE user_state SET readings_today = readings_today + 1, last_reading_date = ? WHERE user_id = ?`,
       [today, userId]
@@ -603,7 +609,7 @@ class StoreService {
     if (!this.db) throw new Error("Database not initialized");
 
     const rows = await this.db.getAllAsync<any>(
-      "SELECT * FROM sources WHERE premium_allowed = 1 ORDER BY display_order"
+      "SELECT * FROM sources WHERE is_premium = 0 ORDER BY name ASC"
     );
 
     return rows.map((row) => ({
@@ -613,7 +619,7 @@ class StoreService {
       language: row.language,
       passage_count: row.passage_count || 0,
       is_bundled: true,
-      is_premium: row.premium_allowed !== 1,
+      is_premium: row.is_premium === 1,
       fallback_prompts: row.fallback_prompts ? JSON.parse(row.fallback_prompts) : [],
     }));
   }

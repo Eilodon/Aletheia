@@ -2,6 +2,7 @@ import { COOKIE_NAME } from "../lib/constants.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
+import { timingSafeEqual } from "crypto";
 
 export const appRouter = router({
   // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -34,7 +35,14 @@ export const appRouter = router({
 
       const incomingSecret = ctx.req.headers["x-aletheia-app-secret"];
       const normalizedSecret = Array.isArray(incomingSecret) ? incomingSecret[0] : incomingSecret;
-      const canExposeKeys = normalizedSecret === appSecret;
+      
+      // Timing-safe comparison to prevent timing attacks
+      let canExposeKeys = false;
+      if (normalizedSecret && appSecret && normalizedSecret.length === appSecret.length) {
+        const secretBuffer = Buffer.from(appSecret);
+        const incomingBuffer = Buffer.from(normalizedSecret);
+        canExposeKeys = timingSafeEqual(secretBuffer, incomingBuffer);
+      }
 
       if (!canExposeKeys) {
         const ip = ctx.req.headers["x-forwarded-for"] ?? ctx.req.socket?.remoteAddress ?? "unknown";

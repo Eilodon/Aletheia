@@ -374,35 +374,6 @@ pub struct CancellationToken {
 // ============================================================================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AletheiaError {
-    pub code: ErrorCode,
-    pub message: String,
-    pub context: Option<std::collections::HashMap<String, serde_json::Value>>,
-}
-
-impl AletheiaError {
-    #[allow(dead_code)]
-    pub fn new(code: ErrorCode, message: &str) -> Self {
-        Self {
-            code,
-            message: message.to_string(),
-            context: None,
-        }
-    }
-
-    #[allow(dead_code)]
-    pub fn with_context(mut self, key: &str, value: serde_json::Value) -> Self {
-        if self.context.is_none() {
-            self.context = Some(std::collections::HashMap::new());
-        }
-        if let Some(ref mut ctx) = self.context {
-            ctx.insert(key.to_string(), value);
-        }
-        self
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BridgeError {
     pub code: String,
     pub message: String,

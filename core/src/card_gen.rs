@@ -49,9 +49,9 @@ impl CardGenerator {
             w = CARD_WIDTH,
             h = CARD_HEIGHT,
             ornament = ornament,
-            symbol = card.symbol.display_name,
-            text = truncated_text,
-            ref = card.reference,
+            symbol = Self::xml_escape(&card.symbol.display_name),
+            text = Self::xml_escape(&truncated_text),
+            ref = Self::xml_escape(&card.reference),
             date = date,
             watermark = watermark,
         );
@@ -60,10 +60,12 @@ impl CardGenerator {
     }
 
     fn truncate_text(text: &str, max_length: usize) -> String {
-        if text.len() <= max_length {
+        let char_count = text.chars().count();
+        if char_count <= max_length {
             text.to_string()
         } else {
-            format!("{}...", &text[..max_length - 3])
+            let truncated: String = text.chars().take(max_length - 1).collect();
+            format!("{}…", truncated)
         }
     }
 
@@ -72,15 +74,25 @@ impl CardGenerator {
         let days = secs / 86400;
         let years = 1970 + (days / 365);
         let remaining_days = days % 365;
-        let months = (remaining_days / 30) + 1;
-        let day = (remaining_days % 30) + 1;
+        let days_in_year = if (years % 4 == 0 && years % 100 != 0) || (years % 400 == 0) { 366 } else { 365 };
+        let adjusted_days = if days_in_year == 366 && remaining_days >= 60 { remaining_days - 1 } else { remaining_days };
+        let months = (adjusted_days / 30) + 1;
+        let day = (adjusted_days % 30) + 1;
 
         let month_names = [
             "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
         ];
-        let month_name = month_names.get((months - 1) as usize).unwrap_or(&"Jan");
+        let month_idx = ((months - 1) as usize).min(11);
 
-        format!("{} {}, {}", day, month_name, years)
+        format!("{} {}, {}", day, month_names[month_idx], years)
+    }
+
+    fn xml_escape(s: &str) -> String {
+        s.replace('&', "&amp;")
+            .replace('<', "&lt;")
+            .replace('>', "&gt;")
+            .replace('"', "&quot;")
+            .replace('\'', "&apos;")
     }
 
     fn get_ornament(tradition: Tradition) -> String {

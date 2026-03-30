@@ -288,7 +288,11 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
   }, [currentState, passage]);
 
   useEffect(() => {
-    if (currentState !== ReadingState.PassageDisplayed || hasSavedReading) {
+    if (
+      (currentState !== ReadingState.PassageDisplayed &&
+        currentState !== ReadingState.AiFallback) ||
+      hasSavedReading
+    ) {
       return;
     }
 
