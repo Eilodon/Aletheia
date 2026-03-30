@@ -262,6 +262,7 @@ export type NativeAletheiaModule = {
     passage: NativePassage,
     symbol: NativeSymbol,
     situationText?: string,
+    userIntent?: string,
   ): Promise<NativeStartInterpretationStreamResponse>;
   pollInterpretationStream(
     requestId: string,

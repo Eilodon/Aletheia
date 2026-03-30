@@ -597,6 +597,47 @@ class StoreService {
     );
     return result?.count || 0;
   }
+
+  async getGiftableSources(): Promise<Source[]> {
+    await this.initialize();
+    if (!this.db) throw new Error("Database not initialized");
+
+    const rows = await this.db.getAllAsync<any>(
+      "SELECT * FROM sources WHERE premium_allowed = 1 ORDER BY display_order"
+    );
+
+    return rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      tradition: row.tradition || "other",
+      language: row.language,
+      passage_count: row.passage_count || 0,
+      is_bundled: true,
+      is_premium: row.premium_allowed !== 1,
+      fallback_prompts: row.fallback_prompts ? JSON.parse(row.fallback_prompts) : [],
+    }));
+  }
+
+  async getDailyNotificationMessage(
+    userId: string,
+    date: string,
+  ): Promise<{ symbol_id: string; title: string; body: string }> {
+    const { NOTIFICATION_MATRIX } = await import("@/lib/data/seed-data");
+
+    const input = `${userId}|${date}`;
+    let hash = 5381;
+    for (let i = 0; i < input.length; i++) {
+      hash = ((hash << 5) + hash) ^ input.charCodeAt(i);
+      hash = hash >>> 0;
+    }
+
+    const entry = NOTIFICATION_MATRIX[hash % NOTIFICATION_MATRIX.length]!;
+    return {
+      symbol_id: entry.symbol_id,
+      title: "✦ Vũ trụ hôm nay lật",
+      body: `${entry.question}?`,
+    };
+  }
 }
 
 export const store = new StoreService();

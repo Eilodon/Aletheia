@@ -16,6 +16,8 @@ import type {
   NativePaginatedReadingsResponse,
   NativeSourcesResponse,
   NativeNotificationMessageResponse,
+  NativeRedeemGiftResponse,
+  NativeCreateGiftResponse,
 } from "../../modules/aletheia-core-module/src";
 
 const ERROR_CODE_MAP: Record<string, ErrorCode> = {
@@ -214,4 +216,32 @@ export function unwrapNativeCancelInterpretationResponse(
     throw error;
   }
   return response.cancelled;
+}
+
+export function unwrapNativeRedeemGiftResponse(response: NativeRedeemGiftResponse) {
+  const error = toAletheiaError(response.error);
+  if (error) {
+    throw error;
+  }
+  if (!response.gift) {
+    throw toAletheiaError({
+      code: "ERR_GIFT_NOT_FOUND",
+      message: "Native redeemGift returned no gift data.",
+    });
+  }
+  return response.gift;
+}
+
+export function unwrapNativeCreateGiftResponse(response: NativeCreateGiftResponse) {
+  const error = toAletheiaError(response.error);
+  if (error) {
+    throw error;
+  }
+  if (!response.token || !response.deep_link) {
+    throw toAletheiaError({
+      code: "ERR_INVALID_INPUT",
+      message: "Native createGift returned an incomplete response.",
+    });
+  }
+  return { token: response.token, deep_link: response.deep_link };
 }

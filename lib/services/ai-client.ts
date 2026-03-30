@@ -22,6 +22,8 @@ interface AIRequest {
   resonanceContext?: string;
   sourceLanguage?: string;
   sourceFallbackPrompts?: string[];
+  /** UX-01: user's stated reading intent from onboarding */
+  userIntent?: "clarity" | "comfort" | "challenge" | "guidance";
 }
 
 interface AIInterpretationResult {
@@ -150,6 +152,7 @@ class AIClientService {
           passage,
           request.symbol,
           request.situationText,
+          request.userIntent,
         ),
       );
 

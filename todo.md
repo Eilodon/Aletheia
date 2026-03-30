@@ -1,155 +1,114 @@
-# Aletheia App - Project TODO
+# Aletheia — Project Status
+> Cập nhật: 2026-03-30 · v3
 
-## Phase 1: Core Infrastructure & Data Layer
+## ✅ Đã hoàn thành
 
-- [ ] Set up SQLite database schema with migrations
-- [ ] Create TypeScript types and contracts (Reading, Source, Passage, Theme, Symbol, etc.)
-- [ ] Seed bundled sources data (I Ching, Bible, Hafez, Rumi, Meditations, Tao Te Ching)
-- [ ] Implement Store service (CRUD operations for all entities)
-- [ ] Set up AsyncStorage for user preferences and session state
-- [ ] Create UserState management (subscription tier, daily limits, preferences)
+### Core Infrastructure
+- [x] SQLite schema với versioned migrations (TS: v2, Rust: v4)
+- [x] TypeScript types & contracts (`lib/types.ts`) — sync với Rust contracts
+- [x] Seed bundled sources: I Ching, Bible KJV, Hafez, Rumi, Meditations, Tao Te Ching
+- [x] Store service — CRUD cho tất cả entities
+- [x] UserState management (subscription tier, daily limits, preferences)
+- [x] Daily limit reset (midnight, timezone-aware via `setLocalDate`)
+- [x] Device ID isolation (`current-user-id.ts`)
+- [x] `resonance_context` field trong Passage schema
 
-## Phase 2: Core Reading Engine
+### Rust Core
+- [x] ReadingEngine: perform_reading, choose_symbol, complete_reading
+- [x] ThemeEngine: get_random_theme, random_three_symbols (Fisher-Yates)
+- [x] AIClient: multi-provider failover (Claude → GPT4 → Gemini)
+- [x] SSE streaming với cancel token
+- [x] Exponential backoff + jitter
+- [x] Gift token: `generate_base62_token` dùng `OsRng` (CSPRNG)
+- [x] NotificationScheduler: deterministic hash(userId + date)
+- [x] UniFFI bindings generated (Swift + Kotlin)
 
-- [ ] Implement ReadingEngine service (perform_reading, choose_symbol, complete_reading)
-- [ ] Implement ThemeEngine service (get_random_theme, random_three_symbols)
-- [ ] Create reading state machine (Idle → Complete)
-- [ ] Implement daily limit checking (Free tier: 3 readings/day)
-- [ ] Add read_duration tracking
-- [ ] Implement auto-save after 30 seconds
+### Native Bridge
+- [x] Expo native module (`modules/aletheia-core-module/`)
+- [x] Bridge unwrap helpers (`lib/native/bridge.ts`)
+- [x] Runtime façade (`lib/native/runtime.ts`)
+- [x] Android: Rust core connected, streaming working
+- [x] `setLocalDate` bridge
 
-## Phase 3: UI Screens - Basic Navigation
+### Domain Facade
+- [x] `coreStore` facade (`lib/services/core-store.ts`)
 
-- [ ] Create Home screen with "Lật lá" button
-- [ ] Create Situation Input screen (optional, skippable)
-- [ ] Create Source Selection screen with 6 sources + random option
-- [ ] Create Wildcard screen with 3 symbols (manual + auto paths)
-- [ ] Create Ritual Animation screen (book flip)
-- [ ] Create Passage Display screen
-- [ ] Create Complete screen with Save/Share options
-- [ ] Create History screen with list of past readings
-- [ ] Create Settings screen with preferences
-- [ ] Set up tab navigation (Home, History, Settings)
+### UI Screens
+- [x] Home screen
+- [x] Situation input (optional, skippable)
+- [x] Wildcard screen (flip animation, manual + auto paths)
+- [x] Ritual animation screen
+- [x] Passage display (slow reveal, phrase-based, 3s gate trước buttons)
+- [x] AI streaming screen (chunk-based, không race condition)
+- [x] Share card screen (UI stub — CardGenerator chưa wired)
+- [x] Mirror/History screen (DB pagination đúng)
+- [x] Onboarding (5 steps, "Which Mirror Are You?", UserIntent)
+- [x] Paywall screen (UI, RevenueCat pending)
+- [x] Gift create + redeem screens
 
-## Phase 4: UI Polish - Animations & Interactions
+### UX Polish
+- [x] Silence beat 4s sau Complete (UX-04)
+- [x] Skip button: "Tôi chưa biết mình đang nghĩ gì" (UX-05)
+- [x] Auto-save 30s
+- [x] Read duration tracking
+- [x] `time_to_ai_request_s` tracking
+- [x] `session_count` tracking
 
-- [ ] Add symbol reveal animation (staggered fade-in, 200ms each)
-- [ ] Add book flip animation (600-800ms rotation)
-- [ ] Add typewriter effect for AI responses
-- [ ] Add press feedback (scale + opacity) to buttons and cards
-- [ ] Add haptic feedback (Light, Medium, Success, Error)
-- [ ] Add screen transitions (250ms fade)
-- [ ] Add loading indicators (spinners, dots)
+### AI
+- [x] Language-aware fallback (VI/EN)
+- [x] Source-specific fallback prompts
+- [x] Adaptive polling (80ms → 500ms backoff)
+- [x] `resonance_context` injection vào AI prompt
 
-## Phase 5: AI Integration
+### Notifications
+- [x] Oracle utterance format (title + body từ matrix)
+- [x] Deterministic seeding per user+date
 
-- [ ] Set up Claude API integration
-- [ ] Implement AIClient service with streaming
-- [ ] Create AI prompt builder (passage + symbol + situation)
-- [ ] Implement 15-second timeout with fallback
-- [ ] Implement AI Streaming screen with typewriter effect
-- [ ] Implement AI Fallback screen with static prompts
-- [ ] Add offline detection for automatic fallback
-- [ ] Implement daily AI limit (Free tier: 1/day)
+### Security
+- [x] API keys không trong client bundle (server-managed)
+- [x] Gift token CSPRNG (OsRng)
+- [x] `sessionStorage` thay vì `localStorage` trên web
 
-## Phase 6: Share Card Generation
+### CI/CD
+- [x] GitHub Actions: Rust test + clippy + build
+- [x] UniFFI binding generation trong CI
+- [x] Android + iOS build jobs
+- [x] ESLint + TypeScript check
+- [x] EAS config (`eas.json`)
 
-- [ ] Create CardGenerator service (SVG → PNG)
-- [ ] Design share card template with tradition-specific ornaments
-- [ ] Implement card rendering (1080×1920px story format)
-- [ ] Add watermark for Free tier users
-- [ ] Implement share sheet integration
-- [ ] Add "shared" flag to reading data
-- [ ] Test card generation performance (target ≤500ms)
+### Tests
+- [x] reading-engine.test.ts
+- [x] store.test.ts
+- [x] ai-client.test.ts
 
-## Phase 7: Notifications
+---
 
-- [ ] Set up daily notification scheduling
-- [ ] Create notification matrix (150 symbol + question pairs)
-- [ ] Implement deterministic seeding (hash(user_id + date))
-- [ ] Add notification settings screen (toggle, time picker)
-- [ ] Test notification delivery on iOS and Android
-- [ ] Add notification permission handling
+## 🚧 Đang làm / Cần làm
 
-## Phase 8: Subscription & Monetization
+### Critical (blocks build)
+- [ ] iOS: link Rust core vào Xcode project
 
-- [ ] Integrate RevenueCat SDK
-- [ ] Set up Pro tier entitlements
-- [ ] Create subscription UI (upgrade button, pricing)
-- [ ] Implement paywall for premium themes
-- [ ] Add subscription status to settings
-- [ ] Test subscription flows (purchase, restore, expiry)
+### High Priority
+- [ ] `user_intent` → Rust AI system prompt personalization (native bridge + Rust update)
+- [ ] RevenueCat SDK integration
 
-## Phase 9: Data Persistence & Sync
+### Content
+- [ ] Seed passages: tăng từ 10 → 20-30 per source
+- [ ] `resonance_context` content cho 60 passages hiện có
+- [ ] Notification matrix: 150 entries (hiện có 20)
 
-- [ ] Implement SQLite migrations
-- [ ] Add database backup/restore functionality
-- [ ] Test data persistence across app restarts
-- [ ] Implement history export (optional)
-- [ ] Add data deletion (clear history, reset app)
+### Features
+- [ ] CardGenerator → UniFFI bridge → share card generate real PNG
+- [ ] Gift backend deploy (Cloudflare Workers)
+- [ ] Your Mirror v2.0 (emotional pattern analysis)
 
-## Phase 10: Testing & QA
+### Cleanup
+- [ ] `auth.logout.test.ts` — remove `.skip`
 
-- [ ] Unit tests for ReadingEngine
-- [ ] Unit tests for ThemeEngine
-- [ ] Unit tests for Store service
-- [ ] Integration tests for reading flow
-- [ ] End-to-end testing (all screens, all flows)
-- [ ] Offline testing (airplane mode)
-- [ ] Performance testing (cold start, screen transitions)
-- [ ] Accessibility testing (VoiceOver, text scaling)
-- [ ] iOS device testing
-- [ ] Android device testing
+---
 
-## Phase 11: Branding & Assets
-
-- [ ] Generate app logo (square, iconic, fills entire space)
-- [ ] Create splash screen icon
-- [ ] Create favicon for web
-- [ ] Create Android adaptive icon (foreground + background)
-- [ ] Update app.config.ts with branding (appName, logoUrl)
-- [ ] Design tradition-specific ornaments (6 variations)
-- [ ] Create symbol icons for all themes
-
-## Phase 12: Polish & Optimization
-
-- [ ] Optimize app bundle size
-- [ ] Implement code splitting for lazy loading
-- [ ] Add error boundaries and error handling
-- [ ] Implement analytics (optional, privacy-respecting)
-- [ ] Add app store screenshots and descriptions
-- [ ] Create onboarding flow (first-time user experience)
-- [ ] Add tutorial/help screen
-- [ ] Implement dark mode support
-
-## Phase 13: Documentation & Deployment
-
-- [ ] Write README with setup instructions
-- [ ] Document API contracts
-- [ ] Create user privacy policy
-- [ ] Create terms of service
-- [ ] Prepare app store listings (iOS App Store, Google Play)
-- [ ] Create beta testing group (TestFlight, Google Play Beta)
-- [ ] Gather feedback from beta testers
-- [ ] Fix critical bugs from beta feedback
-
-## Phase 14: Launch & Post-Launch
-
-- [ ] Final QA pass
-- [ ] Deploy to iOS App Store
-- [ ] Deploy to Google Play Store
-- [ ] Monitor crash reports and analytics
-- [ ] Respond to user reviews
-- [ ] Plan v1.1 features based on feedback
-- [ ] Track key metrics (DAU, subscription conversion, share rate)
-
-## Deferred Features (v2.0+)
-
-- [ ] Your Mirror UI (emotional pattern tracking)
-- [ ] UGC Marketplace (user-created themes)
+## ❄️ Deferred (v2.0+)
 - [ ] Cloud sync (cross-device history)
-- [ ] Social features (follow friends, shared readings)
-- [ ] Gift redemption UI improvements
-- [ ] Advanced analytics dashboard
-- [ ] Audio narration of passages
-- [ ] Video content support
+- [ ] UGC themes marketplace
+- [ ] Audio narration
+- [ ] Social features

@@ -20,9 +20,26 @@ export const appRouter = router({
   aiConfig: router({
     getProviderConfig: publicProcedure.query(({ ctx }) => {
       const appSecret = process.env.ALETHEIA_APP_SECRET;
+      if (!appSecret) {
+        console.error(
+          "[aiConfig] ALETHEIA_APP_SECRET is not set. Refusing to expose AI provider keys.",
+        );
+        return {
+          claude: "missing" as const,
+          gpt4: "missing" as const,
+          gemini: "missing" as const,
+          keys: { claude: null, gpt4: null, gemini: null },
+        };
+      }
+
       const incomingSecret = ctx.req.headers["x-aletheia-app-secret"];
       const normalizedSecret = Array.isArray(incomingSecret) ? incomingSecret[0] : incomingSecret;
-      const canExposeKeys = !appSecret || normalizedSecret === appSecret;
+      const canExposeKeys = normalizedSecret === appSecret;
+
+      if (!canExposeKeys) {
+        const ip = ctx.req.headers["x-forwarded-for"] ?? ctx.req.socket?.remoteAddress ?? "unknown";
+        console.warn(`[aiConfig] App secret mismatch from ${ip}`);
+      }
 
       return {
         claude: process.env.ALETHEIA_CLAUDE_API_KEY ? "configured" : "missing",

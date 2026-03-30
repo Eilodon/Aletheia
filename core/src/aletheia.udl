@@ -306,7 +306,8 @@ interface AletheiaCore {
     StartInterpretationStreamResponse start_interpretation_stream(
         Passage passage,
         Symbol symbol,
-        string? situation_text
+        string? situation_text,
+        string? user_intent
     );
 
     InterpretationStreamState poll_interpretation_stream(string request_id);

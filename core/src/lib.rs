@@ -335,6 +335,7 @@ impl AletheiaCore {
             &passage,
             &symbol,
             situation_text.as_deref(),
+            None, // user_intent not available in this path
             Arc::new(AtomicBool::new(false)),
         ))
     }
@@ -362,6 +363,7 @@ impl AletheiaCore {
         passage: Passage,
         symbol: Symbol,
         situation_text: Option<String>,
+        user_intent: Option<String>,
     ) -> StartInterpretationStreamResponse {
         let request_id = generate_uuid();
         let cancel_token = Arc::new(AtomicBool::new(false));
@@ -408,6 +410,7 @@ impl AletheiaCore {
                     &passage,
                     &symbol,
                     situation_text.as_deref(),
+                    user_intent.as_deref(),
                     Arc::clone(&cancel_token),
                     Some(on_chunk),
                 ))

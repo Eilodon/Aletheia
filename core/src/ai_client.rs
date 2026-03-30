@@ -76,12 +76,14 @@ impl AIClient {
         passage: &Passage,
         symbol: &Symbol,
         situation_text: Option<&str>,
+        user_intent: Option<&str>,
         cancel_token: Arc<AtomicBool>,
     ) -> Result<AIInterpretation, AletheiaError> {
         self.request_interpretation_with_callback(
             passage,
             symbol,
             situation_text,
+            user_intent,
             cancel_token,
             None,
         )
@@ -93,10 +95,11 @@ impl AIClient {
         passage: &Passage,
         symbol: &Symbol,
         situation_text: Option<&str>,
+        user_intent: Option<&str>,
         cancel_token: Arc<AtomicBool>,
         on_chunk: Option<ChunkCallback>,
     ) -> Result<AIInterpretation, AletheiaError> {
-        let prompt = self.build_prompt(passage, symbol, situation_text);
+        let prompt = self.build_prompt(passage, symbol, situation_text, user_intent);
 
         // Try with retry and failover
         let providers = vec![
@@ -152,6 +155,7 @@ impl AIClient {
         passage: &Passage,
         symbol: &Symbol,
         situation_text: Option<&str>,
+        user_intent: Option<&str>,
     ) -> String {
         let mut parts = Vec::new();
 
@@ -167,6 +171,20 @@ impl AIClient {
             "Hãy trả lời hoàn toàn bằng ngôn ngữ của đoạn trích này: {}.",
             passage_language
         ));
+
+        // Add intent-based tone instruction
+        if let Some(intent) = user_intent {
+            let intent_instruction = match intent {
+                "clarity" => "Tone cho lần đọc này: phân tích rõ ràng, chính xác. User cần sự rõ ràng — giúp họ thấy pattern và structure trong tình huống.",
+                "comfort" => "Tone cho lần đọc này: ấm áp, chữa lành. User cần được an ủi — đặt sự nhẹ nhàng và compassion lên trên hết.",
+                "challenge" => "Tone cho lần đọc này: trực tiếp, không ngại đối mặt. User muốn bị thách thức — đừng ngại nêu lên những điều khó nghe.",
+                "guidance" => "Tone cho lần đọc này: mở, không định hướng. User để vũ trụ dẫn lối — đừng push bất kỳ hướng nào, chỉ mở không gian.",
+                _ => "",
+            };
+            if !intent_instruction.is_empty() {
+                parts.push(intent_instruction.to_string());
+            }
+        }
 
         if let Some(situation) = situation_text {
             parts.push(format!("Tình huống: {}", situation));

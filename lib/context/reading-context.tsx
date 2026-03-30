@@ -158,6 +158,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
           resonanceContext: passage.resonance_context, // AI-05: inject hidden context
           sourceLanguage: session.source.language,
           sourceFallbackPrompts: session.source.fallback_prompts,
+          userIntent: session.user_intent as "clarity" | "comfort" | "challenge" | "guidance" | undefined,
         },
         {
           onChunk: (fullText) => {
@@ -291,7 +292,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const timeoutId = window.setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       void saveReading();
     }, AUTO_SAVE_DELAY_MS);
 
