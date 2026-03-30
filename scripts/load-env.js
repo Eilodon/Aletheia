@@ -31,16 +31,32 @@ if (fs.existsSync(envPath)) {
   });
 }
 
-const mappings = {
-  VITE_APP_ID: "EXPO_PUBLIC_APP_ID",
-  VITE_OAUTH_PORTAL_URL: "EXPO_PUBLIC_OAUTH_PORTAL_URL",
-  OAUTH_SERVER_URL: "EXPO_PUBLIC_OAUTH_SERVER_URL",
-  OWNER_OPEN_ID: "EXPO_PUBLIC_OWNER_OPEN_ID",
-  OWNER_NAME: "EXPO_PUBLIC_OWNER_NAME",
+const legacyMappings = {
+  VITE_APP_ID: "APP_ID",
+  VITE_OAUTH_PORTAL_URL: "OAUTH_PORTAL_URL",
 };
 
-for (const [systemVar, expoVar] of Object.entries(mappings)) {
-  if (process.env[systemVar] && !process.env[expoVar]) {
-    process.env[expoVar] = process.env[systemVar];
+for (const [legacyVar, canonicalVar] of Object.entries(legacyMappings)) {
+  if (process.env[legacyVar] && !process.env[canonicalVar]) {
+    process.env[canonicalVar] = process.env[legacyVar];
+  }
+}
+
+const sharedMappings = [
+  ["APP_ID", "EXPO_PUBLIC_APP_ID"],
+  ["OAUTH_PORTAL_URL", "EXPO_PUBLIC_OAUTH_PORTAL_URL"],
+  ["OAUTH_SERVER_URL", "EXPO_PUBLIC_OAUTH_SERVER_URL"],
+  ["OWNER_OPEN_ID", "EXPO_PUBLIC_OWNER_OPEN_ID"],
+  ["OWNER_NAME", "EXPO_PUBLIC_OWNER_NAME"],
+  ["API_BASE_URL", "EXPO_PUBLIC_API_BASE_URL"],
+  ["ALETHEIA_APP_SECRET", "EXPO_PUBLIC_ALETHEIA_APP_SECRET"],
+];
+
+for (const [serverVar, expoVar] of sharedMappings) {
+  if (process.env[serverVar] && !process.env[expoVar]) {
+    process.env[expoVar] = process.env[serverVar];
+  }
+  if (process.env[expoVar] && !process.env[serverVar]) {
+    process.env[serverVar] = process.env[expoVar];
   }
 }

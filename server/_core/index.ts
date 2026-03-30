@@ -1,4 +1,4 @@
-import "dotenv/config";
+import "../../scripts/load-env.js";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
@@ -6,6 +6,7 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 // import { registerOAuthRoutes } from "./oauth"; // ADR-AL-21: OAuth disabled
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { validateServerEnv } from "./env";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -27,6 +28,8 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
+  validateServerEnv();
+
   const app = express();
   const server = createServer(app);
 
@@ -37,10 +40,10 @@ async function startServer() {
       res.header("Access-Control-Allow-Origin", origin);
     }
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    res.header(
-      "Access-Control-Allow-Headers",
-      "Origin, X-Requested-With, Content-Type, Accept, Authorization",
-    );
+      res.header(
+        "Access-Control-Allow-Headers",
+        "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-aletheia-app-secret",
+      );
     res.header("Access-Control-Allow-Credentials", "true");
 
     // Handle preflight requests

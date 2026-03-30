@@ -303,7 +303,7 @@ jobs:
             build
 
   lint:
-    name: Lint (ESLint + TypeScript)
+    name: Quality Gate (Lint + TypeScript + Vitest + Server Smoke)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -328,3 +328,23 @@ jobs:
 
       - name: Run TypeScript check
         run: pnpm tsc --noEmit
+
+      - name: Run Vitest
+        run: pnpm test
+
+      - name: Build server bundle
+        run: pnpm build
+
+      - name: Smoke server entrypoint
+        env:
+          JWT_SECRET: ci-smoke-secret
+          APP_ID: ci-smoke-app
+          OAUTH_SERVER_URL: https://example.invalid
+          OWNER_OPEN_ID: ci-owner
+          PORT: 3900
+        run: |
+          timeout 5s node dist/index.js
+          code=$?
+          if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then
+            exit "$code"
+          fi

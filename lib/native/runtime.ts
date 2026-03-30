@@ -9,10 +9,20 @@ import { aletheiaNativeClient } from "./aletheia-core";
 import { unwrapNativeSetApiKeyResponse } from "./bridge";
 
 let initPromise: Promise<void> | null = null;
+let hasWarnedAboutIosNativePending = false;
 
 export function shouldUseAletheiaNative(): boolean {
-  return (Platform.OS === "android" || Platform.OS === "ios")
-    && aletheiaNativeClient.isAvailable();
+  if (Platform.OS === "ios" && aletheiaNativeClient.isAvailable()) {
+    if (!hasWarnedAboutIosNativePending) {
+      console.warn(
+        "[Aletheia Native] iOS bridge is compiled into the module, but the UniFFI runtime is still pending. Using JS fallback on iOS.",
+      );
+      hasWarnedAboutIosNativePending = true;
+    }
+    return false;
+  }
+
+  return Platform.OS === "android" && aletheiaNativeClient.isAvailable();
 }
 
 export function getNativeDbPath(): string {
@@ -23,7 +33,7 @@ export function getNativeDbPath(): string {
 }
 
 export function getGiftBackendUrl(): string {
-  return getApiBaseUrl() || "https://example.invalid";
+  return process.env.EXPO_PUBLIC_GIFT_BACKEND_URL || getApiBaseUrl() || "https://example.invalid";
 }
 
 export async function initializeAletheiaNative(): Promise<void> {
@@ -42,27 +52,59 @@ export async function initializeAletheiaNative(): Promise<void> {
     });
 
     // Fetch API keys from server (keys live in server env vars, not client bundle)
-    try {
-      const client = createTRPCClient();
-      const config = await client.aiConfig.getProviderConfig.query();
-      const providers = [
-        { provider: "claude", key: config.keys.claude },
-        { provider: "gpt4", key: config.keys.gpt4 },
-        { provider: "gemini", key: config.keys.gemini },
-      ] as const;
+    const apiBaseUrl = getApiBaseUrl();
+    if (!apiBaseUrl) {
+      console.warn(
+        "[AI Runtime] EXPO_PUBLIC_API_BASE_URL is missing; native provider config cannot be fetched. Using fallback mode.",
+      );
+    } else {
+      try {
+        const client = createTRPCClient();
+        const config = await client.aiConfig.getProviderConfig.query();
+        const providers = [
+          { provider: "claude", key: config.keys.claude, status: config.claude },
+          { provider: "gpt4", key: config.keys.gpt4, status: config.gpt4 },
+          { provider: "gemini", key: config.keys.gemini, status: config.gemini },
+        ] as const;
 
-      for (const entry of providers) {
-        if (!entry.key) continue;
-        await unwrapNativeSetApiKeyResponse(
-          await aletheiaNativeClient.setApiKey({
-            provider: entry.provider,
-            key: entry.key,
-          }),
+        const configuredProviders = providers.filter((entry) => entry.status === "configured");
+        const usableProviders = providers.filter(
+          (entry): entry is typeof providers[number] & { key: string } => typeof entry.key === "string" && entry.key.length > 0,
+        );
+
+        if (usableProviders.length === 0) {
+          if (configuredProviders.length > 0) {
+            console.warn(
+              "[AI Runtime] Provider config endpoint is reachable but keys were not exposed to the native runtime. Using fallback mode.",
+            );
+          } else {
+            console.warn(
+              "[AI Runtime] No AI provider keys are configured on the server. Using fallback mode.",
+            );
+          }
+        }
+
+        for (const entry of usableProviders) {
+          await unwrapNativeSetApiKeyResponse(
+            await aletheiaNativeClient.setApiKey({
+              provider: entry.provider,
+              key: entry.key,
+            }),
+          );
+        }
+
+        if (usableProviders.length > 0) {
+          console.log(
+            "[AI Runtime] Provider keys configured from server",
+            usableProviders.map((entry) => entry.provider),
+          );
+        }
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        console.warn(
+          `[AI Runtime] Could not fetch provider config from ${apiBaseUrl}/api/trpc (${reason}). Using fallback mode.`,
         );
       }
-      console.log("[AI Runtime] Provider keys configured from server");
-    } catch (_err) {
-      console.warn("[AI Runtime] Could not fetch provider config (offline?), using fallback mode");
     }
 
     const response = await aletheiaNativeClient.seedBundledData({
