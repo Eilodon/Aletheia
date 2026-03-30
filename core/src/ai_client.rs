@@ -317,7 +317,13 @@ impl AIClient {
                 AI_STREAM_TIMEOUT_MS as u64,
             ))
             .send()
-            .await?;
+            .await
+            .map_err(|e| {
+                if !is_domain_allowed("api.anthropic.com") {
+                    warn!("[AI] Request to disallowed domain: api.anthropic.com");
+                }
+                e
+            })?;
 
         if response.status() == 429 {
             return Err(AletheiaError::ai_unavailable());
@@ -370,7 +376,13 @@ impl AIClient {
                 AI_STREAM_TIMEOUT_MS as u64,
             ))
             .send()
-            .await?;
+            .await
+            .map_err(|e| {
+                if !is_domain_allowed("api.openai.com") {
+                    warn!("[AI] Request to disallowed domain: api.openai.com");
+                }
+                e
+            })?;
 
         if response.status() == 429 {
             return Err(AletheiaError::ai_unavailable());
@@ -427,7 +439,13 @@ impl AIClient {
                 AI_STREAM_TIMEOUT_MS as u64,
             ))
             .send()
-            .await?;
+            .await
+            .map_err(|e| {
+                if !is_domain_allowed("generativelanguage.googleapis.com") {
+                    warn!("[AI] Request to disallowed domain: generativelanguage.googleapis.com");
+                }
+                e
+            })?;
 
         if response.status() == 429 {
             return Err(AletheiaError::ai_unavailable());
