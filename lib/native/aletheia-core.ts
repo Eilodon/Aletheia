@@ -126,8 +126,9 @@ class AletheiaNativeClient {
     passage: NativePassage,
     symbol: NativeSymbol,
     situationText?: string,
+    userIntent?: string,
   ): Promise<NativeStartInterpretationStreamResponse> {
-    return this.requireModule().startInterpretationStream(passage, symbol, situationText);
+    return this.requireModule().startInterpretationStream(passage, symbol, situationText, userIntent);
   }
 
   pollInterpretationStream(

@@ -3,6 +3,22 @@ import "./scripts/load-env.js";
 import type { ExpoConfig } from "expo/config";
 import withAletheiaCoreModule from "./modules/aletheia-core-module/plugin";
 
+/**
+ * Validates that a required environment variable is set.
+ * Throws a descriptive error if missing.
+ */
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(
+      `Missing required environment variable: ${name}\n` +
+      `Please set it in your .env file (see .env.example for reference)\n` +
+      `To get your EAS Project ID, run: npx eas project:init`
+    );
+  }
+  return value;
+}
+
 // Bundle ID format: space.manus.<project_name_dots>.<timestamp>
 // e.g., "my-app" created at 2024-01-15 10:30:45 -> "space.manus.my.app.t20240115103045"
 // Bundle ID can only contain letters, numbers, and dots
@@ -73,7 +89,8 @@ const config: ExpoConfig = {
     intentFilters: [
       {
         action: "VIEW",
-        autoVerify: true,
+        // Note: autoVerify removed for beta - wildcard host cannot be verified
+        // For production App Links, use specific domain and host assetlinks.json
         data: [
           {
             scheme: env.scheme,
@@ -121,7 +138,7 @@ const config: ExpoConfig = {
   // ── THÊM: EAS config ──────────────────────────────────────────────────
   extra: {
     eas: {
-      projectId: process.env.EXPO_PUBLIC_EAS_PROJECT_ID,
+      projectId: requireEnv("EXPO_PUBLIC_EAS_PROJECT_ID"),
     },
   },
   owner: process.env.EXPO_PUBLIC_OWNER_NAME ?? undefined,
