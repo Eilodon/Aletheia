@@ -76,8 +76,8 @@ export default function HistoryScreen() {
 
   const handleReadingPress = (reading: ReadingWithDetails) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Navigate to reading detail
-    console.log("View reading:", reading.id);
+    // Using any to bypass expo-router type strictness - route exists in app/reading/_layout.tsx
+    router.push((`/reading/${reading.id}`) as any);
   };
 
   const formatDate = (timestamp: number) => {

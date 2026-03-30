@@ -419,7 +419,7 @@ internal interface _UniFFILib : Library {
     ): RustBuffer.ByValue
     fun uniffi_aletheia_core_fn_method_aletheiacore_set_local_date(`ptr`: Pointer,`localDate`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Unit
-    fun uniffi_aletheia_core_fn_method_aletheiacore_start_interpretation_stream(`ptr`: Pointer,`passage`: RustBuffer.ByValue,`symbol`: RustBuffer.ByValue,`situationText`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
+    fun uniffi_aletheia_core_fn_method_aletheiacore_start_interpretation_stream(`ptr`: Pointer,`passage`: RustBuffer.ByValue,`symbol`: RustBuffer.ByValue,`situationText`: RustBuffer.ByValue,`userIntent`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_aletheia_core_fn_method_aletheiacore_update_user_state(`ptr`: Pointer,`state`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
@@ -640,7 +640,7 @@ private fun uniffiCheckApiChecksums(lib: _UniFFILib) {
     if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_set_local_date() != 21811.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
-    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_start_interpretation_stream() != 22165.toShort()) {
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_start_interpretation_stream() != 46034.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_update_user_state() != 57698.toShort()) {
@@ -991,7 +991,7 @@ public interface AletheiaCoreInterface {
     fun `seedBundledData`(`sourcesJson`: String, `passagesJson`: String, `themesJson`: String): SeedBundledDataResponse
     fun `setAiApiKey`(`provider`: String, `key`: String): SetApiKeyResponse
     fun `setLocalDate`(`localDate`: String)
-    fun `startInterpretationStream`(`passage`: Passage, `symbol`: Symbol, `situationText`: String?): StartInterpretationStreamResponse
+    fun `startInterpretationStream`(`passage`: Passage, `symbol`: Symbol, `situationText`: String?, `userIntent`: String?): StartInterpretationStreamResponse
     fun `updateUserState`(`state`: UserState): UpdateUserStateResponse
     companion object
 }
@@ -1194,11 +1194,11 @@ class AletheiaCore(
         }
     
     
-    override fun `startInterpretationStream`(`passage`: Passage, `symbol`: Symbol, `situationText`: String?): StartInterpretationStreamResponse =
+    override fun `startInterpretationStream`(`passage`: Passage, `symbol`: Symbol, `situationText`: String?, `userIntent`: String?): StartInterpretationStreamResponse =
         callWithPointer {
     rustCall() { _status ->
     _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_start_interpretation_stream(it,
-        FfiConverterTypePassage.lower(`passage`),FfiConverterTypeSymbol.lower(`symbol`),FfiConverterOptionalString.lower(`situationText`),
+        FfiConverterTypePassage.lower(`passage`),FfiConverterTypeSymbol.lower(`symbol`),FfiConverterOptionalString.lower(`situationText`),FfiConverterOptionalString.lower(`userIntent`),
         _status)
 }
         }.let {

@@ -426,7 +426,7 @@ public protocol AletheiaCoreProtocol {
     func seedBundledData(sourcesJson: String, passagesJson: String, themesJson: String)   -> SeedBundledDataResponse
     func setAiApiKey(provider: String, key: String)   -> SetApiKeyResponse
     func setLocalDate(localDate: String)  
-    func startInterpretationStream(passage: Passage, symbol: Symbol, situationText: String?)   -> StartInterpretationStreamResponse
+    func startInterpretationStream(passage: Passage, symbol: Symbol, situationText: String?, userIntent: String?)   -> StartInterpretationStreamResponse
     func updateUserState(state: UserState)   -> UpdateUserStateResponse
     
 }
@@ -660,7 +660,7 @@ public class AletheiaCore: AletheiaCoreProtocol {
 }
     }
 
-    public func startInterpretationStream(passage: Passage, symbol: Symbol, situationText: String?)  -> StartInterpretationStreamResponse {
+    public func startInterpretationStream(passage: Passage, symbol: Symbol, situationText: String?, userIntent: String?)  -> StartInterpretationStreamResponse {
         return try!  FfiConverterTypeStartInterpretationStreamResponse.lift(
             try! 
     rustCall() {
@@ -668,7 +668,8 @@ public class AletheiaCore: AletheiaCoreProtocol {
     uniffi_aletheia_core_fn_method_aletheiacore_start_interpretation_stream(self.pointer, 
         FfiConverterTypePassage.lower(passage),
         FfiConverterTypeSymbol.lower(symbol),
-        FfiConverterOptionString.lower(situationText),$0
+        FfiConverterOptionString.lower(situationText),
+        FfiConverterOptionString.lower(userIntent),$0
     )
 }
         )
@@ -3833,7 +3834,7 @@ private var initializationResult: InitializationResult {
     if (uniffi_aletheia_core_checksum_method_aletheiacore_set_local_date() != 21811) {
         return InitializationResult.apiChecksumMismatch
     }
-    if (uniffi_aletheia_core_checksum_method_aletheiacore_start_interpretation_stream() != 22165) {
+    if (uniffi_aletheia_core_checksum_method_aletheiacore_start_interpretation_stream() != 46034) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_update_user_state() != 57698) {

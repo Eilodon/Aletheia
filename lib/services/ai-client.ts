@@ -152,7 +152,6 @@ class AIClientService {
           passage,
           request.symbol,
           request.situationText,
-          request.userIntent,
         ),
       );
 

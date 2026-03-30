@@ -8,13 +8,14 @@ import { getCurrentUserId } from "@/lib/services/current-user-id";
 import { SubscriptionTier } from "@/lib/types";
 import * as Haptics from "expo-haptics";
 
-// RevenueCat types (mock for now)
+// RevenueCat types (mock for now) - TODO: Remove when RevenueCat integrated
 interface Package {
   identifier: string;
   priceString: string;
   price: number;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface Offering {
   identifier: string;
   packages: Package[];
@@ -56,6 +57,7 @@ export default function PaywallScreen() {
   }, [fadeAnim]);
 
   // Use USD prices from CONTRACTS.md (RevenueCat will auto-localize based on store country)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const packages: Package[] = [
     { identifier: "monthly", priceString: `$${PRO_PRICE_MONTHLY_USD}/mo`, price: PRO_PRICE_MONTHLY_USD },
     { identifier: "yearly", priceString: `$${PRO_PRICE_YEARLY_USD}/yr`, price: PRO_PRICE_YEARLY_USD },
@@ -71,7 +73,8 @@ export default function PaywallScreen() {
     setIsPurchasing(true);
 
     try {
-      // Simulate purchase (will be replaced with RevenueCat)
+      // TODO: Replace with actual RevenueCat integration
+      // Currently simulating purchase for development/testing
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Update user tier

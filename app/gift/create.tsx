@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { View, Text, Pressable, ScrollView, Animated, TextInput } from "react-native";
+import { View, Text, Pressable, ScrollView, Animated, TextInput, Share } from "react-native";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
@@ -91,11 +91,20 @@ export default function GiftCreateScreen() {
     }
   };
 
-  const handleShareGift = () => {
+  const handleShareGift = async () => {
     if (!giftResult) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // Share logic would go here
-    console.log("Sharing gift:", giftResult.deepLink);
+    
+    try {
+      await Share.share({
+        title: "Một khoảnh khắc từ Aletheia",
+        message: `Tôi muốn tặng bạn một khoảnh khắc phản chiếu: ${giftResult.deepLink}`,
+        url: giftResult.deepLink,
+      });
+    } catch {
+      // Fallback: copy to clipboard
+      console.log("Share cancelled or failed, link:", giftResult.deepLink);
+    }
   };
 
   const handleClose = () => {

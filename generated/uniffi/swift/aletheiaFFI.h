@@ -99,7 +99,7 @@ RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_set_ai_api_key(void*_Nonn
 );
 void uniffi_aletheia_core_fn_method_aletheiacore_set_local_date(void*_Nonnull ptr, RustBuffer local_date, RustCallStatus *_Nonnull out_status
 );
-RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_start_interpretation_stream(void*_Nonnull ptr, RustBuffer passage, RustBuffer symbol, RustBuffer situation_text, RustCallStatus *_Nonnull out_status
+RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_start_interpretation_stream(void*_Nonnull ptr, RustBuffer passage, RustBuffer symbol, RustBuffer situation_text, RustBuffer user_intent, RustCallStatus *_Nonnull out_status
 );
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_update_user_state(void*_Nonnull ptr, RustBuffer state, RustCallStatus *_Nonnull out_status
 );
