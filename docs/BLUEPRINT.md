@@ -47,7 +47,7 @@
 
 **Architectural guardrails for next rewrite phase:**
 - Android UI không được gọi `aletheiaNativeClient` hay `shouldUseAletheiaNative()` trực tiếp ngoài adapter layer.
-- Android không được phụ thuộc vào `seed-data.ts` cho domain data trong release path.
+- Current repo state: Android runtime vẫn seed Rust từ `lib/data/content.ts` (re-export `seed-data.ts`); Rust-owned content artifact vẫn là work còn mở.
 - Mọi Android read/write domain model phải đi qua UniFFI surface hoặc facade bọc UniFFI đó.
 - Web có thể giữ TS path riêng, nhưng không được quyết định contract cho Android.
 
@@ -581,7 +581,7 @@ PSEUDOCODE:
      //          khác user cùng ngày = thường khác nhau
 
   2. matrix = Store.get_notification_matrix()
-     // 150 entries bundled trong binary
+     // Current repo state: 20 curated entries, mirrored from checked-in seed data
 
   3. Return matrix[seed]
 
@@ -636,13 +636,15 @@ Fallback khi unavailable:
 
 ### RevenueCat
 
-**Dùng ở:** UI Layer trực tiếp (SDK)
+**Current repo state:** Chưa tích hợp SDK. Paywall đang là UI + state simulation, không gọi RevenueCat runtime.
+**Future target:** UI Layer trực tiếp (SDK)
 **Auth:** Public SDK key
 
 ```
 Entitlement key: "pro"
-Cache: RevenueCat SDK tự cache — dùng cached value khi offline
-Failure: Nếu SDK unavailable → assume Free tier (safe default)
+Current state: chưa có cache hay restore path thật vì SDK đã được gỡ khỏi package surface
+Future target: RevenueCat SDK tự cache — dùng cached value khi offline
+Failure policy: nếu SDK chưa được wire hoặc unavailable → assume Free tier (safe default)
 ```
 
 ---
@@ -765,7 +767,7 @@ PHASE 3 — Share + Gift
   Gate: Share card renders đẹp, gift create/redeem flow E2E hoạt động
 
 PHASE 4 — Monetization + Polish
-  [4.1] RevenueCat integration + paywall UI
+  [4.1] RevenueCat integration (paywall UI đã có mock path)
         depends: [1.4]
 
   [4.2] core/notif.rs — NotificationScheduler
@@ -816,7 +818,7 @@ aletheia/
 │   │   ├── themes/
 │   │   │   └── default_themes.fbs    ← 5 free themes
 │   │   └── notifications/
-│   │       └── matrix.fbs            ← 150 entries
+│   │       └── seed-data.ts          ← current checked-in notification matrix (20 entries)
 │   │
 │   └── aletheia.udl                  ← UniFFI interface definition
 │

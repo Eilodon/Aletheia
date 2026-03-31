@@ -361,13 +361,13 @@ Co-Star case study: 1 notification/day với copy đủ sharp = screenshot-worth
 ### Decision
 
 > 1 notification/ngày, giờ do user set. Formula cố định: *"Vũ trụ hôm nay lật: [Symbol]. [Tension question]?"*
-> Content: static matrix 150 entries, bundled trong binary, seeded by date+user_id.
+> Current repo state: static matrix 20 entries, checked into `lib/data/seed-data.ts`, seeded by date+user_id.
 
 ### Consequences
 
 **Tích cực:**
 - Consistent tone, zero API cost
-- 150 entries = không lặp trong 5 tháng
+- 20 entries = đơn giản để kiểm soát copy, nhưng sẽ lặp sớm hơn
 - Screenshot-worthy format = organic viral
 
 **Xem thêm:** CONTRACTS.md `NotificationEntry`, BLUEPRINT.md Section 5 — NotificationScheduler
@@ -465,7 +465,7 @@ Test 3 notification archetypes trong VHEATM Cycle #2 E4. Type C wins trên share
 ### Decision
 
 > Formula: *"Vũ trụ hôm nay lật: [Symbol]. [Tension question]?"*
-> Matrix: 30 symbols × 5 questions = 150 entries. Bundled, zero API dependency.
+> Current repo state: 20 curated entries trong source control; không còn tuyên bố 150-entry binary matrix.
 > Selection: seeded random by date string + user_id → consistent per user per day, khác nhau giữa users.
 
 ### Consequences
@@ -862,7 +862,7 @@ Bundled content cho Android phải được sở hữu bởi Rust hoặc sinh ra
 
 ### Context
 
-Intent onboarding hiện chỉ nằm trong AsyncStorage, trong khi Rust reading session không nhận giá trị này. Kết quả là `user_intent` xuất hiện trong schema nhưng không có owner thực thi.
+Historical trigger của ADR này là intent onboarding từng nằm ngoài core-owned state. Current repo state đã route onboarding qua `coreStore.updateUserState()` và Rust reading session đã đọc `user_state.user_intent`, nhưng decision này vẫn giữ nguyên như guardrail để tránh drift quay lại.
 
 ### Decision
 

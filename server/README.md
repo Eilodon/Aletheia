@@ -189,13 +189,15 @@ export type InsertItem = typeof items.$inferInsert;
 
 ### Running Migrations
 
-After editing the schema, push changes to the database:
+This repo no longer exposes a live migration flow. Aletheia currently runs with
+local/native persistence plus an in-memory server user store, so `db:push` is intentionally absent.
 
 ```bash
-pnpm db:push
+pnpm check
 ```
 
-This runs `drizzle-kit generate` and `drizzle-kit migrate`.
+If a real server database is reintroduced later, wire a proper migration command
+back into `package.json` instead of relying on the old placeholder flow.
 
 ### Query Helpers
 

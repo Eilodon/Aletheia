@@ -147,20 +147,26 @@ echo "--- Rust / Core ---"
 
 remove_dir "core/target"
 remove_dir "core/cpp_bindings"
+remove_dir "artifacts/android"
+remove_dir "modules/aletheia-core-module/.native-staging"
 
 # -----------------------------------------------------------------------------
-# TypeScript / Build
+# TypeScript / Build / Legacy generated data
 # -----------------------------------------------------------------------------
 echo ""
-echo "--- TypeScript / Build ---"
+echo "--- TypeScript / Build / Legacy generated data ---"
 
 remove_dir "dist"
 remove_dir "build"
 remove_dir "web-build"
 remove_dir "coverage"
+remove_dir "lib/data/content"
 
-# Remove tsbuildinfo files
-find . -name "*.tsbuildinfo" -type f 2>/dev/null | while read -r file; do
+# Remove tsbuildinfo files outside dependency/vendor trees
+find . \
+  -path "./node_modules" -prune -o \
+  -path "./.git" -prune -o \
+  -name "*.tsbuildinfo" -type f -print 2>/dev/null | while read -r file; do
   remove_file "$file"
 done
 
@@ -176,8 +182,11 @@ echo "--- Temporary Files ---"
 remove_dir "tmp"
 remove_dir "temp"
 
-# Remove .tmp and .temp files
-find . -name "*.tmp" -o -name "*.temp" 2>/dev/null | while read -r file; do
+# Remove .tmp and .temp files outside dependency/vendor trees
+find . \
+  -path "./node_modules" -prune -o \
+  -path "./.git" -prune -o \
+  \( -name "*.tmp" -o -name "*.temp" \) -type f -print 2>/dev/null | while read -r file; do
   remove_file "$file"
 done
 
@@ -187,13 +196,19 @@ done
 echo ""
 echo "--- OS-specific ---"
 
-# Remove .DS_Store recursively
-find . -name ".DS_Store" -type f 2>/dev/null | while read -r file; do
+# Remove .DS_Store recursively outside dependency/vendor trees
+find . \
+  -path "./node_modules" -prune -o \
+  -path "./.git" -prune -o \
+  -name ".DS_Store" -type f -print 2>/dev/null | while read -r file; do
   remove_file "$file"
 done
 
 # Remove Thumbs.db
-find . -name "Thumbs.db" -type f 2>/dev/null | while read -r file; do
+find . \
+  -path "./node_modules" -prune -o \
+  -path "./.git" -prune -o \
+  -name "Thumbs.db" -type f -print 2>/dev/null | while read -r file; do
   remove_file "$file"
 done
 
