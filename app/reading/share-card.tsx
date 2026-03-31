@@ -59,7 +59,7 @@ function CardPreview({
             fontStyle: "italic",
           }}
         >
-          "{truncateText(passageText)}"
+          &quot;{truncateText(passageText)}&quot;
         </Text>
       </View>
 

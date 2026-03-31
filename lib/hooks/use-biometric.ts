@@ -28,8 +28,6 @@ export function useBiometric() {
       type = "facial";
     } else if (biometricType.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
       type = "fingerprint";
-    } else if (biometricType.includes(LocalAuthentication.AuthenticationType.IRIS)) {
-      type = "iris";
     }
 
     return {
@@ -47,9 +45,6 @@ export function useBiometric() {
       try {
         const result = await LocalAuthentication.authenticateAsync({
           promptMessage,
-          cancelLabel: "Cancel",
-          disableDeviceFallback: false,
-          fallbackLabel: "Use Passcode",
         });
 
         if (result.success) {
