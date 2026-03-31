@@ -5,35 +5,17 @@ import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { coreStore } from "@/lib/services/core-store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
-import { SubscriptionTier } from "@/lib/types";
 import * as Haptics from "expo-haptics";
-
-// RevenueCat types (mock for now) - TODO: Remove when RevenueCat integrated
-interface Package {
-  identifier: string;
-  priceString: string;
-  price: number;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface Offering {
-  identifier: string;
-  packages: Package[];
-}
 
 const FREE_READINGS_PER_DAY = 3;
 const FREE_AI_PER_DAY = 1;
-
-// Price constants from CONTRACTS.md
-const PRO_PRICE_MONTHLY_USD = 3.99;
-const PRO_PRICE_YEARLY_USD = 29.99;
 
 export default function PaywallScreen() {
   const colors = useColors();
   const router = useRouter();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [isPurchasing, setIsPurchasing] = useState(false);
   const [currentTier, setCurrentTier] = useState<"free" | "pro">("free");
+  const [billingNotice, setBillingNotice] = useState<string | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -56,13 +38,6 @@ export default function PaywallScreen() {
     }).start();
   }, [fadeAnim]);
 
-  // Use USD prices from CONTRACTS.md (RevenueCat will auto-localize based on store country)
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const packages: Package[] = [
-    { identifier: "monthly", priceString: `$${PRO_PRICE_MONTHLY_USD}/mo`, price: PRO_PRICE_MONTHLY_USD },
-    { identifier: "yearly", priceString: `$${PRO_PRICE_YEARLY_USD}/yr`, price: PRO_PRICE_YEARLY_USD },
-  ];
-
   const handlePurchase = async () => {
     if (!selectedPlan) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -70,41 +45,14 @@ export default function PaywallScreen() {
     }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setIsPurchasing(true);
-
-    try {
-      // TODO: Replace with actual RevenueCat integration
-      // Currently simulating purchase for development/testing
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      // Update user tier
-      const userId = await getCurrentUserId();
-      const userState = await coreStore.getUserState(userId);
-      await coreStore.updateUserState({
-        ...userState,
-        subscription_tier: SubscriptionTier.Pro,
-      });
-
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      router.back();
-    } catch (error) {
-      console.error("Purchase failed:", error);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    } finally {
-      setIsPurchasing(false);
-    }
+    setBillingNotice("Thanh toán Pro chưa được bật trong beta này. Không có giao dịch hoặc nâng hạng giả được thực hiện.");
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
   };
 
   const handleRestore = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
-    try {
-      // Simulate restore
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      console.log("Restore purchases");
-    } catch (error) {
-      console.error("Restore failed:", error);
-    }
+    setBillingNotice("Khôi phục mua hàng chưa khả dụng vì RevenueCat chưa được tích hợp trong beta hiện tại.");
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
   };
 
   const handleClose = () => {
@@ -207,6 +155,23 @@ export default function PaywallScreen() {
             <View style={{ padding: 16, borderRadius: 14, backgroundColor: colors.surface + "10", marginBottom: 8 }}>
               <Text style={{ fontSize: 13, color: colors.muted, textAlign: "center" }}>
                 Miễn phí: {FREE_READINGS_PER_DAY} lần đọc/ngày • {FREE_AI_PER_DAY} AI/ngày
+              </Text>
+            </View>
+          )}
+
+          {currentTier === "free" && billingNotice && (
+            <View
+              style={{
+                padding: 16,
+                borderRadius: 14,
+                backgroundColor: colors.primary + "10",
+                borderWidth: 1,
+                borderColor: colors.primary + "25",
+                marginBottom: 8,
+              }}
+            >
+              <Text style={{ fontSize: 13, color: colors.foreground, textAlign: "center", lineHeight: 20 }}>
+                {billingNotice}
               </Text>
             </View>
           )}
@@ -337,7 +302,7 @@ export default function PaywallScreen() {
               <>
                 <Pressable
                   onPress={handlePurchase}
-                  disabled={!selectedPlan || isPurchasing}
+                  disabled={!selectedPlan}
                   style={({ pressed }) => ({
                     backgroundColor: !selectedPlan ? colors.surface + "40" : colors.primary,
                     paddingHorizontal: 32,
@@ -353,11 +318,7 @@ export default function PaywallScreen() {
                   })}
                 >
                   <Text style={{ fontSize: 17, fontWeight: "600", color: "#FFFFFF", textAlign: "center" }}>
-                    {isPurchasing
-                      ? "Đang mở khóa..."
-                      : selectedPlan
-                      ? "Mở khóa Pro"
-                      : "Chọn gói để tiếp tục"}
+                    {selectedPlan ? "Thông báo mở khóa Pro" : "Chọn gói để tiếp tục"}
                   </Text>
                 </Pressable>
 
@@ -386,7 +347,7 @@ export default function PaywallScreen() {
             )}
 
             <Text style={{ fontSize: 11, color: colors.muted, textAlign: "center", paddingHorizontal: 20, lineHeight: 18 }}>
-              Thanh toán qua App Store/Google Play. Tự động gia hạn. Hủy bất kỳ lúc nào.
+              Trong beta hiện tại, màn hình này chỉ hiển thị cấu trúc gói. Thanh toán thật chưa được bật.
             </Text>
           </View>
         </ScrollView>

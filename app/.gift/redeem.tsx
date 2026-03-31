@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { View, Text, Pressable, TextInput, Animated, KeyboardAvoidingView, Platform } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
@@ -30,7 +30,7 @@ export default function GiftRedeemScreen() {
     }).start();
   }, [fadeAnim]);
 
-  async function handleRedeem(tokenToRedeem: string = token) {
+  const handleRedeem = useCallback(async (tokenToRedeem: string = token) => {
     if (!tokenToRedeem.trim()) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
@@ -74,7 +74,7 @@ export default function GiftRedeemScreen() {
     } finally {
       setIsRedeeming(false);
     }
-  }
+  }, [token]);
 
   // Auto-redeem if token provided via deep link
   useEffect(() => {
@@ -83,7 +83,7 @@ export default function GiftRedeemScreen() {
         console.error("Auto-redeem failed:", error);
       });
     }
-  }, [redeemResult, tokenParam]);
+  }, [handleRedeem, redeemResult, tokenParam]);
 
   const handleStartReading = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);

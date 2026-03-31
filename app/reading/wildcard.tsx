@@ -4,7 +4,7 @@ import { useRouter } from "expo-router";
 import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
-import { SymbolMethod, ReadingState } from "@/lib/types";
+import { SymbolMethod } from "@/lib/types";
 import * as Haptics from "expo-haptics";
 
 // Card flip animation component
@@ -46,7 +46,7 @@ function SymbolCard({
       });
     }, delay);
     return () => clearTimeout(timeout);
-  }, [index]);
+  }, [animatedValue, index]);
 
   const handlePress = () => {
     if (!isRevealed || isSelected) return;
@@ -136,8 +136,7 @@ function SymbolCard({
 }
 
 export default function WildcardScreen() {
-  const { session, currentState, chooseSymbol, selectedSymbolId } = useReading();
-  const colors = useColors();
+  const { session, chooseSymbol, selectedSymbolId } = useReading();
   const router = useRouter();
   const [isRevealed, setIsRevealed] = useState(false);
   const [isAutoSelecting, setIsAutoSelecting] = useState(false);

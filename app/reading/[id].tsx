@@ -4,8 +4,7 @@ import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { useEffect, useState } from "react";
 import { coreStore } from "@/lib/services/core-store";
-import { Reading } from "@/lib/types";
-import * as Haptics from "expo-haptics";
+import type { Reading } from "@/lib/types";
 
 export default function ReadingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

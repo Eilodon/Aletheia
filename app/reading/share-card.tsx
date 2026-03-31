@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { View, Text, Pressable, ScrollView, Animated, Share, Platform } from "react-native";
+import { View, Text, Pressable, ScrollView, Animated, Share } from "react-native";
 import { useRouter } from "expo-router";
 import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import * as Haptics from "expo-haptics";
-import * as FileSystem from "expo-file-system";
 import { captureRef } from "react-native-view-shot";
 
 // Card preview component - Premium artifact style
