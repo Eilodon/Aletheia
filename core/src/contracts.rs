@@ -104,7 +104,7 @@ pub const WILDCARD_AUTO_DELAY_MS: u32 = 800;
 #[allow(dead_code)]
 pub const SYMBOL_FADE_STAGGER_MS: u32 = 200;
 pub const AI_STREAM_TIMEOUT_MS: u32 = 15_000;
-pub const NOTIFICATION_MATRIX_SIZE: u16 = 150;
+pub const NOTIFICATION_MATRIX_SIZE: u16 = 20;
 
 #[allow(dead_code)]
 pub const MIN_PASSAGE_CHARS: u16 = 20;

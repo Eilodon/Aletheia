@@ -18,6 +18,13 @@ const mockDb = vi.hoisted(() => ({
       return { count: (mockDb.data.get("readings") || []).length };
     }
 
+    if (query.includes("SELECT display_name FROM symbols WHERE id = ?")) {
+      const rows = mockDb.data.get("symbols") || [];
+      const param = params?.[0];
+      const symbol = rows.find((r) => r.id === param);
+      return symbol ? { display_name: symbol.display_name } : null;
+    }
+
     const tableMatch = query.match(/SELECT \* FROM (\w+)/);
     if (!tableMatch) return null;
 
@@ -341,6 +348,52 @@ describe("StoreService", () => {
       // ASSERT
       expect(passage).not.toBeNull();
       expect(passage?.source_id).toBe("i_ching");
+    });
+  });
+
+  describe("reading lookups", () => {
+    it("returns a reading by id without paging through history in the caller", async () => {
+      await store.initialize();
+
+      mockDb.data.set("readings", [
+        {
+          id: "reading-123",
+          created_at: 1,
+          source_id: "i_ching",
+          passage_id: "iching_1",
+          theme_id: "moments",
+          symbol_chosen: "candle",
+          symbol_method: "Manual",
+          situation_text: "test",
+          ai_interpreted: 1,
+          ai_used_fallback: 0,
+          read_duration_s: 12,
+          time_to_ai_request_s: 3,
+          notification_opened: 0,
+          mood_tag: null,
+          is_favorite: 0,
+          shared: 0,
+          user_intent: null,
+        },
+      ]);
+
+      const reading = await store.getReadingById("reading-123");
+
+      expect(reading?.id).toBe("reading-123");
+      expect(reading?.symbol_chosen).toBe("candle");
+    });
+  });
+
+  describe("daily notification message", () => {
+    it("returns the full NotificationMessage shape with symbol display name", async () => {
+      await store.initialize();
+
+      const message = await store.getDailyNotificationMessage("user-1", "2025-06-15");
+
+      expect(message.title).toBe("✦ Vũ trụ hôm nay lật");
+      expect(message.question).toBeTruthy();
+      expect(message.body).toContain("?");
+      expect(message.body).toContain(".");
     });
   });
 });

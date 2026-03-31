@@ -33,7 +33,11 @@ export function getNativeDbPath(): string {
 }
 
 export function getGiftBackendUrl(): string {
-  return process.env.EXPO_PUBLIC_GIFT_BACKEND_URL || getApiBaseUrl() || "https://example.invalid";
+  return process.env.EXPO_PUBLIC_GIFT_BACKEND_URL || getApiBaseUrl() || "";
+}
+
+export function isGiftBackendConfigured(): boolean {
+  return getGiftBackendUrl().trim().length > 0;
 }
 
 export async function initializeAletheiaNative(): Promise<void> {

@@ -19,7 +19,7 @@ export const SYMBOL_FADE_STAGGER_MS = 200;
 export const AI_STREAM_TIMEOUT_MS = 15_000;
 
 // Notification
-export const NOTIFICATION_MATRIX_SIZE = 150;
+export const NOTIFICATION_MATRIX_SIZE = 20;
 
 // Content constraints
 export const MIN_PASSAGE_CHARS = 20;

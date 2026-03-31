@@ -23,51 +23,53 @@ impl GiftClient {
         source_id: Option<String>,
         buyer_note: Option<String>,
     ) -> Result<GiftResponse, AletheiaError> {
-        let now = chrono_timestamp();
-        let token = generate_base62_token(16);
-        let deep_link = format!("https://aletheia.app/gift/{}", token);
+        if self.backend_url.trim().is_empty() {
+            return Err(AletheiaError::invalid_input(
+                "gift_backend_url",
+                "Gift backend is not configured",
+            ));
+        }
 
-        // Try to create via backend
         let client = reqwest::Client::new();
-        let response = client
+        let resp = client
             .post(&format!("{}/gift/create", self.backend_url))
             .json(&serde_json::json!({
                 "source_id": source_id,
                 "buyer_note": buyer_note,
             }))
             .send()
-            .await;
+            .await?;
 
-        match response {
-            Ok(resp) if resp.status().is_success() => {
-                let json: serde_json::Value = resp.json().await?;
-                info!("Created gift via backend: {}", json["token"]);
-                Ok(GiftResponse {
-                    token: json["token"].as_str().unwrap_or(&token).to_string(),
-                    deep_link: json["deep_link"].as_str().unwrap_or(&deep_link).to_string(),
-                })
-            }
-            _ => {
-                // Fallback: create locally (for offline/demo)
-                let _gift = GiftReading {
-                    token: token.clone(),
-                    buyer_note: buyer_note.clone(),
-                    source_id: source_id.clone(),
-                    created_at: now,
-                    expires_at: now + (GIFT_LINK_TTL_SECONDS as i64 * 1000),
-                    redeemed: false,
-                    redeemed_at: None,
-                };
-
-                // Store locally (simplified - in production would use backend)
-                info!("Created local gift: {}", token);
-                Ok(GiftResponse { token, deep_link })
-            }
+        if !resp.status().is_success() {
+            return Err(AletheiaError::invalid_input(
+                "gift_backend",
+                &format!("Gift backend returned HTTP {}", resp.status().as_u16()),
+            ));
         }
+
+        let json: serde_json::Value = resp.json().await?;
+        let token = json["token"].as_str().ok_or_else(|| {
+            AletheiaError::invalid_input("gift_backend", "Gift response is missing token")
+        })?;
+        let deep_link = json["deep_link"].as_str().ok_or_else(|| {
+            AletheiaError::invalid_input("gift_backend", "Gift response is missing deep_link")
+        })?;
+
+        info!("Created gift via backend: {}", token);
+        Ok(GiftResponse {
+            token: token.to_string(),
+            deep_link: deep_link.to_string(),
+        })
     }
 
     pub async fn redeem_gift(&self, token: &str) -> Result<GiftReading, AletheiaError> {
-        // Try to redeem via backend
+        if self.backend_url.trim().is_empty() {
+            return Err(AletheiaError::invalid_input(
+                "gift_backend_url",
+                "Gift backend is not configured",
+            ));
+        }
+
         let client = reqwest::Client::new();
         let response = client
             .post(&format!("{}/gift/redeem", self.backend_url))
@@ -109,10 +111,11 @@ impl GiftClient {
             Ok(resp) if resp.status() == 409 => {
                 Err(AletheiaError::gift_already_redeemed(chrono_timestamp()))
             }
-            _ => {
-                // Fallback: local validation (simplified)
-                Err(AletheiaError::gift_not_found(token))
-            }
+            Ok(resp) => Err(AletheiaError::invalid_input(
+                "gift_backend",
+                &format!("Gift backend returned HTTP {}", resp.status().as_u16()),
+            )),
+            Err(err) => Err(err.into()),
         }
     }
 }

@@ -6,6 +6,7 @@
 
 import * as SQLite from "expo-sqlite";
 import {
+  NotificationMessage,
   Source,
   Passage,
   Theme,
@@ -573,25 +574,7 @@ class StoreService {
       [limit, offset]
     );
 
-    return rows.map((row) => ({
-      id: row.id,
-      created_at: row.created_at,
-      source_id: row.source_id,
-      passage_id: row.passage_id,
-      theme_id: row.theme_id,
-      symbol_chosen: row.symbol_chosen,
-      symbol_method: row.symbol_method,
-      situation_text: row.situation_text || undefined,
-      ai_interpreted: row.ai_interpreted === 1,
-      ai_used_fallback: row.ai_used_fallback === 1,
-      read_duration_s: row.read_duration_s || undefined,
-      time_to_ai_request_s: row.time_to_ai_request_s || undefined,
-      notification_opened: row.notification_opened === 1,
-      mood_tag: row.mood_tag || undefined,
-      is_favorite: row.is_favorite === 1,
-      shared: row.shared === 1,
-      user_intent: row.user_intent || undefined,
-    }));
+    return rows.map((row) => this.mapReadingRow(row));
   }
 
   async getReadingsCount(): Promise<number> {
@@ -602,6 +585,18 @@ class StoreService {
       "SELECT COUNT(*) as count FROM readings"
     );
     return result?.count || 0;
+  }
+
+  async getReadingById(id: string): Promise<Reading | null> {
+    await this.initialize();
+    if (!this.db) throw new Error("Database not initialized");
+
+    const row = await this.db.getFirstAsync<any>(
+      "SELECT * FROM readings WHERE id = ?",
+      [id]
+    );
+
+    return row ? this.mapReadingRow(row) : null;
   }
 
   async getGiftableSources(): Promise<Source[]> {
@@ -627,8 +622,11 @@ class StoreService {
   async getDailyNotificationMessage(
     userId: string,
     date: string,
-  ): Promise<{ symbol_id: string; title: string; body: string }> {
-    const { NOTIFICATION_MATRIX } = await import("@/lib/data/seed-data");
+  ): Promise<NotificationMessage> {
+    await this.initialize();
+    if (!this.db) throw new Error("Database not initialized");
+
+    const { NOTIFICATION_MATRIX } = await import("@/lib/data/content");
 
     const input = `${userId}|${date}`;
     let hash = 5381;
@@ -638,10 +636,39 @@ class StoreService {
     }
 
     const entry = NOTIFICATION_MATRIX[hash % NOTIFICATION_MATRIX.length]!;
+    const symbolRow = await this.db.getFirstAsync<{ display_name: string }>(
+      "SELECT display_name FROM symbols WHERE id = ?",
+      [entry.symbol_id]
+    );
+    const symbolName = symbolRow?.display_name || entry.symbol_id;
+
     return {
       symbol_id: entry.symbol_id,
+      question: entry.question,
       title: "✦ Vũ trụ hôm nay lật",
-      body: `${entry.question}?`,
+      body: `${symbolName}. ${entry.question}?`,
+    };
+  }
+
+  private mapReadingRow(row: any): Reading {
+    return {
+      id: row.id,
+      created_at: row.created_at,
+      source_id: row.source_id,
+      passage_id: row.passage_id,
+      theme_id: row.theme_id,
+      symbol_chosen: row.symbol_chosen,
+      symbol_method: row.symbol_method,
+      situation_text: row.situation_text || undefined,
+      ai_interpreted: row.ai_interpreted === 1,
+      ai_used_fallback: row.ai_used_fallback === 1,
+      read_duration_s: row.read_duration_s || undefined,
+      time_to_ai_request_s: row.time_to_ai_request_s || undefined,
+      notification_opened: row.notification_opened === 1,
+      mood_tag: row.mood_tag || undefined,
+      is_favorite: row.is_favorite === 1,
+      shared: row.shared === 1,
+      user_intent: row.user_intent || undefined,
     };
   }
 }

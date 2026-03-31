@@ -17,9 +17,8 @@ export default function ReadingDetailScreen() {
   useEffect(() => {
     const loadReading = async () => {
       try {
-        const result = await coreStore.getReadingsPage(100, 0);
-        const found = result.items.find((r: any) => r.id === id);
-        setReading(found || null);
+        const found = await coreStore.getReadingById(id);
+        setReading(found);
       } catch (error) {
         console.error("Failed to load reading:", error);
       } finally {

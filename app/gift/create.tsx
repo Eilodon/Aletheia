@@ -20,6 +20,7 @@ export default function GiftCreateScreen() {
   const [sources, setSources] = useState<GiftSource[]>([]);
   const [buyerNote, setBuyerNote] = useState("");
   const [isCreating, setIsCreating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [giftResult, setGiftResult] = useState<{ token: string; deepLink: string } | null>(null);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -58,12 +59,14 @@ export default function GiftCreateScreen() {
 
   const handleCreateGift = async () => {
     if (!selectedSourceId) {
+      setErrorMessage("Chọn một nguồn trước khi tạo quà.");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
     }
 
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsCreating(true);
+    setErrorMessage(null);
 
     try {
       const userId = await getCurrentUserId();
@@ -85,6 +88,14 @@ export default function GiftCreateScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
       console.error("Failed to create gift:", error);
+      const raw = error instanceof Error ? error.message : "";
+      setErrorMessage(
+        raw === "Gift backend chưa được cấu hình."
+          ? "Gift backend chưa được cấu hình. Hãy set EXPO_PUBLIC_GIFT_BACKEND_URL hoặc EXPO_PUBLIC_API_BASE_URL."
+          : raw === "Tạo quà hiện chỉ hỗ trợ trên Android beta."
+          ? raw
+          : raw || "Không thể tạo quà lúc này. Vui lòng thử lại."
+      );
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsCreating(false);
@@ -248,6 +259,17 @@ export default function GiftCreateScreen() {
               {buyerNote.length}/200
             </Text>
           </View>
+
+          {errorMessage ? (
+            <View
+              className="mb-6 rounded-xl border p-4"
+              style={{ borderColor: colors.primary + "30", backgroundColor: colors.primary + "10" }}
+            >
+              <Text className="text-sm text-foreground text-center">
+                {errorMessage}
+              </Text>
+            </View>
+          ) : null}
 
           {/* Spacer */}
           <View className="flex-1" />
