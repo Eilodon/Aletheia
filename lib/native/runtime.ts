@@ -33,7 +33,7 @@ export function getNativeDbPath(): string {
 }
 
 export function getGiftBackendUrl(): string {
-  return process.env.EXPO_PUBLIC_GIFT_BACKEND_URL || getApiBaseUrl() || "";
+  return process.env.EXPO_PUBLIC_GIFT_BACKEND_URL?.trim() || "";
 }
 
 export function isGiftBackendConfigured(): boolean {

@@ -1,0 +1,322 @@
+import ExpoModulesCore
+
+private struct AletheiaCoreBridgeError {
+  let code: String
+  let message: String
+
+  func serialize() -> [String: Any] {
+    [
+      "code": code,
+      "message": message
+    ]
+  }
+}
+
+private protocol AletheiaCoreClient {
+  func initialize(dbPath: String, giftBackendUrl: String) async
+  func seedBundledData(
+    sourcesJson: String,
+    passagesJson: String,
+    themesJson: String
+  ) async -> [String: Any?]
+  func setApiKey(provider: String, key: String) async -> [String: Any?]
+  func performReading(
+    userId: String,
+    sourceId: String?,
+    situationText: String?
+  ) async -> [String: Any?]
+  func chooseSymbol(
+    session: [String: Any],
+    symbolId: String,
+    method: String
+  ) async -> [String: Any?]
+  func completeReading(
+    userId: String,
+    reading: [String: Any]
+  ) async -> [String: Any?]
+  func requestInterpretation(
+    passage: [String: Any],
+    symbol: [String: Any],
+    situationText: String?
+  ) async -> [String: Any?]
+  func startInterpretationStream(
+    passage: [String: Any],
+    symbol: [String: Any],
+    situationText: String?
+  ) async -> [String: Any?]
+  func pollInterpretationStream(requestId: String) async -> [String: Any?]
+  func cancelInterpretationStream(requestId: String) async -> [String: Any?]
+  func getFallbackPrompts(sourceId: String) async -> [String: Any?]
+  func getUserState(userId: String) async -> [String: Any?]
+}
+
+private enum AletheiaCoreBridgeState {
+  case notInitialized
+  case prepared
+}
+
+private final class AletheiaCoreUniFFIAdapter: AletheiaCoreClient {
+  private var state: AletheiaCoreBridgeState = .notInitialized
+
+  private var isInitialized = false
+
+  func initialize(dbPath: String, giftBackendUrl: String) async {
+    _ = dbPath
+    _ = giftBackendUrl
+    isInitialized = true
+    state = .prepared
+  }
+
+  func seedBundledData(
+    sourcesJson: String,
+    passagesJson: String,
+    themesJson: String
+  ) async -> [String: Any?] {
+    _ = sourcesJson
+    _ = passagesJson
+    _ = themesJson
+    return [
+      "seeded": false,
+      "error": bridgeError().serialize()
+    ]
+  }
+
+  func setApiKey(provider: String, key: String) async -> [String: Any?] {
+    _ = provider
+    _ = key
+    return [
+      "applied": false,
+      "error": bridgeError().serialize()
+    ]
+  }
+
+  func performReading(
+    userId: String,
+    sourceId: String?,
+    situationText: String?
+  ) async -> [String: Any?] {
+    _ = userId
+    _ = sourceId
+    _ = situationText
+    return response(session: nil)
+  }
+
+  func chooseSymbol(
+    session: [String: Any],
+    symbolId: String,
+    method: String
+  ) async -> [String: Any?] {
+    _ = session
+    _ = symbolId
+    _ = method
+    return response(chosen: nil)
+  }
+
+  func completeReading(
+    userId: String,
+    reading: [String: Any]
+  ) async -> [String: Any?] {
+    _ = userId
+    _ = reading
+    return response(completed: nil)
+  }
+
+  func requestInterpretation(
+    passage: [String: Any],
+    symbol: [String: Any],
+    situationText: String?
+  ) async -> [String: Any?] {
+    _ = passage
+    _ = symbol
+    _ = situationText
+    return [
+      "interpretation": nil,
+      "error": bridgeError().serialize()
+    ]
+  }
+
+  func startInterpretationStream(
+    passage: [String: Any],
+    symbol: [String: Any],
+    situationText: String?
+  ) async -> [String: Any?] {
+    _ = passage
+    _ = symbol
+    _ = situationText
+    return [
+      "request_id": nil,
+      "error": bridgeError().serialize()
+    ]
+  }
+
+  func pollInterpretationStream(requestId: String) async -> [String: Any?] {
+    [
+      "request_id": requestId,
+      "new_chunks": [],
+      "full_text": "",
+      "done": true,
+      "used_fallback": false,
+      "cancelled": false,
+      "error": bridgeError().serialize()
+    ]
+  }
+
+  func cancelInterpretationStream(requestId: String) async -> [String: Any?] {
+    _ = requestId
+    return [
+      "cancelled": false,
+      "error": bridgeError().serialize()
+    ]
+  }
+
+  func getFallbackPrompts(sourceId: String) async -> [String: Any?] {
+    _ = sourceId
+    return [
+      "prompts": [],
+      "error": bridgeError().serialize()
+    ]
+  }
+
+  func getUserState(userId: String) async -> [String: Any?] {
+    _ = userId
+    return response(state: nil)
+  }
+
+  private func bridgeError() -> AletheiaCoreBridgeError {
+    if !isInitialized {
+      return AletheiaCoreBridgeError(
+        code: "native_not_initialized",
+        message: "AletheiaCoreModule.init must run before invoking the native reading flow."
+      )
+    }
+
+    switch state {
+    case .notInitialized:
+      return AletheiaCoreBridgeError(
+        code: "native_not_initialized",
+        message: "AletheiaCoreModule.init must run before invoking the native reading flow."
+      )
+    case .prepared:
+      break
+    }
+
+    return AletheiaCoreBridgeError(
+      code: "native_uniffi_pending",
+      message: "UniFFI staging is prepared, but the generated Swift bindings and Rust artifacts are not linked into the iOS target yet."
+    )
+  }
+
+  private func response(session: Any?) -> [String: Any?] {
+    [
+      "session": session,
+      "error": bridgeError().serialize()
+    ]
+  }
+
+  private func response(chosen: Any?) -> [String: Any?] {
+    [
+      "chosen": chosen,
+      "error": bridgeError().serialize()
+    ]
+  }
+
+  private func response(completed: Any?) -> [String: Any?] {
+    [
+      "completed": completed,
+      "error": bridgeError().serialize()
+    ]
+  }
+
+  private func response(state: Any?) -> [String: Any?] {
+    [
+      "state": state,
+      "error": bridgeError().serialize()
+    ]
+  }
+}
+
+public final class AletheiaCoreModule: Module {
+  private let client: AletheiaCoreClient = AletheiaCoreUniFFIAdapter()
+
+  public func definition() -> ModuleDefinition {
+    Name("AletheiaCoreModule")
+
+    AsyncFunction("init") { (options: [String: String]) in
+      let dbPath = options["dbPath"] ?? ""
+      let giftBackendUrl = options["giftBackendUrl"] ?? ""
+      await self.client.initialize(dbPath: dbPath, giftBackendUrl: giftBackendUrl)
+    }
+
+    AsyncFunction("seedBundledData") { (options: [String: String]) in
+      await self.client.seedBundledData(
+        sourcesJson: options["sourcesJson"] ?? "",
+        passagesJson: options["passagesJson"] ?? "",
+        themesJson: options["themesJson"] ?? ""
+      )
+    }
+
+    AsyncFunction("setApiKey") { (options: [String: String]) in
+      await self.client.setApiKey(
+        provider: options["provider"] ?? "",
+        key: options["key"] ?? ""
+      )
+    }
+
+    AsyncFunction("performReading") { (userId: String, sourceId: String?, situationText: String?) in
+      await self.client.performReading(
+        userId: userId,
+        sourceId: sourceId,
+        situationText: situationText
+      )
+    }
+
+    AsyncFunction("chooseSymbol") { (session: [String: Any], symbolId: String, method: String) in
+      await self.client.chooseSymbol(
+        session: session,
+        symbolId: symbolId,
+        method: method
+      )
+    }
+
+    AsyncFunction("completeReading") { (userId: String, reading: [String: Any]) in
+      await self.client.completeReading(
+        userId: userId,
+        reading: reading
+      )
+    }
+
+    AsyncFunction("requestInterpretation") {
+      (passage: [String: Any], symbol: [String: Any], situationText: String?) in
+      await self.client.requestInterpretation(
+        passage: passage,
+        symbol: symbol,
+        situationText: situationText
+      )
+    }
+
+    AsyncFunction("startInterpretationStream") {
+      (passage: [String: Any], symbol: [String: Any], situationText: String?) in
+      await self.client.startInterpretationStream(
+        passage: passage,
+        symbol: symbol,
+        situationText: situationText
+      )
+    }
+
+    AsyncFunction("pollInterpretationStream") { (requestId: String) in
+      await self.client.pollInterpretationStream(requestId: requestId)
+    }
+
+    AsyncFunction("cancelInterpretationStream") { (requestId: String) in
+      await self.client.cancelInterpretationStream(requestId: requestId)
+    }
+
+    AsyncFunction("getFallbackPrompts") { (sourceId: String) in
+      await self.client.getFallbackPrompts(sourceId: sourceId)
+    }
+
+    AsyncFunction("getUserState") { (userId: String) in
+      await self.client.getUserState(userId: userId)
+    }
+  }
+}

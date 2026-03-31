@@ -36,6 +36,9 @@ import { getCurrentUserId } from "./current-user-id";
 import { readingEngine } from "./reading-engine";
 import { store } from "./store";
 
+const READING_LOOKUP_PAGE_SIZE = 50;
+const MAX_READING_LOOKUP_PAGES = 200;
+
 class CoreStoreService {
   private async ensureNativeReady() {
     if (shouldUseAletheiaNative()) {
@@ -142,20 +145,29 @@ class CoreStoreService {
       return store.getReadingById(id);
     }
 
-    const pageSize = 50;
     let offset = 0;
+    let pageIndex = 0;
+    let boundedPageCount: number | null = null;
 
-    while (true) {
-      const page = await this.getReadingsPage(pageSize, offset);
+    while (pageIndex < MAX_READING_LOOKUP_PAGES) {
+      const page = await this.getReadingsPage(READING_LOOKUP_PAGE_SIZE, offset);
+      if (boundedPageCount === null) {
+        boundedPageCount = Math.max(1, Math.ceil(page.total_count / READING_LOOKUP_PAGE_SIZE));
+      }
+
       const match = page.items.find((reading) => reading.id === id);
       if (match) {
         return match;
       }
-      if (!page.has_more) {
+      if (!page.has_more || pageIndex + 1 >= boundedPageCount) {
         return null;
       }
-      offset += pageSize;
+
+      offset += READING_LOOKUP_PAGE_SIZE;
+      pageIndex += 1;
     }
+
+    throw new Error("Native reading lookup exceeded the allowed pagination bound.");
   }
 
   async getGiftableSources(): Promise<Source[]> {
@@ -224,16 +236,16 @@ class CoreStoreService {
   }
 
   private ensureGiftSupport(action: "create" | "redeem") {
-    if (!isGiftBackendConfigured()) {
-      throw new Error("Gift backend chưa được cấu hình.");
-    }
-
     if (!shouldUseAletheiaNative()) {
       throw new Error(
         action === "create"
           ? "Tạo quà hiện chỉ hỗ trợ trên Android beta."
           : "Nhận quà hiện chỉ hỗ trợ trên Android beta.",
       );
+    }
+
+    if (!isGiftBackendConfigured()) {
+      throw new Error("Gift backend chưa được cấu hình. Cần EXPO_PUBLIC_GIFT_BACKEND_URL.");
     }
   }
 }

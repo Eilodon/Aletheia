@@ -37,9 +37,10 @@ fi
 export ANDROID_NDK_HOME="$LATEST_NDK_DIR"
 
 mkdir -p "$ARTIFACTS_DIR"
+rm -rf "$ARTIFACTS_DIR/armeabi-v7a" "$ARTIFACTS_DIR/arm64-v8a"
 
 cd "$CORE_DIR"
-cargo ndk -t armeabi-v7a -t arm64-v8a -o ../artifacts/android/jniLibs build --release
+cargo ndk -t arm64-v8a -o ../artifacts/android/jniLibs build --release
 
 echo "Android artifacts and UniFFI bindings are ready in:"
 echo "  JNI libs -> $ARTIFACTS_DIR"

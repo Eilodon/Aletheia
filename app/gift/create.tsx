@@ -90,8 +90,8 @@ export default function GiftCreateScreen() {
       console.error("Failed to create gift:", error);
       const raw = error instanceof Error ? error.message : "";
       setErrorMessage(
-        raw === "Gift backend chưa được cấu hình."
-          ? "Gift backend chưa được cấu hình. Hãy set EXPO_PUBLIC_GIFT_BACKEND_URL hoặc EXPO_PUBLIC_API_BASE_URL."
+        raw === "Gift backend chưa được cấu hình. Cần EXPO_PUBLIC_GIFT_BACKEND_URL."
+          ? raw
           : raw === "Tạo quà hiện chỉ hỗ trợ trên Android beta."
           ? raw
           : raw || "Không thể tạo quà lúc này. Vui lòng thử lại."

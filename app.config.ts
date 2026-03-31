@@ -64,7 +64,7 @@ const config: ExpoConfig = {
   scheme: env.scheme,
   userInterfaceStyle: "automatic",
   primaryColor: "#6366F1",
-  newArchEnabled: false,
+  newArchEnabled: true,
   ios: {
     supportsTablet: true,
     bundleIdentifier: env.iosBundleId,
@@ -109,6 +109,7 @@ const config: ExpoConfig = {
   plugins: [
     withAletheiaCoreModule as unknown as string,
     "expo-router",
+    "expo-sqlite",
     [
       "expo-splash-screen",
       {
@@ -125,7 +126,7 @@ const config: ExpoConfig = {
       "expo-build-properties",
       {
         android: {
-          buildArchs: ["armeabi-v7a", "arm64-v8a"],
+          buildArchs: ["arm64-v8a"],
           minSdkVersion: 24,
         },
       },

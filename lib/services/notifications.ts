@@ -21,10 +21,19 @@ export interface NotificationPermissionStatus {
 }
 
 export async function getNotificationPermissionStatus(): Promise<NotificationPermissionStatus> {
-  const { status } = await Notifications.getPermissionsAsync();
+  const settings = await Notifications.getPermissionsAsync() as {
+    granted: boolean;
+    canAskAgain: boolean;
+  };
+  const status = settings.granted
+    ? "granted"
+    : settings.canAskAgain
+    ? "undetermined"
+    : "denied";
+
   return {
-    granted: status === "granted",
-    status: status,
+    granted: settings.granted,
+    status,
   };
 }
 
@@ -34,14 +43,18 @@ export async function requestNotificationPermission(): Promise<boolean> {
     return false;
   }
 
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  const existingSettings = await Notifications.getPermissionsAsync() as {
+    granted: boolean;
+  };
   
-  if (existingStatus === "granted") {
+  if (existingSettings.granted) {
     return true;
   }
 
-  const { status } = await Notifications.requestPermissionsAsync();
-  return status === "granted";
+  const requestedSettings = await Notifications.requestPermissionsAsync() as {
+    granted: boolean;
+  };
+  return requestedSettings.granted;
 }
 
 export async function scheduleDailyNotification(

@@ -1,3 +1,13 @@
+if (!Array.prototype.toReversed) {
+  Object.defineProperty(Array.prototype, "toReversed", {
+    value() {
+      return [...this].reverse();
+    },
+    configurable: true,
+    writable: true,
+  });
+}
+
 const { getDefaultConfig } = require("expo/metro-config");
 const { withNativeWind } = require("nativewind/metro");
 

@@ -59,8 +59,8 @@ export default function GiftRedeemScreen() {
           ? "Mã quà này đã được sử dụng."
           : raw === "ERR_GIFT_NOT_FOUND"
           ? "Mã quà không hợp lệ."
-          : raw === "Gift backend chưa được cấu hình."
-          ? "Gift backend chưa được cấu hình. Hãy set EXPO_PUBLIC_GIFT_BACKEND_URL hoặc EXPO_PUBLIC_API_BASE_URL."
+          : raw === "Gift backend chưa được cấu hình. Cần EXPO_PUBLIC_GIFT_BACKEND_URL."
+          ? raw
           : raw === "Nhận quà hiện chỉ hỗ trợ trên Android beta."
           ? raw
           : raw

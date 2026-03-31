@@ -1,0 +1,29 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'space.manus.aletheia'
+version = '0.0.1'
+
+android {
+  namespace "expo.modules.aletheiacore"
+
+  defaultConfig {
+    versionCode 1
+    versionName '0.0.1'
+  }
+
+  sourceSets {
+    main {
+      java.srcDirs += [
+        file("$projectDir/../.native-staging/android/uniffi"),
+      ]
+    }
+  }
+}
+
+dependencies {
+  implementation 'com.facebook.react:react-android'
+  implementation 'net.java.dev.jna:jna:5.14.0'
+}
