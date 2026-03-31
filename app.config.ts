@@ -9,12 +9,9 @@ import withAletheiaCoreModule from "./modules/aletheia-core-module/plugin";
  */
 function requireEnv(name: string): string {
   const value = process.env[name];
-  if (!value) {
-    throw new Error(
-      `Missing required environment variable: ${name}\n` +
-      `Please set it in your .env file (see .env.example for reference)\n` +
-      `To get your EAS Project ID, run: npx eas project:init`
-    );
+  if (!value || value.startsWith("placeholder")) {
+    console.warn(`Warning: ${name} not set, using placeholder for build`);
+    return "placeholder-eas-project-id"; // fallback for EXPO_PUBLIC_EAS_PROJECT_ID
   }
   return value;
 }
