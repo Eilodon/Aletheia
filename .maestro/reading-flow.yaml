@@ -1,0 +1,10 @@
+# Flow 2: Reading Flow
+appId: space.manus.aletheia.app.t20260318170859
+name: "Reading Flow"
+---
+- launchApp
+- tapOn: "Xem bài"  # View reading
+- assertVisible: "Hoàn cảnh"
+- takeScreenshot: reading-page
+- tapOn: ".*"  # Tap anywhere to navigate
+- takeScreenshot: card-result

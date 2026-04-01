@@ -1,0 +1,13 @@
+# Flow 3: Smoke Test - Critical Path
+appId: space.manus.aletheia.app.t20260318170859
+name: "Smoke Test - Critical Path"
+---
+- launchApp
+- runScript:
+    when:
+      visible: "Aletheia - Not a fortune. A mirror."
+    file: onboarding-subflow.yaml
+- assertVisible: "Mirrors"
+- tapOn: "Xem bài"
+- assertVisible: "Hoàn cảnh"
+- takeScreenshot: smoke-test-success

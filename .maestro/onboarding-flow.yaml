@@ -1,0 +1,16 @@
+# Maestro E2E Test Flows for Aletheia Android App
+# Install Maestro: curl -fsSL "https://get.maestro.mobile.dev" | bash
+# Run tests: maestro test e2e/flows/
+
+# Flow 1: App Launch & Onboarding
+appId: space.manus.aletheia.app.t20260318170859
+name: "App Launch and Onboarding Flow"
+---
+- launchApp
+- tapOn: "Bắt đầu"  # Start button
+- tapOn: "Tình yêu"  # Select intention
+- inputText:
+    text: "Test situation for E2E"
+- tapOn: "Tiếp tục"  # Continue
+- assertVisible: "Mirrors"
+- takeScreenshot: onboarding-complete

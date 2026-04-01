@@ -1,5 +1,6 @@
 import { ErrorBoundary as ReactErrorBoundary, type FallbackProps } from "react-error-boundary";
 import { View, Text, Button, StyleSheet } from "react-native";
+import { captureException } from "@/lib/sentry";
 
 export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   return (
@@ -17,6 +18,7 @@ export function ErrorBoundary({ children }: { children: React.ReactNode }) {
       FallbackComponent={ErrorFallback}
       onError={(error, errorInfo) => {
         console.error("ErrorBoundary caught:", error, errorInfo);
+        captureException(error, { errorInfo, componentStack: errorInfo.componentStack });
       }}
     >
       {children}

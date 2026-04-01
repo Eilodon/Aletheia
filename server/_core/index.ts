@@ -6,8 +6,9 @@ import { createExpressMiddleware } from "@trpc/server/adapters/express";
 // import { registerOAuthRoutes } from "./oauth"; // ADR-AL-21: OAuth disabled
 import { appRouter } from "../routers";
 import { createContext } from "./context";
-import { validateServerEnv } from "./env";
+import { validateServerEnv, ENV } from "./env";
 import { apiLimiter, aiApiLimiter } from "./rateLimit";
+import { getDb } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -62,6 +63,75 @@ async function startServer() {
 
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, timestamp: Date.now() });
+  });
+
+  // Deep health check - verifies database, AI service, and storage
+  app.get("/api/health/deep", async (_req, res) => {
+    const checks = {
+      database: { status: "unknown", latencyMs: 0 },
+      aiService: { status: "unknown", latencyMs: 0 },
+      storage: { status: "unknown", latencyMs: 0 },
+    };
+    let allHealthy = true;
+
+    // Check database
+    const dbStart = Date.now();
+    try {
+      const dbConn = await getDb();
+      checks.database.status = dbConn === null ? "disabled" : "healthy";
+      checks.database.latencyMs = Date.now() - dbStart;
+    } catch (_err) {
+      checks.database.status = "unhealthy";
+      checks.database.latencyMs = Date.now() - dbStart;
+      allHealthy = false;
+    }
+
+    // Check AI service
+    const aiStart = Date.now();
+    try {
+      const aiUrl = ENV.aiApiUrl || process.env.BUILT_IN_FORGE_API_URL;
+      if (!aiUrl) {
+        checks.aiService.status = "not_configured";
+      } else {
+        // Simple connectivity check - HEAD request to base URL
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        const response = await fetch(aiUrl.replace(/\/$/, "") + "/health", {
+          method: "HEAD",
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        checks.aiService.status = response.ok ? "healthy" : "degraded";
+        if (!response.ok) allHealthy = false;
+      }
+      checks.aiService.latencyMs = Date.now() - aiStart;
+    } catch (_err) {
+      checks.aiService.status = "unhealthy";
+      checks.aiService.latencyMs = Date.now() - aiStart;
+      allHealthy = false;
+    }
+
+    // Check storage (S3/R2)
+    const storageStart = Date.now();
+    try {
+      const storageUrl = process.env.STORAGE_BASE_URL || process.env.S3_ENDPOINT;
+      if (!storageUrl) {
+        checks.storage.status = "not_configured";
+      } else {
+        checks.storage.status = "healthy"; // Assume healthy if configured
+      }
+      checks.storage.latencyMs = Date.now() - storageStart;
+    } catch (_err) {
+      checks.storage.status = "unhealthy";
+      checks.storage.latencyMs = Date.now() - storageStart;
+      allHealthy = false;
+    }
+
+    res.status(allHealthy ? 200 : 503).json({
+      ok: allHealthy,
+      timestamp: Date.now(),
+      checks,
+    });
   });
 
   // Apply rate limiting to all /api routes

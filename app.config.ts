@@ -10,8 +10,11 @@ import withAletheiaCoreModule from "./modules/aletheia-core-module/plugin";
 function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value || value.startsWith("placeholder")) {
-    console.warn(`Warning: ${name} not set, using placeholder for build`);
-    return "placeholder-eas-project-id"; // fallback for EXPO_PUBLIC_EAS_PROJECT_ID
+    // For local prebuild, allow placeholder values
+    if (process.env.ALLOW_PLACEHOLDER_ENV === "1") {
+      return `placeholder-${name.toLowerCase()}`;
+    }
+    throw new Error(`Required environment variable ${name} is not set. Run 'npx eas project:init' to create a project.`);
   }
   return value;
 }
