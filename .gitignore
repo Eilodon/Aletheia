@@ -55,6 +55,10 @@ pnpm-debug.log*
 .env.production.local
 .env*.local
 
+# Android signing
+android/keystore.properties
+android/app/aletheia-release.keystore
+
 # IDE
 .idea/
 .vscode/

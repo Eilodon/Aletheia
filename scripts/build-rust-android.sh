@@ -43,9 +43,21 @@ export ANDROID_NDK_HOME="$LATEST_NDK_DIR"
 
 mkdir -p "$ARTIFACTS_DIR"
 rm -rf "$ARTIFACTS_DIR/arm64-v8a"
+rm -rf "$ARTIFACTS_DIR/x86_64"
 
 cd "$CORE_DIR"
+
+# Build for ARM64 (physical devices)
 cargo ndk -t arm64-v8a -o ../artifacts/android/jniLibs build --release
+
+# Build for x86_64 (emulator testing) - only if BUILD_X86 is set
+if [[ "${BUILD_X86:-false}" == "true" ]]; then
+  cargo ndk -t x86_64 -o ../artifacts/android/jniLibs build --release
+  echo "✅ Built for both arm64-v8a and x86_64"
+else
+  echo "✅ Built for arm64-v8a only"
+  echo "   Set BUILD_X86=true to also build for x86_64 emulator"
+fi
 
 echo "Android artifacts and UniFFI bindings are ready in:"
 echo "  JNI libs -> $ARTIFACTS_DIR"
