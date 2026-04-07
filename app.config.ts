@@ -8,7 +8,8 @@ import withAletheiaCoreModule from "./modules/aletheia-core-module/plugin";
  * Throws a descriptive error if missing.
  */
 function requireEnv(name: string): string {
-  const value = process.env[name];
+  // Use explicit env access instead of dynamic to satisfy bundler
+  const value = (process.env as Record<string, string | undefined>)[name];
   if (!value || value.startsWith("placeholder")) {
     // For local prebuild, allow placeholder values
     if (process.env.ALLOW_PLACEHOLDER_ENV === "1") {

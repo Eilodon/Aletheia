@@ -755,4 +755,6 @@ impl AletheiaCore {
     }
 }
 
+// Suppress warning from UniFFI generated scaffolding
+#[allow(unpredictable_function_pointer_comparisons)]
 uniffi::include_scaffolding!("aletheia");
