@@ -4,15 +4,7 @@
  */
 
 import { Passage, Symbol } from "@/lib/types";
-import { aletheiaNativeClient } from "@/lib/native/aletheia-core";
-import {
-  unwrapNativeCancelInterpretationResponse,
-  unwrapNativeInterpretationStreamState,
-  unwrapNativeRequestInterpretationResponse,
-  unwrapNativeSetApiKeyResponse,
-  unwrapNativeStartInterpretationStreamResponse,
-} from "@/lib/native/bridge";
-import { initializeAletheiaNative, shouldUseAletheiaNative } from "@/lib/native/runtime";
+import { aiRuntime } from "./ai-runtime";
 
 interface AIRequest {
   passage: Passage;
@@ -43,7 +35,7 @@ type AIStreamSession = {
 class AIClientService {
   private initialized = false;
   private isNativePath(): boolean {
-    return shouldUseAletheiaNative();
+    return aiRuntime.isNativeAvailable();
   }
 
   /**
@@ -53,7 +45,7 @@ class AIClientService {
   async initialize(_dbPath: string, _giftBackendUrl: string): Promise<void> {
     try {
       if (this.isNativePath()) {
-        await initializeAletheiaNative();
+        await aiRuntime.ensureReady();
         this.initialized = true;
         return;
       }
@@ -72,10 +64,7 @@ class AIClientService {
   async setApiKey(provider: "claude" | "gpt4" | "gemini", key: string): Promise<void> {
     try {
       if (this.isNativePath()) {
-        await initializeAletheiaNative();
-        await unwrapNativeSetApiKeyResponse(
-          await aletheiaNativeClient.setApiKey({ provider, key }),
-        );
+        await aiRuntime.setApiKey(provider, key);
         return;
       }
 
@@ -92,20 +81,21 @@ class AIClientService {
    */
   async requestInterpretation(request: AIRequest): Promise<AIInterpretationResult> {
     if (this.isNativePath()) {
-      await initializeAletheiaNative();
-      const passage = {
-        ...request.passage,
-        resonance_context: request.resonanceContext ?? request.passage.resonance_context,
-      };
-      const response = await aletheiaNativeClient.requestInterpretation(
-        passage,
-        request.symbol,
-        request.situationText,
-      );
-      const interpretation = unwrapNativeRequestInterpretationResponse(response);
+      const nativeResult = await aiRuntime.requestInterpretation({
+        passage: request.passage,
+        symbol: request.symbol,
+        situationText: request.situationText,
+        resonanceContext: request.resonanceContext,
+        userIntent: request.userIntent,
+      });
+
+      if (nativeResult) {
+        return nativeResult;
+      }
+
       return {
-        chunks: interpretation.chunks,
-        usedFallback: interpretation.used_fallback,
+        chunks: this.getFallbackInterpretation(request),
+        usedFallback: true,
       };
     }
 
@@ -142,19 +132,20 @@ class AIClientService {
     let cancelled = false;
 
     const promise = (async () => {
-      await initializeAletheiaNative();
-      const passage = {
-        ...request.passage,
-        resonance_context: request.resonanceContext ?? request.passage.resonance_context,
-      };
-      requestId = unwrapNativeStartInterpretationStreamResponse(
-        await aletheiaNativeClient.startInterpretationStream(
-          passage,
-          request.symbol,
-          request.situationText,
-          request.userIntent,
-        ),
-      );
+      requestId = await aiRuntime.startInterpretationStream({
+        passage: request.passage,
+        symbol: request.symbol,
+        situationText: request.situationText,
+        resonanceContext: request.resonanceContext,
+        userIntent: request.userIntent,
+      });
+
+      if (!requestId) {
+        return {
+          chunks: this.getFallbackInterpretation(request),
+          usedFallback: true,
+        };
+      }
 
       const chunks: string[] = [];
 
@@ -166,28 +157,26 @@ class AIClientService {
       let idlePolls = 0;                // Consecutive polls with no new chunks
 
       while (true) {
-        const state = unwrapNativeInterpretationStreamState(
-          await aletheiaNativeClient.pollInterpretationStream(requestId),
-        );
+        const state = await aiRuntime.pollInterpretationStream(requestId);
 
-        const hadNewChunks = state.new_chunks.length > 0;
+        const hadNewChunks = state.newChunks.length > 0;
 
-        for (const chunk of state.new_chunks) {
+        for (const chunk of state.newChunks) {
           chunks.push(chunk);
           handlers.onChunk?.(chunks.join(""), chunk);
         }
 
         if (state.done) {
           return {
-            chunks: state.full_text ? [state.full_text] : chunks,
-            usedFallback: state.used_fallback,
+            chunks: state.fullText ? [state.fullText] : chunks,
+            usedFallback: state.usedFallback,
           };
         }
 
         if (state.cancelled || cancelled) {
           return {
-            chunks: state.full_text ? [state.full_text] : chunks,
-            usedFallback: state.used_fallback,
+            chunks: state.fullText ? [state.fullText] : chunks,
+            usedFallback: state.usedFallback,
           };
         }
 
@@ -217,9 +206,7 @@ class AIClientService {
         if (!requestId) {
           return false;
         }
-        return unwrapNativeCancelInterpretationResponse(
-          await aletheiaNativeClient.cancelInterpretationStream(requestId),
-        );
+        return aiRuntime.cancelInterpretationStream(requestId);
       },
     };
   }

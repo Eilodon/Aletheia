@@ -1,15 +1,18 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import * as Haptics from "expo-haptics";
 
 import { Fonts } from "@/constants/theme";
 import { RitualOrnament } from "@/components/ritual-ornament";
 import { ScreenContainer } from "@/components/screen-container";
 import { SkeletonCard } from "@/components/skeleton";
+import { showToast } from "@/components/toast";
 import { useColors } from "@/hooks/use-colors";
-import { BUNDLED_PASSAGES, BUNDLED_SOURCES } from "@/lib/data/content";
+import { useReading } from "@/lib/context/reading-context";
 import { coreStore } from "@/lib/services/core-store";
 import type { MoodTag, Reading } from "@/lib/types";
+import { screen, trackArchiveEvent, trackGiftEvent, trackShareEvent } from "@/lib/analytics";
 
 const MOOD_LABELS: Record<MoodTag, string> = {
   anxious: "Lo âu",
@@ -33,14 +36,25 @@ export default function ReadingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
   const router = useRouter();
+  const { startReading } = useReading();
   const [reading, setReading] = useState<Reading | null>(null);
+  const [sourceName, setSourceName] = useState<string | undefined>();
+  const [passageText, setPassageText] = useState<string | undefined>();
+  const [passageReference, setPassageReference] = useState<string | undefined>();
   const [isLoading, setIsLoading] = useState(true);
+  const [isSharing, setIsSharing] = useState(false);
+  const [isReopening, setIsReopening] = useState(false);
+  const [isSavingFavorite, setIsSavingFavorite] = useState(false);
+  const [isGifting, setIsGifting] = useState(false);
 
   useEffect(() => {
     const loadReading = async () => {
       try {
-        const found = await coreStore.getReadingById(id);
-        setReading(found);
+        const detail = await coreStore.getReadingDetail(id);
+        setReading(detail?.reading ?? null);
+        setSourceName(detail?.source?.name);
+        setPassageText(detail?.passage?.text);
+        setPassageReference(detail?.passage?.reference);
       } catch (error) {
         console.error("Failed to load reading:", error);
       } finally {
@@ -53,16 +67,6 @@ export default function ReadingDetailScreen() {
     }
   }, [id]);
 
-  const source = useMemo(
-    () => (reading ? BUNDLED_SOURCES.find((item) => item.id === reading.source_id) : undefined),
-    [reading],
-  );
-
-  const passage = useMemo(
-    () => (reading ? BUNDLED_PASSAGES.find((item) => item.id === reading.passage_id) : undefined),
-    [reading],
-  );
-
   const formattedDate = useMemo(() => {
     if (!reading) return "";
     return new Date(reading.created_at).toLocaleDateString("vi-VN", {
@@ -72,6 +76,124 @@ export default function ReadingDetailScreen() {
       year: "numeric",
     });
   }, [reading]);
+
+  useEffect(() => {
+    if (!reading) return;
+    screen("reading_detail", {
+      reading_id: reading.id,
+      source_id: reading.source_id,
+      ai_interpreted: reading.ai_interpreted,
+    });
+  }, [reading]);
+
+  const syncFlags = async (flags: { is_favorite?: boolean; shared?: boolean }) => {
+    if (!reading) return;
+    const updated = await coreStore.updateReadingFlags(reading.id, flags);
+    if (updated) {
+      setReading(updated);
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!reading || isSavingFavorite) return;
+    setIsSavingFavorite(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      await syncFlags({ is_favorite: !reading.is_favorite });
+      trackArchiveEvent("favorite_toggled", {
+        reading_id: reading.id,
+        next_value: !reading.is_favorite,
+      });
+      showToast("success", reading.is_favorite ? "Đã bỏ khỏi mục yêu thích" : "Đã thêm vào mục yêu thích");
+    } catch (error) {
+      console.error("Failed to update favorite:", error);
+      showToast("error", error instanceof Error ? error.message : "Không thể cập nhật yêu thích");
+    } finally {
+      setIsSavingFavorite(false);
+    }
+  };
+
+  const handleShareAgain = async () => {
+    if (!reading || isSharing) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setIsSharing(true);
+
+    try {
+      const quote = passageText ?? reading.situation_text ?? "Một lần phản chiếu từ Aletheia";
+      const reference = passageReference ?? sourceName ?? reading.source_id;
+      await Share.share({
+        message: `“${quote}”\n\n— ${reference}\nBiểu tượng: ${reading.symbol_chosen}\n\nTừ Aletheia ✦`,
+      });
+      await syncFlags({ shared: true });
+      trackShareEvent("shared", {
+        mode: "archive_detail",
+        reading_id: reading.id,
+        source_id: reading.source_id,
+      });
+      showToast("success", "Đã mở chia sẻ");
+    } catch (error) {
+      console.error("Failed to share reading:", error);
+      showToast("error", "Không thể chia sẻ lần đọc này");
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const handleReopen = async () => {
+    if (!reading || isReopening) return;
+    setIsReopening(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    try {
+      await startReading(reading.source_id, reading.situation_text);
+      trackArchiveEvent("reopened", {
+        reading_id: reading.id,
+        source_id: reading.source_id,
+      });
+      router.replace("/reading/wildcard");
+    } catch (error) {
+      console.error("Failed to reopen reading:", error);
+      showToast("error", "Không thể mở lại flow từ lần đọc này");
+      setIsReopening(false);
+    }
+  };
+
+  const handleGift = async () => {
+    if (!reading || isGifting) return;
+    setIsGifting(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    trackGiftEvent("create_attempted", {
+      reading_id: reading.id,
+      source_id: reading.source_id,
+    });
+
+    try {
+      const gift = await coreStore.createGift(reading.source_id);
+      trackGiftEvent("created", {
+        reading_id: reading.id,
+        source_id: reading.source_id,
+      });
+      await Share.share({
+        message: `Mình gửi bạn một lần đọc từ ${sourceName || reading.source_id} trên Aletheia.\n\n${gift.deep_link}`,
+      });
+      trackGiftEvent("shared", {
+        reading_id: reading.id,
+        source_id: reading.source_id,
+      });
+      showToast("success", "Đã tạo và mở quà để chia sẻ");
+    } catch (error) {
+      console.error("Failed to create gift:", error);
+      trackGiftEvent("create_failed", {
+        reading_id: reading.id,
+        source_id: reading.source_id,
+        message: error instanceof Error ? error.message : "unknown",
+      });
+      showToast("error", error instanceof Error ? error.message : "Không thể tạo quà");
+    } finally {
+      setIsGifting(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -125,17 +247,17 @@ export default function ReadingDetailScreen() {
           <RitualOrnament variant="line" />
           <Text style={[styles.kicker, { color: colors.primary }]}>Reflection Archive</Text>
           <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}>
-            {source?.name || reading.source_id}
+            {sourceName || reading.source_id}
           </Text>
           <Text style={[styles.metaText, { color: colors.muted }]}>{formattedDate}</Text>
         </View>
 
-        {passage ? (
+        {passageText ? (
           <View style={[styles.heroCard, { backgroundColor: colors.surface + "F0", borderColor: colors.primary + "55" }]}>
-            <Text style={[styles.heroQuote, { color: colors.foreground, fontFamily: Fonts.serif }]}>“{passage.text}”</Text>
+            <Text style={[styles.heroQuote, { color: colors.foreground, fontFamily: Fonts.serif }]}>“{passageText}”</Text>
             <View style={styles.heroFooter}>
               <View style={[styles.rule, { backgroundColor: colors.primary + "50" }]} />
-              <Text style={[styles.heroRef, { color: colors.muted }]}>{passage.reference}</Text>
+              <Text style={[styles.heroRef, { color: colors.muted }]}>{passageReference}</Text>
             </View>
           </View>
         ) : null}
@@ -192,6 +314,44 @@ export default function ReadingDetailScreen() {
         </View>
 
         <View style={styles.footer}>
+          <View style={styles.actionGrid}>
+            <Pressable
+              onPress={handleToggleFavorite}
+              disabled={isSavingFavorite}
+              style={[styles.secondaryButton, { backgroundColor: colors.surface + "E8", borderColor: colors.border + "66", opacity: isSavingFavorite ? 0.6 : 1 }]}
+            >
+              <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>
+                {reading.is_favorite ? "Bỏ yêu thích" : "Yêu thích"}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={handleShareAgain}
+              disabled={isSharing}
+              style={[styles.secondaryButton, { backgroundColor: colors.surface + "E8", borderColor: colors.border + "66", opacity: isSharing ? 0.6 : 1 }]}
+            >
+              <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>
+                {isSharing ? "Đang chia sẻ..." : "Chia sẻ lại"}
+              </Text>
+            </Pressable>
+          </View>
+          <Pressable
+            onPress={handleGift}
+            disabled={isGifting}
+            style={[styles.secondaryButton, { backgroundColor: colors.surface + "E8", borderColor: colors.border + "66", opacity: isGifting ? 0.6 : 1 }]}
+          >
+            <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>
+              {isGifting ? "Đang tạo quà..." : "Tặng lần đọc này"}
+            </Text>
+          </Pressable>
+          <Pressable
+            onPress={handleReopen}
+            disabled={isReopening}
+            style={[styles.primaryButton, { backgroundColor: colors.surface + "F4", borderColor: colors.primary + "88", opacity: isReopening ? 0.65 : 1 }]}
+          >
+            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+              {isReopening ? "Đang mở lại..." : "Đọc lại từ nguồn này"}
+            </Text>
+          </Pressable>
           <Pressable
             onPress={() => router.back()}
             style={[styles.primaryButton, { backgroundColor: colors.surface + "F4", borderColor: colors.primary + "88" }]}
@@ -342,6 +502,21 @@ const styles = StyleSheet.create({
   footer: {
     paddingTop: 8,
     paddingBottom: 8,
+    gap: 12,
+  },
+  actionGrid: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  secondaryButton: {
+    flex: 1,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingVertical: 15,
+    alignItems: "center",
+  },
+  secondaryButtonText: {
+    fontSize: 15,
   },
   primaryButton: {
     borderRadius: 22,

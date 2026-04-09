@@ -2,7 +2,6 @@ import { File, Paths } from "expo-file-system";
 import { Platform } from "react-native";
 
 import { getApiBaseUrl } from "@/constants/oauth";
-import { BUNDLED_PASSAGES, BUNDLED_SOURCES, BUNDLED_THEMES } from "@/lib/data/content";
 import { createTRPCClient } from "@/lib/trpc";
 
 import { aletheiaNativeClient } from "./aletheia-core";
@@ -116,11 +115,7 @@ export async function initializeAletheiaNative(): Promise<void> {
       }
     }
 
-    const response = await aletheiaNativeClient.seedBundledData({
-      sourcesJson: JSON.stringify(BUNDLED_SOURCES),
-      passagesJson: JSON.stringify(BUNDLED_PASSAGES),
-      themesJson: JSON.stringify(BUNDLED_THEMES),
-    });
+    const response = await aletheiaNativeClient.bootstrapBundledContent();
 
     if (response.error) {
       throw new Error(`[${response.error.code}] ${response.error.message}`);

@@ -52,7 +52,7 @@ impl ReadingEngine {
         } else {
             let premium_allowed = user_state.subscription_tier == SubscriptionTier::Pro;
             self.store
-                .get_random_source(premium_allowed)?
+                .get_random_source(premium_allowed, Some(user_state.preferred_language.as_str()))?
                 .ok_or_else(|| AletheiaError::source_not_found("any"))?
         };
 

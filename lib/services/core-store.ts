@@ -5,12 +5,14 @@ import type {
   GiftResponse,
   NotificationMessage,
   PaginatedReadings,
+  Passage,
   Reading,
   ReadingSession,
   Source,
   SymbolMethod,
   UserState,
 } from "@/lib/types";
+import { BUNDLED_PASSAGES, BUNDLED_SOURCES } from "@/lib/data/content";
 import { aletheiaNativeClient } from "@/lib/native/aletheia-core";
 import {
   unwrapNativeChooseSymbolResponse,
@@ -18,6 +20,7 @@ import {
   unwrapNativeNotificationMessageResponse,
   unwrapNativePaginatedReadingsResponse,
   unwrapNativePerformReadingResponse,
+  unwrapNativeReadingResponse,
   unwrapNativeUpdateUserStateResponse,
   unwrapNativeUserStateResponse,
   unwrapNativeSourcesResponse,
@@ -36,8 +39,11 @@ import { getCurrentUserId } from "./current-user-id";
 import { readingEngine } from "./reading-engine";
 import { store } from "./store";
 
-const READING_LOOKUP_PAGE_SIZE = 50;
-const MAX_READING_LOOKUP_PAGES = 200;
+export interface ReadingDetail {
+  reading: Reading;
+  source: Source | undefined;
+  passage: Passage | undefined;
+}
 
 class CoreStoreService {
   private async ensureNativeReady() {
@@ -145,29 +151,43 @@ class CoreStoreService {
       return store.getReadingById(id);
     }
 
-    let offset = 0;
-    let pageIndex = 0;
-    let boundedPageCount: number | null = null;
+    await this.ensureNativeReady();
+    return unwrapNativeReadingResponse(
+      await aletheiaNativeClient.getReadingById(id),
+    ) as Reading | null;
+  }
 
-    while (pageIndex < MAX_READING_LOOKUP_PAGES) {
-      const page = await this.getReadingsPage(READING_LOOKUP_PAGE_SIZE, offset);
-      if (boundedPageCount === null) {
-        boundedPageCount = Math.max(1, Math.ceil(page.total_count / READING_LOOKUP_PAGE_SIZE));
-      }
-
-      const match = page.items.find((reading) => reading.id === id);
-      if (match) {
-        return match;
-      }
-      if (!page.has_more || pageIndex + 1 >= boundedPageCount) {
-        return null;
-      }
-
-      offset += READING_LOOKUP_PAGE_SIZE;
-      pageIndex += 1;
+  async getReadingDetail(id: string): Promise<ReadingDetail | null> {
+    const reading = await this.getReadingById(id);
+    if (!reading) {
+      return null;
     }
 
-    throw new Error("Native reading lookup exceeded the allowed pagination bound.");
+    return {
+      reading,
+      source: BUNDLED_SOURCES.find((item) => item.id === reading.source_id),
+      passage: BUNDLED_PASSAGES.find((item) => item.id === reading.passage_id),
+    };
+  }
+
+  async updateReadingFlags(
+    id: string,
+    flags: {
+      is_favorite?: boolean;
+      shared?: boolean;
+    },
+  ): Promise<Reading | null> {
+    if (!shouldUseAletheiaNative()) {
+      return store.updateReadingFlags(id, flags);
+    }
+
+    await this.ensureNativeReady();
+    return unwrapNativeReadingResponse(
+      await aletheiaNativeClient.updateReadingFlags(id, {
+        isFavorite: flags.is_favorite,
+        shared: flags.shared,
+      }),
+    ) as Reading | null;
   }
 
   async getGiftableSources(): Promise<Source[]> {

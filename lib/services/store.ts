@@ -416,15 +416,40 @@ class StoreService {
     };
   }
 
-  async getRandomSource(premiumAllowed: boolean): Promise<Source | null> {
+  async getRandomSource(
+    premiumAllowed: boolean,
+    preferredLanguage?: string,
+  ): Promise<Source | null> {
     await this.initialize();
     if (!this.db) throw new Error("Database not initialized");
 
-    const query = premiumAllowed
-      ? "SELECT * FROM sources ORDER BY RANDOM() LIMIT 1"
-      : "SELECT * FROM sources WHERE is_premium = 0 ORDER BY RANDOM() LIMIT 1";
+    const filters: string[] = [];
+    const params: (string | number)[] = [];
 
-    const row = await this.db.getFirstAsync<any>(query);
+    if (!premiumAllowed) {
+      filters.push("is_premium = 0");
+    }
+
+    const normalizedLanguage = preferredLanguage?.trim().toLowerCase();
+    if (normalizedLanguage) {
+      filters.push("language = ?");
+      params.push(normalizedLanguage);
+    }
+
+    const whereClause = filters.length > 0 ? `WHERE ${filters.join(" AND ")}` : "";
+    const query = `SELECT * FROM sources ${whereClause} ORDER BY RANDOM() LIMIT 1`;
+
+    let row = await this.db.getFirstAsync<any>(query, params);
+
+    if (!row && normalizedLanguage) {
+      const fallbackFilters = !premiumAllowed ? ["is_premium = 0"] : [];
+      const fallbackWhereClause =
+        fallbackFilters.length > 0 ? `WHERE ${fallbackFilters.join(" AND ")}` : "";
+      row = await this.db.getFirstAsync<any>(
+        `SELECT * FROM sources ${fallbackWhereClause} ORDER BY RANDOM() LIMIT 1`,
+      );
+    }
+
     if (!row) return null;
 
     return {
@@ -598,6 +623,43 @@ class StoreService {
     );
 
     return row ? this.mapReadingRow(row) : null;
+  }
+
+  async updateReadingFlags(
+    id: string,
+    flags: {
+      is_favorite?: boolean;
+      shared?: boolean;
+    },
+  ): Promise<Reading | null> {
+    await this.initialize();
+    if (!this.db) throw new Error("Database not initialized");
+
+    const updates: string[] = [];
+    const params: (string | number)[] = [];
+
+    if (typeof flags.is_favorite === "boolean") {
+      updates.push("is_favorite = ?");
+      params.push(flags.is_favorite ? 1 : 0);
+    }
+
+    if (typeof flags.shared === "boolean") {
+      updates.push("shared = ?");
+      params.push(flags.shared ? 1 : 0);
+    }
+
+    if (updates.length === 0) {
+      return this.getReadingById(id);
+    }
+
+    params.push(id);
+
+    await this.db.runAsync(
+      `UPDATE readings SET ${updates.join(", ")} WHERE id = ?`,
+      params,
+    );
+
+    return this.getReadingById(id);
   }
 
   async getGiftableSources(): Promise<Source[]> {

@@ -15,7 +15,6 @@ import {
 } from "@/lib/types";
 import {
   FREE_READINGS_PER_DAY,
-  FREE_AI_PER_DAY,
 } from "@/lib/constants";
 import { store } from "./store";
 import { themeEngine } from "./theme-engine";
@@ -63,7 +62,10 @@ class ReadingEngineService {
         }
       } else {
         const premiumAllowed = userState.subscription_tier === SubscriptionTier.Pro;
-        source = await store.getRandomSource(premiumAllowed);
+        source = await store.getRandomSource(
+          premiumAllowed,
+          userState.preferred_language,
+        );
         if (!source) {
           throw this.createError(ErrorCode.SourceNotFound, "No sources available");
         }

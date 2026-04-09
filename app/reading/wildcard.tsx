@@ -51,6 +51,8 @@ function SymbolCard({
 
   return (
     <Pressable
+      testID={`symbol-card-${symbol.id}`}
+      accessibilityLabel={`symbol-card-${symbol.id}`}
       onPress={() => {
         if (!isRevealed || isSelected) return;
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -183,7 +185,12 @@ export default function WildcardScreen() {
       <View style={styles.screen}>
         <View style={styles.header}>
           <RitualOrnament variant="line" />
-          <Text style={[styles.headerTitle, { color: colors.foreground, fontFamily: Fonts.serif }]}>Chọn một biểu tượng</Text>
+          <Text
+            testID="reading-wildcard-title"
+            style={[styles.headerTitle, { color: colors.foreground, fontFamily: Fonts.serif }]}
+          >
+            Chọn một biểu tượng
+          </Text>
           <Text style={[styles.headerMeta, { color: colors.muted }]}>
             {session.theme.name} • {session.symbols.length} dấu hiệu đang chờ bạn
           </Text>
@@ -211,6 +218,8 @@ export default function WildcardScreen() {
               </View>
 
               <Pressable
+                testID="reading-wildcard-auto"
+                accessibilityLabel="reading-wildcard-auto"
                 onPress={handleAutoChoose}
                 disabled={isAutoSelecting}
                 style={[

@@ -27,7 +27,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm dev",
+    command:
+      "bash -lc 'rm -rf dist && pnpm exec cross-env ALLOW_PLACEHOLDER_ENV=1 CI=1 EXPO_PUBLIC_API_BASE_URL=http://localhost:3000 npx expo export --platform web && python3 -m http.server 8081 -d dist'",
     url: "http://localhost:8081",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

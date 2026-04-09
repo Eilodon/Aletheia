@@ -27,6 +27,13 @@ use std::sync::Arc;
 use std::sync::Mutex;
 use tracing::info;
 
+#[derive(Debug, Clone, serde::Deserialize)]
+struct BundledContentArtifact {
+    sources: Vec<Source>,
+    passages: Vec<Passage>,
+    themes: Vec<Theme>,
+}
+
 // Global Tokio runtime for AI operations - reuse instead of creating new each time
 static RUNTIME: once_cell::sync::Lazy<tokio::runtime::Runtime> = once_cell::sync::Lazy::new(|| {
     tokio::runtime::Builder::new_multi_thread()
@@ -155,6 +162,44 @@ impl AletheiaCore {
                 .map_err(|_| AletheiaError::invalid_input("themes_json", "invalid JSON payload"))?;
 
             self.store.seed_bundled_data(&sources, &passages, &themes)
+        })();
+
+        match result {
+            Ok(seeded) => SeedBundledDataResponse {
+                seeded,
+                error: None,
+            },
+            Err(error) => SeedBundledDataResponse {
+                seeded: false,
+                error: Some(BridgeError::from_aletheia_error(&error)),
+            },
+        }
+    }
+
+    pub fn bootstrap_bundled_content(&self) -> SeedBundledDataResponse {
+        if let Some(err) = &self.init_error {
+            return SeedBundledDataResponse {
+                seeded: false,
+                error: Some(err.clone()),
+            };
+        }
+
+        let result = (|| -> Result<bool, AletheiaError> {
+            let artifact: BundledContentArtifact = serde_json::from_str(include_str!(
+                "../content/bundled-content.json"
+            ))
+            .map_err(|_| {
+                AletheiaError::invalid_input(
+                    "bundled_content_artifact",
+                    "invalid bundled content artifact JSON",
+                )
+            })?;
+
+            self.store.seed_bundled_data(
+                &artifact.sources,
+                &artifact.passages,
+                &artifact.themes,
+            )
         })();
 
         match result {
@@ -650,6 +695,77 @@ impl AletheiaCore {
             },
             Err(error) => PaginatedReadingsResponse {
                 readings: None,
+                error: Some(BridgeError::from_aletheia_error(&error)),
+            },
+        }
+    }
+
+    pub fn try_get_reading_by_id(&self, id: &str) -> Result<Option<Reading>, AletheiaError> {
+        self.store.get_reading_by_id(id)
+    }
+
+    pub fn get_reading_by_id(&self, id: String) -> ReadingResponse {
+        if let Some(err) = &self.init_error {
+            return ReadingResponse {
+                reading: None,
+                error: Some(err.clone()),
+            };
+        }
+
+        match self.try_get_reading_by_id(&id) {
+            Ok(reading) => ReadingResponse {
+                reading,
+                error: None,
+            },
+            Err(error) => ReadingResponse {
+                reading: None,
+                error: Some(BridgeError::from_aletheia_error(&error)),
+            },
+        }
+    }
+
+    pub fn try_update_reading_flags(
+        &self,
+        id: &str,
+        is_favorite: Option<bool>,
+        shared: Option<bool>,
+    ) -> Result<Option<Reading>, AletheiaError> {
+        let Some(mut reading) = self.store.get_reading_by_id(id)? else {
+            return Ok(None);
+        };
+
+        if let Some(value) = is_favorite {
+            reading.is_favorite = value;
+        }
+
+        if let Some(value) = shared {
+            reading.shared = value;
+        }
+
+        self.store.update_reading(&reading)?;
+        self.store.get_reading_by_id(id)
+    }
+
+    pub fn update_reading_flags(
+        &self,
+        id: String,
+        is_favorite: Option<bool>,
+        shared: Option<bool>,
+    ) -> ReadingResponse {
+        if let Some(err) = &self.init_error {
+            return ReadingResponse {
+                reading: None,
+                error: Some(err.clone()),
+            };
+        }
+
+        match self.try_update_reading_flags(&id, is_favorite, shared) {
+            Ok(reading) => ReadingResponse {
+                reading,
+                error: None,
+            },
+            Err(error) => ReadingResponse {
+                reading: None,
                 error: Some(BridgeError::from_aletheia_error(&error)),
             },
         }

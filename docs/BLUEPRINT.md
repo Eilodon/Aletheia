@@ -47,7 +47,7 @@
 
 **Architectural guardrails for next rewrite phase:**
 - Android UI không được gọi `aletheiaNativeClient` hay `shouldUseAletheiaNative()` trực tiếp ngoài adapter layer.
-- Current repo state: Android runtime vẫn seed Rust từ `lib/data/content.ts` (re-export `seed-data.ts`); Rust-owned content artifact vẫn là work còn mở.
+- Current repo state: Android runtime bootstrap bundled content trực tiếp từ Rust-owned artifact `core/content/bundled-content.json`; TypeScript chỉ consume generated downstream export.
 - Mọi Android read/write domain model phải đi qua UniFFI surface hoặc facade bọc UniFFI đó.
 - Web có thể giữ TS path riêng, nhưng không được quyết định contract cho Android.
 
@@ -1012,3 +1012,9 @@ Quản lý vòng đời của AI streaming để tránh rò rỉ tài nguyên:
 - **AIClient.stream_interpretation(request, cancel_token):** Nhận `CancellationToken` từ UI.
 - **DropGuard:** Mọi stream object trong Rust core phải implement `Drop` trait để tự động gửi tín hiệu cancel tới async runtime khi object bị hủy ở phía Mobile UI.
 - **UI Integration:** Khi màn hình `PassageDisplayed` bị dispose, UI phải chủ động gọi hàm cancel hoặc drop stream handle.
+
+### 9.3 Cycle 3 Boundary Rule
+
+- `lib/services/ai-client.ts` không được import trực tiếp từ `lib/native/**`; native AI access phải đi qua `lib/services/ai-runtime.ts`.
+- `app/_layout.tsx` là nơi orchestration bootstrap được phép tồn tại, nhưng phải giữ startup telemetry và defer các probe không chặn UX.
+- Release readiness phải có JSON report từ code thật, không chỉ checklist markdown.

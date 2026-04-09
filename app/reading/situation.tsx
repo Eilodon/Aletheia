@@ -60,7 +60,11 @@ export default function SituationScreen() {
           {/* Header */}
           <View className="items-center gap-4 pt-8">
             <RitualOrnament variant="line" />
-            <Text className="text-3xl text-foreground text-center" style={{ fontFamily: Fonts.serif }}>
+            <Text
+              testID="reading-situation-title"
+              className="text-3xl text-foreground text-center"
+              style={{ fontFamily: Fonts.serif }}
+            >
               Bạn đang mang điều gì?
             </Text>
             <Text className="text-sm text-muted text-center max-w-xs">
@@ -71,6 +75,8 @@ export default function SituationScreen() {
           {/* Input */}
           <View className="flex-1 justify-center px-2">
             <TextInput
+              testID="reading-situation-input"
+              accessibilityLabel="reading-situation-input"
               value={situationText}
               onChangeText={setSituationText}
               placeholder="Tôi đang cảm thấy... / Tôi đang đối mặt với..."
@@ -95,6 +101,8 @@ export default function SituationScreen() {
           {/* Actions */}
           <View className="gap-4 pb-8">
             <Pressable
+              testID="reading-situation-continue"
+              accessibilityLabel="reading-situation-continue"
               onPress={handleContinue}
               disabled={isLoading}
               style={({ pressed }) => ({
@@ -114,6 +122,8 @@ export default function SituationScreen() {
             </Pressable>
 
             <Pressable
+              testID="reading-situation-skip"
+              accessibilityLabel="reading-situation-skip"
               onPress={handleSkip}
               disabled={isLoading}
               className="py-3"

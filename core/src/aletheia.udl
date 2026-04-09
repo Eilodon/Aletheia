@@ -266,6 +266,11 @@ dictionary SeedBundledDataResponse {
     BridgeError? error;
 };
 
+dictionary ReadingResponse {
+    Reading? reading;
+    BridgeError? error;
+};
+
 interface AletheiaCore {
     constructor(string db_path, string gift_backend_url);
 
@@ -274,6 +279,8 @@ interface AletheiaCore {
         string passages_json,
         string themes_json
     );
+
+    SeedBundledDataResponse bootstrap_bundled_content();
 
     SetApiKeyResponse set_ai_api_key(
         string provider,
@@ -323,6 +330,14 @@ interface AletheiaCore {
     SourcesResponse get_sources(boolean premium_allowed);
 
     PaginatedReadingsResponse get_readings(u32 limit, u32 offset);
+
+    ReadingResponse get_reading_by_id(string id);
+
+    ReadingResponse update_reading_flags(
+        string id,
+        boolean? is_favorite,
+        boolean? shared
+    );
 
     NotificationMessageResponse get_daily_notification_message(
         string user_id,

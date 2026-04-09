@@ -8,6 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { validateServerEnv, ENV } from "./env";
 import { apiLimiter, aiApiLimiter } from "./rateLimit";
+import { getReleaseReadiness } from "./releaseReadiness";
 import { getDb } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -71,6 +72,7 @@ async function startServer() {
       database: { status: "unknown", latencyMs: 0 },
       aiService: { status: "unknown", latencyMs: 0 },
       storage: { status: "unknown", latencyMs: 0 },
+      giftBackend: { status: "unknown", latencyMs: 0 },
     };
     let allHealthy = true;
 
@@ -80,7 +82,7 @@ async function startServer() {
       const dbConn = await getDb();
       checks.database.status = dbConn === null ? "disabled" : "healthy";
       checks.database.latencyMs = Date.now() - dbStart;
-    } catch (_err) {
+    } catch {
       checks.database.status = "unhealthy";
       checks.database.latencyMs = Date.now() - dbStart;
       allHealthy = false;
@@ -105,7 +107,7 @@ async function startServer() {
         if (!response.ok) allHealthy = false;
       }
       checks.aiService.latencyMs = Date.now() - aiStart;
-    } catch (_err) {
+    } catch {
       checks.aiService.status = "unhealthy";
       checks.aiService.latencyMs = Date.now() - aiStart;
       allHealthy = false;
@@ -121,9 +123,20 @@ async function startServer() {
         checks.storage.status = "healthy"; // Assume healthy if configured
       }
       checks.storage.latencyMs = Date.now() - storageStart;
-    } catch (_err) {
+    } catch {
       checks.storage.status = "unhealthy";
       checks.storage.latencyMs = Date.now() - storageStart;
+      allHealthy = false;
+    }
+
+    const giftStart = Date.now();
+    try {
+      const giftUrl = process.env.EXPO_PUBLIC_GIFT_BACKEND_URL;
+      checks.giftBackend.status = giftUrl ? "configured" : "not_configured";
+      checks.giftBackend.latencyMs = Date.now() - giftStart;
+    } catch {
+      checks.giftBackend.status = "unhealthy";
+      checks.giftBackend.latencyMs = Date.now() - giftStart;
       allHealthy = false;
     }
 
@@ -132,6 +145,11 @@ async function startServer() {
       timestamp: Date.now(),
       checks,
     });
+  });
+
+  app.get("/api/health/release", (_req, res) => {
+    const report = getReleaseReadiness();
+    res.status(report.ok ? 200 : 503).json(report);
   });
 
   // Apply rate limiting to all /api routes

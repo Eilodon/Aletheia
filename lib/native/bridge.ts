@@ -14,6 +14,7 @@ import type {
   NativeUserStateResponse,
   NativeUpdateUserStateResponse,
   NativePaginatedReadingsResponse,
+  NativeReadingResponse,
   NativeSourcesResponse,
   NativeNotificationMessageResponse,
   NativeRedeemGiftResponse,
@@ -132,6 +133,14 @@ export function unwrapNativePaginatedReadingsResponse(response: NativePaginatedR
     });
   }
   return response.readings;
+}
+
+export function unwrapNativeReadingResponse(response: NativeReadingResponse) {
+  const error = toAletheiaError(response.error);
+  if (error) {
+    throw error;
+  }
+  return response.reading ?? null;
 }
 
 export function unwrapNativeSourcesResponse(response: NativeSourcesResponse) {

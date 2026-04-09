@@ -33,6 +33,12 @@
 | [ADR-AL-33](#adr-al-33--user_intent-phải-trở-thành-core-owned-state) | `user_intent` must become core-owned state | ✅ ACCEPTED |
 | [ADR-AL-34](#adr-al-34--schema-registry-phải-trở-lại-một-nguồn-duy-nhất) | Schema registry must become singular again | ✅ ACCEPTED |
 | [ADR-AL-35](#adr-al-35--uniffi-phải-expose-đủ-read-model-cho-android-ui) | UniFFI must expose Android read models fully | ✅ ACCEPTED |
+| [ADR-AL-36](#adr-al-36--android-bundled-content-phải-chuyển-sang-rust-owned-artifact) | Android bundled content must move to a Rust-owned artifact | ✅ ACCEPTED |
+| [ADR-AL-37](#adr-al-37--archive-detail-ui-không-được-import-bundled-content-trực-tiếp) | Archive/detail UI must not import bundled content directly | ✅ ACCEPTED |
+| [ADR-AL-38](#adr-al-38--archive-write-parity-phải-được-giải-quyết-bằng-bridge-contract-không-phải-ui-workaround) | Archive write parity must be solved in the bridge contract | ✅ ACCEPTED |
+| [ADR-AL-39](#adr-al-39--verification-phải-chia-thành-fast-medium-release-tiers) | Verification must be tiered into fast/medium/release | ✅ ACCEPTED |
+| [ADR-AL-40](#adr-al-40--ritualarchive-sharegift-phải-có-event-taxonomy-chung) | Ritual, archive, share, and gift flows must share one event taxonomy | ✅ ACCEPTED |
+| [ADR-AL-41](#adr-al-41--archive-phải-là-retention--growth-surface-không-phải-list-tĩnh) | Archive must be a retention and growth surface | ✅ ACCEPTED |
 
 ---
 
@@ -257,6 +263,179 @@ Market research: 37% spiritual app users chia sẻ kết quả lên mạng xã h
 **Requirement:** Card phải self-explanatory. Viewer nhìn lần đầu phải hiểu đây là gì, muốn thử.
 
 ### Options Considered
+
+---
+
+## ADR-AL-36 — Android bundled content phải chuyển sang Rust-owned artifact
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-04-09
+**VHEATM Level:** 🔴 MANDATORY
+**Tags:** `architecture` `ssot` `android` `content`
+
+### Context
+
+Current repo state vẫn để Android native init stringify `BUNDLED_SOURCES`, `BUNDLED_PASSAGES`, `BUNDLED_THEMES` từ TypeScript rồi gọi `seedBundledData(...)`. Điều này khiến Android "dùng Rust" nhưng chưa thật sự để Rust own bundled catalog.
+
+**Verified evidence:**
+- `lib/native/runtime.ts` gọi `seedBundledData()` với JSON stringify từ TS bundle.
+- `modules/aletheia-core-module/src/index.ts` và `core/src/lib.rs` vẫn định nghĩa bridge surface theo hướng nhận JSON payload runtime.
+
+### Decision
+
+> Android bundled content phải được build từ Rust-owned artifact hoặc generator pipeline. TypeScript chỉ được consume downstream artifact đó, không được làm nguồn runtime cho Android.
+
+### Consequences
+
+**Tích cực:**
+- Android SSOT chuyển từ "ý định" sang "cấu trúc thật".
+- Dễ kiểm soát drift content, QA, và parity tests.
+
+**Trade-offs chấp nhận được:**
+- Build pipeline phức tạp hơn một bước.
+
+**Rủi ro:**
+- Migration blast radius lớn hơn refactor UI thường. Phải đi kèm verification tier và parity checks.
+
+---
+
+## ADR-AL-37 — Archive/detail UI không được import bundled content trực tiếp
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-04-09
+**VHEATM Level:** 🔴 MANDATORY
+**Tags:** `architecture` `facade` `archive` `ui`
+
+### Context
+
+Màn archive/detail hiện vẫn có path import bundled content trực tiếp để join metadata vào reading record. Cách này leak data ownership lên UI và phá boundary facade.
+
+**Verified evidence:**
+- `app/reading/[id].tsx` import `BUNDLED_SOURCES` và `BUNDLED_PASSAGES`.
+
+### Decision
+
+> Archive/detail screens chỉ được render domain objects hoặc read models lấy qua `coreStore`/adapter layer. Không screen nào được import bundled content trực tiếp để hydrate detail view.
+
+### Consequences
+
+**Tích cực:**
+- UI không cần biết content đến từ web store, native store, hay artifact nào.
+- Deep-link/history/archive trở nên portable hơn giữa runtime paths.
+
+**Trade-offs chấp nhận được:**
+- Cần mở thêm read-model surface trong facade hoặc bridge.
+
+---
+
+## ADR-AL-38 — Archive write parity phải được giải quyết bằng bridge contract, không phải UI workaround
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-04-09
+**VHEATM Level:** 🟠 REQUIRED
+**Tags:** `archive` `bridge` `native` `contract`
+
+### Context
+
+Favorite/share actions hiện có logic UI, nhưng Android native path vẫn throw do `coreStore.updateReadingFlags()` chưa có bridge-backed implementation. Trong khi đó Rust store đã có read/write primitives tương ứng.
+
+**Verified evidence:**
+- `lib/services/core-store.ts` throw trên Android native.
+- `core/src/store.rs` đã có `get_reading_by_id()` và `update_reading()`.
+
+### Decision
+
+> Archive write parity phải được giải quyết bằng cách mở rộng UniFFI/native bridge surface với contract hẹp và rõ. Không dùng workaround UI-level, không paginate toàn history để giả lập write path.
+
+### Consequences
+
+**Tích cực:**
+- Android archive flow đạt parity thật.
+- Logic persistence ở đúng tầng.
+
+**Trade-offs chấp nhận được:**
+- Tăng phạm vi bridge maintenance.
+
+---
+
+## ADR-AL-39 — Verification phải chia thành fast/medium/release tiers
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-04-09
+**VHEATM Level:** 🟠 REQUIRED
+**Tags:** `verification` `ci` `release`
+
+### Context
+
+Repo hiện có baseline kiểm tra nhẹ, nhưng chưa đủ để bảo vệ các refactor liên quan đến Rust contracts, UniFFI bridge, archive parity, và content ownership.
+
+### Decision
+
+> Verification chính thức của repo phải chia thành ba tier:
+> - `fast`: typecheck, lint, unit core/service.
+> - `medium`: integration tests cho facade/archive/history và web smoke.
+> - `release`: rust build, bridge parity, Android flow smoke.
+
+### Consequences
+
+**Tích cực:**
+- Mỗi cycle refactor có rail phù hợp với blast radius.
+- Giảm nguy cơ drift giữa TS, Rust, và native bridge.
+
+**Trade-offs chấp nhận được:**
+- CI/runtime cost tăng lên, nhưng hợp lý so với rủi ro hiện tại.
+
+---
+
+## ADR-AL-40 — Ritual/archive/share/gift phải có event taxonomy chung
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-04-09
+**VHEATM Level:** 🟠 REQUIRED
+**Tags:** `analytics` `observability` `growth`
+
+### Context
+
+Trước Cycle 2, app đã có `lib/analytics.ts` nhưng không có taxonomy đủ rõ để đo core funnel. Điều đó khiến team có analytics plumbing nhưng gần như không có product observability thật.
+
+### Decision
+
+> Ritual loop, archive interactions, share actions, và gift actions phải dùng một event taxonomy nhất quán ở app layer. Event names cần đủ ổn định để làm funnel, retention cuts, và failure slices.
+
+### Consequences
+
+**Tích cực:**
+- Có thể đo từ `home -> start -> symbol -> AI -> save -> share/gift -> archive reopen`.
+- Dễ nối PostHog/Sentry thành cùng một feedback loop.
+
+**Trade-offs chấp nhận được:**
+- Thêm chút noise ở UI/service layer, nhưng nhỏ hơn nhiều so với việc không có dữ liệu hành vi.
+
+---
+
+## ADR-AL-41 — Archive phải là retention + growth surface, không phải list tĩnh
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-04-09
+**VHEATM Level:** 🟠 REQUIRED
+**Tags:** `archive` `retention` `growth`
+
+### Context
+
+Mirror/archive ban đầu chỉ là nơi hiển thị lịch sử. Cycle 2 xác nhận rằng archive phải làm được ba việc: giúp user tìm lại điều cũ, quay lại ritual, và chuyển hóa một lần đọc thành share/gift action.
+
+### Decision
+
+> Archive phải hỗ trợ retrieval thật (`search/filter/sort`), replay thật (`reopen`), và growth thật (`share/gift`) ngay trong flow detail.
+
+### Consequences
+
+**Tích cực:**
+- Archive trở thành surface giữ chân user thay vì dead-end.
+- Share và gift không còn là helper ẩn mà thành hành vi có thể đo được.
+
+**Trade-offs chấp nhận được:**
+- UI/archive logic dày hơn một chút và cần observability đi cùng.
 
 #### Option A: Share card là P0 — thiết kế như ad creative ← **CHOSEN**
 
@@ -917,3 +1096,72 @@ Mọi read model mà Android UI tiêu thụ trong release path phải được c
 
 - **Positive:** Android UI không còn phải “mượn” catalog data từ TS.
 - **Trade-off:** Bridge surface sẽ rộng hơn và cần test contract kỹ hơn.
+
+---
+
+## ADR-AL-42 — AI service path không được import native runtime trực tiếp
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-04-09
+**VHEATM Level:** 🔴 MANDATORY
+**Tags:** `ai` `adapter` `boundary`
+
+### Context
+
+Sau Cycle 2, `ai-client` vẫn trực tiếp import `aletheiaNativeClient`, bridge unwrappers, và `shouldUseAletheiaNative()`. Đây là leak có leverage cao vì AI path đi qua nhiều state UX quan trọng.
+
+### Decision
+
+`ai-client` chỉ được nói chuyện với một adapter cấp service như `ai-runtime`.  
+Native runtime imports phải bị cô lập trong adapter hoặc `lib/native/**`.
+
+### Consequences
+
+- **Positive:** AI path bớt platform coupling và dễ test hơn.
+- **Trade-off:** Thêm một adapter layer phải được giữ đúng contract.
+
+---
+
+## ADR-AL-43 — Bootstrap app shell phải được orchestration như một flow duy nhất
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-04-09
+**VHEATM Level:** 🟠 REQUIRED
+**Tags:** `startup` `performance` `orchestration`
+
+### Context
+
+Root layout trước đó khởi tạo onboarding check, analytics identity, db init, và native probe trong nhiều `useEffect` rời rạc. Điều này tạo duplicate work, làm khó đo thời gian cold start, và tăng noise khi debug bootstrap regressions.
+
+### Decision
+
+App shell bootstrap phải được gom thành một orchestration flow duy nhất với timing telemetry rõ ràng.  
+Những việc không chặn UX như probe phải được defer sau khi gate chính hoàn tất.
+
+### Consequences
+
+- **Positive:** Startup dễ đo, ít duplicate init hơn, và dễ gắn perf budget.
+- **Trade-off:** Root layout phải giữ nhiều trách nhiệm orchestration hơn.
+
+---
+
+## ADR-AL-44 — Release readiness phải là artifact có thể đọc bằng máy
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-04-09
+**VHEATM Level:** 🟠 REQUIRED
+**Tags:** `release` `ops` `verification`
+
+### Context
+
+Trước Cycle 3, release knowledge nằm rải trong docs, script, và kinh nghiệm vận hành. Không có một report JSON duy nhất để gate hoặc inspect nhanh trạng thái artifact/config cho Android beta.
+
+### Decision
+
+Release readiness phải được xuất ra như machine-readable report từ codebase hiện tại và gắn vào verification rail.  
+Report tối thiểu phải bao gồm artifact Rust Android, UniFFI bindings, bundled content artifacts, và config health mức release.
+
+### Consequences
+
+- **Positive:** Release review bớt cảm tính và có thể tự động hóa dần.
+- **Trade-off:** Report này phải được cập nhật cùng lúc với thay đổi release surface.

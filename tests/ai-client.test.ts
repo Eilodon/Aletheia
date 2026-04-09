@@ -1,21 +1,27 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { aiClient } from "../lib/services/ai-client";
 
-vi.mock("@/lib/native/runtime", () => ({
-  shouldUseAletheiaNative: vi.fn().mockReturnValue(false),
-  initializeAletheiaNative: vi.fn(),
+const { aiRuntimeMocks } = vi.hoisted(() => ({
+  aiRuntimeMocks: {
+    isNativeAvailable: vi.fn().mockReturnValue(false),
+    ensureReady: vi.fn(),
+    setApiKey: vi.fn(),
+    requestInterpretation: vi.fn(),
+    startInterpretationStream: vi.fn(),
+    pollInterpretationStream: vi.fn(),
+    cancelInterpretationStream: vi.fn(),
+  },
 }));
 
-vi.mock("@/lib/native/aletheia-core", () => ({
-  aletheiaNativeClient: {
-    init: vi.fn(),
-    requestInterpretation: vi.fn(),
-  },
+vi.mock("@/lib/services/ai-runtime", () => ({
+  aiRuntime: aiRuntimeMocks,
 }));
 
 describe("AIClientService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    aiRuntimeMocks.isNativeAvailable.mockReturnValue(false);
+    aiRuntimeMocks.requestInterpretation.mockReset();
   });
 
   describe("getFallbackInterpretation — CONTENT-03", () => {
@@ -161,6 +167,38 @@ describe("AIClientService", () => {
         const result = await aiClient.requestInterpretation(request);
         expect(result.chunks[0]).not.toBe("Take a moment to reflect on this passage.");
       }
+    });
+  });
+
+  describe("native runtime adapter", () => {
+    it("delegates interpretation requests through aiRuntime instead of direct native imports", async () => {
+      aiRuntimeMocks.isNativeAvailable.mockReturnValue(true);
+      aiRuntimeMocks.requestInterpretation.mockResolvedValue({
+        chunks: ["native response"],
+        usedFallback: false,
+      });
+
+      const result = await aiClient.requestInterpretation({
+        passage: {
+          id: "passage-4",
+          source_id: "i_ching",
+          reference: "Hexagram 2",
+          text: "Native test passage",
+          context: "Native context",
+          resonance_context: undefined,
+        },
+        symbol: {
+          id: "dawn",
+          display_name: "Bình minh",
+          flavor_text: "Beginning",
+        },
+      });
+
+      expect(aiRuntimeMocks.requestInterpretation).toHaveBeenCalledTimes(1);
+      expect(result).toEqual({
+        chunks: ["native response"],
+        usedFallback: false,
+      });
     });
   });
 });

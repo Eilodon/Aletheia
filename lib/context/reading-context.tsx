@@ -24,6 +24,8 @@ import {
 
 import { coreStore } from "@/lib/services/core-store";
 import { generateId } from "@/lib/utils/id";
+import { trackRitualEvent } from "@/lib/analytics";
+import { captureException } from "@/lib/sentry";
 
 interface ReadingContextType {
   // State
@@ -84,6 +86,11 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
       await dbInit.initialize();
       await coreStore.syncLocalDate().catch(() => {});
       const newSession = await coreStore.performReading(sourceId, situationText);
+      trackRitualEvent("start", {
+        source_id: newSession.source.id,
+        has_situation: Boolean(situationText?.trim()),
+        user_intent: newSession.user_intent,
+      });
 
       setSession(newSession);
       setReadingStartTime(Date.now());
@@ -96,10 +103,21 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
       
       // Trigger paywall when daily limit reached
       if (aletheiaError.code === ErrorCode.DailyLimitReached) {
-        router.push("/paywall");
+        trackRitualEvent("daily_limit_hit", {
+          source_id: sourceId,
+          has_situation: Boolean(situationText?.trim()),
+        });
+        router.push("/paywall" as any);
         return;
       }
-      
+
+      trackRitualEvent("error", {
+        step: "start",
+        code: aletheiaError.code,
+      });
+      if (err instanceof Error) {
+        captureException(err, { step: "start_reading" });
+      }
       setError(aletheiaError);
       setCurrentState(ReadingState.Idle);
     }
@@ -117,6 +135,12 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
       setCurrentState(ReadingState.WildcardChosen);
 
       const newPassage = (await coreStore.chooseSymbol(session, symbolId, method)).passage as Passage;
+      trackRitualEvent("symbol_chosen", {
+        source_id: session.source.id,
+        symbol_id: symbolId,
+        method,
+        theme_id: session.theme.id,
+      });
       setPassage(newPassage);
 
       // Ritual animation
@@ -128,6 +152,13 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
       }, 800);
     } catch (err) {
       const aletheiaError = err as AletheiaError;
+      trackRitualEvent("error", {
+        step: "choose_symbol",
+        code: aletheiaError.code,
+      });
+      if (err instanceof Error) {
+        captureException(err, { step: "choose_symbol" });
+      }
       setError(aletheiaError);
       setCurrentState(ReadingState.Idle);
     }
@@ -149,6 +180,12 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
       setAIResponse("");
       setIsAIFallback(false);
       setAIRequestedAt((current) => current ?? Date.now());
+      trackRitualEvent("ai_requested", {
+        source_id: session.source.id,
+        symbol_id: selectedSymbol.id,
+        has_situation: Boolean(session.situation_text?.trim()),
+        user_intent: session.user_intent,
+      });
 
       const stream = aiClient.streamInterpretation(
         {
@@ -172,6 +209,12 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
       setAIResponse(interpretation.chunks.join("\n\n"));
       setIsAIFallback(interpretation.usedFallback);
       activeAIStreamCancelRef.current = null;
+      trackRitualEvent("ai_completed", {
+        source_id: session.source.id,
+        symbol_id: selectedSymbol.id,
+        used_fallback: interpretation.usedFallback,
+        chunk_count: interpretation.chunks.length,
+      });
 
       setCurrentState(
         interpretation.usedFallback ? ReadingState.AiFallback : ReadingState.PassageDisplayed,
@@ -179,6 +222,13 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       activeAIStreamCancelRef.current = null;
       const aletheiaError = err as AletheiaError;
+      trackRitualEvent("error", {
+        step: "ai_request",
+        code: aletheiaError.code,
+      });
+      if (err instanceof Error) {
+        captureException(err, { step: "request_ai" });
+      }
       setError(aletheiaError);
       setCurrentState(ReadingState.PassageDisplayed);
     }
@@ -193,13 +243,17 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
 
       await cancel();
       activeAIStreamCancelRef.current = null;
+      trackRitualEvent("ai_cancelled", {
+        source_id: session?.source.id,
+        symbol_id: selectedSymbol?.id,
+      });
       setCurrentState(ReadingState.PassageDisplayed);
     } catch (err) {
       const aletheiaError = err as AletheiaError;
       setError(aletheiaError);
       setCurrentState(ReadingState.PassageDisplayed);
     }
-  }, []);
+  }, [selectedSymbol?.id, session?.source.id]);
 
   const saveReading = useCallback(async (moodTag?: string) => {
     try {
@@ -237,10 +291,26 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
         ...reading,
         symbol_method: selectedMethod,
       });
+      trackRitualEvent("save_completed", {
+        reading_id: reading.id,
+        source_id: reading.source_id,
+        symbol_id: reading.symbol_chosen,
+        ai_interpreted: reading.ai_interpreted,
+        ai_used_fallback: reading.ai_used_fallback,
+        mood_tag: reading.mood_tag,
+        read_duration_s: readDuration,
+      });
       setHasSavedReading(true);
       setCurrentState(ReadingState.Complete);
     } catch (err) {
       const aletheiaError = err as AletheiaError;
+      trackRitualEvent("error", {
+        step: "save_reading",
+        code: aletheiaError.code,
+      });
+      if (err instanceof Error) {
+        captureException(err, { step: "save_reading" });
+      }
       setError(aletheiaError);
     }
   }, [session, passage, aiResponse, isAIFallback, readingStartTime, selectedSymbolId, selectedMethod, passageDisplayedAt, aiRequestedAt]);

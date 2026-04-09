@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import { useEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 
@@ -6,13 +7,19 @@ import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
 import { useColors } from "@/hooks/use-colors";
 import { Fonts } from "@/constants/theme";
+import { screen, trackRitualEvent } from "@/lib/analytics";
 
 export default function HomeScreen() {
   const colors = useColors();
   const router = useRouter();
 
+  useEffect(() => {
+    screen("home", { surface: "tabs_index" });
+  }, []);
+
   const handleStartReading = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    trackRitualEvent("start", { entrypoint: "home_cta" });
     router.push("/reading/situation");
   };
 
@@ -33,6 +40,8 @@ export default function HomeScreen() {
 
           <View style={styles.ctaGroup}>
             <Pressable
+              testID="home-start-reading"
+              accessibilityLabel="home-start-reading"
               onPress={handleStartReading}
               style={({ pressed }) => [
                 styles.ctaButton,

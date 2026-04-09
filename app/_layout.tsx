@@ -30,6 +30,7 @@ import { ToastContainer, useToast } from "@/components/toast";
 import { Fonts } from "@/constants/theme";
 import { useColors } from "@/hooks/use-colors";
 import { initSentry } from "@/lib/sentry";
+import { flushAnalytics, identify, track } from "@/lib/analytics";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -112,6 +113,7 @@ export default function RootLayout() {
   const [insets, setInsets] = useState<EdgeInsets>(initialInsets);
   const [frame, setFrame] = useState<Rect>(initialFrame);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState<boolean | null>(null);
+  const [bootstrapDetail, setBootstrapDetail] = useState("Đang dựng nhịp khởi tạo cốt lõi.");
 
   // Ensure minimum 8px padding for top and bottom on mobile
   const providerInitialMetrics = useMemo(() => {
@@ -126,46 +128,85 @@ export default function RootLayout() {
     };
   }, [initialInsets, initialFrame]);
 
-  // Check onboarding status on mount
   useEffect(() => {
     if (isIosHold) {
       setIsOnboardingComplete(true);
       return;
     }
 
-    const checkOnboarding = async () => {
+    let cancelled = false;
+    let probeTimeout: ReturnType<typeof setTimeout> | null = null;
+    const bootstrapStart = Date.now();
+
+    const bootstrapApp = async () => {
       try {
+        setBootstrapDetail("Đang khởi tạo kho cục bộ và runtime cốt lõi.");
+        await dbInit.initialize();
+
+        const afterDbInitMs = Date.now() - bootstrapStart;
+        setBootstrapDetail("Đang nạp hồ sơ người dùng và gate onboarding.");
+
         const userId = await getCurrentUserId();
         const userState = await coreStore.getUserState(userId);
+
+        if (cancelled) {
+          return;
+        }
+
         setIsOnboardingComplete(userState.onboarding_complete);
+        identify(userId, {
+          onboarding_complete: userState.onboarding_complete,
+          subscription_tier: userState.subscription_tier,
+          preferred_language: userState.preferred_language,
+        });
+        track("app_bootstrap_completed", {
+          onboarding_complete: userState.onboarding_complete,
+          native_probe_expected: Platform.OS === "android",
+          db_init_ms: afterDbInitMs,
+          total_ms: Date.now() - bootstrapStart,
+        });
+
+        probeTimeout = setTimeout(() => {
+          runAletheiaNativeProbe()
+            .then(() =>
+              track("native_probe_completed", {
+                total_ms: Date.now() - bootstrapStart,
+              }),
+            )
+            .catch((error) => {
+              const reason = error instanceof Error ? error.message : String(error);
+              console.error("Aletheia native probe failed:", error);
+              track("native_probe_failed", { reason });
+            });
+        }, 0);
       } catch (error) {
-        console.error("Failed to check onboarding status:", error);
-        setIsOnboardingComplete(false);
+        console.error("Failed to bootstrap app shell:", error);
+        track("app_bootstrap_failed", {
+          reason: error instanceof Error ? error.message : String(error),
+          total_ms: Date.now() - bootstrapStart,
+        });
+        if (!cancelled) {
+          setIsOnboardingComplete(false);
+          setBootstrapDetail("Không thể hoàn tất khởi tạo cục bộ.");
+        }
       }
     };
 
-    checkOnboarding();
+    bootstrapApp();
+
+    return () => {
+      cancelled = true;
+      if (probeTimeout) {
+        clearTimeout(probeTimeout);
+      }
+      void flushAnalytics();
+    };
   }, [isIosHold]);
 
   // Initialize Manus runtime for cookie injection from parent container
   useEffect(() => {
     initManusRuntime();
   }, []);
-
-  // Initialize database on app launch
-  useEffect(() => {
-    if (isIosHold) return;
-    dbInit.initialize().catch((err) => {
-      console.error("Failed to initialize database:", err);
-    });
-  }, [isIosHold]);
-
-  useEffect(() => {
-    if (isIosHold) return;
-    runAletheiaNativeProbe().catch((err) => {
-      console.error("Aletheia native probe failed:", err);
-    });
-  }, [isIosHold]);
 
   const handleSafeAreaUpdate = useCallback((metrics: Metrics) => {
     setInsets(metrics.insets);
@@ -202,7 +243,7 @@ export default function RootLayout() {
           <RootGate
             title="Đang mở Aletheia"
             body="Hệ thống đang đồng bộ safe area, trạng thái người dùng và nhịp khởi tạo cục bộ."
-            detail="Mất vài nhịp đầu thôi."
+            detail={bootstrapDetail}
           />
         </SafeAreaProvider>
       </ThemeProvider>

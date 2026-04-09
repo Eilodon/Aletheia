@@ -97,7 +97,7 @@ export default function OnboardingScreen() {
             ))}
           </View>
           <Pressable onPress={handleSkip}>
-            <Text style={[styles.skip, { color: colors.muted }]}>Bỏ qua</Text>
+            <Text testID="onboarding-skip" style={[styles.skip, { color: colors.muted }]}>Bỏ qua</Text>
           </Pressable>
         </View>
 
@@ -127,6 +127,8 @@ export default function OnboardingScreen() {
                     return (
                       <Pressable
                         key={item.intent}
+                        testID={`intent-card-${item.intent}`}
+                        accessibilityLabel={`intent-card-${item.intent}`}
                         onPress={() => {
                           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                           setSelectedIntent(item.intent);
@@ -172,6 +174,8 @@ export default function OnboardingScreen() {
 
           <View style={styles.bottom}>
             <Pressable
+              testID="onboarding-primary-action"
+              accessibilityLabel="onboarding-primary-action"
               onPress={handleNext}
               disabled={!canContinue || isCompleting}
               style={[

@@ -544,16 +544,30 @@ impl Store {
     pub fn get_random_source(
         &self,
         premium_allowed: bool,
+        preferred_language: Option<&str>,
     ) -> Result<Option<Source>, AletheiaError> {
         let conn = self.conn.lock().unwrap();
-        let query = if premium_allowed {
-            "SELECT * FROM sources ORDER BY RANDOM() LIMIT 1"
+        let normalized_language = preferred_language
+            .map(|language| language.trim().to_lowercase())
+            .filter(|language| !language.is_empty());
+
+        let mut filters: Vec<&str> = Vec::new();
+        if !premium_allowed {
+            filters.push("is_premium = 0");
+        }
+        if normalized_language.is_some() {
+            filters.push("language = ?");
+        }
+
+        let where_clause = if filters.is_empty() {
+            String::new()
         } else {
-            "SELECT * FROM sources WHERE is_premium = 0 ORDER BY RANDOM() LIMIT 1"
+            format!(" WHERE {}", filters.join(" AND "))
         };
 
-        let mut stmt = conn.prepare(query)?;
-        let result = stmt.query_row([], |row| {
+        let query = format!("SELECT * FROM sources{} ORDER BY RANDOM() LIMIT 1", where_clause);
+        let mut stmt = conn.prepare(&query)?;
+        let map_source = |row: &rusqlite::Row<'_>| {
             Ok(Source {
                 id: row.get(0)?,
                 name: row.get(1)?,
@@ -566,10 +580,29 @@ impl Store {
                 fallback_prompts: serde_json::from_str(&row.get::<_, String>(7)?)
                     .unwrap_or_default(),
             })
-        });
+        };
 
-        match result {
+        let primary_result = match normalized_language.as_deref() {
+            Some(language) => stmt.query_row([language], map_source),
+            None => stmt.query_row([], map_source),
+        };
+
+        match primary_result {
             Ok(source) => Ok(Some(source)),
+            Err(rusqlite::Error::QueryReturnedNoRows) if normalized_language.is_some() => {
+                let fallback_query = if premium_allowed {
+                    "SELECT * FROM sources ORDER BY RANDOM() LIMIT 1"
+                } else {
+                    "SELECT * FROM sources WHERE is_premium = 0 ORDER BY RANDOM() LIMIT 1"
+                };
+
+                let mut fallback_stmt = conn.prepare(fallback_query)?;
+                match fallback_stmt.query_row([], map_source) {
+                    Ok(source) => Ok(Some(source)),
+                    Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+                    Err(error) => Err(AletheiaError::from(error)),
+                }
+            }
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(AletheiaError::from(e)),
         }

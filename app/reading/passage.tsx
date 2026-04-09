@@ -9,9 +9,11 @@ import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
 import { COMPLETE_SILENCE_BEAT_MS } from "@/lib/reading/ritual";
 import { Fonts } from "@/constants/theme";
+import { screen, trackShareEvent } from "@/lib/analytics";
 
 export default function PassageScreen() {
   const {
+    currentState,
     passage,
     session,
     selectedSymbol,
@@ -22,10 +24,13 @@ export default function PassageScreen() {
     requestAIInterpretation,
     saveReading,
     completeReading,
+    resetReading,
   } = useReading();
   const colors = useColors();
   const router = useRouter();
   const [showAI, setShowAI] = useState(false);
+  const [isRequestingAI, setIsRequestingAI] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -38,31 +43,74 @@ export default function PassageScreen() {
     return () => animation.stop();
   }, [fadeAnim]);
 
+  useEffect(() => {
+    screen("passage", {
+      source_id: session?.source.id,
+      has_ai_response: Boolean(aiResponse),
+    });
+  }, [aiResponse, session?.source.id]);
+
+  useEffect(() => {
+    if (aiResponse) {
+      setShowAI(true);
+      setIsRequestingAI(false);
+    }
+  }, [aiResponse]);
+
   const handleRequestAI = async () => {
+    if (isRequestingAI || isCompleting || aiResponse) {
+      return;
+    }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    setShowAI(true);
+    setIsRequestingAI(true);
+
     try {
       await requestAIInterpretation();
-      setShowAI(true);
     } catch (error) {
       console.error("AI request failed:", error);
+      setShowAI(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsRequestingAI(false);
     }
   };
 
   const handleComplete = async () => {
+    if (isCompleting) {
+      return;
+    }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsCompleting(true);
     try {
       await saveReading();
       completeReading();
-      await new Promise((resolve) => setTimeout(resolve, COMPLETE_SILENCE_BEAT_MS));
       router.replace("/");
+      setTimeout(() => {
+        resetReading();
+      }, 64);
+      await new Promise((resolve) => setTimeout(resolve, COMPLETE_SILENCE_BEAT_MS));
     } catch (error) {
       console.error("Failed to save:", error);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setIsCompleting(false);
     }
   };
 
   const handleShare = () => {
+    if (isCompleting || isRequestingAI) {
+      return;
+    }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (!session) return;
+    trackShareEvent("entry", {
+      source_id: session.source.id,
+      symbol_id: selectedSymbol?.id,
+      from: "passage",
+    });
     router.push("/reading/share-card");
   };
 
@@ -80,11 +128,42 @@ export default function PassageScreen() {
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <RitualOrnament variant="line" />
-            <Text style={[styles.symbolName, { color: colors.primary }]}>{selectedSymbol?.display_name || "Biểu tượng"}</Text>
+            <Text testID="reading-passage-symbol" style={[styles.symbolName, { color: colors.primary }]}>{selectedSymbol?.display_name || "Biểu tượng"}</Text>
             <Text style={[styles.sourceName, { color: colors.muted }]}>{session.source.name}</Text>
           </View>
 
           <View
+            style={[
+              styles.stateBand,
+              {
+                backgroundColor: colors.surface + "CC",
+                borderColor: colors.border + "55",
+              },
+            ]}
+          >
+            <View style={styles.stateBandItem}>
+              <Text style={[styles.stateBandLabel, { color: colors.muted }]}>Ngôn ngữ</Text>
+              <Text style={[styles.stateBandValue, { color: colors.foreground }]}>
+                {session.source.language === "vi" ? "Tiếng Việt" : "Nguồn dịch/tiếng Anh"}
+              </Text>
+            </View>
+            <View style={styles.stateBandDivider} />
+            <View style={styles.stateBandItem}>
+              <Text style={[styles.stateBandLabel, { color: colors.muted }]}>Diễn giải</Text>
+              <Text style={[styles.stateBandValue, { color: colors.foreground }]}>
+                {currentState === "ai_streaming" || isRequestingAI
+                  ? "Đang gọi"
+                  : aiResponse
+                    ? isAIFallback
+                      ? "Fallback"
+                      : "Đã xong"
+                    : "Theo yêu cầu"}
+              </Text>
+            </View>
+          </View>
+
+          <View
+            testID="reading-passage-card"
             style={[
               styles.passageCard,
               {
@@ -93,8 +172,9 @@ export default function PassageScreen() {
               },
             ]}
           >
+            <Text style={[styles.quoteMark, { color: colors.primary + "88", fontFamily: Fonts.serif }]}>“</Text>
             <Text style={[styles.passageText, { color: colors.foreground, fontFamily: Fonts.serif }]}>
-              {`"${visiblePassageText || passage.text}"`}
+              {visiblePassageText || passage.text}
             </Text>
             <View style={styles.referenceBlock}>
               <View style={[styles.referenceRule, { backgroundColor: colors.primary + "50" }]} />
@@ -103,30 +183,50 @@ export default function PassageScreen() {
           </View>
 
           {passage.context ? (
-            <Text style={[styles.contextText, { color: colors.muted }]}>{passage.context}</Text>
+            <View
+              style={[
+                styles.contextCard,
+                {
+                  backgroundColor: colors.surface + "B8",
+                  borderColor: colors.border + "44",
+                },
+              ]}
+            >
+              <Text style={[styles.contextLabel, { color: colors.primary }]}>Đường gợi</Text>
+              <Text style={[styles.contextText, { color: colors.muted }]}>{passage.context}</Text>
+            </View>
           ) : null}
 
           <View style={styles.aiSection}>
             {!aiResponse && !showAI ? (
               <Pressable
+                testID="reading-passage-request-ai"
+                accessibilityLabel="reading-passage-request-ai"
                 onPress={handleRequestAI}
                 disabled={!passageActionsReady}
                 style={[
                   styles.aiButton,
                   {
-                    backgroundColor: colors.surface + "E8",
-                    borderColor: colors.primary + "60",
+                    backgroundColor: colors.primary + "18",
+                    borderColor: colors.primary + "72",
                     opacity: passageActionsReady ? 1 : 0.45,
                   },
                 ]}
               >
+                <Text style={[styles.aiButtonKicker, { color: colors.primary }]}>TÙY CHỌN</Text>
                 <Text style={[styles.aiButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>Xin diễn giải</Text>
+                <Text style={[styles.aiButtonHint, { color: colors.muted }]}>
+                  AI chỉ mở khi bạn chủ động yêu cầu.
+                </Text>
               </Pressable>
             ) : null}
 
-            {showAI && !aiResponse ? (
+            {showAI && (!aiResponse || isRequestingAI) ? (
               <View style={[styles.aiCard, { backgroundColor: colors.surface + "D8", borderColor: colors.border + "55" }]}>
-                <Text style={[styles.aiStatus, { color: colors.primary }]}>Đang lắng nghe...</Text>
+                <Text style={[styles.aiStatus, { color: colors.primary }]}>Đang xin diễn giải...</Text>
+                <Text style={[styles.aiStatusHint, { color: colors.muted }]}>
+                  Aletheia đang ghép tình huống, biểu tượng và ngữ cảnh của đoạn trích.
+                </Text>
                 <RitualOrnament variant="dot" />
               </View>
             ) : null}
@@ -153,14 +253,16 @@ export default function PassageScreen() {
 
           <View style={styles.actions}>
             <Pressable
+              testID="reading-passage-share"
+              accessibilityLabel="reading-passage-share"
               onPress={handleShare}
-              disabled={!passageActionsReady}
+              disabled={!passageActionsReady || isCompleting || isRequestingAI}
               style={[
                 styles.secondaryButton,
                 {
                   backgroundColor: colors.surface + "E8",
                   borderColor: colors.border + "66",
-                  opacity: passageActionsReady ? 1 : 0.5,
+                  opacity: passageActionsReady && !isCompleting && !isRequestingAI ? 1 : 0.5,
                 },
               ]}
             >
@@ -168,18 +270,22 @@ export default function PassageScreen() {
             </Pressable>
 
             <Pressable
+              testID="reading-passage-complete"
+              accessibilityLabel="reading-passage-complete"
               onPress={handleComplete}
-              disabled={!passageActionsReady}
+              disabled={!passageActionsReady || isCompleting || isRequestingAI}
               style={[
                 styles.primaryButton,
                 {
-                  backgroundColor: colors.surface + "F4",
+                  backgroundColor: isCompleting ? colors.primary + "26" : colors.surface + "F4",
                   borderColor: colors.primary + "88",
-                  opacity: passageActionsReady ? 1 : 0.5,
+                  opacity: passageActionsReady && !isRequestingAI ? 1 : 0.5,
                 },
               ]}
             >
-              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>Hoàn thành</Text>
+              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+                {isCompleting ? "Đang khép nghi thức..." : "Hoàn thành"}
+              </Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -193,7 +299,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     paddingTop: 24,
-    paddingBottom: 24,
+    paddingBottom: 18,
   },
   symbolName: {
     fontSize: 12,
@@ -203,16 +309,51 @@ const styles = StyleSheet.create({
   sourceName: {
     fontSize: 12,
   },
+  stateBand: {
+    borderRadius: 20,
+    borderWidth: 1,
+    marginBottom: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  stateBandItem: {
+    flex: 1,
+    gap: 4,
+  },
+  stateBandDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    marginHorizontal: 16,
+  },
+  stateBandLabel: {
+    fontSize: 10,
+    textTransform: "uppercase",
+    letterSpacing: 1.8,
+  },
+  stateBandValue: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
   passageCard: {
-    borderRadius: 26,
+    borderRadius: 30,
     borderWidth: 1.2,
     paddingHorizontal: 24,
-    paddingVertical: 26,
-    marginBottom: 18,
+    paddingVertical: 28,
+    marginBottom: 14,
+    gap: 6,
+  },
+  quoteMark: {
+    fontSize: 40,
+    lineHeight: 40,
+    textAlign: "center",
   },
   passageText: {
-    fontSize: 24,
-    lineHeight: 38,
+    fontSize: 25,
+    lineHeight: 39,
     textAlign: "center",
   },
   referenceBlock: {
@@ -228,27 +369,47 @@ const styles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 0.4,
   },
+  contextCard: {
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 22,
+    gap: 8,
+  },
+  contextLabel: {
+    fontSize: 10,
+    textTransform: "uppercase",
+    letterSpacing: 2,
+  },
   contextText: {
     fontSize: 13,
     lineHeight: 20,
-    textAlign: "center",
     fontStyle: "italic",
-    paddingHorizontal: 10,
-    marginBottom: 22,
   },
   aiSection: {
     gap: 14,
     marginBottom: 20,
   },
   aiButton: {
-    borderRadius: 20,
+    borderRadius: 22,
     borderWidth: 1,
     paddingHorizontal: 22,
-    paddingVertical: 16,
+    paddingVertical: 18,
     alignItems: "center",
+    gap: 6,
+  },
+  aiButtonKicker: {
+    fontSize: 10,
+    letterSpacing: 2,
+    textTransform: "uppercase",
   },
   aiButtonText: {
-    fontSize: 17,
+    fontSize: 18,
+  },
+  aiButtonHint: {
+    fontSize: 12,
+    textAlign: "center",
   },
   aiCard: {
     borderRadius: 22,
@@ -260,6 +421,12 @@ const styles = StyleSheet.create({
   },
   aiStatus: {
     fontSize: 14,
+    fontWeight: "600",
+  },
+  aiStatusHint: {
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: "center",
   },
   aiLabel: {
     fontSize: 11,

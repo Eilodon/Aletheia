@@ -23,6 +23,7 @@ import uniffi.aletheia.NotificationMessage
 import uniffi.aletheia.NotificationMessageResponse
 import uniffi.aletheia.SeedBundledDataResponse
 import uniffi.aletheia.SetApiKeyResponse
+import uniffi.aletheia.ReadingResponse
 import uniffi.aletheia.SourcesResponse
 import uniffi.aletheia.StartInterpretationStreamResponse
 import uniffi.aletheia.Source
@@ -48,6 +49,7 @@ private data class AletheiaCoreBridgeError(
 
 private interface AletheiaCoreClient {
   fun initialize(dbPath: String, giftBackendUrl: String)
+  fun bootstrapBundledContent(): Map<String, Any?>
   fun setApiKey(provider: String, key: String): Map<String, Any?>
   fun performReading(
     userId: String,
@@ -89,6 +91,8 @@ private interface AletheiaCoreClient {
   fun updateUserState(state: Map<String, Any?>): Map<String, Any?>
   fun getSources(premiumAllowed: Boolean): Map<String, Any?>
   fun getReadings(limit: Int, offset: Int): Map<String, Any?>
+  fun getReadingById(id: String): Map<String, Any?>
+  fun updateReadingFlags(id: String, flags: Map<String, Any?>): Map<String, Any?>
   fun getDailyNotificationMessage(userId: String, date: String): Map<String, Any?>
   fun setLocalDate(localDate: String)
   fun redeemGift(token: String): Map<String, Any?>
@@ -113,6 +117,10 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
 
   override fun setApiKey(provider: String, key: String): Map<String, Any?> {
     return serializeSetApiKeyResponse(requireCore().setAiApiKey(provider, key))
+  }
+
+  override fun bootstrapBundledContent(): Map<String, Any?> {
+    return serializeSeedBundledDataResponse(requireCore().bootstrapBundledContent())
   }
 
   override fun performReading(
@@ -231,6 +239,20 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
     )
   }
 
+  override fun getReadingById(id: String): Map<String, Any?> {
+    return serializeReadingResponse(requireCore().getReadingById(id))
+  }
+
+  override fun updateReadingFlags(id: String, flags: Map<String, Any?>): Map<String, Any?> {
+    return serializeReadingResponse(
+      requireCore().updateReadingFlags(
+        id,
+        flags.optionalBoolean("isFavorite"),
+        flags.optionalBoolean("shared")
+      )
+    )
+  }
+
   override fun getDailyNotificationMessage(userId: String, date: String): Map<String, Any?> {
     return serializeNotificationMessageResponse(
       requireCore().getDailyNotificationMessage(userId, date)
@@ -293,6 +315,13 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
   private fun serializePaginatedReadingsResponse(response: PaginatedReadingsResponse): Map<String, Any?> {
     return mapOf(
       "readings" to response.readings?.let(::serializePaginatedReadings),
+      "error" to serializeBridgeError(response.error)
+    )
+  }
+
+  private fun serializeReadingResponse(response: ReadingResponse): Map<String, Any?> {
+    return mapOf(
+      "reading" to response.reading?.let(::serializeReading),
       "error" to serializeBridgeError(response.error)
     )
   }
@@ -795,6 +824,10 @@ class AletheiaCoreModule : Module() {
       client.initialize(dbPath, giftBackendUrl)
     }
 
+    AsyncFunction("bootstrapBundledContent") {
+      client.bootstrapBundledContent()
+    }
+
     AsyncFunction("setApiKey") { options: Map<String, String> ->
       client.setApiKey(
         options["provider"].orEmpty(),
@@ -863,6 +896,14 @@ class AletheiaCoreModule : Module() {
 
     AsyncFunction("getReadings") { limit: Int, offset: Int ->
       client.getReadings(limit, offset)
+    }
+
+    AsyncFunction("getReadingById") { id: String ->
+      client.getReadingById(id)
+    }
+
+    AsyncFunction("updateReadingFlags") { id: String, flags: Map<String, Any?> ->
+      client.updateReadingFlags(id, flags)
     }
 
     AsyncFunction("getDailyNotificationMessage") { userId: String, date: String ->

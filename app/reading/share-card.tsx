@@ -9,6 +9,7 @@ import { RitualOrnament } from "@/components/ritual-ornament";
 import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
 import { Fonts } from "@/constants/theme";
+import { screen, trackShareEvent } from "@/lib/analytics";
 
 function CardPreview({
   passageText,
@@ -89,6 +90,13 @@ export default function ShareCardScreen() {
     }).start();
   }, [fadeAnim]);
 
+  useEffect(() => {
+    screen("share_card", {
+      source_id: session?.source.id,
+      symbol_id: selectedSymbol?.id,
+    });
+  }, [selectedSymbol?.id, session?.source.id]);
+
   const handleShare = async () => {
     if (!passage || !selectedSymbol) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -101,13 +109,30 @@ export default function ShareCardScreen() {
           url: uri,
           message: `"${passage.text.slice(0, 100)}..." — ${selectedSymbol.display_name}\n\nTừ Aletheia, not a fortune. A mirror.`,
         });
+        trackShareEvent("shared", {
+          mode: "image",
+          source_id: session?.source.id,
+          symbol_id: selectedSymbol.id,
+          theme: selectedTheme,
+        });
       } else {
         await Share.share({
           message: `"${passage.text.slice(0, 150)}..." — ${selectedSymbol.display_name} (${passage.reference})\n\nTừ Aletheia ✦`,
         });
+        trackShareEvent("shared", {
+          mode: "text_fallback",
+          source_id: session?.source.id,
+          symbol_id: selectedSymbol.id,
+          theme: selectedTheme,
+        });
       }
     } catch (error) {
       console.error("Share failed:", error);
+      trackShareEvent("failed", {
+        mode: "card",
+        source_id: session?.source.id,
+        symbol_id: selectedSymbol.id,
+      });
     } finally {
       setIsSharing(false);
     }
@@ -121,8 +146,17 @@ export default function ShareCardScreen() {
       await Share.share({
         message: `"${passage.text}"\n\n— ${passage.reference}\nBiểu tượng: ${selectedSymbol.display_name}\n\nTừ Aletheia ✦`,
       });
+      trackShareEvent("text_shared", {
+        source_id: session?.source.id,
+        symbol_id: selectedSymbol.id,
+      });
     } catch (error) {
       console.error("Copy failed:", error);
+      trackShareEvent("failed", {
+        mode: "text_only",
+        source_id: session?.source.id,
+        symbol_id: selectedSymbol.id,
+      });
     }
   };
 
@@ -170,6 +204,7 @@ export default function ShareCardScreen() {
                   onPress={() => {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                     setSelectedTheme(theme.key);
+                    trackShareEvent("theme_changed", { theme: theme.key });
                   }}
                   style={[
                     styles.themeChip,

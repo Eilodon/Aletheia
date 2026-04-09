@@ -190,6 +190,11 @@ export type NativePaginatedReadingsResponse = {
   error?: NativeBridgeError;
 };
 
+export type NativeReadingResponse = {
+  reading?: NativeReading;
+  error?: NativeBridgeError;
+};
+
 export type NativeSourcesResponse = {
   sources: NativeSource[];
   error?: NativeBridgeError;
@@ -233,6 +238,7 @@ export type NativeSeedBundledDataResponse = {
 
 export type NativeAletheiaModule = {
   init(options: NativeInitOptions): Promise<void>;
+  bootstrapBundledContent(): Promise<NativeSeedBundledDataResponse>;
   seedBundledData(
     options: NativeSeedBundledDataOptions,
   ): Promise<NativeSeedBundledDataResponse>;
@@ -275,6 +281,11 @@ export type NativeAletheiaModule = {
   updateUserState(state: NativeUserState): Promise<NativeUpdateUserStateResponse>;
   getSources(premiumAllowed: boolean): Promise<NativeSourcesResponse>;
   getReadings(limit: number, offset: number): Promise<NativePaginatedReadingsResponse>;
+  getReadingById(id: string): Promise<NativeReadingResponse>;
+  updateReadingFlags(
+    id: string,
+    flags: { isFavorite?: boolean; shared?: boolean },
+  ): Promise<NativeReadingResponse>;
   getDailyNotificationMessage(
     userId: string,
     date: string,

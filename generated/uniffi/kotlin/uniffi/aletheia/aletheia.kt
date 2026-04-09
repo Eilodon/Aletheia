@@ -387,6 +387,8 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun uniffi_aletheia_core_fn_constructor_aletheiacore_new(`dbPath`: RustBuffer.ByValue,`giftBackendUrl`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Pointer
+    fun uniffi_aletheia_core_fn_method_aletheiacore_bootstrap_bundled_content(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_aletheia_core_fn_method_aletheiacore_cancel_interpretation_stream(`ptr`: Pointer,`requestId`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_aletheia_core_fn_method_aletheiacore_choose_symbol(`ptr`: Pointer,`session`: RustBuffer.ByValue,`symbolId`: RustBuffer.ByValue,`method`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
@@ -398,6 +400,8 @@ internal interface _UniFFILib : Library {
     fun uniffi_aletheia_core_fn_method_aletheiacore_get_daily_notification_message(`ptr`: Pointer,`userId`: RustBuffer.ByValue,`date`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_aletheia_core_fn_method_aletheiacore_get_fallback_prompts(`ptr`: Pointer,`sourceId`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_aletheia_core_fn_method_aletheiacore_get_reading_by_id(`ptr`: Pointer,`id`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_aletheia_core_fn_method_aletheiacore_get_readings(`ptr`: Pointer,`limit`: Int,`offset`: Int,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
@@ -420,6 +424,8 @@ internal interface _UniFFILib : Library {
     fun uniffi_aletheia_core_fn_method_aletheiacore_set_local_date(`ptr`: Pointer,`localDate`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Unit
     fun uniffi_aletheia_core_fn_method_aletheiacore_start_interpretation_stream(`ptr`: Pointer,`passage`: RustBuffer.ByValue,`symbol`: RustBuffer.ByValue,`situationText`: RustBuffer.ByValue,`userIntent`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_aletheia_core_fn_method_aletheiacore_update_reading_flags(`ptr`: Pointer,`id`: RustBuffer.ByValue,`isFavorite`: RustBuffer.ByValue,`shared`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_aletheia_core_fn_method_aletheiacore_update_user_state(`ptr`: Pointer,`state`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
@@ -537,6 +543,8 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_aletheia_core_rust_future_complete_void(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_bootstrap_bundled_content(
+    ): Short
     fun uniffi_aletheia_core_checksum_method_aletheiacore_cancel_interpretation_stream(
     ): Short
     fun uniffi_aletheia_core_checksum_method_aletheiacore_choose_symbol(
@@ -548,6 +556,8 @@ internal interface _UniFFILib : Library {
     fun uniffi_aletheia_core_checksum_method_aletheiacore_get_daily_notification_message(
     ): Short
     fun uniffi_aletheia_core_checksum_method_aletheiacore_get_fallback_prompts(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_get_reading_by_id(
     ): Short
     fun uniffi_aletheia_core_checksum_method_aletheiacore_get_readings(
     ): Short
@@ -571,6 +581,8 @@ internal interface _UniFFILib : Library {
     ): Short
     fun uniffi_aletheia_core_checksum_method_aletheiacore_start_interpretation_stream(
     ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_update_reading_flags(
+    ): Short
     fun uniffi_aletheia_core_checksum_method_aletheiacore_update_user_state(
     ): Short
     fun uniffi_aletheia_core_checksum_constructor_aletheiacore_new(
@@ -592,6 +604,9 @@ private fun uniffiCheckContractApiVersion(lib: _UniFFILib) {
 
 @Suppress("UNUSED_PARAMETER")
 private fun uniffiCheckApiChecksums(lib: _UniFFILib) {
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_bootstrap_bundled_content() != 47013.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_cancel_interpretation_stream() != 8803.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -608,6 +623,9 @@ private fun uniffiCheckApiChecksums(lib: _UniFFILib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_get_fallback_prompts() != 14357.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_get_reading_by_id() != 35673.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_get_readings() != 62455.toShort()) {
@@ -641,6 +659,9 @@ private fun uniffiCheckApiChecksums(lib: _UniFFILib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_start_interpretation_stream() != 46034.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_update_reading_flags() != 57900.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_update_user_state() != 57698.toShort()) {
@@ -975,12 +996,14 @@ abstract class FFIObject(
 
 public interface AletheiaCoreInterface {
     
+    fun `bootstrapBundledContent`(): SeedBundledDataResponse
     fun `cancelInterpretationStream`(`requestId`: String): CancelInterpretationResponse
     fun `chooseSymbol`(`session`: ReadingSession, `symbolId`: String, `method`: SymbolMethod): ChooseSymbolResponse
     fun `completeReading`(`userId`: String, `reading`: Reading): CompleteReadingResponse
     fun `createGift`(`sourceId`: String?, `buyerNote`: String?): CreateGiftResponse
     fun `getDailyNotificationMessage`(`userId`: String, `date`: String): NotificationMessageResponse
     fun `getFallbackPrompts`(`sourceId`: String): FallbackPromptsResponse
+    fun `getReadingById`(`id`: String): ReadingResponse
     fun `getReadings`(`limit`: UInt, `offset`: UInt): PaginatedReadingsResponse
     fun `getSources`(`premiumAllowed`: Boolean): SourcesResponse
     fun `getUserState`(`userId`: String): UserStateResponse
@@ -992,6 +1015,7 @@ public interface AletheiaCoreInterface {
     fun `setAiApiKey`(`provider`: String, `key`: String): SetApiKeyResponse
     fun `setLocalDate`(`localDate`: String)
     fun `startInterpretationStream`(`passage`: Passage, `symbol`: Symbol, `situationText`: String?, `userIntent`: String?): StartInterpretationStreamResponse
+    fun `updateReadingFlags`(`id`: String, `isFavorite`: Boolean?, `shared`: Boolean?): ReadingResponse
     fun `updateUserState`(`state`: UserState): UpdateUserStateResponse
     companion object
 }
@@ -1019,6 +1043,17 @@ class AletheiaCore(
         }
     }
 
+    override fun `bootstrapBundledContent`(): SeedBundledDataResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_bootstrap_bundled_content(it,
+        
+        _status)
+}
+        }.let {
+            FfiConverterTypeSeedBundledDataResponse.lift(it)
+        }
+    
     override fun `cancelInterpretationStream`(`requestId`: String): CancelInterpretationResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1083,6 +1118,17 @@ class AletheiaCore(
 }
         }.let {
             FfiConverterTypeFallbackPromptsResponse.lift(it)
+        }
+    
+    override fun `getReadingById`(`id`: String): ReadingResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_get_reading_by_id(it,
+        FfiConverterString.lower(`id`),
+        _status)
+}
+        }.let {
+            FfiConverterTypeReadingResponse.lift(it)
         }
     
     override fun `getReadings`(`limit`: UInt, `offset`: UInt): PaginatedReadingsResponse =
@@ -1203,6 +1249,17 @@ class AletheiaCore(
 }
         }.let {
             FfiConverterTypeStartInterpretationStreamResponse.lift(it)
+        }
+    
+    override fun `updateReadingFlags`(`id`: String, `isFavorite`: Boolean?, `shared`: Boolean?): ReadingResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_update_reading_flags(it,
+        FfiConverterString.lower(`id`),FfiConverterOptionalBoolean.lower(`isFavorite`),FfiConverterOptionalBoolean.lower(`shared`),
+        _status)
+}
+        }.let {
+            FfiConverterTypeReadingResponse.lift(it)
         }
     
     override fun `updateUserState`(`state`: UserState): UpdateUserStateResponse =
@@ -1946,6 +2003,36 @@ public object FfiConverterTypeReading: FfiConverterRustBuffer<Reading> {
 
 
 
+data class ReadingResponse (
+    var `reading`: Reading?, 
+    var `error`: BridgeError?
+) {
+    
+    companion object
+}
+
+public object FfiConverterTypeReadingResponse: FfiConverterRustBuffer<ReadingResponse> {
+    override fun read(buf: ByteBuffer): ReadingResponse {
+        return ReadingResponse(
+            FfiConverterOptionalTypeReading.read(buf),
+            FfiConverterOptionalTypeBridgeError.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: ReadingResponse) = (
+            FfiConverterOptionalTypeReading.allocationSize(value.`reading`) +
+            FfiConverterOptionalTypeBridgeError.allocationSize(value.`error`)
+    )
+
+    override fun write(value: ReadingResponse, buf: ByteBuffer) {
+            FfiConverterOptionalTypeReading.write(value.`reading`, buf)
+            FfiConverterOptionalTypeBridgeError.write(value.`error`, buf)
+    }
+}
+
+
+
+
 data class ReadingSession (
     var `tempId`: String, 
     var `source`: Source, 
@@ -2642,6 +2729,35 @@ public object FfiConverterOptionalFloat: FfiConverterRustBuffer<Float?> {
 
 
 
+public object FfiConverterOptionalBoolean: FfiConverterRustBuffer<Boolean?> {
+    override fun read(buf: ByteBuffer): Boolean? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterBoolean.read(buf)
+    }
+
+    override fun allocationSize(value: Boolean?): Int {
+        if (value == null) {
+            return 1
+        } else {
+            return 1 + FfiConverterBoolean.allocationSize(value)
+        }
+    }
+
+    override fun write(value: Boolean?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterBoolean.write(value, buf)
+        }
+    }
+}
+
+
+
+
 public object FfiConverterOptionalString: FfiConverterRustBuffer<String?> {
     override fun read(buf: ByteBuffer): String? {
         if (buf.get().toInt() == 0) {
@@ -2867,6 +2983,35 @@ public object FfiConverterOptionalTypePaginatedReadings: FfiConverterRustBuffer<
         } else {
             buf.put(1)
             FfiConverterTypePaginatedReadings.write(value, buf)
+        }
+    }
+}
+
+
+
+
+public object FfiConverterOptionalTypeReading: FfiConverterRustBuffer<Reading?> {
+    override fun read(buf: ByteBuffer): Reading? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeReading.read(buf)
+    }
+
+    override fun allocationSize(value: Reading?): Int {
+        if (value == null) {
+            return 1
+        } else {
+            return 1 + FfiConverterTypeReading.allocationSize(value)
+        }
+    }
+
+    override fun write(value: Reading?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeReading.write(value, buf)
         }
     }
 }

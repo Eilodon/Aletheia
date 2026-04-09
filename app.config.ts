@@ -7,14 +7,21 @@ import withAletheiaCoreModule from "./modules/aletheia-core-module/plugin";
  * Validates that a required environment variable is set.
  * Throws a descriptive error if missing.
  */
-function requireEnv(name: string): string {
+function optionalEnv(name: string): string | undefined {
   // Use explicit env access instead of dynamic to satisfy bundler
   const value = (process.env as Record<string, string | undefined>)[name];
   if (!value || value.startsWith("placeholder")) {
-    // For local prebuild, allow placeholder values
     if (process.env.ALLOW_PLACEHOLDER_ENV === "1") {
       return `placeholder-${name.toLowerCase()}`;
     }
+    return undefined;
+  }
+  return value;
+}
+
+function requireEnvForRelease(name: string): string {
+  const value = optionalEnv(name);
+  if (!value) {
     throw new Error(`Required environment variable ${name} is not set. Run 'npx eas project:init' to create a project.`);
   }
   return value;
@@ -55,6 +62,13 @@ const env = {
   iosBundleId: bundleId,
   androidPackage: bundleId,
 };
+
+const shouldRequireEasProjectId =
+  process.env.EAS_BUILD === "1" || process.env.REQUIRE_EAS_PROJECT_ID === "1";
+const easProjectId = shouldRequireEasProjectId
+  ? requireEnvForRelease("EXPO_PUBLIC_EAS_PROJECT_ID")
+  : optionalEnv("EXPO_PUBLIC_EAS_PROJECT_ID");
+const ownerName = optionalEnv("EXPO_PUBLIC_OWNER_NAME");
 
 const config: ExpoConfig = {
   name: env.appName,
@@ -137,14 +151,14 @@ const config: ExpoConfig = {
     typedRoutes: true,
     reactCompiler: true,
   },
-  // ── THÊM: EAS config ──────────────────────────────────────────────────
-  extra: {
-    eas: {
-      projectId: requireEnv("EXPO_PUBLIC_EAS_PROJECT_ID"),
-    },
-  },
-  owner: process.env.EXPO_PUBLIC_OWNER_NAME ?? undefined,
-  // ── END: EAS config ────────────────────────────────────────────────────
+  extra: easProjectId
+    ? {
+        eas: {
+          projectId: easProjectId,
+        },
+      }
+    : undefined,
+  owner: ownerName,
 };
 
 export default config;

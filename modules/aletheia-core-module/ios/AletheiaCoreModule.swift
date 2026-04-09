@@ -14,6 +14,7 @@ private struct AletheiaCoreBridgeError {
 
 private protocol AletheiaCoreClient {
   func initialize(dbPath: String, giftBackendUrl: String) async
+  func bootstrapBundledContent() async -> [String: Any?]
   func seedBundledData(
     sourcesJson: String,
     passagesJson: String,
@@ -48,6 +49,8 @@ private protocol AletheiaCoreClient {
   func cancelInterpretationStream(requestId: String) async -> [String: Any?]
   func getFallbackPrompts(sourceId: String) async -> [String: Any?]
   func getUserState(userId: String) async -> [String: Any?]
+  func getReadingById(id: String) async -> [String: Any?]
+  func updateReadingFlags(id: String, flags: [String: Any]) async -> [String: Any?]
 }
 
 private enum AletheiaCoreBridgeState {
@@ -76,6 +79,13 @@ private final class AletheiaCoreUniFFIAdapter: AletheiaCoreClient {
     _ = passagesJson
     _ = themesJson
     return [
+      "seeded": false,
+      "error": bridgeError().serialize()
+    ]
+  }
+
+  func bootstrapBundledContent() async -> [String: Any?] {
+    [
       "seeded": false,
       "error": bridgeError().serialize()
     ]
@@ -182,6 +192,17 @@ private final class AletheiaCoreUniFFIAdapter: AletheiaCoreClient {
     return response(state: nil)
   }
 
+  func getReadingById(id: String) async -> [String: Any?] {
+    _ = id
+    return response(reading: nil)
+  }
+
+  func updateReadingFlags(id: String, flags: [String: Any]) async -> [String: Any?] {
+    _ = id
+    _ = flags
+    return response(reading: nil)
+  }
+
   private func bridgeError() -> AletheiaCoreBridgeError {
     if !isInitialized {
       return AletheiaCoreBridgeError(
@@ -233,6 +254,13 @@ private final class AletheiaCoreUniFFIAdapter: AletheiaCoreClient {
       "error": bridgeError().serialize()
     ]
   }
+
+  private func response(reading: Any?) -> [String: Any?] {
+    [
+      "reading": reading,
+      "error": bridgeError().serialize()
+    ]
+  }
 }
 
 public final class AletheiaCoreModule: Module {
@@ -245,6 +273,10 @@ public final class AletheiaCoreModule: Module {
       let dbPath = options["dbPath"] ?? ""
       let giftBackendUrl = options["giftBackendUrl"] ?? ""
       await self.client.initialize(dbPath: dbPath, giftBackendUrl: giftBackendUrl)
+    }
+
+    AsyncFunction("bootstrapBundledContent") {
+      await self.client.bootstrapBundledContent()
     }
 
     AsyncFunction("seedBundledData") { (options: [String: String]) in
@@ -317,6 +349,14 @@ public final class AletheiaCoreModule: Module {
 
     AsyncFunction("getUserState") { (userId: String) in
       await self.client.getUserState(userId: userId)
+    }
+
+    AsyncFunction("getReadingById") { (id: String) in
+      await self.client.getReadingById(id: id)
+    }
+
+    AsyncFunction("updateReadingFlags") { (id: String, flags: [String: Any]) in
+      await self.client.updateReadingFlags(id: id, flags: flags)
     }
   }
 }

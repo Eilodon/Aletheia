@@ -21,6 +21,7 @@ import {
   type NativeUserStateResponse,
   type NativeUpdateUserStateResponse,
   type NativePaginatedReadingsResponse,
+  type NativeReadingResponse,
   type NativeSourcesResponse,
   type NativeNotificationMessageResponse,
   type NativeRedeemGiftResponse,
@@ -50,6 +51,10 @@ class AletheiaNativeClient {
 
   init(options: NativeInitOptions): Promise<void> {
     return this.requireModule().init(options);
+  }
+
+  bootstrapBundledContent(): Promise<NativeSeedBundledDataResponse> {
+    return this.requireModule().bootstrapBundledContent();
   }
 
   performReading(
@@ -93,6 +98,17 @@ class AletheiaNativeClient {
 
   getSources(premiumAllowed: boolean): Promise<NativeSourcesResponse> {
     return this.requireModule().getSources(premiumAllowed);
+  }
+
+  getReadingById(id: string): Promise<NativeReadingResponse> {
+    return this.requireModule().getReadingById(id);
+  }
+
+  updateReadingFlags(
+    id: string,
+    flags: { isFavorite?: boolean; shared?: boolean },
+  ): Promise<NativeReadingResponse> {
+    return this.requireModule().updateReadingFlags(id, flags);
   }
 
   getDailyNotificationMessage(

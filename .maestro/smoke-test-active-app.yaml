@@ -1,8 +1,6 @@
-# Flow 3: Smoke Test - Critical Path
 appId: space.manus.aletheia.app.t20260318170859
-name: "Smoke Test - Critical Path"
+name: "Smoke Test - Active App"
 ---
-- launchApp
 - runFlow:
     when:
       visible:

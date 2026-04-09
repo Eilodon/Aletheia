@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { coreStore } from "@/lib/services/core-store";
 
 const runtimeMocks = vi.hoisted(() => ({
   shouldUseAletheiaNative: vi.fn(),
@@ -8,6 +9,8 @@ const runtimeMocks = vi.hoisted(() => ({
 
 const nativeClientMocks = vi.hoisted(() => ({
   getReadings: vi.fn(),
+  getReadingById: vi.fn(),
+  updateReadingFlags: vi.fn(),
   setLocalDate: vi.fn(),
   performReading: vi.fn(),
   chooseSymbol: vi.fn(),
@@ -46,6 +49,7 @@ vi.mock("@/lib/native/bridge", () => ({
   unwrapNativeNotificationMessageResponse: vi.fn((value) => value),
   unwrapNativePaginatedReadingsResponse: vi.fn((value) => value),
   unwrapNativePerformReadingResponse: vi.fn((value) => value),
+  unwrapNativeReadingResponse: vi.fn((value) => value),
   unwrapNativeUpdateUserStateResponse: vi.fn((value) => value),
   unwrapNativeUserStateResponse: vi.fn((value) => value),
   unwrapNativeSourcesResponse: vi.fn((value) => value),
@@ -67,8 +71,6 @@ vi.mock("@/lib/services/current-user-id", () => ({
   getCurrentUserId: vi.fn().mockResolvedValue("user-1"),
 }));
 
-import { coreStore } from "@/lib/services/core-store";
-
 describe("CoreStoreService", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -86,17 +88,30 @@ describe("CoreStoreService", () => {
     expect(nativeClientMocks.getReadings).not.toHaveBeenCalled();
   });
 
-  it("stops native pagination when total_count bound is reached", async () => {
+  it("uses native direct lookup when native path is enabled", async () => {
     runtimeMocks.shouldUseAletheiaNative.mockReturnValue(true);
-    nativeClientMocks.getReadings.mockResolvedValue({
-      items: [],
-      total_count: 50,
-      has_more: true,
-    });
+    const reading = { id: "reading-native" };
+    nativeClientMocks.getReadingById.mockResolvedValue(reading);
 
-    await expect(coreStore.getReadingById("missing-reading")).resolves.toBeNull();
-    expect(nativeClientMocks.getReadings).toHaveBeenCalledTimes(1);
-    expect(nativeClientMocks.getReadings).toHaveBeenCalledWith(50, 0);
+    await expect(coreStore.getReadingById("reading-native")).resolves.toBe(reading);
+    expect(runtimeMocks.initializeAletheiaNative).toHaveBeenCalledTimes(1);
+    expect(nativeClientMocks.getReadingById).toHaveBeenCalledWith("reading-native");
+    expect(nativeClientMocks.getReadings).not.toHaveBeenCalled();
+  });
+
+  it("updates reading flags through native bridge when native path is enabled", async () => {
+    runtimeMocks.shouldUseAletheiaNative.mockReturnValue(true);
+    const updated = { id: "reading-native", is_favorite: true, shared: false };
+    nativeClientMocks.updateReadingFlags.mockResolvedValue(updated);
+
+    await expect(
+      coreStore.updateReadingFlags("reading-native", { is_favorite: true }),
+    ).resolves.toBe(updated);
+    expect(runtimeMocks.initializeAletheiaNative).toHaveBeenCalledTimes(1);
+    expect(nativeClientMocks.updateReadingFlags).toHaveBeenCalledWith("reading-native", {
+      isFavorite: true,
+      shared: undefined,
+    });
   });
 
   it("returns platform error before backend config error on unsupported runtimes", async () => {

@@ -431,6 +431,12 @@ pub struct PaginatedReadingsResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReadingResponse {
+    pub reading: Option<Reading>,
+    pub error: Option<BridgeError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AIInterpretation {
     pub chunks: Vec<String>,
     pub used_fallback: bool,

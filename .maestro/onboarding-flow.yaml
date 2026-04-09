@@ -6,11 +6,16 @@
 appId: space.manus.aletheia.app.t20260318170859
 name: "App Launch and Onboarding Flow"
 ---
-- launchApp
-- tapOn: "Bắt đầu"  # Start button
-- tapOn: "Tình yêu"  # Select intention
-- inputText:
-    text: "Test situation for E2E"
-- tapOn: "Tiếp tục"  # Continue
-- assertVisible: "Mirrors"
+- assertVisible:
+    id: "onboarding-primary-action"
+- tapOn:
+    id: "onboarding-primary-action"
+- tapOn:
+    id: "intent-card-clarity"
+- tapOn:
+    id: "onboarding-primary-action"
+- tapOn:
+    id: "onboarding-primary-action"
+- assertVisible:
+    id: "home-start-reading"
 - takeScreenshot: onboarding-complete

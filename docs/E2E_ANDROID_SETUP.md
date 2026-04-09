@@ -12,11 +12,11 @@
 ### 2. Rust Core Build
 - [x] UniFFI Kotlin bindings generated → `generated/uniffi/kotlin/`
 - [x] Android native library built → `artifacts/android/jniLibs/arm64-v8a/libaletheia_core.so`
-- [x] Library copied to Android project → `android/app/src/main/jniLibs/arm64-v8a/`
+- [x] Library staged through native module sync → `modules/aletheia-core-module/android/src/main/jniLibs/arm64-v8a/`
 
 ### 3. Android Prebuild
 - [x] Android native project prebuilt với Expo
-- [x] Modified `app.config.ts` để bypass EAS project ID trong quá trình prebuild
+- [x] `app.config.ts` không còn bắt buộc EAS project ID cho local dev / local APK / web smoke path
 - [x] Plugin module integrated
 
 ### 4. E2E Testing Framework
@@ -28,9 +28,9 @@
 
 ## Cần user cung cấp / hỗ trợ
 
-### 1. EAS Configuration (bắt buộc cho build APK/IPA)
+### 1. EAS Configuration (chỉ bắt buộc cho EAS release path)
 ```bash
-# Chạy lệnh này để lấy project ID
+# Chạy lệnh này nếu cần EAS cloud build / submit
 npx eas project:init
 
 # Sau đó update .env:
@@ -50,8 +50,8 @@ ALETHEIA_GEMINI_API_KEY=...
 
 ### 3. Build APK Test
 ```bash
-# Option 1: Local build (cần EAS config)
-eas build --platform android --profile preview --local
+# Option 1: Local build
+bash scripts/build-internal-apk.sh
 
 # Option 2: Android Studio
 open android/  # Mở trong Android Studio và build
@@ -74,6 +74,10 @@ eas build --platform android --profile preview --local
 maestro test .maestro/smoke-test.yaml
 maestro test .maestro/onboarding-flow.yaml
 maestro test .maestro/reading-flow.yaml
+pnpm smoke:e2e:android:device -- <adb-serial>
+
+# Web smoke chuẩn
+pnpm smoke:e2e
 ```
 
 ## File Structure
@@ -81,24 +85,27 @@ maestro test .maestro/reading-flow.yaml
 ```
 aletheia/
 ├── android/                          # Prebuilt Android project
-│   └── app/src/main/jniLibs/arm64-v8a/
+│   └── modules/aletheia-core-module/android/src/main/jniLibs/arm64-v8a/
 │       └── libaletheia_core.so     # ← Rust library (5.8MB)
 ├── artifacts/android/jniLibs/      # Build artifacts
 ├── generated/uniffi/kotlin/          # Kotlin bindings
 ├── .maestro/                         # E2E test flows
 │   ├── onboarding-flow.yaml
 │   ├── reading-flow.yaml
-│   └── smoke-test.yaml
+│   ├── smoke-test.yaml
+│   └── smoke-test-active-app.yaml
 ├── scripts/
 │   ├── build-rust-android.sh
 │   ├── build-uniffi-bindings.sh
-│   └── install-maestro.sh
+│   ├── install-maestro.sh
+│   └── android-real-device-smoke.sh
 └── app.config.ts                     # Đã modify để bypass EAS check
 ```
 
 ## Lưu ý
 
 - `.env` vẫn còn placeholder values - cần update trước khi build production
-- `app.config.ts` đã được modify để cho phép prebuild mà không cần EAS project ID
+- `app.config.ts` chỉ yêu cầu `EXPO_PUBLIC_EAS_PROJECT_ID` khi chạy EAS release path thực sự
+- Trên một số máy thật Xiaomi/MIUI, `maestro launchApp` ngay sau `pm clear` có thể flaky; dùng `pnpm smoke:e2e:android:device -- <adb-serial>` sẽ ổn định hơn vì warm-launch bằng ADB trước
 - Gift backend và monetization đã được disable trong beta theo checklist
 - Chỉ build cho arm64-v8a (minSdkVersion: 24)

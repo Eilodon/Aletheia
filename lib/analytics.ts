@@ -1,3 +1,5 @@
+import { AppState, AppStateStatus } from "react-native";
+
 import { captureMessage } from "./sentry";
 
 const POSTHOG_API_KEY = process.env.EXPO_PUBLIC_POSTHOG_API_KEY;
@@ -12,15 +14,15 @@ interface AnalyticsEvent {
 class Analytics {
   private enabled = false;
   private queue: AnalyticsEvent[] = [];
-  private flushInterval: ReturnType<typeof setInterval> | null = null;
+  private flushTimeout: ReturnType<typeof setTimeout> | null = null;
+  private isFlushing = false;
+  private lifecycleBound = false;
+  private appStateSubscription: { remove: () => void } | null = null;
+  private visibilityHandler: (() => void) | null = null;
+  private beforeUnloadHandler: (() => void) | null = null;
 
   constructor() {
     this.enabled = !!POSTHOG_API_KEY && !__DEV__;
-
-    if (this.enabled) {
-      // Flush queue every 30 seconds
-      this.flushInterval = setInterval(() => this.flush(), 30000);
-    }
   }
 
   /**
@@ -44,9 +46,13 @@ class Analytics {
     });
 
     // Flush immediately if queue gets large
-    if (this.queue.length >= 20) {
-      this.flush();
+    if (this.queue.length >= 12) {
+      void this.flush();
+      return;
     }
+
+    this.ensureLifecycleBinding();
+    this.scheduleFlush();
   }
 
   /**
@@ -70,16 +76,22 @@ class Analytics {
         $set: properties,
       },
     });
+
+    this.ensureLifecycleBinding();
+    this.scheduleFlush();
   }
 
   /**
    * Flush queued events to PostHog
    */
-  private async flush(): Promise<void> {
-    if (this.queue.length === 0 || !POSTHOG_API_KEY) return;
+  async flush(): Promise<void> {
+    if (this.queue.length === 0 || !POSTHOG_API_KEY || this.isFlushing) return;
+
+    this.clearScheduledFlush();
 
     const events = [...this.queue];
     this.queue = [];
+    this.isFlushing = true;
 
     try {
       const response = await fetch(`${POSTHOG_HOST}/capture/`, {
@@ -87,6 +99,7 @@ class Analytics {
         headers: {
           "Content-Type": "application/json",
         },
+        keepalive: true,
         body: JSON.stringify({
           api_key: POSTHOG_API_KEY,
           batch: events.map((e) => ({
@@ -103,11 +116,14 @@ class Analytics {
       if (!response.ok) {
         throw new Error(`PostHog API error: ${response.status}`);
       }
-    } catch (_err) {
+    } catch {
       // Log to Sentry but don't crash the app
       captureMessage("Analytics flush failed", "warning");
       // Put events back in queue for retry
       this.queue.unshift(...events);
+      this.scheduleFlush(5000);
+    } finally {
+      this.isFlushing = false;
     }
   }
 
@@ -115,10 +131,70 @@ class Analytics {
    * Cleanup resources
    */
   destroy(): void {
-    if (this.flushInterval) {
-      clearInterval(this.flushInterval);
+    this.appStateSubscription?.remove();
+    this.appStateSubscription = null;
+
+    if (typeof document !== "undefined" && this.visibilityHandler) {
+      document.removeEventListener("visibilitychange", this.visibilityHandler);
+      this.visibilityHandler = null;
     }
-    this.flush();
+
+    if (typeof window !== "undefined" && this.beforeUnloadHandler) {
+      window.removeEventListener("beforeunload", this.beforeUnloadHandler);
+      this.beforeUnloadHandler = null;
+    }
+
+    this.clearScheduledFlush();
+    void this.flush();
+  }
+
+  private scheduleFlush(delayMs: number = 4000): void {
+    if (this.flushTimeout) {
+      return;
+    }
+
+    this.flushTimeout = setTimeout(() => {
+      this.flushTimeout = null;
+      void this.flush();
+    }, delayMs);
+  }
+
+  private clearScheduledFlush(): void {
+    if (!this.flushTimeout) {
+      return;
+    }
+
+    clearTimeout(this.flushTimeout);
+    this.flushTimeout = null;
+  }
+
+  private ensureLifecycleBinding(): void {
+    if (!this.enabled || this.lifecycleBound) {
+      return;
+    }
+
+    this.lifecycleBound = true;
+    this.appStateSubscription = AppState.addEventListener("change", (state: AppStateStatus) => {
+      if (state !== "active") {
+        void this.flush();
+      }
+    });
+
+    if (typeof document !== "undefined") {
+      this.visibilityHandler = () => {
+        if (document.visibilityState === "hidden") {
+          void this.flush();
+        }
+      };
+      document.addEventListener("visibilitychange", this.visibilityHandler);
+    }
+
+    if (typeof window !== "undefined") {
+      this.beforeUnloadHandler = () => {
+        void this.flush();
+      };
+      window.addEventListener("beforeunload", this.beforeUnloadHandler);
+    }
   }
 }
 
@@ -132,3 +208,39 @@ export const screen = (name: string, properties?: Record<string, unknown>) =>
   analytics.screen(name, properties);
 export const identify = (id: string, properties?: Record<string, unknown>) =>
   analytics.identify(id, properties);
+export const flushAnalytics = () => analytics.flush();
+
+export const trackRitualEvent = (
+  step:
+    | "start"
+    | "daily_limit_hit"
+    | "symbol_chosen"
+    | "ai_requested"
+    | "ai_completed"
+    | "ai_cancelled"
+    | "save_completed"
+    | "error",
+  properties?: Record<string, unknown>,
+) => track(`ritual_${step}`, properties);
+
+export const trackArchiveEvent = (
+  action:
+    | "screen_view"
+    | "search"
+    | "filter_changed"
+    | "sort_changed"
+    | "reading_opened"
+    | "favorite_toggled"
+    | "reopened",
+  properties?: Record<string, unknown>,
+) => track(`archive_${action}`, properties);
+
+export const trackShareEvent = (
+  action: "entry" | "theme_changed" | "shared" | "text_shared" | "failed",
+  properties?: Record<string, unknown>,
+) => track(`share_${action}`, properties);
+
+export const trackGiftEvent = (
+  action: "create_attempted" | "created" | "create_failed" | "shared",
+  properties?: Record<string, unknown>,
+) => track(`gift_${action}`, properties);

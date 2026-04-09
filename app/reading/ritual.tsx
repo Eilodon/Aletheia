@@ -93,7 +93,12 @@ export default function RitualScreen() {
           <Text style={[styles.kicker, { color: colors.primary }]}>
             {selectedSymbol?.display_name?.toUpperCase() || "NGHI THỨC"}
           </Text>
-          <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}>Đang mở passage</Text>
+          <Text
+            testID="reading-ritual-title"
+            style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}
+          >
+            Đang mở passage
+          </Text>
           <Text style={[styles.subtitle, { color: colors.muted }]}>
             {passage?.reference || "Một đoạn trích đang tiến lại gần bạn."}
           </Text>

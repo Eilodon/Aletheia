@@ -3,8 +3,24 @@ appId: space.manus.aletheia.app.t20260318170859
 name: "Reading Flow"
 ---
 - launchApp
-- tapOn: "Xem bài"  # View reading
-- assertVisible: "Hoàn cảnh"
+- runFlow:
+    when:
+      visible:
+        id: "onboarding-primary-action"
+    file: onboarding-subflow.yaml
+- tapOn:
+    id: "home-start-reading"
+- assertVisible:
+    id: "reading-situation-title"
+- inputText:
+    id: "reading-situation-input"
+    text: "Test situation for E2E"
+- tapOn:
+    id: "reading-situation-continue"
+- assertVisible:
+    id: "reading-wildcard-title"
+- tapOn:
+    id: "reading-wildcard-auto"
+- assertVisible:
+    id: "reading-passage-card"
 - takeScreenshot: reading-page
-- tapOn: ".*"  # Tap anywhere to navigate
-- takeScreenshot: card-result

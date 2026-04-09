@@ -410,12 +410,14 @@ fileprivate struct FfiConverterString: FfiConverter {
 
 
 public protocol AletheiaCoreProtocol {
+    func bootstrapBundledContent()   -> SeedBundledDataResponse
     func cancelInterpretationStream(requestId: String)   -> CancelInterpretationResponse
     func chooseSymbol(session: ReadingSession, symbolId: String, method: SymbolMethod)   -> ChooseSymbolResponse
     func completeReading(userId: String, reading: Reading)   -> CompleteReadingResponse
     func createGift(sourceId: String?, buyerNote: String?)   -> CreateGiftResponse
     func getDailyNotificationMessage(userId: String, date: String)   -> NotificationMessageResponse
     func getFallbackPrompts(sourceId: String)   -> FallbackPromptsResponse
+    func getReadingById(id: String)   -> ReadingResponse
     func getReadings(limit: UInt32, offset: UInt32)   -> PaginatedReadingsResponse
     func getSources(premiumAllowed: Bool)   -> SourcesResponse
     func getUserState(userId: String)   -> UserStateResponse
@@ -427,6 +429,7 @@ public protocol AletheiaCoreProtocol {
     func setAiApiKey(provider: String, key: String)   -> SetApiKeyResponse
     func setLocalDate(localDate: String)  
     func startInterpretationStream(passage: Passage, symbol: Symbol, situationText: String?, userIntent: String?)   -> StartInterpretationStreamResponse
+    func updateReadingFlags(id: String, isFavorite: Bool?, shared: Bool?)   -> ReadingResponse
     func updateUserState(state: UserState)   -> UpdateUserStateResponse
     
 }
@@ -456,6 +459,17 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     
     
+
+    public func bootstrapBundledContent()  -> SeedBundledDataResponse {
+        return try!  FfiConverterTypeSeedBundledDataResponse.lift(
+            try! 
+    rustCall() {
+    
+    uniffi_aletheia_core_fn_method_aletheiacore_bootstrap_bundled_content(self.pointer, $0
+    )
+}
+        )
+    }
 
     public func cancelInterpretationStream(requestId: String)  -> CancelInterpretationResponse {
         return try!  FfiConverterTypeCancelInterpretationResponse.lift(
@@ -529,6 +543,18 @@ public class AletheiaCore: AletheiaCoreProtocol {
     
     uniffi_aletheia_core_fn_method_aletheiacore_get_fallback_prompts(self.pointer, 
         FfiConverterString.lower(sourceId),$0
+    )
+}
+        )
+    }
+
+    public func getReadingById(id: String)  -> ReadingResponse {
+        return try!  FfiConverterTypeReadingResponse.lift(
+            try! 
+    rustCall() {
+    
+    uniffi_aletheia_core_fn_method_aletheiacore_get_reading_by_id(self.pointer, 
+        FfiConverterString.lower(id),$0
     )
 }
         )
@@ -670,6 +696,20 @@ public class AletheiaCore: AletheiaCoreProtocol {
         FfiConverterTypeSymbol.lower(symbol),
         FfiConverterOptionString.lower(situationText),
         FfiConverterOptionString.lower(userIntent),$0
+    )
+}
+        )
+    }
+
+    public func updateReadingFlags(id: String, isFavorite: Bool?, shared: Bool?)  -> ReadingResponse {
+        return try!  FfiConverterTypeReadingResponse.lift(
+            try! 
+    rustCall() {
+    
+    uniffi_aletheia_core_fn_method_aletheiacore_update_reading_flags(self.pointer, 
+        FfiConverterString.lower(id),
+        FfiConverterOptionBool.lower(isFavorite),
+        FfiConverterOptionBool.lower(shared),$0
     )
 }
         )
@@ -2026,6 +2066,61 @@ public func FfiConverterTypeReading_lift(_ buf: RustBuffer) throws -> Reading {
 
 public func FfiConverterTypeReading_lower(_ value: Reading) -> RustBuffer {
     return FfiConverterTypeReading.lower(value)
+}
+
+
+public struct ReadingResponse {
+    public var reading: Reading?
+    public var error: BridgeError?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(reading: Reading?, error: BridgeError?) {
+        self.reading = reading
+        self.error = error
+    }
+}
+
+
+extension ReadingResponse: Equatable, Hashable {
+    public static func ==(lhs: ReadingResponse, rhs: ReadingResponse) -> Bool {
+        if lhs.reading != rhs.reading {
+            return false
+        }
+        if lhs.error != rhs.error {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(reading)
+        hasher.combine(error)
+    }
+}
+
+
+public struct FfiConverterTypeReadingResponse: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ReadingResponse {
+        return try ReadingResponse(
+            reading: FfiConverterOptionTypeReading.read(from: &buf), 
+            error: FfiConverterOptionTypeBridgeError.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: ReadingResponse, into buf: inout [UInt8]) {
+        FfiConverterOptionTypeReading.write(value.reading, into: &buf)
+        FfiConverterOptionTypeBridgeError.write(value.error, into: &buf)
+    }
+}
+
+
+public func FfiConverterTypeReadingResponse_lift(_ buf: RustBuffer) throws -> ReadingResponse {
+    return try FfiConverterTypeReadingResponse.lift(buf)
+}
+
+public func FfiConverterTypeReadingResponse_lower(_ value: ReadingResponse) -> RustBuffer {
+    return FfiConverterTypeReadingResponse.lower(value)
 }
 
 
@@ -3431,6 +3526,27 @@ fileprivate struct FfiConverterOptionFloat: FfiConverterRustBuffer {
     }
 }
 
+fileprivate struct FfiConverterOptionBool: FfiConverterRustBuffer {
+    typealias SwiftType = Bool?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterBool.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterBool.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
 fileprivate struct FfiConverterOptionString: FfiConverterRustBuffer {
     typealias SwiftType = String?
 
@@ -3594,6 +3710,27 @@ fileprivate struct FfiConverterOptionTypePaginatedReadings: FfiConverterRustBuff
         switch try readInt(&buf) as Int8 {
         case 0: return nil
         case 1: return try FfiConverterTypePaginatedReadings.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+fileprivate struct FfiConverterOptionTypeReading: FfiConverterRustBuffer {
+    typealias SwiftType = Reading?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeReading.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeReading.read(from: &buf)
         default: throw UniffiInternalError.unexpectedOptionalTag
         }
     }
@@ -3786,6 +3923,9 @@ private var initializationResult: InitializationResult {
     if bindings_contract_version != scaffolding_contract_version {
         return InitializationResult.contractVersionMismatch
     }
+    if (uniffi_aletheia_core_checksum_method_aletheiacore_bootstrap_bundled_content() != 47013) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_cancel_interpretation_stream() != 8803) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -3802,6 +3942,9 @@ private var initializationResult: InitializationResult {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_get_fallback_prompts() != 14357) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_aletheia_core_checksum_method_aletheiacore_get_reading_by_id() != 35673) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_get_readings() != 62455) {
@@ -3835,6 +3978,9 @@ private var initializationResult: InitializationResult {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_start_interpretation_stream() != 46034) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_aletheia_core_checksum_method_aletheiacore_update_reading_flags() != 57900) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_update_user_state() != 57698) {
