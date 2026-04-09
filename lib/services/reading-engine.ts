@@ -4,7 +4,6 @@
  * Web-only orchestration path. Android beta must use the Rust core.
  */
 
-import { v4 as uuidv4 } from "uuid";
 import {
   Reading,
   ReadingSession,
@@ -21,6 +20,7 @@ import {
 import { store } from "./store";
 import { themeEngine } from "./theme-engine";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
+import { generateId } from "@/lib/utils/id";
 
 
 class ReadingEngineService {
@@ -87,7 +87,7 @@ class ReadingEngineService {
 
       // Return session (not yet saved)
       const session: ReadingSession = {
-        temp_id: uuidv4(),
+        temp_id: generateId(),
         source,
         theme,
         symbols,

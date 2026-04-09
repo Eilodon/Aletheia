@@ -17,11 +17,16 @@ export function GlassCard({
   const colors = useColors();
   
   const baseStyle = {
-    borderRadius: 24,
+    borderRadius: 22,
     padding: 24,
-    backgroundColor: variant === "default" ? colors.surface + "15" : variant === "highlighted" ? colors.surface + "20" : colors.surface + "0D",
+    backgroundColor: variant === "default" ? colors.surface + "D9" : variant === "highlighted" ? colors.surface + "F0" : colors.surface + "C8",
     borderWidth: 1,
-    borderColor: variant === "default" ? colors.border + "30" : variant === "highlighted" ? colors.border + "40" : colors.border + "15",
+    borderColor: variant === "default" ? colors.border + "55" : variant === "highlighted" ? colors.primary + "66" : colors.border + "40",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.12,
+    shadowRadius: 30,
+    elevation: 5,
   };
 
   return (
@@ -51,11 +56,11 @@ export function PassageCard({
   const colors = useColors();
   
   const cardStyle = {
-    borderRadius: 24,
+    borderRadius: 22,
     padding: 24,
-    backgroundColor: colors.surface + "CC",
+    backgroundColor: colors.surface + "F0",
     borderWidth: 1,
-    borderColor: colors.border + "80",
+    borderColor: colors.primary + "50",
   };
 
   const textStyle = {
@@ -127,10 +132,10 @@ export function ReadingCard({
 
   const cardStyle = {
     padding: 16,
-    borderRadius: 16,
-    backgroundColor: colors.surface + "1A",
+    borderRadius: 18,
+    backgroundColor: colors.surface + "D4",
     borderWidth: 1,
-    borderColor: colors.border + "33",
+    borderColor: colors.border + "55",
     marginBottom: 12,
   };
 

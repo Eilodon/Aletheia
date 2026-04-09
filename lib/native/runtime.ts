@@ -10,8 +10,13 @@ import { unwrapNativeSetApiKeyResponse } from "./bridge";
 
 let initPromise: Promise<void> | null = null;
 let hasWarnedAboutIosNativePending = false;
+let hasDisabledAndroidNative = false;
 
 export function shouldUseAletheiaNative(): boolean {
+  if (hasDisabledAndroidNative) {
+    return false;
+  }
+
   if (Platform.OS === "ios" && aletheiaNativeClient.isAvailable()) {
     if (!hasWarnedAboutIosNativePending) {
       console.warn(
@@ -129,6 +134,7 @@ export async function initializeAletheiaNative(): Promise<void> {
   try {
     await initPromise;
   } catch (error) {
+    hasDisabledAndroidNative = true;
     initPromise = null;
     throw error;
   }

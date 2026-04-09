@@ -14,6 +14,7 @@ import {
   Reading,
   UserState,
   SubscriptionTier,
+  SymbolMethod,
 } from "@/lib/types";
 import { BUNDLED_SOURCES, BUNDLED_PASSAGES, BUNDLED_THEMES } from "@/lib/data/content";
 
@@ -658,7 +659,7 @@ class StoreService {
       passage_id: row.passage_id,
       theme_id: row.theme_id,
       symbol_chosen: row.symbol_chosen,
-      symbol_method: row.symbol_method,
+      symbol_method: this.normalizeSymbolMethod(row.symbol_method),
       situation_text: row.situation_text || undefined,
       ai_interpreted: row.ai_interpreted === 1,
       ai_used_fallback: row.ai_used_fallback === 1,
@@ -670,6 +671,15 @@ class StoreService {
       shared: row.shared === 1,
       user_intent: row.user_intent || undefined,
     };
+  }
+
+  private normalizeSymbolMethod(value: unknown): SymbolMethod {
+    if (typeof value !== "string") {
+      return SymbolMethod.Manual;
+    }
+
+    const normalized = value.toLowerCase();
+    return normalized === SymbolMethod.Auto ? SymbolMethod.Auto : SymbolMethod.Manual;
   }
 }
 

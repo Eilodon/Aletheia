@@ -4,7 +4,9 @@ import { useRouter } from "expo-router";
 import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
+import { RitualOrnament } from "@/components/ritual-ornament";
 import { SITUATION_SKIP_TEXT_VI } from "@/lib/reading/ritual";
+import { Fonts } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
 
 export default function SituationScreen() {
@@ -57,7 +59,8 @@ export default function SituationScreen() {
         <View className="flex-1 justify-between">
           {/* Header */}
           <View className="items-center gap-4 pt-8">
-            <Text className="text-2xl font-bold text-foreground text-center">
+            <RitualOrnament variant="line" />
+            <Text className="text-3xl text-foreground text-center" style={{ fontFamily: Fonts.serif }}>
               Bạn đang mang điều gì?
             </Text>
             <Text className="text-sm text-muted text-center max-w-xs">
@@ -75,7 +78,13 @@ export default function SituationScreen() {
               multiline
               numberOfLines={6}
               textAlignVertical="top"
-              className="bg-muted/20 rounded-2xl p-4 text-base text-foreground min-h-[160px]"
+              className="rounded-3xl p-5 text-base text-foreground min-h-[180px]"
+              style={{
+                backgroundColor: colors.surface + "EE",
+                borderWidth: 1,
+                borderColor: colors.border + "88",
+                lineHeight: 24,
+              }}
               maxLength={500}
             />
             <Text className="text-xs text-muted text-right mt-2">
@@ -89,15 +98,17 @@ export default function SituationScreen() {
               onPress={handleContinue}
               disabled={isLoading}
               style={({ pressed }) => ({
-                backgroundColor: colors.primary,
+                backgroundColor: colors.surface + "F2",
+                borderWidth: 1,
+                borderColor: colors.primary + "88",
                 paddingHorizontal: 32,
-                paddingVertical: 16,
-                borderRadius: 12,
+                paddingVertical: 18,
+                borderRadius: 22,
                 opacity: pressed || isLoading ? 0.8 : 1,
                 transform: [{ scale: pressed ? 0.98 : 1 }],
               })}
             >
-              <Text className="text-lg font-semibold text-white text-center">
+              <Text className="text-lg text-foreground text-center" style={{ fontFamily: Fonts.serif }}>
                 {isLoading ? "Đang chuẩn bị..." : "Tiếp tục"}
               </Text>
             </Pressable>

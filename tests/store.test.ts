@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { store } from "../lib/services/store";
-import { SubscriptionTier } from "../lib/types";
+import { SubscriptionTier, SymbolMethod } from "../lib/types";
 
 const mockDb = vi.hoisted(() => ({
   data: new Map<string, any[]>(),
@@ -381,6 +381,7 @@ describe("StoreService", () => {
 
       expect(reading?.id).toBe("reading-123");
       expect(reading?.symbol_chosen).toBe("candle");
+      expect(reading?.symbol_method).toBe(SymbolMethod.Manual);
     });
   });
 

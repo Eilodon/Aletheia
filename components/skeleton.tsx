@@ -53,7 +53,7 @@ export function Skeleton({
     <View
       style={[
         width ? { width } : { flex: 1 },
-        { height, borderRadius, backgroundColor: colors.surface, overflow: "hidden" },
+        { height, borderRadius, backgroundColor: colors.surface + "D6", overflow: "hidden", borderWidth: 1, borderColor: colors.border + "44" },
       ]}
     >
       <Animated.View
@@ -63,7 +63,7 @@ export function Skeleton({
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundColor: colors.muted,
+          backgroundColor: colors.primary,
           opacity,
           transform: [
             {
@@ -84,11 +84,11 @@ export function SkeletonCard({ lines = 3 }: { lines?: number }) {
   
   return (
     <View style={{
-      padding: 16,
-      borderRadius: 16,
-      backgroundColor: colors.surface + "1A",
+      padding: 18,
+      borderRadius: 20,
+      backgroundColor: colors.surface + "E8",
       borderWidth: 1,
-      borderColor: colors.border + "33",
+      borderColor: colors.border + "66",
       marginBottom: 12,
     }}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
@@ -116,11 +116,9 @@ export function SkeletonCard({ lines = 3 }: { lines?: number }) {
 export function SkeletonList({ count = 5 }: { count?: number }) {
   return (
     <View style={{ gap: 16 }}>
-      <SkeletonCard lines={3} />
-      <SkeletonCard lines={2} />
-      <SkeletonCard lines={3} />
-      <SkeletonCard lines={2} />
-      <SkeletonCard lines={3} />
+      {Array.from({ length: count }).map((_, index) => (
+        <SkeletonCard key={index} lines={index % 2 === 0 ? 3 : 2} />
+      ))}
     </View>
   );
 }

@@ -46,11 +46,16 @@ export function PressableCard({
   };
 
   const cardStyle = {
-    backgroundColor: colors.surface + "4D",
-    borderRadius: 16,
-    padding: 16,
+    backgroundColor: colors.surface + "D8",
+    borderRadius: 18,
+    padding: 18,
     borderWidth: 1,
-    borderColor: colors.border + "4D",
+    borderColor: colors.border + "60",
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 22,
+    elevation: 4,
   };
 
   return (
@@ -122,8 +127,8 @@ export function AnimatedButton({
   };
 
   const variantStyles = {
-    primary: { backgroundColor: colors.primary },
-    secondary: { backgroundColor: colors.surface + "80", borderWidth: 1, borderColor: colors.muted + "4D" },
+    primary: { backgroundColor: colors.primary, borderWidth: 1, borderColor: colors.primary + "AA" },
+    secondary: { backgroundColor: colors.surface + "D0", borderWidth: 1, borderColor: colors.border + "66" },
     ghost: { backgroundColor: "transparent" },
   };
 
@@ -154,7 +159,7 @@ export function AnimatedButton({
     >
       <Animated.View
         style={[
-          { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 24 },
+          { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 20 },
           variantStyles[variant],
           sizeStyles[size],
           disabled && { opacity: 0.5 },

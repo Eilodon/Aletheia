@@ -1,74 +1,91 @@
 import { useRouter } from "expo-router";
-import { ScrollView, Text, View, Pressable, StyleSheet } from "react-native";
-import { ScreenContainer } from "@/components/screen-container";
-import { useColors } from "@/hooks/use-colors";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
+
+import { ScreenContainer } from "@/components/screen-container";
+import { RitualOrnament } from "@/components/ritual-ornament";
+import { useColors } from "@/hooks/use-colors";
+import { Fonts } from "@/constants/theme";
 
 export default function HomeScreen() {
   const colors = useColors();
   const router = useRouter();
 
-  const handleStartReading = async () => {
+  const handleStartReading = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.push("/reading/situation");
   };
 
   return (
-    <ScreenContainer className="p-6">
+    <ScreenContainer className="px-6 pb-6">
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-        <View className="flex-1 justify-between gap-8">
-          {/* Header - Ritual Gateway */}
-          <View className="items-center gap-6 pt-16">
-            {/* Decorative top ornament */}
-            <View style={styles.ornamentContainer}>
-              <View style={[styles.ornamentLine, { backgroundColor: colors.primary + "40" }]} />
-              <Text style={[styles.ornamentSymbol, { color: colors.primary }]}>✦</Text>
-              <View style={[styles.ornamentLine, { backgroundColor: colors.primary + "40" }]} />
-            </View>
-
-            {/* Main title - more poetic */}
-            <View className="items-center gap-2">
-              <Text style={[styles.title, { color: colors.foreground }]}>ALETHEIA</Text>
-              <Text style={[styles.titleSub, { color: colors.primary }]}>not a fortune. a mirror.</Text>
-            </View>
-
-            {/* Atmospheric subtitle */}
-            <Text style={[styles.tagline, { color: colors.muted }]}>
-              Dừng lại. Phản chiếu. Hiểu.
+        <View style={styles.root}>
+          <View style={styles.hero}>
+            <View style={[styles.heroHalo, { backgroundColor: colors.primary + "12" }]} />
+            <RitualOrnament variant="eye" size="lg" />
+            <Text style={[styles.kicker, { color: colors.primary }]}>A mirror, not a promise</Text>
+            <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}>ALETHEIA</Text>
+            <RitualOrnament variant="line" />
+            <Text style={[styles.subtitle, { color: colors.muted }]}>
+              Dừng lại trong vài phút. Gọi tên điều bạn đang mang. Rồi để một đoạn trích phản chiếu lại nó.
             </Text>
           </View>
 
-          {/* Main CTA - Ritual Object */}
-          <View className="items-center gap-8">
+          <View style={styles.ctaGroup}>
             <Pressable
               onPress={handleStartReading}
               style={({ pressed }) => [
                 styles.ctaButton,
                 {
-                  backgroundColor: colors.primary,
-                  transform: [{ scale: pressed ? 0.96 : 1 }],
-                  opacity: pressed ? 0.85 : 1,
+                  backgroundColor: colors.surface + "F2",
+                  borderColor: colors.primary + "88",
+                  transform: [{ scale: pressed ? 0.98 : 1 }],
                 },
               ]}
             >
-              <View style={styles.ctaInner}>
-                <Text style={styles.ctaSymbol}>✦</Text>
-                <Text style={styles.ctaText}>Lật một lá</Text>
-                <Text style={styles.ctaSymbol}>✦</Text>
-              </View>
+              <Text style={[styles.ctaGlyph, { color: colors.primary }]}>✦</Text>
+              <Text style={[styles.ctaText, { color: colors.foreground, fontFamily: Fonts.serif }]}>Bắt đầu nghi thức</Text>
+              <Text style={[styles.ctaGlyph, { color: colors.primary }]}>✦</Text>
             </Pressable>
-
-            <Text style={[styles.ctaSubtext, { color: colors.muted }]}>
-              Chọn biểu tượng — để đoạn trích nói với bạn
+            <Text style={[styles.ctaHint, { color: colors.muted }]}>
+              Bạn sẽ mô tả tình huống, chọn một biểu tượng, rồi nhận đoạn trích phù hợp nhất với khoảnh khắc này.
             </Text>
           </View>
 
-          {/* Footer - Subtle, premium */}
-          <View className="items-center gap-1 pb-8">
-            <View style={[styles.footerDot, { backgroundColor: colors.primary + "30" }]} />
-            <Text style={[styles.footerText, { color: colors.muted }]}>
-              Không cần internet • Không cần tài khoản
+          <View
+            style={[
+              styles.featureCard,
+              {
+                backgroundColor: colors.surface + "E6",
+                borderColor: colors.border + "66",
+              },
+            ]}
+          >
+            <Text style={[styles.featureLabel, { color: colors.primary }]}>PASSAGE OF THE PRACTICE</Text>
+            <Text style={[styles.featureQuote, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+              “Đừng đi tìm câu trả lời hoàn hảo. Hãy đi tìm câu hỏi đang thật sự sống trong bạn.”
             </Text>
+            <View style={styles.featureFooter}>
+              <View style={[styles.featureRule, { backgroundColor: colors.primary + "44" }]} />
+              <Text style={[styles.featureRef, { color: colors.muted }]}>Nghi thức mở đầu của Aletheia</Text>
+            </View>
+          </View>
+
+          <View style={styles.pillars}>
+            {[
+              "Lưu local, không cần tài khoản",
+              "AI chỉ xuất hiện khi bạn yêu cầu",
+              "Thiết kế chậm, tối, tập trung vào phản chiếu",
+            ].map((item) => (
+              <View key={item} style={[styles.pillar, { backgroundColor: colors.surface + "CC", borderColor: colors.border + "55" }]}>
+                <Text style={[styles.pillarText, { color: colors.foreground }]}>{item}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.footer}>
+            <RitualOrnament variant="dot" />
+            <Text style={[styles.footerText, { color: colors.muted }]}>Không cần nhanh. Chỉ cần thành thật.</Text>
           </View>
         </View>
       </ScrollView>
@@ -77,75 +94,121 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  ornamentContainer: {
-    flexDirection: "row",
+  root: {
+    flexGrow: 1,
+    justifyContent: "space-between",
+    gap: 28,
+    paddingTop: 28,
+  },
+  hero: {
     alignItems: "center",
     gap: 12,
+    paddingTop: 28,
   },
-  ornamentLine: {
-    width: 40,
-    height: 1,
+  heroHalo: {
+    position: "absolute",
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    top: -24,
   },
-  ornamentSymbol: {
-    fontSize: 20,
-  },
-  title: {
-    fontSize: 36,
-    fontWeight: "200",
-    letterSpacing: 8,
-  },
-  titleSub: {
+  kicker: {
     fontSize: 11,
-    fontWeight: "500",
-    letterSpacing: 3,
+    letterSpacing: 2.8,
     textTransform: "uppercase",
   },
-  tagline: {
-    fontSize: 15,
-    fontWeight: "300",
-    fontStyle: "italic",
+  title: {
+    fontSize: 42,
+    letterSpacing: 7,
+  },
+  subtitle: {
+    maxWidth: 320,
     textAlign: "center",
-    marginTop: 8,
+    fontSize: 15,
+    lineHeight: 24,
   },
-  ctaButton: {
-    paddingHorizontal: 48,
-    paddingVertical: 20,
-    borderRadius: 32,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
-  },
-  ctaInner: {
-    flexDirection: "row",
+  ctaGroup: {
     alignItems: "center",
     gap: 12,
   },
-  ctaSymbol: {
+  ctaButton: {
+    minWidth: 260,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 26,
+    paddingVertical: 18,
+    borderRadius: 24,
+    borderWidth: 1.2,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 6,
+  },
+  ctaGlyph: {
     fontSize: 16,
-    color: "rgba(255,255,255,0.6)",
   },
   ctaText: {
     fontSize: 18,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    letterSpacing: 1,
+    letterSpacing: 1.1,
   },
-  ctaSubtext: {
-    fontSize: 13,
+  ctaHint: {
+    maxWidth: 300,
     textAlign: "center",
-    maxWidth: 240,
+    fontSize: 13,
     lineHeight: 20,
   },
-  footerDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    marginBottom: 8,
+  featureCard: {
+    borderRadius: 24,
+    paddingHorizontal: 22,
+    paddingVertical: 20,
+    borderWidth: 1,
+    gap: 10,
+  },
+  featureLabel: {
+    fontSize: 10,
+    letterSpacing: 3,
+    textTransform: "uppercase",
+  },
+  featureQuote: {
+    fontSize: 20,
+    lineHeight: 30,
+  },
+  featureFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 4,
+  },
+  featureRule: {
+    width: 28,
+    height: 1,
+  },
+  featureRef: {
+    fontSize: 12,
+  },
+  pillars: {
+    gap: 10,
+  },
+  pillar: {
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderWidth: 1,
+  },
+  pillarText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  footer: {
+    alignItems: "center",
+    gap: 10,
+    paddingBottom: 12,
   },
   footerText: {
-    fontSize: 11,
-    letterSpacing: 0.5,
+    fontSize: 12,
+    letterSpacing: 0.4,
   },
 });

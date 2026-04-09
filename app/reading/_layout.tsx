@@ -1,25 +1,28 @@
 import { Stack } from "expo-router";
+import { ReadingProvider } from "@/lib/context/reading-context";
 
 export default function ReadingLayout() {
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        animation: "slide_from_right",
-      }}
-    >
-      <Stack.Screen name="situation" />
-      <Stack.Screen name="wildcard" />
-      <Stack.Screen name="ritual" />
-      <Stack.Screen name="passage" />
-      <Stack.Screen name="ai-streaming" />
-      <Stack.Screen name="[id]" />
-      <Stack.Screen
-        name="share-card"
-        options={{
-          animation: "slide_from_bottom",
+    <ReadingProvider>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: "fade_from_bottom",
         }}
-      />
-    </Stack>
+      >
+        <Stack.Screen name="situation" />
+        <Stack.Screen name="wildcard" />
+        <Stack.Screen name="ritual" />
+        <Stack.Screen name="passage" />
+        <Stack.Screen name="ai-streaming" />
+        <Stack.Screen name="[id]" />
+        <Stack.Screen
+          name="share-card"
+          options={{
+            animation: "slide_from_bottom",
+          }}
+        />
+      </Stack>
+    </ReadingProvider>
   );
 }

@@ -35,6 +35,9 @@ importers:
       '@trpc/server':
         specifier: 11.7.2
         version: 11.7.2(typescript@5.9.3)
+      aletheia-core-module:
+        specifier: file:modules/aletheia-core-module
+        version: file:modules/aletheia-core-module
       axios:
         specifier: ^1.13.2
         version: 1.14.0
@@ -2509,6 +2512,9 @@ packages:
 
   ajv@8.18.0:
     resolution: {integrity: sha512-PlXPeEWMXMZ7sPYOHqmDyCJzcfNrUr3fGNKtezX14ykXOEIvyK81d+qydx89KY5O71FKMPaQ2vBfBFI5NHR63A==}
+
+  aletheia-core-module@file:modules/aletheia-core-module:
+    resolution: {directory: modules/aletheia-core-module, type: directory}
 
   anser@1.4.10:
     resolution: {integrity: sha512-hCv9AqTQ8ycjpSd3upOJd7vFwW1JaoYQ7tpham03GJ1ca8/65rqn0RpaWpItOAd6ylW9wAw6luXYPJIyPFVOww==}
@@ -8585,6 +8591,8 @@ snapshots:
       fast-uri: 3.1.0
       json-schema-traverse: 1.0.0
       require-from-string: 2.0.2
+
+  aletheia-core-module@file:modules/aletheia-core-module: {}
 
   anser@1.4.10: {}
 

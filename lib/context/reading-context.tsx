@@ -4,7 +4,6 @@
 
 import { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "expo-router";
-import { v4 as uuidv4 } from "uuid";
 import {
   Reading,
   ReadingSession,
@@ -24,6 +23,7 @@ import {
 } from "@/lib/reading/ritual";
 
 import { coreStore } from "@/lib/services/core-store";
+import { generateId } from "@/lib/utils/id";
 
 interface ReadingContextType {
   // State
@@ -214,7 +214,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
           : undefined;
 
       const reading: Reading = {
-        id: uuidv4(),
+        id: generateId(),
         created_at: Date.now(),
         source_id: session.source.id,
         passage_id: passage.id,

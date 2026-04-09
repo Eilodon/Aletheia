@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { Fonts } from "@/constants/theme";
 
 type EmotionType = "anxious" | "sad" | "confused" | "hopeful" | "curious" | "grateful" | "grief" | "default";
 
@@ -44,14 +45,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
   },
   emoji: {
     lineHeight: 18,
   },
   label: {
-    fontWeight: "600",
+    fontFamily: Fonts.serif,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },

@@ -1,30 +1,24 @@
 import { useEffect, useRef } from "react";
-import { View, Text, Pressable, ScrollView, Animated } from "react-native";
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { useReading } from "@/lib/context/reading-context";
-import { useColors } from "@/hooks/use-colors";
-import { ScreenContainer } from "@/components/screen-container";
 import * as Haptics from "expo-haptics";
 
+import { ScreenContainer } from "@/components/screen-container";
+import { RitualOrnament } from "@/components/ritual-ornament";
+import { useReading } from "@/lib/context/reading-context";
+import { useColors } from "@/hooks/use-colors";
+import { Fonts } from "@/constants/theme";
+
 export default function AIStreamingScreen() {
-  const {
-    selectedSymbol,
-    aiResponse,
-    isAIFallback,
-    cancelAIInterpretation,
-  } = useReading();
+  const { selectedSymbol, aiResponse, isAIFallback, cancelAIInterpretation } = useReading();
   const colors = useColors();
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  // Use aiResponse directly - streaming already provides incremental "typewriter" effect
-  // No need for separate animation that causes race condition on chunk updates
-
-  // Fade in animation
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 600,
+      duration: 500,
       useNativeDriver: true,
     }).start();
   }, [fadeAnim]);
@@ -40,115 +34,112 @@ export default function AIStreamingScreen() {
     router.replace("/reading/passage");
   };
 
-  // If we have a complete AI response, show the full screen
   if (aiResponse) {
     return (
-      <ScreenContainer className="p-6">
+      <ScreenContainer className="px-6 pb-6">
         <Animated.View style={{ opacity: fadeAnim }} className="flex-1">
-          <ScrollView
-            contentContainerStyle={{ flexGrow: 1 }}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Header */}
-            <View className="items-center gap-2 pt-4 pb-6">
-              <Text className="text-lg font-medium text-primary">
-                {selectedSymbol?.display_name || "Biểu tượng"}
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+            <View style={styles.header}>
+              <RitualOrnament variant="line" />
+              <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+                {isAIFallback ? "Diễn giải nội tại" : "Diễn giải"}
               </Text>
-              <Text className="text-xs text-muted">
-                {isAIFallback ? "Diễn giải nội tại" : "Diễn giải từ AI"}
-              </Text>
+              <Text style={[styles.subtitle, { color: colors.muted }]}>{selectedSymbol?.display_name || "Biểu tượng"}</Text>
             </View>
 
-            {/* AI Response Card */}
-            <View
-              className="rounded-2xl p-6 mb-6"
-              style={{
-                backgroundColor: isAIFallback ? colors.surface : colors.primary + "1A",
-                borderLeftWidth: 3,
-                borderLeftColor: isAIFallback ? colors.muted : colors.primary,
-              }}
+            <View style={[styles.responseCard, { backgroundColor: colors.surface + "F0", borderColor: colors.primary + "60" }]}>
+              <Text style={[styles.responseText, { color: colors.foreground }]}>{aiResponse}</Text>
+            </View>
+
+            <View style={styles.spacer} />
+
+            <Pressable
+              onPress={handleBackToPassage}
+              style={[styles.primaryButton, { backgroundColor: colors.surface + "F4", borderColor: colors.primary + "88" }]}
             >
-              <Text className="text-base text-foreground leading-relaxed">
-                {aiResponse}
-              </Text>
-            </View>
-
-            {/* Spacer */}
-            <View className="flex-1" />
-
-            {/* Actions */}
-            <View className="gap-3 pb-4">
-              <Pressable
-                onPress={handleBackToPassage}
-                style={({ pressed }) => ({
-                  backgroundColor: colors.primary,
-                  paddingHorizontal: 24,
-                  paddingVertical: 16,
-                  borderRadius: 12,
-                  opacity: pressed ? 0.8 : 1,
-                  transform: [{ scale: pressed ? 0.98 : 1 }],
-                })}
-              >
-                <Text className="text-lg font-semibold text-white text-center">
-                  Quay lại đoạn trích
-                </Text>
-              </Pressable>
-            </View>
+              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>Quay lại đoạn trích</Text>
+            </Pressable>
           </ScrollView>
         </Animated.View>
       </ScreenContainer>
     );
   }
 
-  // Streaming state
   return (
-    <ScreenContainer className="p-6">
-      <Animated.View style={{ opacity: fadeAnim }} className="flex-1">
-        {/* Header */}
-        <View className="items-center gap-2 pt-4 pb-6">
-          <Text className="text-lg font-medium text-foreground">
-            Đang diễn giải...
+    <ScreenContainer className="px-6 pb-6">
+      <Animated.View style={{ opacity: fadeAnim }} className="flex-1 justify-between">
+        <View style={styles.header}>
+          <RitualOrnament variant="sigil" />
+          <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}>Đang diễn giải</Text>
+          <Text style={[styles.subtitle, { color: colors.muted }]}>{selectedSymbol?.display_name}</Text>
+        </View>
+
+        <View style={[styles.responseCard, { backgroundColor: colors.surface + "F0", borderColor: colors.primary + "60" }]}>
+          <Text style={[styles.responseText, { color: colors.foreground }]}>
+            {aiResponse}
+            <Text style={{ color: colors.primary }}>|</Text>
           </Text>
-          <Text className="text-xs text-muted">
-            {selectedSymbol?.display_name}
-          </Text>
+          <RitualOrnament variant="dot" />
         </View>
 
-        {/* Streaming Content */}
-        <View className="flex-1">
-          <View
-            className="rounded-2xl p-6 min-h-[200px]"
-            style={{ backgroundColor: colors.primary + "1A" }}
-          >
-            <Text className="text-base text-foreground leading-relaxed">
-              {aiResponse}
-              <Text className="text-primary animate-pulse">|</Text>
-            </Text>
-          </View>
-
-          {/* Progress indicator */}
-          <View className="flex-row justify-center gap-1 mt-6">
-            {[0, 1, 2].map((i) => (
-              <View
-                key={i}
-                className="w-2 h-2 rounded-full bg-primary animate-pulse"
-              />
-            ))}
-          </View>
-        </View>
-
-        {/* Cancel button */}
-        <View className="pb-8 pt-4">
-          <Pressable
-            onPress={handleCancel}
-            className="py-4 px-6 rounded-xl border border-muted/30"
-          >
-            <Text className="text-sm text-muted text-center">
-              Hủy diễn giải
-            </Text>
-          </Pressable>
-        </View>
+        <Pressable
+          onPress={handleCancel}
+          style={[styles.secondaryButton, { backgroundColor: colors.surface + "E6", borderColor: colors.border + "66" }]}
+        >
+          <Text style={[styles.secondaryButtonText, { color: colors.muted }]}>Hủy diễn giải</Text>
+        </Pressable>
       </Animated.View>
     </ScreenContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    alignItems: "center",
+    gap: 10,
+    paddingTop: 24,
+    paddingBottom: 24,
+  },
+  title: {
+    fontSize: 28,
+    textAlign: "center",
+  },
+  subtitle: {
+    fontSize: 13,
+    textAlign: "center",
+  },
+  responseCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    paddingHorizontal: 22,
+    paddingVertical: 22,
+    minHeight: 220,
+    gap: 16,
+  },
+  responseText: {
+    fontSize: 16,
+    lineHeight: 28,
+  },
+  spacer: {
+    flex: 1,
+    minHeight: 20,
+  },
+  primaryButton: {
+    borderRadius: 22,
+    borderWidth: 1.2,
+    paddingVertical: 18,
+    alignItems: "center",
+  },
+  primaryButtonText: {
+    fontSize: 18,
+  },
+  secondaryButton: {
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  secondaryButtonText: {
+    fontSize: 14,
+  },
+});

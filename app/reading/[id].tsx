@@ -1,10 +1,33 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { View, Text, ScrollView, Pressable } from "react-native";
-import { useColors } from "@/hooks/use-colors";
+import { useEffect, useMemo, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+
+import { Fonts } from "@/constants/theme";
+import { RitualOrnament } from "@/components/ritual-ornament";
 import { ScreenContainer } from "@/components/screen-container";
-import { useEffect, useState } from "react";
+import { SkeletonCard } from "@/components/skeleton";
+import { useColors } from "@/hooks/use-colors";
+import { BUNDLED_PASSAGES, BUNDLED_SOURCES } from "@/lib/data/content";
 import { coreStore } from "@/lib/services/core-store";
-import type { Reading } from "@/lib/types";
+import type { MoodTag, Reading } from "@/lib/types";
+
+const MOOD_LABELS: Record<MoodTag, string> = {
+  anxious: "Lo âu",
+  confused: "Mơ hồ",
+  curious: "Tò mò",
+  grateful: "Biết ơn",
+  grief: "Mất mát",
+  hopeful: "Hy vọng",
+};
+
+const MOOD_EMOJIS: Record<MoodTag, string> = {
+  anxious: "😰",
+  confused: "😕",
+  curious: "🤔",
+  grateful: "🙏",
+  grief: "😢",
+  hopeful: "🌟",
+};
 
 export default function ReadingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -30,15 +53,38 @@ export default function ReadingDetailScreen() {
     }
   }, [id]);
 
-  const handleBack = () => {
-    router.back();
-  };
+  const source = useMemo(
+    () => (reading ? BUNDLED_SOURCES.find((item) => item.id === reading.source_id) : undefined),
+    [reading],
+  );
+
+  const passage = useMemo(
+    () => (reading ? BUNDLED_PASSAGES.find((item) => item.id === reading.passage_id) : undefined),
+    [reading],
+  );
+
+  const formattedDate = useMemo(() => {
+    if (!reading) return "";
+    return new Date(reading.created_at).toLocaleDateString("vi-VN", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  }, [reading]);
 
   if (isLoading) {
     return (
-      <ScreenContainer className="p-6">
-        <View className="flex-1 items-center justify-center">
-          <Text style={{ color: colors.muted }}>Đang tải...</Text>
+      <ScreenContainer className="px-6 pb-6">
+        <View style={styles.loadingWrap}>
+          <RitualOrnament variant="sigil" />
+          <Text style={[styles.loadingTitle, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+            Đang mở lại phản chiếu
+          </Text>
+          <View style={styles.loadingCards}>
+            <SkeletonCard lines={3} />
+            <SkeletonCard lines={2} />
+          </View>
         </View>
       </ScreenContainer>
     );
@@ -46,14 +92,20 @@ export default function ReadingDetailScreen() {
 
   if (!reading) {
     return (
-      <ScreenContainer className="p-6">
-        <View className="flex-1 items-center justify-center">
-          <Text style={{ fontSize: 48, marginBottom: 16 }}>🔍</Text>
-          <Text style={{ fontSize: 18, color: colors.foreground, marginBottom: 8 }}>
+      <ScreenContainer className="px-6 pb-6">
+        <View style={styles.emptyWrap}>
+          <RitualOrnament variant="eye" size="lg" />
+          <Text style={[styles.emptyTitle, { color: colors.foreground, fontFamily: Fonts.serif }]}>
             Không tìm thấy lần đọc
           </Text>
-          <Pressable onPress={handleBack}>
-            <Text style={{ color: colors.primary }}>Quay lại</Text>
+          <Text style={[styles.emptyText, { color: colors.muted }]}>
+            Có thể bản ghi này đã không còn trên thiết bị, hoặc deep-link bạn mở không còn hợp lệ.
+          </Text>
+          <Pressable
+            onPress={() => router.back()}
+            style={[styles.primaryButton, { backgroundColor: colors.surface + "F4", borderColor: colors.primary + "88" }]}
+          >
+            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>Quay lại</Text>
           </Pressable>
         </View>
       </ScreenContainer>
@@ -61,112 +113,91 @@ export default function ReadingDetailScreen() {
   }
 
   return (
-    <ScreenContainer className="p-6">
+    <ScreenContainer className="px-6 pb-6">
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View className="items-center pt-4 pb-6">
-          <Pressable onPress={handleBack} className="absolute left-0 top-4">
-            <Text style={{ fontSize: 24, color: colors.muted }}>←</Text>
-          </Pressable>
-          <Text style={{ fontSize: 11, color: colors.primary, letterSpacing: 2, textTransform: "uppercase" }}>
-            Phản chiếu
-          </Text>
-          <Text style={{ fontSize: 22, fontWeight: "300", color: colors.foreground, marginTop: 8 }}>
-            {reading.source_id}
-          </Text>
-          <Text style={{ fontSize: 13, color: colors.muted, marginTop: 4 }}>
-            {new Date(reading.created_at).toLocaleDateString("vi", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
-          </Text>
-        </View>
-
-        {/* Situation */}
-        {reading.situation_text && (
-          <View className="mb-6">
-            <Text style={{ fontSize: 12, color: colors.primary, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>
-              Tình huống
-            </Text>
-            <Text style={{ fontSize: 15, color: colors.foreground, lineHeight: 22 }}>
-              {reading.situation_text}
-            </Text>
-          </View>
-        )}
-
-        {/* Symbol */}
-        <View className="mb-6">
-          <Text style={{ fontSize: 12, color: colors.primary, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>
-            Biểu tượng
-          </Text>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Text style={{ fontSize: 24 }}>✦</Text>
-            <Text style={{ fontSize: 18, color: colors.foreground }}>{reading.symbol_chosen}</Text>
-          </View>
-        </View>
-
-        {/* AI Interpretation indicator */}
-        {reading.ai_interpreted && (
-          <View className="mb-6">
-            <View className="flex-row items-center gap-2 mb-3">
-              <Text style={{ fontSize: 14 }}>✨</Text>
-              <Text style={{ fontSize: 12, color: colors.primary, textTransform: "uppercase", letterSpacing: 1 }}>
-                Đã có diễn giải AI
-              </Text>
-              {reading.ai_used_fallback && (
-                <Text style={{ fontSize: 10, color: colors.muted }}>(fallback)</Text>
-              )}
-            </View>
-          </View>
-        )}
-
-        {/* Mood Tag */}
-        {reading.mood_tag && (
-          <View className="mb-6">
-            <Text style={{ fontSize: 12, color: colors.primary, marginBottom: 8, textTransform: "uppercase", letterSpacing: 1 }}>
-              Cảm xúc
-            </Text>
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <Pressable
-                style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 8,
-                  borderRadius: 16,
-                  backgroundColor: colors.primary + "20",
-                }}
-              >
-                <Text style={{ fontSize: 14, color: colors.primary }}>#{reading.mood_tag}</Text>
-              </Pressable>
-            </View>
-          </View>
-        )}
-
-        {/* Duration */}
-        {reading.read_duration_s && (
-          <View className="mb-6">
-            <Text style={{ fontSize: 12, color: colors.muted }}>
-              Thời gian đọc: {Math.floor(reading.read_duration_s / 60)}p {reading.read_duration_s % 60}s
-            </Text>
-          </View>
-        )}
-
-        {/* Back button */}
-        <View className="gap-3 pt-4 pb-8">
+        <View style={styles.header}>
           <Pressable
-            onPress={handleBack}
-            style={({ pressed }) => ({
-              backgroundColor: colors.surface + "20",
-              paddingVertical: 16,
-              borderRadius: 12,
-              borderWidth: 1,
-              borderColor: colors.border + "30",
-              opacity: pressed ? 0.8 : 1,
-            })}
+            onPress={() => router.back()}
+            style={[styles.backButton, { backgroundColor: colors.surface + "E8", borderColor: colors.border + "66" }]}
           >
-            <Text style={{ fontSize: 16, fontWeight: "600", color: colors.foreground, textAlign: "center" }}>
-              Quay lại
+            <Text style={[styles.backButtonText, { color: colors.foreground }]}>←</Text>
+          </Pressable>
+          <RitualOrnament variant="line" />
+          <Text style={[styles.kicker, { color: colors.primary }]}>Reflection Archive</Text>
+          <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+            {source?.name || reading.source_id}
+          </Text>
+          <Text style={[styles.metaText, { color: colors.muted }]}>{formattedDate}</Text>
+        </View>
+
+        {passage ? (
+          <View style={[styles.heroCard, { backgroundColor: colors.surface + "F0", borderColor: colors.primary + "55" }]}>
+            <Text style={[styles.heroQuote, { color: colors.foreground, fontFamily: Fonts.serif }]}>“{passage.text}”</Text>
+            <View style={styles.heroFooter}>
+              <View style={[styles.rule, { backgroundColor: colors.primary + "50" }]} />
+              <Text style={[styles.heroRef, { color: colors.muted }]}>{passage.reference}</Text>
+            </View>
+          </View>
+        ) : null}
+
+        {reading.situation_text ? (
+          <View style={[styles.sectionCard, { backgroundColor: colors.surface + "E8", borderColor: colors.border + "66" }]}>
+            <Text style={[styles.sectionLabel, { color: colors.primary }]}>Tình huống lúc đó</Text>
+            <Text style={[styles.sectionBody, { color: colors.foreground }]}>{reading.situation_text}</Text>
+          </View>
+        ) : null}
+
+        <View style={styles.rowGrid}>
+          <View style={[styles.infoCard, { backgroundColor: colors.surface + "E8", borderColor: colors.border + "66" }]}>
+            <Text style={[styles.sectionLabel, { color: colors.primary }]}>Biểu tượng đã chọn</Text>
+            <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: Fonts.serif }]}>{reading.symbol_chosen}</Text>
+            <Text style={[styles.infoHint, { color: colors.muted }]}>
+              {reading.symbol_method === "auto" ? "Được chọn bởi hệ thống" : "Được chọn thủ công"}
+            </Text>
+          </View>
+
+          {reading.mood_tag ? (
+            <View style={[styles.infoCard, { backgroundColor: colors.surface + "E8", borderColor: colors.border + "66" }]}>
+              <Text style={[styles.sectionLabel, { color: colors.primary }]}>Cảm xúc ghi nhận</Text>
+              <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+                {MOOD_EMOJIS[reading.mood_tag]} {MOOD_LABELS[reading.mood_tag]}
+              </Text>
+              <Text style={[styles.infoHint, { color: colors.muted }]}>#{reading.mood_tag}</Text>
+            </View>
+          ) : null}
+        </View>
+
+        <View style={[styles.sectionCard, { backgroundColor: colors.surface + "E8", borderColor: colors.border + "66" }]}>
+          <Text style={[styles.sectionLabel, { color: colors.primary }]}>Dấu vết của phiên đọc</Text>
+          <View style={styles.traceRow}>
+            <Text style={[styles.traceKey, { color: colors.muted }]}>AI diễn giải</Text>
+            <Text style={[styles.traceValue, { color: colors.foreground }]}>
+              {reading.ai_interpreted ? (reading.ai_used_fallback ? "Có, dùng fallback" : "Có") : "Không"}
+            </Text>
+          </View>
+          <View style={styles.traceRow}>
+            <Text style={[styles.traceKey, { color: colors.muted }]}>Thời gian đọc</Text>
+            <Text style={[styles.traceValue, { color: colors.foreground }]}>
+              {reading.read_duration_s ? `${Math.floor(reading.read_duration_s / 60)}p ${reading.read_duration_s % 60}s` : "Không rõ"}
+            </Text>
+          </View>
+          <View style={styles.traceRow}>
+            <Text style={[styles.traceKey, { color: colors.muted }]}>Đã chia sẻ</Text>
+            <Text style={[styles.traceValue, { color: colors.foreground }]}>{reading.shared ? "Có" : "Chưa"}</Text>
+          </View>
+          <View style={styles.traceRow}>
+            <Text style={[styles.traceKey, { color: colors.muted }]}>Yêu thích</Text>
+            <Text style={[styles.traceValue, { color: colors.foreground }]}>{reading.is_favorite ? "Có" : "Chưa"}</Text>
+          </View>
+        </View>
+
+        <View style={styles.footer}>
+          <Pressable
+            onPress={() => router.back()}
+            style={[styles.primaryButton, { backgroundColor: colors.surface + "F4", borderColor: colors.primary + "88" }]}
+          >
+            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+              Quay lại lịch sử
             </Text>
           </Pressable>
         </View>
@@ -174,3 +205,151 @@ export default function ReadingDetailScreen() {
     </ScreenContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  loadingWrap: {
+    flex: 1,
+    justifyContent: "center",
+    gap: 18,
+  },
+  loadingTitle: {
+    fontSize: 28,
+    textAlign: "center",
+  },
+  loadingCards: {
+    gap: 12,
+  },
+  emptyWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 14,
+  },
+  emptyTitle: {
+    fontSize: 28,
+    textAlign: "center",
+  },
+  emptyText: {
+    maxWidth: 300,
+    textAlign: "center",
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  header: {
+    alignItems: "center",
+    gap: 10,
+    paddingTop: 20,
+    paddingBottom: 22,
+  },
+  backButton: {
+    position: "absolute",
+    left: 0,
+    top: 18,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+  },
+  backButtonText: {
+    fontSize: 22,
+  },
+  kicker: {
+    fontSize: 11,
+    letterSpacing: 2.4,
+    textTransform: "uppercase",
+  },
+  title: {
+    fontSize: 28,
+    textAlign: "center",
+  },
+  metaText: {
+    fontSize: 13,
+    textAlign: "center",
+  },
+  heroCard: {
+    borderRadius: 26,
+    borderWidth: 1.2,
+    paddingHorizontal: 24,
+    paddingVertical: 24,
+    marginBottom: 16,
+  },
+  heroQuote: {
+    fontSize: 22,
+    lineHeight: 34,
+    textAlign: "center",
+  },
+  heroFooter: {
+    marginTop: 18,
+    alignItems: "center",
+    gap: 10,
+  },
+  rule: {
+    width: 34,
+    height: 1,
+  },
+  heroRef: {
+    fontSize: 12,
+  },
+  sectionCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    marginBottom: 14,
+    gap: 10,
+  },
+  sectionLabel: {
+    fontSize: 11,
+    letterSpacing: 2,
+    textTransform: "uppercase",
+  },
+  sectionBody: {
+    fontSize: 15,
+    lineHeight: 24,
+  },
+  rowGrid: {
+    gap: 14,
+    marginBottom: 14,
+  },
+  infoCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    gap: 8,
+  },
+  infoValue: {
+    fontSize: 20,
+  },
+  infoHint: {
+    fontSize: 12,
+  },
+  traceRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  traceKey: {
+    fontSize: 14,
+  },
+  traceValue: {
+    fontSize: 14,
+    flexShrink: 1,
+    textAlign: "right",
+  },
+  footer: {
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  primaryButton: {
+    borderRadius: 22,
+    borderWidth: 1.2,
+    paddingVertical: 18,
+    alignItems: "center",
+  },
+  primaryButtonText: {
+    fontSize: 18,
+  },
+});

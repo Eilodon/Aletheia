@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Text, View, Platform } from "react-native";
+import { Pressable, StyleSheet, Text, View, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-reanimated";
 import "@/lib/nativewind-pressable";
@@ -24,6 +24,11 @@ import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
 import { trpc, createTRPCClient } from "@/lib/trpc";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/manus-runtime";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { RitualOrnament } from "@/components/ritual-ornament";
+import { ScreenContainer } from "@/components/screen-container";
+import { ToastContainer, useToast } from "@/components/toast";
+import { Fonts } from "@/constants/theme";
+import { useColors } from "@/hooks/use-colors";
 import { initSentry } from "@/lib/sentry";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -35,6 +40,69 @@ initSentry();
 export const unstable_settings = {
   anchor: "(tabs)",
 };
+
+function RootGate({
+  title,
+  body,
+  detail,
+  actionLabel,
+  onAction,
+}: {
+  title: string;
+  body: string;
+  detail?: string;
+  actionLabel?: string;
+  onAction?: () => void;
+}) {
+  const colors = useColors();
+
+  return (
+    <ScreenContainer className="px-6 pb-6">
+      <View style={styles.gateWrap}>
+        <RitualOrnament variant="eye" size="lg" />
+        <Text style={[styles.gateTitle, { color: colors.foreground, fontFamily: Fonts.serif }]}>{title}</Text>
+        <Text style={[styles.gateBody, { color: colors.muted }]}>{body}</Text>
+        {detail ? <Text style={[styles.gateDetail, { color: colors.muted }]}>{detail}</Text> : null}
+        {actionLabel && onAction ? (
+          <Pressable
+            onPress={onAction}
+            style={[styles.gateButton, { backgroundColor: colors.surface + "F4", borderColor: colors.primary + "88" }]}
+          >
+            <Text style={[styles.gateButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>{actionLabel}</Text>
+          </Pressable>
+        ) : null}
+      </View>
+    </ScreenContainer>
+  );
+}
+
+function AppChrome({
+  queryClient,
+  trpcClient,
+}: {
+  queryClient: QueryClient;
+  trpcClient: ReturnType<typeof createTRPCClient>;
+}) {
+  const { toasts, removeToast } = useToast();
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ErrorBoundary>
+        <trpc.Provider client={trpcClient} queryClient={queryClient}>
+          <QueryClientProvider client={queryClient}>
+            <ReadingProvider>
+              <Stack screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="(tabs)" />
+              </Stack>
+              <ToastContainer toasts={toasts} removeToast={removeToast} />
+              <StatusBar style="light" />
+            </ReadingProvider>
+          </QueryClientProvider>
+        </trpc.Provider>
+      </ErrorBoundary>
+    </GestureHandlerRootView>
+  );
+}
 
 export default function RootLayout() {
   const isIosHold = Platform.OS === "ios";
@@ -131,9 +199,11 @@ export default function RootLayout() {
     return (
       <ThemeProvider>
         <SafeAreaProvider initialMetrics={providerInitialMetrics}>
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ fontSize: 16, color: "#888" }}>Loading...</Text>
-          </View>
+          <RootGate
+            title="Đang mở Aletheia"
+            body="Hệ thống đang đồng bộ safe area, trạng thái người dùng và nhịp khởi tạo cục bộ."
+            detail="Mất vài nhịp đầu thôi."
+          />
         </SafeAreaProvider>
       </ThemeProvider>
     );
@@ -145,43 +215,24 @@ export default function RootLayout() {
       <ThemeProvider>
         <SafeAreaProvider initialMetrics={providerInitialMetrics}>
           <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="onboarding" />
+            <Stack.Screen name="onboarding/index" />
           </Stack>
         </SafeAreaProvider>
       </ThemeProvider>
     );
   }
 
-  const content = (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <ErrorBoundary>
-        <trpc.Provider client={trpcClient} queryClient={queryClient}>
-          <QueryClientProvider client={queryClient}>
-            <ReadingProvider>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(tabs)" />
-              </Stack>
-              <StatusBar style="auto" />
-            </ReadingProvider>
-          </QueryClientProvider>
-        </trpc.Provider>
-      </ErrorBoundary>
-    </GestureHandlerRootView>
-  );
+  const content = <AppChrome queryClient={queryClient} trpcClient={trpcClient} />;
 
   if (isIosHold) {
     return (
       <ThemeProvider>
         <SafeAreaProvider initialMetrics={providerInitialMetrics}>
-          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 32 }}>
-            <Text style={{ fontSize: 28, marginBottom: 16 }}>Aletheia</Text>
-            <Text style={{ fontSize: 18, fontWeight: "600", marginBottom: 10, textAlign: "center" }}>
-              iOS đang tạm hold
-            </Text>
-            <Text style={{ fontSize: 14, lineHeight: 22, textAlign: "center", maxWidth: 320 }}>
-              Bản hiện tại chỉ hỗ trợ Android với Rust core làm nguồn sự thật duy nhất, cùng bản web dùng đường chạy riêng.
-            </Text>
-          </View>
+          <RootGate
+            title="iOS đang tạm hold"
+            body="Bản hiện tại chỉ hỗ trợ Android với Rust core là nguồn sự thật duy nhất, cùng web runtime riêng."
+            detail="Khi iOS path sẵn sàng trở lại, shell này có thể được tháo bỏ."
+          />
         </SafeAreaProvider>
       </ThemeProvider>
     );
@@ -207,3 +258,39 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
+
+const styles = StyleSheet.create({
+  gateWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 14,
+  },
+  gateTitle: {
+    fontSize: 30,
+    textAlign: "center",
+  },
+  gateBody: {
+    fontSize: 15,
+    lineHeight: 24,
+    maxWidth: 320,
+    textAlign: "center",
+  },
+  gateDetail: {
+    fontSize: 12,
+    lineHeight: 18,
+    maxWidth: 320,
+    textAlign: "center",
+  },
+  gateButton: {
+    marginTop: 6,
+    borderRadius: 22,
+    borderWidth: 1.2,
+    paddingHorizontal: 22,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  gateButtonText: {
+    fontSize: 17,
+  },
+});

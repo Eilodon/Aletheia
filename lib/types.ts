@@ -22,8 +22,8 @@ export enum Tradition {
 }
 
 export enum SymbolMethod {
-  Manual = "Manual",
-  Auto = "Auto",
+  Manual = "manual",
+  Auto = "auto",
 }
 
 export enum UserIntent {

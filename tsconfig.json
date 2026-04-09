@@ -20,7 +20,8 @@
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "docs/remix-of-aletheia-main"
   ],
   "extends": "expo/tsconfig.base"
 }

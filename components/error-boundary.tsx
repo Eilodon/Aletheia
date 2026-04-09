@@ -1,14 +1,36 @@
 import { ErrorBoundary as ReactErrorBoundary, type FallbackProps } from "react-error-boundary";
-import { View, Text, Button, StyleSheet } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+
+import { Fonts } from "@/constants/theme";
+import { RitualOrnament } from "@/components/ritual-ornament";
+import { ScreenContainer } from "@/components/screen-container";
+import { useColors } from "@/hooks/use-colors";
 import { captureException } from "@/lib/sentry";
 
 export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
+  const colors = useColors();
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Đã xảy ra lỗi</Text>
-      <Text style={styles.message}>Xin lỗi, có lỗi không mong muốn xảy ra.</Text>
-      <Button title="Thử lại" onPress={resetErrorBoundary} />
-    </View>
+    <ScreenContainer className="px-6 pb-6">
+      <View style={styles.container}>
+        <RitualOrnament variant="eye" size="lg" />
+        <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}>Đã xảy ra lỗi</Text>
+        <Text style={[styles.message, { color: colors.muted }]}>
+          Có điều gì đó đã đứt nhịp trong luồng hiện tại. Bạn có thể thử lại để quay về trạng thái ổn định.
+        </Text>
+        {error?.message ? (
+          <Text style={[styles.detail, { color: colors.muted }]} numberOfLines={3}>
+            {error.message}
+          </Text>
+        ) : null}
+        <Pressable
+          onPress={resetErrorBoundary}
+          style={[styles.button, { backgroundColor: colors.surface + "F4", borderColor: colors.primary + "88" }]}
+        >
+          <Text style={[styles.buttonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>Thử lại</Text>
+        </Pressable>
+      </View>
+    </ScreenContainer>
   );
 }
 
@@ -32,18 +54,33 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
-    backgroundColor: "#fafafa",
+    gap: 14,
   },
   title: {
-    fontSize: 20,
-    fontWeight: "600",
-    marginBottom: 8,
-    color: "#1a1a1a",
+    fontSize: 30,
+    textAlign: "center",
   },
   message: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: 15,
     textAlign: "center",
-    marginBottom: 24,
+    lineHeight: 24,
+    maxWidth: 300,
+  },
+  detail: {
+    fontSize: 12,
+    textAlign: "center",
+    lineHeight: 18,
+    maxWidth: 320,
+  },
+  button: {
+    borderRadius: 22,
+    borderWidth: 1.2,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    minWidth: 180,
+    alignItems: "center",
+  },
+  buttonText: {
+    fontSize: 18,
   },
 });

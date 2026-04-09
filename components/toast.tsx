@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, Animated, Pressable, StyleSheet } from "react-native";
+import { Fonts } from "@/constants/theme";
 
 type ToastKind = "success" | "warn" | "error" | "info";
 
@@ -81,10 +82,10 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
   }, [fadeAnim, slideAnim, onClose]);
 
   const colors: Record<ToastKind, { bg: string; text: string; border: string }> = {
-    success: { bg: "rgba(34, 197, 94, 0.15)", text: "#4ADE80", border: "#22C55E" },
-    warn: { bg: "rgba(245, 158, 11, 0.15)", text: "#FBBF24", border: "#F59E0B" },
-    error: { bg: "rgba(239, 68, 68, 0.15)", text: "#F87171", border: "#EF4444" },
-    info: { bg: "rgba(156, 163, 175, 0.15)", text: "#D1D5DB", border: "#6B7280" },
+    success: { bg: "rgba(34, 197, 94, 0.12)", text: "#DDF7E6", border: "#4ADE80" },
+    warn: { bg: "rgba(215, 180, 106, 0.14)", text: "#F6E7BC", border: "#D7B46A" },
+    error: { bg: "rgba(239, 68, 68, 0.14)", text: "#FFD8D8", border: "#F87171" },
+    info: { bg: "rgba(120, 110, 98, 0.18)", text: "#F2EADB", border: "#AA9D8B" },
   };
 
   const icons: Record<ToastKind, string> = {
@@ -158,15 +159,15 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 16,
+    paddingVertical: 13,
+    borderRadius: 18,
     borderWidth: 1,
     marginBottom: 8,
     maxWidth: "100%",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
     elevation: 5,
   },
   toastIcon: {
@@ -177,7 +178,8 @@ const styles = StyleSheet.create({
   toastMessage: {
     flex: 1,
     fontSize: 14,
-    fontWeight: "500",
+    lineHeight: 20,
+    fontFamily: Fonts.serif,
   },
   toastClose: {
     padding: 4,

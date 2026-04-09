@@ -5,9 +5,11 @@ import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { SkeletonList } from "@/components/skeleton";
 import { PressableCard } from "@/components/pressable-card";
+import { RitualOrnament } from "@/components/ritual-ornament";
 import { coreStore } from "@/lib/services/core-store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
 import { Reading, MoodTag } from "@/lib/types";
+import { Fonts } from "@/constants/theme";
 import * as Haptics from "expo-haptics";
 
 interface ReadingWithDetails extends Reading {
@@ -113,27 +115,27 @@ export default function HistoryScreen() {
       style={{
         padding: 18,
         borderRadius: 20,
-        backgroundColor: colors.surface + "20",
+        backgroundColor: colors.surface + "E0",
         borderWidth: 1,
-        borderColor: colors.border + "30",
+        borderColor: colors.border + "66",
         marginBottom: 14,
       }}
     >
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <Text style={{ fontSize: 20 }}>{getMoodEmoji(item.mood_tag)}</Text>
-          <Text style={{ fontSize: 13, color: colors.muted }}>
+          <Text style={{ fontSize: 12, color: colors.muted, textTransform: "uppercase", letterSpacing: 1 }}>
             {formatDate(item.created_at)}
           </Text>
         </View>
         {item.ai_interpreted && (
-          <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, backgroundColor: colors.primary + "20" }}>
+          <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, backgroundColor: colors.primary + "1E", borderWidth: 1, borderColor: colors.primary + "44" }}>
             <Text style={{ fontSize: 11, color: colors.primary, fontWeight: "600" }}>AI</Text>
           </View>
         )}
       </View>
       
-      <Text style={{ fontSize: 15, color: colors.foreground, marginBottom: 10, lineHeight: 22 }} numberOfLines={2}>
+      <Text style={{ fontSize: 16, color: colors.foreground, marginBottom: 12, lineHeight: 24, fontFamily: Fonts.serif }} numberOfLines={2}>
         {item.situation_text || "Không có tình huống"}
       </Text>
       
@@ -155,8 +157,8 @@ export default function HistoryScreen() {
 
   const renderEmpty = () => (
     <View className="flex-1 justify-center items-center py-20">
-      <Text className="text-4xl mb-4">📖</Text>
-      <Text className="text-lg font-medium text-foreground mb-2">
+      <RitualOrnament variant="sigil" />
+      <Text className="text-lg text-foreground mb-2 mt-4" style={{ fontFamily: Fonts.serif }}>
         Chưa có lần đọc nào
       </Text>
       <Text className="text-sm text-muted text-center max-w-xs">
@@ -165,17 +167,18 @@ export default function HistoryScreen() {
       <Pressable
         onPress={() => router.push("/reading/situation")}
         className="mt-6 px-6 py-3 rounded-xl"
-        style={{ backgroundColor: colors.primary }}
+        style={{ backgroundColor: colors.surface + "F2", borderWidth: 1, borderColor: colors.primary + "88" }}
       >
-        <Text className="text-base font-medium text-white">Bắt đầu đọc</Text>
+        <Text className="text-base text-foreground" style={{ fontFamily: Fonts.serif }}>Bắt đầu đọc</Text>
       </Pressable>
     </View>
   );
 
   const renderHeader = () => (
-    <View className="pb-4">
-      <Text className="text-2xl font-bold text-foreground">Gương</Text>
-      <Text className="text-sm text-muted mt-1">
+    <View className="pb-6 pt-2 items-center gap-3">
+      <RitualOrnament variant="line" />
+      <Text className="text-3xl text-foreground" style={{ fontFamily: Fonts.serif }}>Gương</Text>
+      <Text className="text-sm text-muted text-center">
         {readings.length} lần đọc đã lưu
       </Text>
     </View>

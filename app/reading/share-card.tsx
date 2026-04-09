@@ -1,13 +1,15 @@
 import { useState, useEffect, useRef } from "react";
-import { View, Text, Pressable, ScrollView, Animated, Share } from "react-native";
+import { Animated, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
+import { captureRef } from "react-native-view-shot";
+import * as Haptics from "expo-haptics";
+
+import { ScreenContainer } from "@/components/screen-container";
+import { RitualOrnament } from "@/components/ritual-ornament";
 import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
-import { ScreenContainer } from "@/components/screen-container";
-import * as Haptics from "expo-haptics";
-import { captureRef } from "react-native-view-shot";
+import { Fonts } from "@/constants/theme";
 
-// Card preview component - Premium artifact style
 function CardPreview({
   passageText,
   symbolName,
@@ -20,60 +22,51 @@ function CardPreview({
   theme: "dark" | "light" | "gold";
 }) {
   const themeStyles = {
-    dark: { bg: "#0f1117", text: "#e5e7eb", accent: "#8b5cf6", secondary: "#4b5563" },
-    light: { bg: "#fafafa", text: "#1f2937", accent: "#7c3aed", secondary: "#9ca3af" },
-    gold: { bg: "#1c1917", text: "#fef3c7", accent: "#f59e0b", secondary: "#78350f" },
+    dark: { bg: "#12141B", text: "#F2EADB", accent: "#D7B46A", secondary: "#786E62" },
+    light: { bg: "#F6EFE5", text: "#2B241E", accent: "#B7893D", secondary: "#8A7A6C" },
+    gold: { bg: "#221A12", text: "#F6E7BC", accent: "#E1BA6B", secondary: "#8A6530" },
   };
   const style = themeStyles[theme];
 
-  const truncateText = (text: string, maxLength: number = 100) => {
+  const truncateText = (text: string, maxLength = 120) => {
     if (text.length <= maxLength) return text;
     return text.slice(0, maxLength - 3) + "...";
   };
 
   return (
     <View
-      style={{ 
-        backgroundColor: style.bg, 
-        aspectRatio: 9 / 16, 
-        maxHeight: 480,
-        borderRadius: 0,
+      style={{
+        backgroundColor: style.bg,
+        aspectRatio: 9 / 16,
+        maxHeight: 500,
+        borderRadius: 28,
+        paddingHorizontal: 24,
+        paddingVertical: 28,
+        justifyContent: "space-between",
       }}
     >
-      {/* Top decorative */}
-      <View style={{ alignItems: "center", paddingTop: 32 }}>
-        <Text style={{ color: style.accent, fontSize: 28 }}>✦</Text>
-        <View style={{ width: 40, height: 1, backgroundColor: style.accent, opacity: 0.4, marginTop: 12 }} />
+      <View style={{ alignItems: "center", gap: 12 }}>
+        <Text style={{ color: style.accent, fontSize: 11, letterSpacing: 2.2 }}>ALETHEIA</Text>
+        <Text style={{ color: style.accent, fontSize: 15 }}>{symbolName.toUpperCase()}</Text>
       </View>
 
-      {/* Content - Centered, breathing */}
-      <View style={{ flex: 1, justifyContent: "center", paddingHorizontal: 24 }}>
+      <View style={{ gap: 16 }}>
         <Text
-          style={{ 
-            color: style.text, 
-            fontSize: 17, 
-            fontWeight: "300",
-            lineHeight: 28,
+          style={{
+            color: style.text,
+            fontSize: 24,
+            lineHeight: 36,
             textAlign: "center",
-            fontStyle: "italic",
+            fontFamily: Fonts.serif,
           }}
         >
-          &quot;{truncateText(passageText)}&quot;
+          “{truncateText(passageText)}”
         </Text>
       </View>
 
-      {/* Bottom - Symbol & Reference */}
-      <View style={{ alignItems: "center", paddingBottom: 32 }}>
-        <View style={{ width: 30, height: 1, backgroundColor: style.accent, opacity: 0.4, marginBottom: 16 }} />
-        <Text style={{ color: style.accent, fontSize: 13, fontWeight: "600", letterSpacing: 2, textTransform: "uppercase" }}>
-          {symbolName}
-        </Text>
-        <Text style={{ color: style.text, fontSize: 11, opacity: 0.6, marginTop: 6 }}>
-          {reference}
-        </Text>
-        <Text style={{ color: style.text, fontSize: 10, opacity: 0.4, marginTop: 16, letterSpacing: 1 }}>
-          A L E T H E I A
-        </Text>
+      <View style={{ alignItems: "center", gap: 12 }}>
+        <View style={{ width: 34, height: 1, backgroundColor: style.accent, opacity: 0.5 }} />
+        <Text style={{ color: style.secondary, fontSize: 12, textAlign: "center" }}>{reference}</Text>
       </View>
     </View>
   );
@@ -83,7 +76,7 @@ export default function ShareCardScreen() {
   const { passage, session, selectedSymbol } = useReading();
   const colors = useColors();
   const router = useRouter();
-  const cardRef = useRef(null);
+  const cardRef = useRef<View>(null);
   const [selectedTheme, setSelectedTheme] = useState<"dark" | "light" | "gold">("dark");
   const [isSharing, setIsSharing] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -91,31 +84,24 @@ export default function ShareCardScreen() {
   useEffect(() => {
     Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: 600,
+      duration: 500,
       useNativeDriver: true,
     }).start();
   }, [fadeAnim]);
 
   const handleShare = async () => {
     if (!passage || !selectedSymbol) return;
-
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsSharing(true);
 
     try {
-      // Try to capture card as image
       if (cardRef.current) {
-        const uri = await captureRef(cardRef, {
-          format: "png",
-          quality: 0.9,
-        });
-
+        const uri = await captureRef(cardRef, { format: "png", quality: 0.92 });
         await Share.share({
           url: uri,
           message: `"${passage.text.slice(0, 100)}..." — ${selectedSymbol.display_name}\n\nTừ Aletheia, not a fortune. A mirror.`,
         });
       } else {
-        // Fallback to text share
         await Share.share({
           message: `"${passage.text.slice(0, 150)}..." — ${selectedSymbol.display_name} (${passage.reference})\n\nTừ Aletheia ✦`,
         });
@@ -129,23 +115,15 @@ export default function ShareCardScreen() {
 
   const handleCopyText = async () => {
     if (!passage || !selectedSymbol) return;
-
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    const textToCopy = `"${passage.text}"\n\n— ${passage.reference}\nBiểu tượng: ${selectedSymbol.display_name}\n\nTừ Aletheia ✦`;
 
     try {
       await Share.share({
-        message: textToCopy,
+        message: `"${passage.text}"\n\n— ${passage.reference}\nBiểu tượng: ${selectedSymbol.display_name}\n\nTừ Aletheia ✦`,
       });
     } catch (error) {
       console.error("Copy failed:", error);
     }
-  };
-
-  const handleClose = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    router.back();
   };
 
   if (!passage || !session || !selectedSymbol) {
@@ -163,29 +141,17 @@ export default function ShareCardScreen() {
   ];
 
   return (
-    <ScreenContainer className="p-6">
+    <ScreenContainer className="px-6 pb-6">
       <Animated.View style={{ opacity: fadeAnim }} className="flex-1">
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Header */}
-          <View className="items-center gap-2 pt-4 pb-6">
-            <Text className="text-xl font-semibold text-foreground">
-              Chia sẻ lá bài
-            </Text>
-            <Text className="text-sm text-muted">
-              {selectedSymbol.display_name}
-            </Text>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+          <View style={styles.header}>
+            <RitualOrnament variant="line" />
+            <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}>Chia sẻ lá bài</Text>
+            <Text style={[styles.subtitle, { color: colors.muted }]}>{selectedSymbol.display_name}</Text>
           </View>
 
-          {/* Card Preview */}
-          <View className="items-center mb-6">
-            <View
-              ref={cardRef}
-              collapsable={false}
-              className="w-full max-w-[280px]"
-            >
+          <View style={styles.previewWrap}>
+            <View ref={cardRef} collapsable={false} style={styles.previewInner}>
               <CardPreview
                 passageText={passage.text}
                 symbolName={selectedSymbol.display_name}
@@ -195,67 +161,61 @@ export default function ShareCardScreen() {
             </View>
           </View>
 
-          {/* Theme Selector */}
-          <View className="flex-row justify-center gap-3 mb-8">
-            {themes.map((theme) => (
-              <Pressable
-                key={theme.key}
-                onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  setSelectedTheme(theme.key);
-                }}
-                className={`px-4 py-2 rounded-full border ${
-                  selectedTheme === theme.key
-                    ? "border-primary bg-primary/10"
-                    : "border-muted/30"
-                }`}
-              >
-                <Text
-                  className={`text-sm ${
-                    selectedTheme === theme.key
-                      ? "text-primary font-medium"
-                      : "text-muted"
-                  }`}
+          <View style={styles.themeRow}>
+            {themes.map((theme) => {
+              const active = selectedTheme === theme.key;
+              return (
+                <Pressable
+                  key={theme.key}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setSelectedTheme(theme.key);
+                  }}
+                  style={[
+                    styles.themeChip,
+                    {
+                      backgroundColor: active ? colors.surface + "F0" : colors.surface + "D6",
+                      borderColor: active ? colors.primary + "88" : colors.border + "66",
+                    },
+                  ]}
                 >
-                  {theme.label}
-                </Text>
-              </Pressable>
-            ))}
+                  <Text style={[styles.themeChipText, { color: active ? colors.foreground : colors.muted }]}>
+                    {theme.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
           </View>
 
-          {/* Spacer */}
-          <View className="flex-1" />
+          <View style={styles.spacer} />
 
-          {/* Actions */}
-          <View className="gap-3 pb-4">
+          <View style={styles.actions}>
             <Pressable
               onPress={handleShare}
               disabled={isSharing}
-              style={({ pressed }) => ({
-                backgroundColor: colors.primary,
-                paddingHorizontal: 24,
-                paddingVertical: 16,
-                borderRadius: 12,
-                opacity: pressed || isSharing ? 0.8 : 1,
-                transform: [{ scale: pressed ? 0.98 : 1 }],
-              })}
+              style={[
+                styles.primaryButton,
+                {
+                  backgroundColor: colors.surface + "F4",
+                  borderColor: colors.primary + "88",
+                  opacity: isSharing ? 0.65 : 1,
+                },
+              ]}
             >
-              <Text className="text-lg font-semibold text-white text-center">
+              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>
                 {isSharing ? "Đang chuẩn bị..." : "Chia sẻ"}
               </Text>
             </Pressable>
 
             <Pressable
               onPress={handleCopyText}
-              className="py-4 px-6 rounded-xl border border-muted/30"
+              style={[styles.secondaryButton, { backgroundColor: colors.surface + "E6", borderColor: colors.border + "66" }]}
             >
-              <Text className="text-sm text-foreground text-center">
-                Chỉ sao chép văn bản
-              </Text>
+              <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>Chỉ sao chép văn bản</Text>
             </Pressable>
 
-            <Pressable onPress={handleClose} className="py-3">
-              <Text className="text-sm text-muted text-center">Đóng</Text>
+            <Pressable onPress={() => router.back()}>
+              <Text style={[styles.closeText, { color: colors.muted }]}>Đóng</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -263,3 +223,72 @@ export default function ShareCardScreen() {
     </ScreenContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    alignItems: "center",
+    gap: 10,
+    paddingTop: 24,
+    paddingBottom: 22,
+  },
+  title: {
+    fontSize: 28,
+  },
+  subtitle: {
+    fontSize: 13,
+  },
+  previewWrap: {
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  previewInner: {
+    width: "100%",
+    maxWidth: 300,
+  },
+  themeRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 10,
+    marginBottom: 18,
+  },
+  themeChip: {
+    borderRadius: 18,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  themeChipText: {
+    fontSize: 13,
+  },
+  spacer: {
+    flex: 1,
+    minHeight: 18,
+  },
+  actions: {
+    gap: 12,
+    paddingBottom: 6,
+  },
+  primaryButton: {
+    borderRadius: 22,
+    borderWidth: 1.2,
+    paddingVertical: 18,
+    alignItems: "center",
+  },
+  primaryButtonText: {
+    fontSize: 18,
+  },
+  secondaryButton: {
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  secondaryButtonText: {
+    fontSize: 15,
+  },
+  closeText: {
+    textAlign: "center",
+    fontSize: 13,
+    paddingTop: 4,
+  },
+});

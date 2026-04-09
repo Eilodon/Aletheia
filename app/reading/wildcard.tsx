@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { View, Text, Pressable, Animated, Easing } from "react-native";
+import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import { useReading } from "@/lib/context/reading-context";
-import { useColors } from "@/hooks/use-colors";
-import { ScreenContainer } from "@/components/screen-container";
-import { SymbolMethod } from "@/lib/types";
 import * as Haptics from "expo-haptics";
 
-// Card flip animation component
+import { ScreenContainer } from "@/components/screen-container";
+import { RitualOrnament } from "@/components/ritual-ornament";
+import { useReading } from "@/lib/context/reading-context";
+import { useColors } from "@/hooks/use-colors";
+import { SymbolMethod } from "@/lib/types";
+import { Fonts } from "@/constants/theme";
+
 function SymbolCard({
   symbol,
   index,
@@ -22,113 +24,82 @@ function SymbolCard({
   onSelect: () => void;
 }) {
   const colors = useColors();
-  const animatedValue = useRef(new Animated.Value(0)).current;
-  const frontInterpolate = animatedValue.interpolate({
+  const flipAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      Animated.timing(flipAnim, {
+        toValue: 180,
+        duration: 650,
+        easing: Easing.inOut(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    }, 800 + index * 220);
+
+    return () => clearTimeout(timeout);
+  }, [flipAnim, index]);
+
+  const frontRotate = flipAnim.interpolate({
     inputRange: [0, 180],
     outputRange: ["0deg", "180deg"],
   });
-  const backInterpolate = animatedValue.interpolate({
+
+  const backRotate = flipAnim.interpolate({
     inputRange: [0, 180],
     outputRange: ["180deg", "360deg"],
   });
 
-  useEffect(() => {
-    // Staggered flip animation
-    const delay = index * 200;
-    const timeout = setTimeout(() => {
-      Animated.timing(animatedValue, {
-        toValue: 180,
-        duration: 600,
-        easing: Easing.inOut(Easing.ease),
-        useNativeDriver: true,
-      }).start(() => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      });
-    }, delay);
-    return () => clearTimeout(timeout);
-  }, [animatedValue, index]);
-
-  const handlePress = () => {
-    if (!isRevealed || isSelected) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    onSelect();
-  };
-
   return (
-    <Pressable onPress={handlePress} className="flex-1 mx-1" disabled={!isRevealed || isSelected}>
-      <View className="aspect-[2/3] relative">
-        {/* Back of card (hidden initially, shown after flip) */}
+    <Pressable
+      onPress={() => {
+        if (!isRevealed || isSelected) return;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        onSelect();
+      }}
+      disabled={!isRevealed || isSelected}
+      style={({ pressed }) => [
+        styles.cardShell,
+        {
+          opacity: isSelected ? 1 : pressed ? 0.9 : 1,
+          transform: [{ scale: isSelected ? 1.01 : pressed ? 0.98 : 1 }],
+        },
+      ]}
+    >
+      <View style={styles.cardFrame}>
         <Animated.View
-          style={{
-            transform: [{ rotateY: backInterpolate }],
-            backfaceVisibility: "hidden",
-            position: "absolute",
-            width: "100%",
-            height: "100%",
-          }}
-          className="rounded-3xl p-4 justify-between"
+          style={[
+            styles.cardFace,
+            {
+              transform: [{ rotateY: frontRotate }],
+              backgroundColor: colors.surface + "ED",
+              borderColor: colors.primary + "55",
+            },
+          ]}
         >
-          <View
-            className="absolute inset-0 rounded-3xl"
-            style={{
-              backgroundColor: isSelected ? colors.primary : colors.surface,
-              opacity: isSelected ? 1 : 0.95,
-              borderWidth: 1,
-              borderColor: isSelected ? colors.primary : colors.border + "50",
-            }}
-          />
-          {/* Decorative corner */}
-          <View style={{ alignItems: "center", paddingTop: 12 }}>
-            <Text style={{ color: isSelected ? "rgba(255,255,255,0.5)" : colors.muted, fontSize: 12 }}>✦</Text>
-          </View>
-          <View className="flex-1 justify-center items-center px-2">
-            <Text
-              className="text-3xl font-bold text-center"
-              style={{ color: isSelected ? "#FFFFFF" : colors.foreground }}
-            >
-              {symbol.display_name}
-            </Text>
-          </View>
-          {symbol.flavor_text && (
-            <Text
-              className="text-xs text-center italic"
-              style={{ color: isSelected ? "rgba(255,255,255,0.7)" : colors.muted, paddingBottom: 12 }}
-            >
-              {symbol.flavor_text}
-            </Text>
-          )}
+          <RitualOrnament variant="eye" />
+          <Text style={[styles.faceHint, { color: colors.primary }]}>Chạm để lật</Text>
         </Animated.View>
 
-        {/* Front of card (shown initially) - Mystical card back */}
         <Animated.View
-          style={{
-            transform: [{ rotateY: frontInterpolate }],
-            backfaceVisibility: "hidden",
-            position: "absolute",
-            width: "100%",
-            height: "100%",
-          }}
-          className="rounded-3xl justify-center items-center"
+          style={[
+            styles.cardFace,
+            styles.cardBack,
+            {
+              transform: [{ rotateY: backRotate }],
+              backgroundColor: isSelected ? colors.primary + "E6" : colors.surface + "F2",
+              borderColor: isSelected ? colors.primary + "AA" : colors.border + "88",
+            },
+          ]}
         >
-          <View
-            className="absolute inset-0 rounded-3xl"
-            style={{
-              backgroundColor: colors.surface + "CC",
-              borderWidth: 1,
-              borderColor: colors.primary + "30",
-            }}
-          />
-          {/* Mystical pattern */}
-          <View style={{ position: "absolute", top: 20, opacity: 0.3 }}>
-            <Text style={{ color: colors.primary, fontSize: 24 }}>✦</Text>
-          </View>
-          <View style={{ position: "absolute", bottom: 20, opacity: 0.3 }}>
-            <Text style={{ color: colors.primary, fontSize: 24 }}>✦</Text>
-          </View>
-          <View style={{ alignItems: "center", gap: 8 }}>
-            <Text style={{ color: colors.primary, fontSize: 36, opacity: 0.6 }}>✦</Text>
-            <Text style={{ color: colors.muted, fontSize: 11, letterSpacing: 1 }}>CHẠM ĐỂ LẬT</Text>
-          </View>
+          <Text style={[styles.symbolTitle, { color: isSelected ? colors.background : colors.foreground, fontFamily: Fonts.serif }]}>
+            {symbol.display_name}
+          </Text>
+          {symbol.flavor_text ? (
+            <Text style={[styles.symbolFlavor, { color: isSelected ? colors.background + "CC" : colors.muted }]}>
+              {symbol.flavor_text}
+            </Text>
+          ) : null}
+          <Text style={[styles.symbolGlyph, { color: isSelected ? colors.background + "AA" : colors.primary }]}>✦</Text>
         </Animated.View>
       </View>
     </Pressable>
@@ -138,40 +109,35 @@ function SymbolCard({
 export default function WildcardScreen() {
   const { session, chooseSymbol, selectedSymbolId } = useReading();
   const router = useRouter();
+  const colors = useColors();
   const [isRevealed, setIsRevealed] = useState(false);
   const [isAutoSelecting, setIsAutoSelecting] = useState(false);
   const [countdown, setCountdown] = useState(5);
 
-  // Auto-reveal cards after delay
   useEffect(() => {
     const timeout = setTimeout(() => {
       setIsRevealed(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }, 1500);
+    }, 1100);
     return () => clearTimeout(timeout);
   }, []);
 
-  // Handle auto-select (surrender to the universe)
   const handleAutoChoose = useCallback(async () => {
     if (!session || isAutoSelecting || selectedSymbolId) return;
-
     setIsAutoSelecting(true);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
     try {
-      // Pick random symbol
       const randomIndex = Math.floor(Math.random() * session.symbols.length);
-      const randomSymbol = session.symbols[randomIndex];
-      await chooseSymbol(randomSymbol.id, SymbolMethod.Auto);
+      await chooseSymbol(session.symbols[randomIndex].id, SymbolMethod.Auto);
       router.push("/reading/ritual");
     } catch (error) {
       console.error("Failed to auto choose:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setIsAutoSelecting(false);
     }
-  }, [session, chooseSymbol, router, isAutoSelecting, selectedSymbolId]);
+  }, [chooseSymbol, isAutoSelecting, router, selectedSymbolId, session]);
 
-  // Auto-select countdown - shows surrender option
   useEffect(() => {
     if (!isRevealed || isAutoSelecting || selectedSymbolId) return;
 
@@ -186,12 +152,11 @@ export default function WildcardScreen() {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isRevealed, isAutoSelecting, selectedSymbolId, handleAutoChoose]);
+  }, [handleAutoChoose, isAutoSelecting, isRevealed, selectedSymbolId]);
 
   const handleSelect = useCallback(
     async (symbolId: string) => {
       if (!session || isAutoSelecting) return;
-
       setIsAutoSelecting(true);
       try {
         await chooseSymbol(symbolId, SymbolMethod.Manual);
@@ -199,11 +164,10 @@ export default function WildcardScreen() {
       } catch (error) {
         console.error("Failed to choose symbol:", error);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      } finally {
         setIsAutoSelecting(false);
       }
     },
-    [session, chooseSymbol, router, isAutoSelecting]
+    [chooseSymbol, isAutoSelecting, router, session],
   );
 
   if (!session) {
@@ -215,20 +179,17 @@ export default function WildcardScreen() {
   }
 
   return (
-    <ScreenContainer className="p-6">
-      <View className="flex-1">
-        {/* Header */}
-        <View className="items-center gap-2 pt-4 pb-8">
-          <Text className="text-xl font-semibold text-foreground text-center">
-            Chọn một biểu tượng
-          </Text>
-          <Text className="text-sm text-muted text-center">
-            {session.theme.name} — {session.symbols.length} lá bài đang chờ
+    <ScreenContainer className="px-5 pb-6">
+      <View style={styles.screen}>
+        <View style={styles.header}>
+          <RitualOrnament variant="line" />
+          <Text style={[styles.headerTitle, { color: colors.foreground, fontFamily: Fonts.serif }]}>Chọn một biểu tượng</Text>
+          <Text style={[styles.headerMeta, { color: colors.muted }]}>
+            {session.theme.name} • {session.symbols.length} dấu hiệu đang chờ bạn
           </Text>
         </View>
 
-        {/* Cards */}
-        <View className="flex-1 flex-row items-center justify-center px-2">
+        <View style={styles.cardsRow}>
           {session.symbols.map((symbol, index) => (
             <SymbolCard
               key={symbol.id}
@@ -241,43 +202,133 @@ export default function WildcardScreen() {
           ))}
         </View>
 
-        {/* Auto-choose option */}
-        <View className="items-center gap-4 pb-8 pt-4">
-          {isRevealed && !selectedSymbolId && (
+        <View style={styles.footer}>
+          {isRevealed && !selectedSymbolId ? (
             <>
-              <View className="items-center">
-                <Text className="text-sm text-muted">
-                  Tự động chọn sau {countdown}s
-                </Text>
-                <View
-                  className="w-32 h-1 bg-muted/30 rounded-full mt-2 overflow-hidden"
-                >
-                  <View
-                    className="h-full bg-primary rounded-full"
-                    style={{ width: `${(countdown / 5) * 100}%` }}
-                  />
-                </View>
+              <Text style={[styles.autoText, { color: colors.muted }]}>Tự động chọn sau {countdown}s</Text>
+              <View style={[styles.progressTrack, { backgroundColor: colors.border + "44" }]}>
+                <View style={[styles.progressFill, { backgroundColor: colors.primary, width: `${(countdown / 5) * 100}%` }]} />
               </View>
 
               <Pressable
                 onPress={handleAutoChoose}
                 disabled={isAutoSelecting}
-                className="py-3 px-6 rounded-full border border-primary/30"
+                style={[
+                  styles.secondaryButton,
+                  {
+                    backgroundColor: colors.surface + "E6",
+                    borderColor: colors.primary + "66",
+                    opacity: isAutoSelecting ? 0.6 : 1,
+                  },
+                ]}
               >
-                <Text className="text-sm text-primary font-medium">
+                <Text style={[styles.secondaryButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>
                   {isAutoSelecting ? "Đang chọn..." : "Để vũ trụ chọn"}
                 </Text>
               </Pressable>
             </>
-          )}
+          ) : null}
 
-          {selectedSymbolId && (
-            <Text className="text-sm text-primary font-medium">
-              Đang mở lá bài...
-            </Text>
-          )}
+          {selectedSymbolId ? (
+            <Text style={[styles.autoText, { color: colors.primary }]}>Đang mở lá bài...</Text>
+          ) : null}
         </View>
       </View>
     </ScreenContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    paddingTop: 18,
+  },
+  header: {
+    alignItems: "center",
+    gap: 10,
+    paddingBottom: 28,
+  },
+  headerTitle: {
+    fontSize: 30,
+    textAlign: "center",
+  },
+  headerMeta: {
+    fontSize: 13,
+    textAlign: "center",
+  },
+  cardsRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+  },
+  cardShell: {
+    flex: 1,
+    maxWidth: 124,
+  },
+  cardFrame: {
+    aspectRatio: 0.66,
+    position: "relative",
+  },
+  cardFace: {
+    position: "absolute",
+    inset: 0,
+    borderRadius: 22,
+    borderWidth: 1.2,
+    alignItems: "center",
+    justifyContent: "center",
+    backfaceVisibility: "hidden",
+    paddingHorizontal: 12,
+    paddingVertical: 18,
+    gap: 12,
+  },
+  cardBack: {
+    justifyContent: "space-between",
+  },
+  faceHint: {
+    fontSize: 11,
+    letterSpacing: 1.8,
+    textTransform: "uppercase",
+  },
+  symbolTitle: {
+    fontSize: 24,
+    textAlign: "center",
+  },
+  symbolFlavor: {
+    fontSize: 12,
+    lineHeight: 18,
+    textAlign: "center",
+  },
+  symbolGlyph: {
+    fontSize: 16,
+  },
+  footer: {
+    alignItems: "center",
+    gap: 12,
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
+  autoText: {
+    fontSize: 13,
+  },
+  progressTrack: {
+    width: 140,
+    height: 6,
+    borderRadius: 999,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    borderRadius: 999,
+  },
+  secondaryButton: {
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+  },
+  secondaryButtonText: {
+    fontSize: 16,
+  },
+});
