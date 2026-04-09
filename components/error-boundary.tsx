@@ -12,8 +12,10 @@ export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
 
   return (
     <ScreenContainer className="px-6 pb-6">
+      <View style={[styles.halo, { backgroundColor: colors.primary + "10" }]} />
       <View style={styles.container}>
         <RitualOrnament variant="eye" size="lg" />
+        <Text style={[styles.kicker, { color: colors.primary }]}>ritual interrupted</Text>
         <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}>Đã xảy ra lỗi</Text>
         <Text style={[styles.message, { color: colors.muted }]}>
           Có điều gì đó đã đứt nhịp trong luồng hiện tại. Bạn có thể thử lại để quay về trạng thái ổn định.
@@ -25,7 +27,7 @@ export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
         ) : null}
         <Pressable
           onPress={resetErrorBoundary}
-          style={[styles.button, { backgroundColor: colors.surface + "F4", borderColor: colors.primary + "88" }]}
+          style={[styles.button, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}
         >
           <Text style={[styles.buttonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>Thử lại</Text>
         </Pressable>
@@ -49,12 +51,25 @@ export function ErrorBoundary({ children }: { children: React.ReactNode }) {
 }
 
 const styles = StyleSheet.create({
+  halo: {
+    position: "absolute",
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    alignSelf: "center",
+    top: "28%",
+  },
   container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
     gap: 14,
+  },
+  kicker: {
+    fontSize: 10,
+    letterSpacing: 3,
+    textTransform: "uppercase",
   },
   title: {
     fontSize: 30,
@@ -65,6 +80,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 24,
     maxWidth: 300,
+    fontStyle: "italic",
   },
   detail: {
     fontSize: 12,
@@ -81,6 +97,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttonText: {
-    fontSize: 18,
+    fontSize: 17,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
   },
 });

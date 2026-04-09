@@ -225,7 +225,7 @@ export default function ReadingDetailScreen() {
           </Text>
           <Pressable
             onPress={() => router.back()}
-            style={[styles.primaryButton, { backgroundColor: colors.surface + "F4", borderColor: colors.primary + "88" }]}
+            style={[styles.primaryButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}
           >
             <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>Quay lại</Text>
           </Pressable>
@@ -240,7 +240,7 @@ export default function ReadingDetailScreen() {
         <View style={styles.header}>
           <Pressable
             onPress={() => router.back()}
-            style={[styles.backButton, { backgroundColor: colors.surface + "E8", borderColor: colors.border + "66" }]}
+            style={[styles.backButton, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "22" }]}
           >
             <Text style={[styles.backButtonText, { color: colors.foreground }]}>←</Text>
           </Pressable>
@@ -253,7 +253,7 @@ export default function ReadingDetailScreen() {
         </View>
 
         {passageText ? (
-          <View style={[styles.heroCard, { backgroundColor: colors.surface + "F0", borderColor: colors.primary + "55" }]}>
+          <View style={[styles.heroCard, { backgroundColor: colors.surface + "C8", borderColor: colors.primary + "42" }]}>
             <Text style={[styles.heroQuote, { color: colors.foreground, fontFamily: Fonts.serif }]}>“{passageText}”</Text>
             <View style={styles.heroFooter}>
               <View style={[styles.rule, { backgroundColor: colors.primary + "50" }]} />
@@ -263,14 +263,14 @@ export default function ReadingDetailScreen() {
         ) : null}
 
         {reading.situation_text ? (
-          <View style={[styles.sectionCard, { backgroundColor: colors.surface + "E8", borderColor: colors.border + "66" }]}>
+          <View style={[styles.sectionCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "22" }]}>
             <Text style={[styles.sectionLabel, { color: colors.primary }]}>Tình huống lúc đó</Text>
             <Text style={[styles.sectionBody, { color: colors.foreground }]}>{reading.situation_text}</Text>
           </View>
         ) : null}
 
         <View style={styles.rowGrid}>
-          <View style={[styles.infoCard, { backgroundColor: colors.surface + "E8", borderColor: colors.border + "66" }]}>
+          <View style={[styles.infoCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "22" }]}>
             <Text style={[styles.sectionLabel, { color: colors.primary }]}>Biểu tượng đã chọn</Text>
             <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: Fonts.serif }]}>{reading.symbol_chosen}</Text>
             <Text style={[styles.infoHint, { color: colors.muted }]}>
@@ -279,7 +279,7 @@ export default function ReadingDetailScreen() {
           </View>
 
           {reading.mood_tag ? (
-            <View style={[styles.infoCard, { backgroundColor: colors.surface + "E8", borderColor: colors.border + "66" }]}>
+            <View style={[styles.infoCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "22" }]}>
               <Text style={[styles.sectionLabel, { color: colors.primary }]}>Cảm xúc ghi nhận</Text>
               <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: Fonts.serif }]}>
                 {MOOD_EMOJIS[reading.mood_tag]} {MOOD_LABELS[reading.mood_tag]}
@@ -289,7 +289,7 @@ export default function ReadingDetailScreen() {
           ) : null}
         </View>
 
-        <View style={[styles.sectionCard, { backgroundColor: colors.surface + "E8", borderColor: colors.border + "66" }]}>
+        <View style={[styles.sectionCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "22" }]}>
           <Text style={[styles.sectionLabel, { color: colors.primary }]}>Dấu vết của phiên đọc</Text>
           <View style={styles.traceRow}>
             <Text style={[styles.traceKey, { color: colors.muted }]}>AI diễn giải</Text>
@@ -318,7 +318,7 @@ export default function ReadingDetailScreen() {
             <Pressable
               onPress={handleToggleFavorite}
               disabled={isSavingFavorite}
-              style={[styles.secondaryButton, { backgroundColor: colors.surface + "E8", borderColor: colors.border + "66", opacity: isSavingFavorite ? 0.6 : 1 }]}
+              style={[styles.secondaryButton, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "22", opacity: isSavingFavorite ? 0.6 : 1 }]}
             >
               <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>
                 {reading.is_favorite ? "Bỏ yêu thích" : "Yêu thích"}
@@ -327,7 +327,7 @@ export default function ReadingDetailScreen() {
             <Pressable
               onPress={handleShareAgain}
               disabled={isSharing}
-              style={[styles.secondaryButton, { backgroundColor: colors.surface + "E8", borderColor: colors.border + "66", opacity: isSharing ? 0.6 : 1 }]}
+              style={[styles.secondaryButton, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "22", opacity: isSharing ? 0.6 : 1 }]}
             >
               <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>
                 {isSharing ? "Đang chia sẻ..." : "Chia sẻ lại"}
@@ -337,7 +337,7 @@ export default function ReadingDetailScreen() {
           <Pressable
             onPress={handleGift}
             disabled={isGifting}
-            style={[styles.secondaryButton, { backgroundColor: colors.surface + "E8", borderColor: colors.border + "66", opacity: isGifting ? 0.6 : 1 }]}
+            style={[styles.secondaryButton, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "22", opacity: isGifting ? 0.6 : 1 }]}
           >
             <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>
               {isGifting ? "Đang tạo quà..." : "Tặng lần đọc này"}
@@ -346,7 +346,7 @@ export default function ReadingDetailScreen() {
           <Pressable
             onPress={handleReopen}
             disabled={isReopening}
-            style={[styles.primaryButton, { backgroundColor: colors.surface + "F4", borderColor: colors.primary + "88", opacity: isReopening ? 0.65 : 1 }]}
+            style={[styles.primaryButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72", opacity: isReopening ? 0.65 : 1 }]}
           >
             <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>
               {isReopening ? "Đang mở lại..." : "Đọc lại từ nguồn này"}
@@ -354,7 +354,7 @@ export default function ReadingDetailScreen() {
           </Pressable>
           <Pressable
             onPress={() => router.back()}
-            style={[styles.primaryButton, { backgroundColor: colors.surface + "F4", borderColor: colors.primary + "88" }]}
+            style={[styles.primaryButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}
           >
             <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>
               Quay lại lịch sử
@@ -398,7 +398,7 @@ const styles = StyleSheet.create({
   header: {
     alignItems: "center",
     gap: 10,
-    paddingTop: 20,
+    paddingTop: 24,
     paddingBottom: 22,
   },
   backButton: {
@@ -416,8 +416,8 @@ const styles = StyleSheet.create({
     fontSize: 22,
   },
   kicker: {
-    fontSize: 11,
-    letterSpacing: 2.4,
+    fontSize: 10,
+    letterSpacing: 3,
     textTransform: "uppercase",
   },
   title: {
@@ -427,18 +427,20 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 13,
     textAlign: "center",
+    fontStyle: "italic",
   },
   heroCard: {
-    borderRadius: 26,
+    borderRadius: 30,
     borderWidth: 1.2,
     paddingHorizontal: 24,
-    paddingVertical: 24,
+    paddingVertical: 26,
     marginBottom: 16,
   },
   heroQuote: {
     fontSize: 22,
     lineHeight: 34,
     textAlign: "center",
+    fontStyle: "italic",
   },
   heroFooter: {
     marginTop: 18,
@@ -450,10 +452,12 @@ const styles = StyleSheet.create({
     height: 1,
   },
   heroRef: {
-    fontSize: 12,
+    fontSize: 11,
+    textTransform: "uppercase",
+    letterSpacing: 1.1,
   },
   sectionCard: {
-    borderRadius: 22,
+    borderRadius: 24,
     borderWidth: 1,
     paddingHorizontal: 18,
     paddingVertical: 18,
@@ -461,20 +465,21 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   sectionLabel: {
-    fontSize: 11,
-    letterSpacing: 2,
+    fontSize: 10,
+    letterSpacing: 2.5,
     textTransform: "uppercase",
   },
   sectionBody: {
     fontSize: 15,
     lineHeight: 24,
+    fontStyle: "italic",
   },
   rowGrid: {
     gap: 14,
     marginBottom: 14,
   },
   infoCard: {
-    borderRadius: 22,
+    borderRadius: 24,
     borderWidth: 1,
     paddingHorizontal: 18,
     paddingVertical: 18,
@@ -485,6 +490,7 @@ const styles = StyleSheet.create({
   },
   infoHint: {
     fontSize: 12,
+    fontStyle: "italic",
   },
   traceRow: {
     flexDirection: "row",
@@ -510,13 +516,14 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     flex: 1,
-    borderRadius: 20,
+    borderRadius: 22,
     borderWidth: 1,
     paddingVertical: 15,
     alignItems: "center",
   },
   secondaryButtonText: {
-    fontSize: 15,
+    fontSize: 14,
+    letterSpacing: 0.4,
   },
   primaryButton: {
     borderRadius: 22,
@@ -525,6 +532,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   primaryButtonText: {
-    fontSize: 18,
+    fontSize: 17,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
   },
 });

@@ -148,7 +148,7 @@ export function ToastContainer({ toasts, removeToast }: ToastContainerProps) {
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    bottom: 100,
+    bottom: 112,
     left: 0,
     right: 0,
     alignItems: "center",
@@ -160,15 +160,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 13,
-    borderRadius: 18,
+    borderRadius: 22,
     borderWidth: 1,
     marginBottom: 8,
     maxWidth: "100%",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.18,
-    shadowRadius: 16,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.24,
+    shadowRadius: 20,
+    elevation: 7,
   },
   toastIcon: {
     fontSize: 16,
@@ -180,6 +180,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 20,
     fontFamily: Fonts.serif,
+    fontStyle: "italic",
   },
   toastClose: {
     padding: 4,

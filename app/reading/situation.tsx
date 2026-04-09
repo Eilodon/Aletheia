@@ -1,13 +1,14 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
+import * as Haptics from "expo-haptics";
+
 import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
 import { SITUATION_SKIP_TEXT_VI } from "@/lib/reading/ritual";
 import { Fonts } from "@/constants/theme";
-import * as Haptics from "expo-haptics";
 
 export default function SituationScreen() {
   const [situationText, setSituationText] = useState("");
@@ -18,10 +19,10 @@ export default function SituationScreen() {
 
   const handleContinue = async () => {
     if (isLoading) return;
-    
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsLoading(true);
-    
+
     try {
       await startReading(undefined, situationText.trim() || undefined);
       router.push("/reading/wildcard");
@@ -35,10 +36,10 @@ export default function SituationScreen() {
 
   const handleSkip = async () => {
     if (isLoading) return;
-    
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsLoading(true);
-    
+
     try {
       await startReading();
       router.push("/reading/wildcard");
@@ -52,63 +53,58 @@ export default function SituationScreen() {
 
   return (
     <ScreenContainer className="p-6">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        className="flex-1"
-      >
-        <View className="flex-1 justify-between">
-          {/* Header */}
-          <View className="items-center gap-4 pt-8">
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} className="flex-1">
+        <View style={styles.screen}>
+          <View style={[styles.heroHalo, { backgroundColor: colors.primary + "10" }]} />
+
+          <View style={styles.header}>
             <RitualOrnament variant="line" />
-            <Text
-              testID="reading-situation-title"
-              className="text-3xl text-foreground text-center"
-              style={{ fontFamily: Fonts.serif }}
-            >
+            <Text testID="reading-situation-title" style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}>
               Bạn đang mang điều gì?
             </Text>
-            <Text className="text-sm text-muted text-center max-w-xs">
-              Chia sẻ tình huống giúp AI diễn giải sâu hơn — nhưng bạn hoàn toàn có thể để trống.
+            <Text style={[styles.subtitle, { color: colors.muted }]}>
+              Viết ra vài dòng nếu muốn. Bản đọc vẫn hoạt động khi bạn để trống, nhưng lời phản chiếu sẽ sâu hơn khi bạn cho nó một nhịp thật.
             </Text>
           </View>
 
-          {/* Input */}
-          <View className="flex-1 justify-center px-2">
-            <TextInput
-              testID="reading-situation-input"
-              accessibilityLabel="reading-situation-input"
-              value={situationText}
-              onChangeText={setSituationText}
-              placeholder="Tôi đang cảm thấy... / Tôi đang đối mặt với..."
-              placeholderTextColor={colors.muted}
-              multiline
-              numberOfLines={6}
-              textAlignVertical="top"
-              className="rounded-3xl p-5 text-base text-foreground min-h-[180px]"
-              style={{
-                backgroundColor: colors.surface + "EE",
-                borderWidth: 1,
-                borderColor: colors.border + "88",
-                lineHeight: 24,
-              }}
-              maxLength={500}
-            />
-            <Text className="text-xs text-muted text-right mt-2">
-              {situationText.length}/500
-            </Text>
+          <View style={styles.inputWrap}>
+            <View style={[styles.inputShell, { backgroundColor: colors.surface + "BE", borderColor: colors.primary + "28" }]}>
+              <Text style={[styles.inputKicker, { color: colors.primary }]}>threshold note</Text>
+              <TextInput
+                testID="reading-situation-input"
+                accessibilityLabel="reading-situation-input"
+                value={situationText}
+                onChangeText={setSituationText}
+                placeholder="Tôi đang cảm thấy... / Tôi đang đối mặt với..."
+                placeholderTextColor={colors.muted}
+                multiline
+                numberOfLines={6}
+                textAlignVertical="top"
+                style={[
+                  styles.input,
+                  {
+                    color: colors.foreground,
+                  },
+                ]}
+                maxLength={500}
+              />
+              <View style={styles.inputFooter}>
+                <Text style={[styles.footerHint, { color: colors.muted }]}>Càng thành thật, passage và diễn giải càng đúng nhịp.</Text>
+                <Text style={[styles.counter, { color: colors.muted }]}>{situationText.length}/500</Text>
+              </View>
+            </View>
           </View>
 
-          {/* Actions */}
-          <View className="gap-4 pb-8">
+          <View style={styles.actions}>
             <Pressable
               testID="reading-situation-continue"
               accessibilityLabel="reading-situation-continue"
               onPress={handleContinue}
               disabled={isLoading}
               style={({ pressed }) => ({
-                backgroundColor: colors.surface + "F2",
+                backgroundColor: colors.primary + "18",
                 borderWidth: 1,
-                borderColor: colors.primary + "88",
+                borderColor: colors.primary + "72",
                 paddingHorizontal: 32,
                 paddingVertical: 18,
                 borderRadius: 22,
@@ -116,8 +112,8 @@ export default function SituationScreen() {
                 transform: [{ scale: pressed ? 0.98 : 1 }],
               })}
             >
-              <Text className="text-lg text-foreground text-center" style={{ fontFamily: Fonts.serif }}>
-                {isLoading ? "Đang chuẩn bị..." : "Tiếp tục"}
+              <Text style={[styles.primaryText, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+                {isLoading ? "Đang chuẩn bị..." : "Tiến vào nghi thức"}
               </Text>
             </Pressable>
 
@@ -126,11 +122,9 @@ export default function SituationScreen() {
               accessibilityLabel="reading-situation-skip"
               onPress={handleSkip}
               disabled={isLoading}
-              className="py-3"
+              style={styles.skipButton}
             >
-              <Text className="text-sm text-muted text-center">
-                {SITUATION_SKIP_TEXT_VI} →
-              </Text>
+              <Text style={[styles.skipText, { color: colors.muted }]}>{SITUATION_SKIP_TEXT_VI} →</Text>
             </Pressable>
           </View>
         </View>
@@ -138,3 +132,102 @@ export default function SituationScreen() {
     </ScreenContainer>
   );
 }
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    justifyContent: "space-between",
+    position: "relative",
+  },
+  heroHalo: {
+    position: "absolute",
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    alignSelf: "center",
+    top: 52,
+  },
+  header: {
+    alignItems: "center",
+    gap: 14,
+    paddingTop: 32,
+  },
+  title: {
+    fontSize: 31,
+    lineHeight: 38,
+    textAlign: "center",
+    letterSpacing: 1.6,
+  },
+  subtitle: {
+    maxWidth: 304,
+    textAlign: "center",
+    fontSize: 14,
+    lineHeight: 23,
+    fontStyle: "italic",
+  },
+  inputWrap: {
+    flex: 1,
+    justifyContent: "center",
+    paddingHorizontal: 2,
+  },
+  inputShell: {
+    borderRadius: 30,
+    borderWidth: 1,
+    paddingTop: 16,
+    paddingBottom: 14,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.24,
+    shadowRadius: 34,
+    elevation: 8,
+  },
+  inputKicker: {
+    textAlign: "center",
+    textTransform: "uppercase",
+    letterSpacing: 3.2,
+    fontSize: 10,
+  },
+  input: {
+    minHeight: 220,
+    fontSize: 16,
+    lineHeight: 28,
+    fontStyle: "italic",
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+  },
+  inputFooter: {
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 16,
+  },
+  footerHint: {
+    flex: 1,
+    fontSize: 11,
+    lineHeight: 17,
+    fontStyle: "italic",
+  },
+  counter: {
+    fontSize: 11,
+    letterSpacing: 0.4,
+  },
+  actions: {
+    gap: 12,
+    paddingBottom: 12,
+  },
+  primaryText: {
+    fontSize: 17,
+    letterSpacing: 1.4,
+    textAlign: "center",
+    textTransform: "uppercase",
+  },
+  skipButton: {
+    paddingVertical: 8,
+  },
+  skipText: {
+    textAlign: "center",
+    fontSize: 13,
+    fontStyle: "italic",
+  },
+});

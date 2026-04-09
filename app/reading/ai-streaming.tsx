@@ -14,14 +14,31 @@ export default function AIStreamingScreen() {
   const colors = useColors();
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-    }).start();
-  }, [fadeAnim]);
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        useNativeDriver: true,
+      }),
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 900,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 0.4,
+            duration: 900,
+            useNativeDriver: true,
+          }),
+        ]),
+      ),
+    ]).start();
+  }, [fadeAnim, pulseAnim]);
 
   const handleCancel = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -47,16 +64,16 @@ export default function AIStreamingScreen() {
               <Text style={[styles.subtitle, { color: colors.muted }]}>{selectedSymbol?.display_name || "Biểu tượng"}</Text>
             </View>
 
-            <View style={[styles.responseCard, { backgroundColor: colors.surface + "F0", borderColor: colors.primary + "60" }]}>
+            <View style={[styles.responseCard, { backgroundColor: colors.surface + "C6", borderColor: colors.primary + "4A" }]}>
+              <Text style={[styles.responseLabel, { color: isAIFallback ? colors.muted : colors.primary }]}>
+                {isAIFallback ? "fallback reflection" : "oracle reflection"}
+              </Text>
               <Text style={[styles.responseText, { color: colors.foreground }]}>{aiResponse}</Text>
             </View>
 
             <View style={styles.spacer} />
 
-            <Pressable
-              onPress={handleBackToPassage}
-              style={[styles.primaryButton, { backgroundColor: colors.surface + "F4", borderColor: colors.primary + "88" }]}
-            >
+            <Pressable onPress={handleBackToPassage} style={[styles.primaryButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}>
               <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>Quay lại đoạn trích</Text>
             </Pressable>
           </ScrollView>
@@ -69,23 +86,22 @@ export default function AIStreamingScreen() {
     <ScreenContainer className="px-6 pb-6">
       <Animated.View style={{ opacity: fadeAnim }} className="flex-1 justify-between">
         <View style={styles.header}>
+          <View style={[styles.waitHalo, { backgroundColor: colors.primary + "12" }]} />
           <RitualOrnament variant="sigil" />
           <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}>Đang diễn giải</Text>
           <Text style={[styles.subtitle, { color: colors.muted }]}>{selectedSymbol?.display_name}</Text>
         </View>
 
-        <View style={[styles.responseCard, { backgroundColor: colors.surface + "F0", borderColor: colors.primary + "60" }]}>
+        <View style={[styles.responseCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "2E" }]}>
+          <Text style={[styles.responseLabel, { color: colors.primary }]}>oracle is listening</Text>
           <Text style={[styles.responseText, { color: colors.foreground }]}>
             {aiResponse}
-            <Text style={{ color: colors.primary }}>|</Text>
+            <Animated.Text style={{ color: colors.primary, opacity: pulseAnim }}>|</Animated.Text>
           </Text>
           <RitualOrnament variant="dot" />
         </View>
 
-        <Pressable
-          onPress={handleCancel}
-          style={[styles.secondaryButton, { backgroundColor: colors.surface + "E6", borderColor: colors.border + "66" }]}
-        >
+        <Pressable onPress={handleCancel} style={[styles.secondaryButton, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "22" }]}>
           <Text style={[styles.secondaryButtonText, { color: colors.muted }]}>Hủy diễn giải</Text>
         </Pressable>
       </Animated.View>
@@ -99,6 +115,14 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingTop: 24,
     paddingBottom: 24,
+    position: "relative",
+  },
+  waitHalo: {
+    position: "absolute",
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    top: -10,
   },
   title: {
     fontSize: 28,
@@ -107,18 +131,26 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 13,
     textAlign: "center",
+    fontStyle: "italic",
   },
   responseCard: {
-    borderRadius: 24,
+    borderRadius: 28,
     borderWidth: 1,
     paddingHorizontal: 22,
     paddingVertical: 22,
     minHeight: 220,
     gap: 16,
   },
+  responseLabel: {
+    fontSize: 10,
+    letterSpacing: 2.8,
+    textTransform: "uppercase",
+    textAlign: "center",
+  },
   responseText: {
     fontSize: 16,
-    lineHeight: 28,
+    lineHeight: 29,
+    fontStyle: "italic",
   },
   spacer: {
     flex: 1,
@@ -131,15 +163,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   primaryButtonText: {
-    fontSize: 18,
+    fontSize: 17,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
   },
   secondaryButton: {
-    borderRadius: 20,
+    borderRadius: 22,
     borderWidth: 1,
     paddingVertical: 16,
     alignItems: "center",
   },
   secondaryButtonText: {
-    fontSize: 14,
+    fontSize: 13,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
   },
 });

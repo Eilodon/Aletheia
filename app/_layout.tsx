@@ -1,4 +1,6 @@
 import "@/global.css";
+import { useFonts } from "expo-font";
+import * as SplashScreen from "expo-splash-screen";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -37,6 +39,7 @@ const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
 
 // Initialize Sentry crash reporting before app starts
 initSentry();
+void SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
   anchor: "(tabs)",
@@ -114,6 +117,13 @@ export default function RootLayout() {
   const [frame, setFrame] = useState<Rect>(initialFrame);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState<boolean | null>(null);
   const [bootstrapDetail, setBootstrapDetail] = useState("Đang dựng nhịp khởi tạo cốt lõi.");
+  const [fontsLoaded] = useFonts({
+    "AletheiaDisplay-Regular": require("../assets/fonts/Cinzel-Regular.ttf"),
+    "AletheiaDisplay-SemiBold": require("../assets/fonts/Cinzel-SemiBold.ttf"),
+    "AletheiaBody-Regular": require("../assets/fonts/EBGaramond-Regular.ttf"),
+    "AletheiaBody-Medium": require("../assets/fonts/EBGaramond-Medium.ttf"),
+    "AletheiaBody-Italic": require("../assets/fonts/EBGaramond-Italic.ttf"),
+  });
 
   // Ensure minimum 8px padding for top and bottom on mobile
   const providerInitialMetrics = useMemo(() => {
@@ -203,6 +213,12 @@ export default function RootLayout() {
     };
   }, [isIosHold]);
 
+  useEffect(() => {
+    if (fontsLoaded) {
+      void SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded]);
+
   // Initialize Manus runtime for cookie injection from parent container
   useEffect(() => {
     initManusRuntime();
@@ -234,6 +250,10 @@ export default function RootLayout() {
   const [trpcClient] = useState(() => createTRPCClient());
 
   const shouldOverrideSafeArea = Platform.OS === "web";
+
+  if (!fontsLoaded) {
+    return null;
+  }
 
   // Show loading while checking onboarding
   if (isOnboardingComplete === null) {

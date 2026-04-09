@@ -105,9 +105,11 @@ export default function OnboardingScreen() {
           <View style={styles.main}>
             {currentStep === "welcome" ? (
               <>
+                <View style={[styles.heroHalo, { backgroundColor: colors.primary + "10" }]} />
                 <RitualOrnament variant="eye" size="lg" />
                 <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}>ALETHEIA</Text>
-                <Text style={[styles.kicker, { color: colors.primary }]}>not a fortune. a mirror.</Text>
+                <Text style={[styles.kicker, { color: colors.primary }]}>not a fortune • a mirror</Text>
+                <Text style={[styles.tagline, { color: colors.foreground }]}>Dừng lại. Phản chiếu. Hiểu.</Text>
                 <Text style={[styles.body, { color: colors.muted }]}>
                   Aletheia không nói trước tương lai. Nó tạo ra một không gian tối, chậm và đủ yên để bạn nhìn lại chính mình qua các đoạn trích triết học.
                 </Text>
@@ -136,8 +138,8 @@ export default function OnboardingScreen() {
                         style={[
                           styles.intentCard,
                           {
-                            backgroundColor: isSelected ? colors.surface + "F2" : colors.surface + "D8",
-                            borderColor: isSelected ? colors.primary + "AA" : colors.border + "66",
+                            backgroundColor: isSelected ? colors.primary + "18" : colors.surface + "CC",
+                            borderColor: isSelected ? colors.primary + "88" : colors.primary + "22",
                           },
                         ]}
                       >
@@ -162,7 +164,7 @@ export default function OnboardingScreen() {
                     "AI chỉ diễn giải khi bạn chủ động yêu cầu.",
                     "Lịch sử và trạng thái được giữ local trên thiết bị.",
                   ].map((item) => (
-                    <View key={item} style={styles.checkItem}>
+                    <View key={item} style={[styles.checkItem, { backgroundColor: colors.surface + "B6", borderColor: colors.primary + "18" }]}>
                       <Text style={[styles.checkGlyph, { color: colors.primary }]}>✦</Text>
                       <Text style={[styles.checkText, { color: colors.foreground }]}>{item}</Text>
                     </View>
@@ -181,8 +183,8 @@ export default function OnboardingScreen() {
               style={[
                 styles.primaryButton,
                 {
-                  backgroundColor: colors.surface + "F2",
-                  borderColor: colors.primary + "88",
+                  backgroundColor: colors.primary + "18",
+                  borderColor: colors.primary + "76",
                   opacity: !canContinue || isCompleting ? 0.45 : 1,
                 },
               ]}
@@ -228,15 +230,29 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 16,
+    position: "relative",
+  },
+  heroHalo: {
+    position: "absolute",
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    top: -24,
   },
   title: {
     fontSize: 40,
-    letterSpacing: 7,
+    letterSpacing: 8,
   },
   kicker: {
-    fontSize: 12,
-    letterSpacing: 3,
+    fontSize: 10,
+    letterSpacing: 3.2,
     textTransform: "uppercase",
+  },
+  tagline: {
+    fontSize: 13,
+    letterSpacing: 3.2,
+    textTransform: "uppercase",
+    textAlign: "center",
   },
   sectionTitle: {
     fontSize: 28,
@@ -248,6 +264,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 15,
     lineHeight: 24,
+    fontStyle: "italic",
   },
   intentGrid: {
     width: "100%",
@@ -255,14 +272,14 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   intentCard: {
-    borderRadius: 20,
+    borderRadius: 24,
     borderWidth: 1,
     paddingHorizontal: 18,
-    paddingVertical: 16,
-    gap: 6,
+    paddingVertical: 18,
+    gap: 8,
   },
   intentIcon: {
-    fontSize: 20,
+    fontSize: 22,
   },
   intentTitle: {
     fontSize: 18,
@@ -270,6 +287,7 @@ const styles = StyleSheet.create({
   intentDesc: {
     fontSize: 13,
     lineHeight: 19,
+    fontStyle: "italic",
   },
   checklist: {
     width: "100%",
@@ -283,6 +301,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 14,
     borderRadius: 18,
+    borderWidth: 1,
   },
   checkGlyph: {
     fontSize: 14,
@@ -306,8 +325,9 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     fontSize: 18,
-    letterSpacing: 0.6,
+    letterSpacing: 1.2,
     textAlign: "center",
+    textTransform: "uppercase",
   },
   stepText: {
     textAlign: "center",

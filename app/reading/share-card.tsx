@@ -23,9 +23,9 @@ function CardPreview({
   theme: "dark" | "light" | "gold";
 }) {
   const themeStyles = {
-    dark: { bg: "#12141B", text: "#F2EADB", accent: "#D7B46A", secondary: "#786E62" },
-    light: { bg: "#F6EFE5", text: "#2B241E", accent: "#B7893D", secondary: "#8A7A6C" },
-    gold: { bg: "#221A12", text: "#F6E7BC", accent: "#E1BA6B", secondary: "#8A6530" },
+    dark: { bg: "#171520", text: "#F4EBD9", accent: "#D8B86A", secondary: "#9E907D" },
+    light: { bg: "#F3EBDE", text: "#2B241E", accent: "#B7893D", secondary: "#8A7A6C" },
+    gold: { bg: "#241B12", text: "#F6E7BC", accent: "#E1BA6B", secondary: "#8A6530" },
   };
   const style = themeStyles[theme];
 
@@ -40,25 +40,28 @@ function CardPreview({
         backgroundColor: style.bg,
         aspectRatio: 9 / 16,
         maxHeight: 500,
-        borderRadius: 28,
+        borderRadius: 32,
         paddingHorizontal: 24,
         paddingVertical: 28,
         justifyContent: "space-between",
+        borderWidth: 1,
+        borderColor: style.accent + "55",
       }}
     >
       <View style={{ alignItems: "center", gap: 12 }}>
-        <Text style={{ color: style.accent, fontSize: 11, letterSpacing: 2.2 }}>ALETHEIA</Text>
-        <Text style={{ color: style.accent, fontSize: 15 }}>{symbolName.toUpperCase()}</Text>
+        <Text style={{ color: style.accent, fontSize: 10, letterSpacing: 3, textTransform: "uppercase" }}>ALETHEIA</Text>
+        <Text style={{ color: style.accent, fontSize: 14, letterSpacing: 2.2, textTransform: "uppercase" }}>{symbolName}</Text>
       </View>
 
       <View style={{ gap: 16 }}>
         <Text
           style={{
             color: style.text,
-            fontSize: 24,
-            lineHeight: 36,
+            fontSize: 23,
+            lineHeight: 35,
             textAlign: "center",
             fontFamily: Fonts.serif,
+            fontStyle: "italic",
           }}
         >
           “{truncateText(passageText)}”
@@ -67,7 +70,9 @@ function CardPreview({
 
       <View style={{ alignItems: "center", gap: 12 }}>
         <View style={{ width: 34, height: 1, backgroundColor: style.accent, opacity: 0.5 }} />
-        <Text style={{ color: style.secondary, fontSize: 12, textAlign: "center" }}>{reference}</Text>
+        <Text style={{ color: style.secondary, fontSize: 11, textAlign: "center", letterSpacing: 1.2, textTransform: "uppercase" }}>
+          {reference}
+        </Text>
       </View>
     </View>
   );
@@ -186,12 +191,7 @@ export default function ShareCardScreen() {
 
           <View style={styles.previewWrap}>
             <View ref={cardRef} collapsable={false} style={styles.previewInner}>
-              <CardPreview
-                passageText={passage.text}
-                symbolName={selectedSymbol.display_name}
-                reference={passage.reference}
-                theme={selectedTheme}
-              />
+              <CardPreview passageText={passage.text} symbolName={selectedSymbol.display_name} reference={passage.reference} theme={selectedTheme} />
             </View>
           </View>
 
@@ -209,14 +209,12 @@ export default function ShareCardScreen() {
                   style={[
                     styles.themeChip,
                     {
-                      backgroundColor: active ? colors.surface + "F0" : colors.surface + "D6",
-                      borderColor: active ? colors.primary + "88" : colors.border + "66",
+                      backgroundColor: active ? colors.primary + "16" : colors.surface + "D6",
+                      borderColor: active ? colors.primary + "72" : colors.primary + "22",
                     },
                   ]}
                 >
-                  <Text style={[styles.themeChipText, { color: active ? colors.foreground : colors.muted }]}>
-                    {theme.label}
-                  </Text>
+                  <Text style={[styles.themeChipText, { color: active ? colors.foreground : colors.muted }]}>{theme.label}</Text>
                 </Pressable>
               );
             })}
@@ -231,8 +229,8 @@ export default function ShareCardScreen() {
               style={[
                 styles.primaryButton,
                 {
-                  backgroundColor: colors.surface + "F4",
-                  borderColor: colors.primary + "88",
+                  backgroundColor: colors.primary + "18",
+                  borderColor: colors.primary + "72",
                   opacity: isSharing ? 0.65 : 1,
                 },
               ]}
@@ -244,7 +242,7 @@ export default function ShareCardScreen() {
 
             <Pressable
               onPress={handleCopyText}
-              style={[styles.secondaryButton, { backgroundColor: colors.surface + "E6", borderColor: colors.border + "66" }]}
+              style={[styles.secondaryButton, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "22" }]}
             >
               <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>Chỉ sao chép văn bản</Text>
             </Pressable>
@@ -271,6 +269,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 13,
+    fontStyle: "italic",
   },
   previewWrap: {
     alignItems: "center",
@@ -287,13 +286,15 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   themeChip: {
-    borderRadius: 18,
+    borderRadius: 20,
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
   themeChipText: {
-    fontSize: 13,
+    fontSize: 12,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
   },
   spacer: {
     flex: 1,
@@ -311,19 +312,22 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     fontSize: 18,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
   },
   secondaryButton: {
-    borderRadius: 20,
+    borderRadius: 22,
     borderWidth: 1,
     paddingVertical: 16,
     alignItems: "center",
   },
   secondaryButtonText: {
-    fontSize: 15,
+    fontSize: 14,
+    letterSpacing: 0.4,
   },
   closeText: {
     textAlign: "center",
     fontSize: 13,
-    paddingTop: 4,
+    fontStyle: "italic",
   },
 });

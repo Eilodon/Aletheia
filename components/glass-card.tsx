@@ -17,16 +17,16 @@ export function GlassCard({
   const colors = useColors();
   
   const baseStyle = {
-    borderRadius: 22,
+    borderRadius: 26,
     padding: 24,
-    backgroundColor: variant === "default" ? colors.surface + "D9" : variant === "highlighted" ? colors.surface + "F0" : colors.surface + "C8",
+    backgroundColor: variant === "default" ? colors.surface + "C8" : variant === "highlighted" ? colors.surface + "D8" : colors.surface + "B8",
     borderWidth: 1,
-    borderColor: variant === "default" ? colors.border + "55" : variant === "highlighted" ? colors.primary + "66" : colors.border + "40",
+    borderColor: variant === "default" ? colors.primary + "22" : variant === "highlighted" ? colors.primary + "66" : colors.border + "40",
     shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.12,
-    shadowRadius: 30,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.2,
+    shadowRadius: 34,
+    elevation: 7,
   };
 
   return (
@@ -56,11 +56,11 @@ export function PassageCard({
   const colors = useColors();
   
   const cardStyle = {
-    borderRadius: 22,
+    borderRadius: 28,
     padding: 24,
-    backgroundColor: colors.surface + "F0",
+    backgroundColor: colors.surface + "C8",
     borderWidth: 1,
-    borderColor: colors.primary + "50",
+    borderColor: colors.primary + "42",
   };
 
   const textStyle = {
@@ -69,12 +69,15 @@ export function PassageCard({
     color: colors.foreground,
     lineHeight: 32,
     marginBottom: 16,
+    fontStyle: "italic" as const,
   };
 
   const refStyle = {
     fontSize: 14,
     color: colors.muted,
     textAlign: "right" as const,
+    textTransform: "uppercase" as const,
+    letterSpacing: 1.2,
   };
 
   if (isLoading) {
@@ -132,10 +135,10 @@ export function ReadingCard({
 
   const cardStyle = {
     padding: 16,
-    borderRadius: 18,
-    backgroundColor: colors.surface + "D4",
+    borderRadius: 22,
+    backgroundColor: colors.surface + "C4",
     borderWidth: 1,
-    borderColor: colors.border + "55",
+    borderColor: colors.primary + "22",
     marginBottom: 12,
   };
 
@@ -148,12 +151,12 @@ export function ReadingCard({
         </View>
         {hasAI && (
           <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, backgroundColor: colors.primary + "33" }}>
-            <Text style={{ fontSize: 12, color: colors.primary, fontWeight: "600" }}>AI</Text>
+            <Text style={{ fontSize: 10, color: colors.primary, fontWeight: "600", letterSpacing: 1, textTransform: "uppercase" }}>AI</Text>
           </View>
         )}
       </View>
 
-      <Text style={{ fontSize: 14, color: colors.foreground, marginBottom: 8 }} numberOfLines={2}>
+      <Text style={{ fontSize: 15, color: colors.foreground, marginBottom: 8, lineHeight: 22, fontStyle: "italic" }} numberOfLines={2}>
         {situation || "No situation recorded"}
       </Text>
 

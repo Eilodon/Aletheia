@@ -77,8 +77,8 @@ const config: ExpoConfig = {
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: env.scheme,
-  userInterfaceStyle: "automatic",
-  primaryColor: "#6366F1",
+  userInterfaceStyle: "dark",
+  primaryColor: "#D8B86A",
   newArchEnabled: true,
   ios: {
     supportsTablet: true,
@@ -131,9 +131,9 @@ const config: ExpoConfig = {
         image: "./assets/images/splash-icon.png",
         imageWidth: 200,
         resizeMode: "contain",
-        backgroundColor: "#ffffff",
+        backgroundColor: "#171520",
         dark: {
-          backgroundColor: "#000000",
+          backgroundColor: "#171520",
         },
       },
     ],

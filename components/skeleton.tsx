@@ -85,10 +85,10 @@ export function SkeletonCard({ lines = 3 }: { lines?: number }) {
   return (
     <View style={{
       padding: 18,
-      borderRadius: 20,
-      backgroundColor: colors.surface + "E8",
+      borderRadius: 24,
+      backgroundColor: colors.surface + "C0",
       borderWidth: 1,
-      borderColor: colors.border + "66",
+      borderColor: colors.primary + "22",
       marginBottom: 12,
     }}>
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>

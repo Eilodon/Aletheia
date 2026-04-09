@@ -136,8 +136,8 @@ export default function PassageScreen() {
             style={[
               styles.stateBand,
               {
-                backgroundColor: colors.surface + "CC",
-                borderColor: colors.border + "55",
+                backgroundColor: colors.surface + "B8",
+                borderColor: colors.primary + "22",
               },
             ]}
           >
@@ -167,8 +167,8 @@ export default function PassageScreen() {
             style={[
               styles.passageCard,
               {
-                backgroundColor: colors.surface + "F0",
-                borderColor: colors.primary + "50",
+                backgroundColor: colors.surface + "C8",
+                borderColor: colors.primary + "42",
               },
             ]}
           >
@@ -187,8 +187,8 @@ export default function PassageScreen() {
               style={[
                 styles.contextCard,
                 {
-                  backgroundColor: colors.surface + "B8",
-                  borderColor: colors.border + "44",
+                  backgroundColor: colors.surface + "A8",
+                  borderColor: colors.primary + "1C",
                 },
               ]}
             >
@@ -207,8 +207,8 @@ export default function PassageScreen() {
                 style={[
                   styles.aiButton,
                   {
-                    backgroundColor: colors.primary + "18",
-                    borderColor: colors.primary + "72",
+                    backgroundColor: colors.primary + "16",
+                    borderColor: colors.primary + "64",
                     opacity: passageActionsReady ? 1 : 0.45,
                   },
                 ]}
@@ -222,7 +222,7 @@ export default function PassageScreen() {
             ) : null}
 
             {showAI && (!aiResponse || isRequestingAI) ? (
-              <View style={[styles.aiCard, { backgroundColor: colors.surface + "D8", borderColor: colors.border + "55" }]}>
+              <View style={[styles.aiCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "24" }]}>
                 <Text style={[styles.aiStatus, { color: colors.primary }]}>Đang xin diễn giải...</Text>
                 <Text style={[styles.aiStatusHint, { color: colors.muted }]}>
                   Aletheia đang ghép tình huống, biểu tượng và ngữ cảnh của đoạn trích.
@@ -236,8 +236,8 @@ export default function PassageScreen() {
                 style={[
                   styles.aiCard,
                   {
-                    backgroundColor: colors.surface + "F0",
-                    borderColor: isAIFallback ? colors.border + "66" : colors.primary + "66",
+                    backgroundColor: colors.surface + "C4",
+                    borderColor: isAIFallback ? colors.border + "66" : colors.primary + "4A",
                   },
                 ]}
               >
@@ -260,8 +260,8 @@ export default function PassageScreen() {
               style={[
                 styles.secondaryButton,
                 {
-                  backgroundColor: colors.surface + "E8",
-                  borderColor: colors.border + "66",
+                  backgroundColor: colors.surface + "B8",
+                  borderColor: colors.primary + "22",
                   opacity: passageActionsReady && !isCompleting && !isRequestingAI ? 1 : 0.5,
                 },
               ]}
@@ -277,8 +277,8 @@ export default function PassageScreen() {
               style={[
                 styles.primaryButton,
                 {
-                  backgroundColor: isCompleting ? colors.primary + "26" : colors.surface + "F4",
-                  borderColor: colors.primary + "88",
+                  backgroundColor: isCompleting ? colors.primary + "20" : colors.primary + "18",
+                  borderColor: colors.primary + "72",
                   opacity: passageActionsReady && !isRequestingAI ? 1 : 0.5,
                 },
               ]}
@@ -298,19 +298,20 @@ const styles = StyleSheet.create({
   header: {
     alignItems: "center",
     gap: 10,
-    paddingTop: 24,
+    paddingTop: 28,
     paddingBottom: 18,
   },
   symbolName: {
-    fontSize: 12,
-    letterSpacing: 2.4,
+    fontSize: 11,
+    letterSpacing: 3,
     textTransform: "uppercase",
   },
   sourceName: {
     fontSize: 12,
+    fontStyle: "italic",
   },
   stateBand: {
-    borderRadius: 20,
+    borderRadius: 24,
     borderWidth: 1,
     marginBottom: 16,
     paddingHorizontal: 18,
@@ -332,29 +333,30 @@ const styles = StyleSheet.create({
   stateBandLabel: {
     fontSize: 10,
     textTransform: "uppercase",
-    letterSpacing: 1.8,
+    letterSpacing: 2.2,
   },
   stateBandValue: {
     fontSize: 14,
     fontWeight: "600",
   },
   passageCard: {
-    borderRadius: 30,
+    borderRadius: 32,
     borderWidth: 1.2,
     paddingHorizontal: 24,
-    paddingVertical: 28,
-    marginBottom: 14,
-    gap: 6,
+    paddingVertical: 30,
+    marginBottom: 16,
+    gap: 8,
   },
   quoteMark: {
-    fontSize: 40,
-    lineHeight: 40,
+    fontSize: 46,
+    lineHeight: 44,
     textAlign: "center",
   },
   passageText: {
-    fontSize: 25,
-    lineHeight: 39,
+    fontSize: 24,
+    lineHeight: 40,
     textAlign: "center",
+    letterSpacing: 0.2,
   },
   referenceBlock: {
     alignItems: "center",
@@ -367,10 +369,11 @@ const styles = StyleSheet.create({
   },
   referenceText: {
     fontSize: 12,
-    letterSpacing: 0.4,
+    letterSpacing: 1.2,
+    textTransform: "uppercase",
   },
   contextCard: {
-    borderRadius: 18,
+    borderRadius: 22,
     borderWidth: 1,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -392,7 +395,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   aiButton: {
-    borderRadius: 22,
+    borderRadius: 24,
     borderWidth: 1,
     paddingHorizontal: 22,
     paddingVertical: 18,
@@ -406,13 +409,16 @@ const styles = StyleSheet.create({
   },
   aiButtonText: {
     fontSize: 18,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
   },
   aiButtonHint: {
     fontSize: 12,
     textAlign: "center",
+    fontStyle: "italic",
   },
   aiCard: {
-    borderRadius: 22,
+    borderRadius: 24,
     borderWidth: 1,
     paddingHorizontal: 20,
     paddingVertical: 18,
@@ -430,12 +436,14 @@ const styles = StyleSheet.create({
   },
   aiLabel: {
     fontSize: 11,
-    letterSpacing: 2,
+    letterSpacing: 2.2,
+    textTransform: "uppercase",
   },
   aiBody: {
     fontSize: 15,
-    lineHeight: 25,
+    lineHeight: 27,
     width: "100%",
+    fontStyle: "italic",
   },
   spacer: {
     flex: 1,
@@ -446,7 +454,7 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   secondaryButton: {
-    borderRadius: 20,
+    borderRadius: 22,
     borderWidth: 1,
     paddingVertical: 16,
     alignItems: "center",
@@ -454,6 +462,7 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 15,
     fontWeight: "500",
+    letterSpacing: 0.5,
   },
   primaryButton: {
     borderRadius: 22,
@@ -463,5 +472,7 @@ const styles = StyleSheet.create({
   },
   primaryButtonText: {
     fontSize: 18,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
   },
 });

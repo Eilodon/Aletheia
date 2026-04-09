@@ -16,6 +16,7 @@ export default function RitualScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.88)).current;
   const pulseAnim = useRef(new Animated.Value(0.96)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
@@ -48,6 +49,14 @@ export default function RitualScreen() {
           }),
         ]),
       ),
+      Animated.loop(
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 14000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ),
     ]).start();
 
     const timeout = setTimeout(() => {
@@ -55,7 +64,17 @@ export default function RitualScreen() {
     }, 1800);
 
     return () => clearTimeout(timeout);
-  }, [fadeAnim, pulseAnim, router, scaleAnim]);
+  }, [fadeAnim, pulseAnim, router, rotateAnim, scaleAnim]);
+
+  const slowRotate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
+
+  const reverseRotate = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "-360deg"],
+  });
 
   return (
     <ScreenContainer className="px-6 py-6 justify-center items-center">
@@ -70,8 +89,8 @@ export default function RitualScreen() {
             style={[
               styles.outerHalo,
               {
-                borderColor: colors.primary + "35",
-                transform: [{ scale: pulseAnim }],
+                borderColor: colors.primary + "24",
+                transform: [{ scale: pulseAnim }, { rotate: slowRotate }],
               },
             ]}
           />
@@ -80,7 +99,16 @@ export default function RitualScreen() {
               styles.middleHalo,
               {
                 borderColor: colors.border + "95",
-                transform: [{ scale: pulseAnim }],
+                transform: [{ scale: pulseAnim }, { rotate: reverseRotate }],
+              },
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.innerHalo,
+              {
+                borderColor: colors.primary + "18",
+                transform: [{ rotate: slowRotate }],
               },
             ]}
           />
@@ -90,13 +118,8 @@ export default function RitualScreen() {
         </View>
 
         <View style={styles.textGroup}>
-          <Text style={[styles.kicker, { color: colors.primary }]}>
-            {selectedSymbol?.display_name?.toUpperCase() || "NGHI THỨC"}
-          </Text>
-          <Text
-            testID="reading-ritual-title"
-            style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}
-          >
+          <Text style={[styles.kicker, { color: colors.primary }]}>{selectedSymbol?.display_name?.toUpperCase() || "NGHI THỨC"}</Text>
+          <Text testID="reading-ritual-title" style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}>
             Đang mở passage
           </Text>
           <Text style={[styles.subtitle, { color: colors.muted }]}>
@@ -110,22 +133,30 @@ export default function RitualScreen() {
 
 const styles = StyleSheet.create({
   shell: {
-    width: 250,
-    height: 250,
+    width: 270,
+    height: 270,
     alignItems: "center",
     justifyContent: "center",
   },
   outerHalo: {
     position: "absolute",
-    width: 220,
-    height: 220,
+    width: 236,
+    height: 236,
     borderRadius: 999,
     borderWidth: 1,
+    borderStyle: "dashed",
   },
   middleHalo: {
     position: "absolute",
-    width: 176,
-    height: 176,
+    width: 186,
+    height: 186,
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  innerHalo: {
+    position: "absolute",
+    width: 148,
+    height: 148,
     borderRadius: 999,
     borderWidth: 1,
   },
@@ -138,22 +169,25 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   textGroup: {
-    marginTop: 20,
+    marginTop: 16,
     alignItems: "center",
     gap: 10,
   },
   kicker: {
-    fontSize: 11,
-    letterSpacing: 2.4,
+    fontSize: 10,
+    letterSpacing: 3,
+    textTransform: "uppercase",
   },
   title: {
     fontSize: 30,
-    letterSpacing: 0.8,
+    letterSpacing: 1.2,
+    textAlign: "center",
   },
   subtitle: {
     maxWidth: 260,
     textAlign: "center",
     fontSize: 13,
     lineHeight: 20,
+    fontStyle: "italic",
   },
 });

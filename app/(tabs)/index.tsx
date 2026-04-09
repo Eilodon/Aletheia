@@ -28,11 +28,20 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
         <View style={styles.root}>
           <View style={styles.hero}>
-            <View style={[styles.heroHalo, { backgroundColor: colors.primary + "12" }]} />
-            <RitualOrnament variant="eye" size="lg" />
-            <Text style={[styles.kicker, { color: colors.primary }]}>A mirror, not a promise</Text>
+            <View style={[styles.heroHalo, { backgroundColor: colors.primary + "0E" }]} />
+            <View style={[styles.heroRing, { borderColor: colors.primary + "16" }]} />
+            <View style={[styles.heroRingInner, { borderColor: colors.primary + "12" }]} />
+            <View style={styles.brandMark}>
+              <RitualOrnament variant="eye" size="lg" />
+            </View>
+            <View style={styles.brandRule}>
+              <View style={[styles.ruleLine, { backgroundColor: colors.primary + "30" }]} />
+              <View style={[styles.ruleDiamond, { borderColor: colors.primary + "88", backgroundColor: colors.primary + "16" }]} />
+              <View style={[styles.ruleLine, { backgroundColor: colors.primary + "30" }]} />
+            </View>
+            <Text style={[styles.kicker, { color: colors.primary }]}>not a fortune • a mirror</Text>
             <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}>ALETHEIA</Text>
-            <RitualOrnament variant="line" />
+            <Text style={[styles.tagline, { color: colors.foreground }]}>Dừng lại. Phản chiếu. Hiểu.</Text>
             <Text style={[styles.subtitle, { color: colors.muted }]}>
               Dừng lại trong vài phút. Gọi tên điều bạn đang mang. Rồi để một đoạn trích phản chiếu lại nó.
             </Text>
@@ -46,14 +55,14 @@ export default function HomeScreen() {
               style={({ pressed }) => [
                 styles.ctaButton,
                 {
-                  backgroundColor: colors.surface + "F2",
-                  borderColor: colors.primary + "88",
+                  backgroundColor: colors.primary + "18",
+                  borderColor: colors.primary + "72",
                   transform: [{ scale: pressed ? 0.98 : 1 }],
                 },
               ]}
             >
               <Text style={[styles.ctaGlyph, { color: colors.primary }]}>✦</Text>
-              <Text style={[styles.ctaText, { color: colors.foreground, fontFamily: Fonts.serif }]}>Bắt đầu nghi thức</Text>
+              <Text style={[styles.ctaText, { color: colors.foreground, fontFamily: Fonts.serif }]}>Lật một lá</Text>
               <Text style={[styles.ctaGlyph, { color: colors.primary }]}>✦</Text>
             </Pressable>
             <Text style={[styles.ctaHint, { color: colors.muted }]}>
@@ -65,8 +74,8 @@ export default function HomeScreen() {
             style={[
               styles.featureCard,
               {
-                backgroundColor: colors.surface + "E6",
-                borderColor: colors.border + "66",
+                backgroundColor: colors.surface + "CC",
+                borderColor: colors.primary + "28",
               },
             ]}
           >
@@ -86,7 +95,7 @@ export default function HomeScreen() {
               "AI chỉ xuất hiện khi bạn yêu cầu",
               "Thiết kế chậm, tối, tập trung vào phản chiếu",
             ].map((item) => (
-              <View key={item} style={[styles.pillar, { backgroundColor: colors.surface + "CC", borderColor: colors.border + "55" }]}>
+              <View key={item} style={[styles.pillar, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "1E" }]}>
                 <Text style={[styles.pillarText, { color: colors.foreground }]}>{item}</Text>
               </View>
             ))}
@@ -112,48 +121,91 @@ const styles = StyleSheet.create({
   hero: {
     alignItems: "center",
     gap: 12,
-    paddingTop: 28,
+    paddingTop: 36,
+    paddingBottom: 8,
   },
   heroHalo: {
     position: "absolute",
-    width: 240,
-    height: 240,
-    borderRadius: 120,
-    top: -24,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    top: -26,
+  },
+  heroRing: {
+    position: "absolute",
+    width: 248,
+    height: 248,
+    borderRadius: 124,
+    top: 2,
+    borderWidth: 1,
+  },
+  heroRingInner: {
+    position: "absolute",
+    width: 208,
+    height: 208,
+    borderRadius: 104,
+    top: 22,
+    borderWidth: 1,
+  },
+  brandMark: {
+    marginBottom: 6,
+  },
+  brandRule: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: 2,
+  },
+  ruleLine: {
+    width: 44,
+    height: 1,
+  },
+  ruleDiamond: {
+    width: 8,
+    height: 8,
+    transform: [{ rotate: "45deg" }],
+    borderWidth: 1,
   },
   kicker: {
-    fontSize: 11,
-    letterSpacing: 2.8,
+    fontSize: 10,
+    letterSpacing: 3.2,
     textTransform: "uppercase",
   },
   title: {
-    fontSize: 42,
-    letterSpacing: 7,
+    fontSize: 44,
+    letterSpacing: 9,
+  },
+  tagline: {
+    fontSize: 13,
+    letterSpacing: 4,
+    textTransform: "uppercase",
+    textAlign: "center",
   },
   subtitle: {
     maxWidth: 320,
     textAlign: "center",
     fontSize: 15,
-    lineHeight: 24,
+    lineHeight: 25,
+    fontStyle: "italic",
   },
   ctaGroup: {
     alignItems: "center",
     gap: 12,
   },
   ctaButton: {
-    minWidth: 260,
+    minWidth: 270,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 12,
-    paddingHorizontal: 26,
+    paddingHorizontal: 28,
     paddingVertical: 18,
-    borderRadius: 24,
+    borderRadius: 22,
     borderWidth: 1.2,
     shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.2,
+    shadowRadius: 28,
     elevation: 6,
   },
   ctaGlyph: {
@@ -161,20 +213,22 @@ const styles = StyleSheet.create({
   },
   ctaText: {
     fontSize: 18,
-    letterSpacing: 1.1,
+    letterSpacing: 1.9,
+    textTransform: "uppercase",
   },
   ctaHint: {
     maxWidth: 300,
     textAlign: "center",
     fontSize: 13,
     lineHeight: 20,
+    fontStyle: "italic",
   },
   featureCard: {
-    borderRadius: 24,
+    borderRadius: 28,
     paddingHorizontal: 22,
-    paddingVertical: 20,
+    paddingVertical: 22,
     borderWidth: 1,
-    gap: 10,
+    gap: 12,
   },
   featureLabel: {
     fontSize: 10,
@@ -182,8 +236,8 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   featureQuote: {
-    fontSize: 20,
-    lineHeight: 30,
+    fontSize: 21,
+    lineHeight: 31,
   },
   featureFooter: {
     flexDirection: "row",
@@ -202,14 +256,14 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   pillar: {
-    borderRadius: 18,
+    borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 15,
     borderWidth: 1,
   },
   pillarText: {
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 21,
   },
   footer: {
     alignItems: "center",

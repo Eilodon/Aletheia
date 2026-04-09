@@ -63,7 +63,7 @@ function SymbolCard({
         styles.cardShell,
         {
           opacity: isSelected ? 1 : pressed ? 0.9 : 1,
-          transform: [{ scale: isSelected ? 1.01 : pressed ? 0.98 : 1 }],
+          transform: [{ scale: isSelected ? 1.02 : pressed ? 0.98 : 1 }],
         },
       ]}
     >
@@ -73,8 +73,8 @@ function SymbolCard({
             styles.cardFace,
             {
               transform: [{ rotateY: frontRotate }],
-              backgroundColor: colors.surface + "ED",
-              borderColor: colors.primary + "55",
+              backgroundColor: colors.surface + "D2",
+              borderColor: colors.primary + "42",
             },
           ]}
         >
@@ -88,20 +88,16 @@ function SymbolCard({
             styles.cardBack,
             {
               transform: [{ rotateY: backRotate }],
-              backgroundColor: isSelected ? colors.primary + "E6" : colors.surface + "F2",
-              borderColor: isSelected ? colors.primary + "AA" : colors.border + "88",
+              backgroundColor: isSelected ? colors.primary + "1F" : colors.surface + "C8",
+              borderColor: isSelected ? colors.primary + "88" : colors.primary + "28",
             },
           ]}
         >
-          <Text style={[styles.symbolTitle, { color: isSelected ? colors.background : colors.foreground, fontFamily: Fonts.serif }]}>
-            {symbol.display_name}
-          </Text>
+          <Text style={[styles.symbolTitle, { color: colors.foreground, fontFamily: Fonts.serif }]}>{symbol.display_name}</Text>
           {symbol.flavor_text ? (
-            <Text style={[styles.symbolFlavor, { color: isSelected ? colors.background + "CC" : colors.muted }]}>
-              {symbol.flavor_text}
-            </Text>
+            <Text style={[styles.symbolFlavor, { color: isSelected ? colors.foreground : colors.muted }]}>{symbol.flavor_text}</Text>
           ) : null}
-          <Text style={[styles.symbolGlyph, { color: isSelected ? colors.background + "AA" : colors.primary }]}>✦</Text>
+          <Text style={[styles.symbolGlyph, { color: colors.primary }]}>✦</Text>
         </Animated.View>
       </View>
     </Pressable>
@@ -183,17 +179,17 @@ export default function WildcardScreen() {
   return (
     <ScreenContainer className="px-5 pb-6">
       <View style={styles.screen}>
+        <View style={[styles.deckHalo, { backgroundColor: colors.primary + "0D" }]} />
+
         <View style={styles.header}>
           <RitualOrnament variant="line" />
-          <Text
-            testID="reading-wildcard-title"
-            style={[styles.headerTitle, { color: colors.foreground, fontFamily: Fonts.serif }]}
-          >
+          <Text testID="reading-wildcard-title" style={[styles.headerTitle, { color: colors.foreground, fontFamily: Fonts.serif }]}>
             Chọn một biểu tượng
           </Text>
           <Text style={[styles.headerMeta, { color: colors.muted }]}>
             {session.theme.name} • {session.symbols.length} dấu hiệu đang chờ bạn
           </Text>
+          <Text style={[styles.headerHint, { color: colors.primary }]}>Đừng chọn bằng lý trí quá nhanh.</Text>
         </View>
 
         <View style={styles.cardsRow}>
@@ -225,8 +221,8 @@ export default function WildcardScreen() {
                 style={[
                   styles.secondaryButton,
                   {
-                    backgroundColor: colors.surface + "E6",
-                    borderColor: colors.primary + "66",
+                    backgroundColor: colors.primary + "15",
+                    borderColor: colors.primary + "60",
                     opacity: isAutoSelecting ? 0.6 : 1,
                   },
                 ]}
@@ -238,9 +234,7 @@ export default function WildcardScreen() {
             </>
           ) : null}
 
-          {selectedSymbolId ? (
-            <Text style={[styles.autoText, { color: colors.primary }]}>Đang mở lá bài...</Text>
-          ) : null}
+          {selectedSymbolId ? <Text style={[styles.autoText, { color: colors.primary }]}>Đang mở lá bài...</Text> : null}
         </View>
       </View>
     </ScreenContainer>
@@ -251,6 +245,15 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     paddingTop: 18,
+    position: "relative",
+  },
+  deckHalo: {
+    position: "absolute",
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    alignSelf: "center",
+    top: 88,
   },
   header: {
     alignItems: "center",
@@ -264,6 +267,12 @@ const styles = StyleSheet.create({
   headerMeta: {
     fontSize: 13,
     textAlign: "center",
+    fontStyle: "italic",
+  },
+  headerHint: {
+    fontSize: 10,
+    letterSpacing: 2.6,
+    textTransform: "uppercase",
   },
   cardsRow: {
     flex: 1,
@@ -283,7 +292,7 @@ const styles = StyleSheet.create({
   cardFace: {
     position: "absolute",
     inset: 0,
-    borderRadius: 22,
+    borderRadius: 24,
     borderWidth: 1.2,
     alignItems: "center",
     justifyContent: "center",
@@ -291,23 +300,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 18,
     gap: 12,
+    shadowColor: "#000000",
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.22,
+    shadowRadius: 24,
+    elevation: 7,
   },
   cardBack: {
     justifyContent: "space-between",
   },
   faceHint: {
     fontSize: 11,
-    letterSpacing: 1.8,
+    letterSpacing: 2.2,
     textTransform: "uppercase",
   },
   symbolTitle: {
-    fontSize: 24,
+    fontSize: 21,
     textAlign: "center",
   },
   symbolFlavor: {
     fontSize: 12,
     lineHeight: 18,
     textAlign: "center",
+    fontStyle: "italic",
   },
   symbolGlyph: {
     fontSize: 16,
@@ -320,6 +335,7 @@ const styles = StyleSheet.create({
   },
   autoText: {
     fontSize: 13,
+    fontStyle: "italic",
   },
   progressTrack: {
     width: 140,
@@ -332,12 +348,14 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   secondaryButton: {
-    borderRadius: 20,
+    borderRadius: 22,
     borderWidth: 1,
     paddingHorizontal: 18,
     paddingVertical: 14,
   },
   secondaryButtonText: {
-    fontSize: 16,
+    fontSize: 15,
+    letterSpacing: 1.1,
+    textTransform: "uppercase",
   },
 });

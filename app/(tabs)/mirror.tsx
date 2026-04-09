@@ -220,11 +220,11 @@ export default function HistoryScreen() {
     <PressableCard
       onPress={() => handleReadingPress(item)}
       style={{
-        padding: 18,
-        borderRadius: 20,
-        backgroundColor: colors.surface + "E0",
+        padding: 20,
+        borderRadius: 24,
+        backgroundColor: colors.surface + "C8",
         borderWidth: 1,
-        borderColor: colors.border + "66",
+        borderColor: colors.primary + "22",
         marginBottom: 14,
       }}
     >
@@ -237,12 +237,12 @@ export default function HistoryScreen() {
         </View>
         {item.ai_interpreted && (
           <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, backgroundColor: colors.primary + "1E", borderWidth: 1, borderColor: colors.primary + "44" }}>
-            <Text style={{ fontSize: 11, color: colors.primary, fontWeight: "600" }}>AI</Text>
+            <Text style={{ fontSize: 10, color: colors.primary, fontWeight: "600", letterSpacing: 1, textTransform: "uppercase" }}>AI</Text>
           </View>
         )}
       </View>
       
-      <Text style={{ fontSize: 16, color: colors.foreground, marginBottom: 12, lineHeight: 24, fontFamily: Fonts.serif }} numberOfLines={2}>
+      <Text style={{ fontSize: 17, color: colors.foreground, marginBottom: 12, lineHeight: 26, fontFamily: Fonts.serif }} numberOfLines={2}>
         {item.situation_text || "Không có tình huống"}
       </Text>
       
@@ -279,7 +279,7 @@ export default function HistoryScreen() {
         <Pressable
           onPress={() => router.push("/reading/situation")}
           className="mt-6 px-6 py-3 rounded-xl"
-          style={{ backgroundColor: colors.surface + "F2", borderWidth: 1, borderColor: colors.primary + "88" }}
+          style={{ backgroundColor: colors.primary + "18", borderWidth: 1, borderColor: colors.primary + "72" }}
         >
           <Text className="text-base text-foreground" style={{ fontFamily: Fonts.serif }}>Bắt đầu đọc</Text>
         </Pressable>
@@ -297,10 +297,10 @@ export default function HistoryScreen() {
       <View style={{ width: "100%", gap: 12, marginTop: 8 }}>
         <View
           style={{
-            borderRadius: 18,
+            borderRadius: 22,
             borderWidth: 1,
-            borderColor: colors.border + "66",
-            backgroundColor: colors.surface + "D8",
+            borderColor: colors.primary + "22",
+            backgroundColor: colors.surface + "BC",
             paddingHorizontal: 14,
           }}
         >
@@ -330,12 +330,12 @@ export default function HistoryScreen() {
                   paddingHorizontal: 14,
                   paddingVertical: 10,
                   borderRadius: 18,
-                  backgroundColor: active ? colors.surface + "F2" : colors.surface + "DA",
+                  backgroundColor: active ? colors.primary + "18" : colors.surface + "DA",
                   borderWidth: 1,
-                  borderColor: active ? colors.primary + "88" : colors.border + "66",
+                  borderColor: active ? colors.primary + "72" : colors.primary + "22",
                 }}
               >
-                <Text style={{ color: active ? colors.foreground : colors.muted, fontSize: 13 }}>
+                <Text style={{ color: active ? colors.foreground : colors.muted, fontSize: 12, letterSpacing: 0.5, textTransform: "uppercase" }}>
                   {option.label}
                 </Text>
               </Pressable>
@@ -359,7 +359,7 @@ export default function HistoryScreen() {
                   backgroundColor: active ? colors.primary + "18" : "transparent",
                 }}
               >
-                <Text style={{ color: active ? colors.primary : colors.muted, fontSize: 12, letterSpacing: 0.3 }}>
+                <Text style={{ color: active ? colors.primary : colors.muted, fontSize: 12, letterSpacing: 0.8, textTransform: "uppercase" }}>
                   {option.label}
                 </Text>
               </Pressable>

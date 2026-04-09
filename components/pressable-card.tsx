@@ -46,16 +46,16 @@ export function PressableCard({
   };
 
   const cardStyle = {
-    backgroundColor: colors.surface + "D8",
-    borderRadius: 18,
-    padding: 18,
+    backgroundColor: colors.surface + "D0",
+    borderRadius: 24,
+    padding: 20,
     borderWidth: 1,
-    borderColor: colors.border + "60",
+    borderColor: colors.primary + "24",
     shadowColor: "#000000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 22,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.22,
+    shadowRadius: 28,
+    elevation: 6,
   };
 
   return (
@@ -127,7 +127,7 @@ export function AnimatedButton({
   };
 
   const variantStyles = {
-    primary: { backgroundColor: colors.primary, borderWidth: 1, borderColor: colors.primary + "AA" },
+    primary: { backgroundColor: colors.primary + "1C", borderWidth: 1, borderColor: colors.primary + "7A" },
     secondary: { backgroundColor: colors.surface + "D0", borderWidth: 1, borderColor: colors.border + "66" },
     ghost: { backgroundColor: "transparent" },
   };
@@ -139,7 +139,7 @@ export function AnimatedButton({
   };
 
   const textVariantStyles = {
-    primary: { color: "#FFFFFF" },
+    primary: { color: colors.foreground },
     secondary: { color: colors.foreground },
     ghost: { color: colors.primary },
   };
@@ -159,7 +159,7 @@ export function AnimatedButton({
     >
       <Animated.View
         style={[
-          { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 20 },
+          { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, borderRadius: 22 },
           variantStyles[variant],
           sizeStyles[size],
           disabled && { opacity: 0.5 },
