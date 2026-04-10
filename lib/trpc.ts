@@ -27,13 +27,9 @@ export function createTRPCClient() {
         transformer: superjson,
         async headers() {
           const token = await Auth.getSessionToken();
-          const appSecret = process.env.EXPO_PUBLIC_ALETHEIA_APP_SECRET ?? "";
           const headers: Record<string, string> = {};
           if (token) {
             headers.Authorization = `Bearer ${token}`;
-          }
-          if (appSecret) {
-            headers["x-aletheia-app-secret"] = appSecret;
           }
           return headers;
         },

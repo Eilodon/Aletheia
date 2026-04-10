@@ -830,6 +830,7 @@ impl Store {
                 if state.last_reading_date.as_deref() != Some(today.as_str()) {
                     state.readings_today = 0;
                     state.ai_calls_today = 0;
+                    state.last_reading_date = Some(today);
                     self.update_user_state(&state)?;
                 }
                 Ok(state)
@@ -1130,7 +1131,7 @@ mod tests {
         let source = create_test_source();
         store.insert_source(&source).unwrap();
 
-        let result = store.get_random_source(false);
+        let result = store.get_random_source(false, None);
         assert!(
             result.is_ok(),
             "Failed to get random source: {:?}",
@@ -1262,6 +1263,25 @@ mod tests {
         store.increment_readings_today("test-user").unwrap();
         let updated_state = store.get_user_state("test-user").unwrap();
         assert_eq!(updated_state.readings_today, 1);
+    }
+
+    #[test]
+    fn test_user_state_daily_reset_updates_last_reading_date() {
+        let store = create_test_store().unwrap();
+
+        let mut state = UserState::default();
+        state.user_id = "dated-user".to_string();
+        state.readings_today = 3;
+        state.ai_calls_today = 2;
+        state.last_reading_date = Some("2025-06-14".to_string());
+        store.insert_user_state(&state).unwrap();
+
+        store.set_local_date("2025-06-15".to_string());
+        let updated_state = store.get_user_state("dated-user").unwrap();
+
+        assert_eq!(updated_state.readings_today, 0);
+        assert_eq!(updated_state.ai_calls_today, 0);
+        assert_eq!(updated_state.last_reading_date.as_deref(), Some("2025-06-15"));
     }
 
     #[test]

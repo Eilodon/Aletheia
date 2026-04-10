@@ -66,7 +66,7 @@ class ThemeEngineService {
   /**
    * Get theme by ID
    */
-  async getThemeById(themeId: string): Promise<Theme | null> {
+  async getThemeById(_themeId: string): Promise<Theme | null> {
     // This would need a new method in store if needed
     return null;
   }

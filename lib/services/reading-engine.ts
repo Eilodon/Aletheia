@@ -113,7 +113,7 @@ class ReadingEngineService {
   async chooseSymbol(
     session: ReadingSession,
     symbolId: string,
-    method: SymbolMethod
+    _method: SymbolMethod
   ): Promise<{ passage: Passage; reading_id: string }> {
     try {
       // Validate symbol

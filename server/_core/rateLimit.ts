@@ -7,11 +7,7 @@ export const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later" },
-  keyGenerator: (req: Request): string => {
-    // Use IP + user ID if authenticated, otherwise just IP
-    const userId = req.headers["x-user-id"] as string | undefined;
-    return userId ? `${req.ip}-${userId}` : req.ip || "unknown";
-  },
+  keyGenerator: (req: Request): string => req.ip || "unknown",
 });
 
 export const authLimiter = rateLimit({
@@ -29,8 +25,5 @@ export const aiApiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "AI request limit exceeded, please try again later" },
-  keyGenerator: (req: Request): string => {
-    const userId = req.headers["x-user-id"] as string | undefined;
-    return userId || req.ip || "unknown";
-  },
+  keyGenerator: (req: Request): string => req.ip || "unknown",
 });

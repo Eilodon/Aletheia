@@ -109,13 +109,14 @@ const mockDb = vi.hoisted(() => ({
       return;
     }
 
-    if (query.includes("UPDATE user_state SET readings_today = 0, ai_calls_today = 0")) {
+    if (query.includes("UPDATE user_state SET readings_today = 0, ai_calls_today = 0, last_reading_date = ?")) {
       const table = "user_state";
       const rows = mockDb.data.get(table) || [];
-      const idx = rows.findIndex((r) => r.user_id === params?.[0]);
+      const idx = rows.findIndex((r) => r.user_id === params?.[1]);
       if (idx >= 0) {
         rows[idx].readings_today = 0;
         rows[idx].ai_calls_today = 0;
+        rows[idx].last_reading_date = params?.[0];
         mockDb.data.set(table, rows);
       }
       return;
@@ -249,6 +250,7 @@ describe("StoreService", () => {
       // ASSERT
       expect(userState.readings_today).toBe(0);
       expect(userState.ai_calls_today).toBe(0);
+      expect(userState.last_reading_date).toBe("2025-06-15");
     });
 
     it("does NOT reset when last_reading_date is today", async () => {

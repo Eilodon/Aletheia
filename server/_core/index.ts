@@ -3,13 +3,40 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
-// import { registerOAuthRoutes } from "./oauth"; // ADR-AL-21: OAuth disabled
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { validateServerEnv, ENV } from "./env";
 import { apiLimiter, aiApiLimiter } from "./rateLimit";
 import { getReleaseReadiness } from "./releaseReadiness";
 import { getDb } from "../db";
+
+function getAllowedOrigins(): Set<string> {
+  const configured = (process.env.CORS_ALLOWED_ORIGINS ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  const defaults = [
+    "http://localhost:8081",
+    "http://127.0.0.1:8081",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://localhost:8081",
+    "https://127.0.0.1:8081",
+    "https://localhost:3000",
+    "https://127.0.0.1:3000",
+  ];
+
+  return new Set([...defaults, ...configured]);
+}
+
+function isAllowedOrigin(origin: string | undefined, allowedOrigins: Set<string>): boolean {
+  if (!origin) {
+    return true;
+  }
+
+  return allowedOrigins.has(origin);
+}
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
@@ -32,24 +59,29 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 
 async function startServer() {
   validateServerEnv();
+  const allowedOrigins = getAllowedOrigins();
 
   const app = express();
   const server = createServer(app);
 
-  // Enable CORS for all routes - reflect the request origin to support credentials
   app.use((req, res, next) => {
     const origin = req.headers.origin;
+    if (origin && !isAllowedOrigin(origin, allowedOrigins)) {
+      res.status(403).json({ error: "Origin not allowed" });
+      return;
+    }
+
     if (origin) {
       res.header("Access-Control-Allow-Origin", origin);
+      res.header("Vary", "Origin");
     }
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-      res.header(
-        "Access-Control-Allow-Headers",
-        "Origin, X-Requested-With, Content-Type, Accept, Authorization, x-aletheia-app-secret",
-      );
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+    );
     res.header("Access-Control-Allow-Credentials", "true");
 
-    // Handle preflight requests
     if (req.method === "OPTIONS") {
       res.sendStatus(200);
       return;
@@ -59,8 +91,6 @@ async function startServer() {
 
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
-
-  // registerOAuthRoutes(app); // ADR-AL-21: OAuth disabled
 
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, timestamp: Date.now() });

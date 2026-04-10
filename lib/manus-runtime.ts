@@ -33,6 +33,23 @@ interface SpacePreviewerMessage {
   };
 }
 
+function getAllowedParentOrigin(): string | null {
+  if (!isWeb() || !isInIframe() || typeof document === "undefined") {
+    return null;
+  }
+
+  const referrer = document.referrer;
+  if (!referrer) {
+    return null;
+  }
+
+  try {
+    return new URL(referrer).origin;
+  } catch {
+    return null;
+  }
+}
+
 function isInIframe(): boolean {
   if (Platform.OS !== "web") return false;
   try {
@@ -47,14 +64,15 @@ function isWeb(): boolean {
 }
 
 function sendToParent(type: MessageType, payload: Record<string, unknown> = {}): void {
-  // NOTE: Validate parent origin if we need to transfer sensitive data
   if (!isWeb() || !isInIframe()) return;
+  const parentOrigin = getAllowedParentOrigin();
+  if (!parentOrigin) return;
 
   const message: SpacePreviewerMessage = {
     type: "SpacePreviewerChannel",
     payload: { type, from: "content", to: "container", payload },
   };
-  window.parent.postMessage(message, "*");
+  window.parent.postMessage(message, parentOrigin);
   log(`Sent to parent: ${type}`);
 }
 
@@ -71,7 +89,9 @@ function isValidInsets(payload: Record<string, unknown>): payload is SafeAreaIns
 }
 
 function handleMessage(event: MessageEvent<unknown>): void {
-  // NOTE: Validate event.origin if we need to transfer sensitive data
+  const parentOrigin = getAllowedParentOrigin();
+  if (!parentOrigin || event.origin !== parentOrigin) return;
+
   const data = event.data as SpacePreviewerMessage | undefined;
   if (!data || data.type !== "SpacePreviewerChannel") return;
 

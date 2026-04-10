@@ -26,6 +26,8 @@
  * ```
  */
 import { ENV } from "./env";
+import dns from "node:dns/promises";
+import net from "node:net";
 
 export type TranscribeOptions = {
   audioUrl: string; // URL to the audio file (e.g., S3 URL)
@@ -69,6 +71,85 @@ export type TranscriptionError = {
   details?: string;
 };
 
+function isPrivateIpAddress(host: string): boolean {
+  if (!net.isIP(host)) {
+    return false;
+  }
+
+  if (net.isIPv4(host)) {
+    if (host.startsWith("10.") || host.startsWith("127.") || host.startsWith("0.")) return true;
+    if (host.startsWith("169.254.") || host.startsWith("192.168.")) return true;
+    const match = host.match(/^172\.(\d+)\./);
+    if (match) {
+      const secondOctet = Number(match[1]);
+      if (secondOctet >= 16 && secondOctet <= 31) return true;
+    }
+    return false;
+  }
+
+  const normalized = host.toLowerCase();
+  return (
+    normalized === "::1" ||
+    normalized.startsWith("fc") ||
+    normalized.startsWith("fd") ||
+    normalized.startsWith("fe80:")
+  );
+}
+
+async function validateAudioUrl(audioUrl: string): Promise<{ ok: true } | TranscriptionError> {
+  let parsed: URL;
+  try {
+    parsed = new URL(audioUrl);
+  } catch {
+    return {
+      error: "Invalid audio URL",
+      code: "INVALID_FORMAT",
+      details: "audioUrl must be a valid absolute URL",
+    };
+  }
+
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+    return {
+      error: "Unsupported audio URL scheme",
+      code: "INVALID_FORMAT",
+      details: "Only http and https URLs are allowed",
+    };
+  }
+
+  const hostname = parsed.hostname.toLowerCase();
+  if (
+    hostname === "localhost" ||
+    hostname.endsWith(".localhost") ||
+    hostname.endsWith(".local") ||
+    isPrivateIpAddress(hostname)
+  ) {
+    return {
+      error: "Audio URL host is not allowed",
+      code: "INVALID_FORMAT",
+      details: "Private, loopback, and local network hosts are blocked",
+    };
+  }
+
+  try {
+    const lookups = await dns.lookup(hostname, { all: true, verbatim: true });
+    if (lookups.length === 0 || lookups.some((entry) => isPrivateIpAddress(entry.address))) {
+      return {
+        error: "Audio URL host is not allowed",
+        code: "INVALID_FORMAT",
+        details: "Resolved host points to a private or loopback address",
+      };
+    }
+  } catch (error) {
+    return {
+      error: "Audio URL host could not be validated",
+      code: "INVALID_FORMAT",
+      details: error instanceof Error ? error.message : "DNS lookup failed",
+    };
+  }
+
+  return { ok: true };
+}
+
 /**
  * Transcribe audio to text using the internal Speech-to-Text service
  *
@@ -79,6 +160,11 @@ export async function transcribeAudio(
   options: TranscribeOptions,
 ): Promise<TranscriptionResponse | TranscriptionError> {
   try {
+    const validation = await validateAudioUrl(options.audioUrl);
+    if (!("ok" in validation)) {
+      return validation;
+    }
+
     // Step 1: Validate environment configuration
     if (!ENV.forgeApiUrl) {
       return {

@@ -282,8 +282,8 @@ class StoreService {
     const today = new Date().toLocaleDateString("en-CA"); // Local date YYYY-MM-DD
     if (row.last_reading_date && row.last_reading_date !== today) {
       await this.db!.runAsync(
-        `UPDATE user_state SET readings_today = 0, ai_calls_today = 0 WHERE user_id = ?`,
-        [userId]
+        `UPDATE user_state SET readings_today = 0, ai_calls_today = 0, last_reading_date = ? WHERE user_id = ?`,
+        [today, userId]
       );
       return {
         user_id: row.user_id,
@@ -291,7 +291,7 @@ class StoreService {
         readings_today: 0,
         ai_calls_today: 0,
         session_count: row.session_count ?? 0,
-        last_reading_date: row.last_reading_date || undefined,
+        last_reading_date: today,
         notification_enabled: row.notification_enabled === 1,
         notification_time: row.notification_time || undefined,
         preferred_language: row.preferred_language,
