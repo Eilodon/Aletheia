@@ -61,6 +61,11 @@ export type ThemeColorPalette = (typeof Colors)[ColorScheme];
 
 export const Fonts = Platform.select({
   ios: {
+    display: "AletheiaDisplay-Regular",
+    displayStrong: "AletheiaDisplay-SemiBold",
+    body: "AletheiaBody-Regular",
+    bodyMedium: "AletheiaBody-Medium",
+    bodyItalic: "AletheiaBody-Italic",
     sans: "AletheiaBody-Regular",
     serif: "AletheiaDisplay-Regular",
     /** iOS `UIFontDescriptorSystemDesignRounded` */
@@ -69,12 +74,22 @@ export const Fonts = Platform.select({
     mono: "ui-monospace",
   },
   default: {
+    display: "AletheiaDisplay-Regular",
+    displayStrong: "AletheiaDisplay-SemiBold",
+    body: "AletheiaBody-Regular",
+    bodyMedium: "AletheiaBody-Medium",
+    bodyItalic: "AletheiaBody-Italic",
     sans: "AletheiaBody-Regular",
     serif: "AletheiaDisplay-Regular",
     rounded: "normal",
     mono: "monospace",
   },
   web: {
+    display: "'AletheiaDisplay-Regular', 'Cinzel', 'EB Garamond', serif",
+    displayStrong: "'AletheiaDisplay-SemiBold', 'Cinzel', 'EB Garamond', serif",
+    body: "'AletheiaBody-Regular', 'EB Garamond', Georgia, serif",
+    bodyMedium: "'AletheiaBody-Medium', 'EB Garamond', Georgia, serif",
+    bodyItalic: "'AletheiaBody-Italic', 'EB Garamond', Georgia, serif",
     sans: "'AletheiaBody-Regular', 'EB Garamond', Georgia, serif",
     serif: "'AletheiaDisplay-Regular', 'Cinzel', 'EB Garamond', serif",
     rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",

@@ -237,12 +237,12 @@ export default function HistoryScreen() {
         </View>
         {item.ai_interpreted && (
           <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, backgroundColor: colors.primary + "1E", borderWidth: 1, borderColor: colors.primary + "44" }}>
-            <Text style={{ fontSize: 10, color: colors.primary, fontWeight: "600", letterSpacing: 1, textTransform: "uppercase" }}>AI</Text>
+            <Text style={{ fontSize: 10, color: colors.primary, letterSpacing: 1, textTransform: "uppercase", fontFamily: Fonts.display }}>AI</Text>
           </View>
         )}
       </View>
       
-      <Text style={{ fontSize: 17, color: colors.foreground, marginBottom: 12, lineHeight: 26, fontFamily: Fonts.serif }} numberOfLines={2}>
+      <Text style={{ fontSize: 17, color: colors.foreground, marginBottom: 12, lineHeight: 26, fontFamily: Fonts.bodyItalic }} numberOfLines={2}>
         {item.situation_text || "Không có tình huống"}
       </Text>
       
@@ -267,7 +267,7 @@ export default function HistoryScreen() {
   const renderEmpty = () => (
     <View className="flex-1 justify-center items-center py-20">
       <RitualOrnament variant="sigil" />
-      <Text className="text-lg text-foreground mb-2 mt-4" style={{ fontFamily: Fonts.serif }}>
+      <Text className="text-lg text-foreground mb-2 mt-4" style={{ fontFamily: Fonts.display }}>
         {readings.length === 0 ? "Chưa có lần đọc nào" : "Không có kết quả phù hợp"}
       </Text>
       <Text className="text-sm text-muted text-center max-w-xs">
@@ -281,7 +281,7 @@ export default function HistoryScreen() {
           className="mt-6 px-6 py-3 rounded-xl"
           style={{ backgroundColor: colors.primary + "18", borderWidth: 1, borderColor: colors.primary + "72" }}
         >
-          <Text className="text-base text-foreground" style={{ fontFamily: Fonts.serif }}>Bắt đầu đọc</Text>
+          <Text className="text-base text-foreground" style={{ fontFamily: Fonts.display }}>Bắt đầu đọc</Text>
         </Pressable>
       ) : null}
     </View>
@@ -290,7 +290,7 @@ export default function HistoryScreen() {
   const renderHeader = () => (
     <View className="pb-6 pt-2 items-center gap-3">
       <RitualOrnament variant="line" />
-      <Text className="text-3xl text-foreground" style={{ fontFamily: Fonts.serif }}>Gương</Text>
+      <Text className="text-3xl text-foreground" style={{ fontFamily: Fonts.display }}>Gương</Text>
       <Text className="text-sm text-muted text-center">
         {visibleReadings.length} / {readings.length} lần đọc đang hiện
       </Text>

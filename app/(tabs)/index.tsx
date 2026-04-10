@@ -40,7 +40,7 @@ export default function HomeScreen() {
               <View style={[styles.ruleLine, { backgroundColor: colors.primary + "30" }]} />
             </View>
             <Text style={[styles.kicker, { color: colors.primary }]}>not a fortune • a mirror</Text>
-            <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}>ALETHEIA</Text>
+            <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.displayStrong }]}>ALETHEIA</Text>
             <Text style={[styles.tagline, { color: colors.foreground }]}>Dừng lại. Phản chiếu. Hiểu.</Text>
             <Text style={[styles.subtitle, { color: colors.muted }]}>
               Dừng lại trong vài phút. Gọi tên điều bạn đang mang. Rồi để một đoạn trích phản chiếu lại nó.
@@ -62,7 +62,7 @@ export default function HomeScreen() {
               ]}
             >
               <Text style={[styles.ctaGlyph, { color: colors.primary }]}>✦</Text>
-              <Text style={[styles.ctaText, { color: colors.foreground, fontFamily: Fonts.serif }]}>Lật một lá</Text>
+              <Text style={[styles.ctaText, { color: colors.foreground, fontFamily: Fonts.display }]}>Lật một lá</Text>
               <Text style={[styles.ctaGlyph, { color: colors.primary }]}>✦</Text>
             </Pressable>
             <Text style={[styles.ctaHint, { color: colors.muted }]}>
@@ -80,7 +80,7 @@ export default function HomeScreen() {
             ]}
           >
             <Text style={[styles.featureLabel, { color: colors.primary }]}>PASSAGE OF THE PRACTICE</Text>
-            <Text style={[styles.featureQuote, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+            <Text style={[styles.featureQuote, { color: colors.foreground, fontFamily: Fonts.bodyItalic }]}>
               “Đừng đi tìm câu trả lời hoàn hảo. Hãy đi tìm câu hỏi đang thật sự sống trong bạn.”
             </Text>
             <View style={styles.featureFooter}>
@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 15,
     lineHeight: 25,
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
   ctaGroup: {
     alignItems: "center",
@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 13,
     lineHeight: 20,
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
   featureCard: {
     borderRadius: 28,

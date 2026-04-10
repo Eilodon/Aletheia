@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 export interface ThemedViewProps extends ViewProps {
   className?: string;
-  variant?: "default" | "surface" | "glass";
+  variant?: "default" | "surface" | "glass" | "ritual";
 }
 
 /**
@@ -13,7 +13,9 @@ export interface ThemedViewProps extends ViewProps {
  */
 export function ThemedView({ className, variant = "default", ...otherProps }: ThemedViewProps) {
   const variantClassName =
-    variant === "glass"
+    variant === "ritual"
+      ? "bg-surface/88 border border-primary/25 rounded-[28px] shadow-[0_18px_44px_rgba(0,0,0,0.28)]"
+      : variant === "glass"
       ? "bg-surface/80 border border-primary/20 rounded-[24px]"
       : variant === "surface"
         ? "bg-surface rounded-[22px]"

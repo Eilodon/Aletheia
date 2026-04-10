@@ -81,18 +81,11 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
     return () => clearTimeout(timer);
   }, [fadeAnim, slideAnim, onClose]);
 
-  const colors: Record<ToastKind, { bg: string; text: string; border: string }> = {
-    success: { bg: "rgba(34, 197, 94, 0.12)", text: "#DDF7E6", border: "#4ADE80" },
-    warn: { bg: "rgba(215, 180, 106, 0.14)", text: "#F6E7BC", border: "#D7B46A" },
-    error: { bg: "rgba(239, 68, 68, 0.14)", text: "#FFD8D8", border: "#F87171" },
-    info: { bg: "rgba(120, 110, 98, 0.18)", text: "#F2EADB", border: "#AA9D8B" },
-  };
-
-  const icons: Record<ToastKind, string> = {
-    success: "✓",
-    warn: "⚠",
-    error: "✕",
-    info: "ℹ",
+  const colors: Record<ToastKind, { bg: string; text: string; border: string; glyph: string }> = {
+    success: { bg: "rgba(22, 40, 31, 0.92)", text: "#E5F5E9", border: "#5FA97A", glyph: "✦" },
+    warn: { bg: "rgba(33, 26, 19, 0.94)", text: "#F6E7BC", border: "#D7B46A", glyph: "◈" },
+    error: { bg: "rgba(39, 18, 18, 0.94)", text: "#FFD8D8", border: "#C97979", glyph: "✕" },
+    info: { bg: "rgba(23, 21, 32, 0.94)", text: "#F2EADB", border: "#8E816F", glyph: "✧" },
   };
 
   const style = colors[toast.kind];
@@ -111,7 +104,7 @@ function ToastItem({ toast, onClose }: ToastItemProps) {
         ]}
       >
         <Text style={[styles.toastIcon, { color: style.text }]}>
-          {icons[toast.kind]}
+          {style.glyph}
         </Text>
         <Text style={[styles.toastMessage, { color: style.text }]}>
           {toast.message}
@@ -159,9 +152,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 13,
-    borderRadius: 22,
-    borderWidth: 1,
+    paddingVertical: 14,
+    borderRadius: 24,
+    borderWidth: 1.2,
     marginBottom: 8,
     maxWidth: "100%",
     shadowColor: "#000",
@@ -173,14 +166,13 @@ const styles = StyleSheet.create({
   toastIcon: {
     fontSize: 16,
     marginRight: 12,
-    fontWeight: "600",
+    fontFamily: Fonts.display,
   },
   toastMessage: {
     flex: 1,
     fontSize: 14,
-    lineHeight: 20,
-    fontFamily: Fonts.serif,
-    fontStyle: "italic",
+    lineHeight: 22,
+    fontFamily: Fonts.bodyItalic,
   },
   toastClose: {
     padding: 4,
@@ -189,5 +181,6 @@ const styles = StyleSheet.create({
   toastCloseText: {
     fontSize: 12,
     opacity: 0.7,
+    fontFamily: Fonts.display,
   },
 });

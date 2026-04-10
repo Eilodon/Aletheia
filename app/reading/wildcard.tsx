@@ -93,7 +93,7 @@ function SymbolCard({
             },
           ]}
         >
-          <Text style={[styles.symbolTitle, { color: colors.foreground, fontFamily: Fonts.serif }]}>{symbol.display_name}</Text>
+          <Text style={[styles.symbolTitle, { color: colors.foreground, fontFamily: Fonts.display }]}>{symbol.display_name}</Text>
           {symbol.flavor_text ? (
             <Text style={[styles.symbolFlavor, { color: isSelected ? colors.foreground : colors.muted }]}>{symbol.flavor_text}</Text>
           ) : null}
@@ -183,7 +183,7 @@ export default function WildcardScreen() {
 
         <View style={styles.header}>
           <RitualOrnament variant="line" />
-          <Text testID="reading-wildcard-title" style={[styles.headerTitle, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+          <Text testID="reading-wildcard-title" style={[styles.headerTitle, { color: colors.foreground, fontFamily: Fonts.display }]}>
             Chọn một biểu tượng
           </Text>
           <Text style={[styles.headerMeta, { color: colors.muted }]}>
@@ -227,7 +227,7 @@ export default function WildcardScreen() {
                   },
                 ]}
               >
-                <Text style={[styles.secondaryButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+                <Text style={[styles.secondaryButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>
                   {isAutoSelecting ? "Đang chọn..." : "Để vũ trụ chọn"}
                 </Text>
               </Pressable>
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
   headerMeta: {
     fontSize: 13,
     textAlign: "center",
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
   headerHint: {
     fontSize: 10,
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     lineHeight: 18,
     textAlign: "center",
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
   symbolGlyph: {
     fontSize: 16,
@@ -335,7 +335,7 @@ const styles = StyleSheet.create({
   },
   autoText: {
     fontSize: 13,
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
   progressTrack: {
     width: 140,

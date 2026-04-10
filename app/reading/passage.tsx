@@ -172,8 +172,8 @@ export default function PassageScreen() {
               },
             ]}
           >
-            <Text style={[styles.quoteMark, { color: colors.primary + "88", fontFamily: Fonts.serif }]}>“</Text>
-            <Text style={[styles.passageText, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+            <Text style={[styles.quoteMark, { color: colors.primary + "88", fontFamily: Fonts.display }]}>“</Text>
+            <Text style={[styles.passageText, { color: colors.foreground, fontFamily: Fonts.bodyItalic }]}>
               {visiblePassageText || passage.text}
             </Text>
             <View style={styles.referenceBlock}>
@@ -214,7 +214,7 @@ export default function PassageScreen() {
                 ]}
               >
                 <Text style={[styles.aiButtonKicker, { color: colors.primary }]}>TÙY CHỌN</Text>
-                <Text style={[styles.aiButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>Xin diễn giải</Text>
+                <Text style={[styles.aiButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>Xin diễn giải</Text>
                 <Text style={[styles.aiButtonHint, { color: colors.muted }]}>
                   AI chỉ mở khi bạn chủ động yêu cầu.
                 </Text>
@@ -283,7 +283,7 @@ export default function PassageScreen() {
                 },
               ]}
             >
-              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>
                 {isCompleting ? "Đang khép nghi thức..." : "Hoàn thành"}
               </Text>
             </Pressable>
@@ -308,7 +308,7 @@ const styles = StyleSheet.create({
   },
   sourceName: {
     fontSize: 12,
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
   stateBand: {
     borderRadius: 24,
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
   },
   stateBandValue: {
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: Fonts.bodyMedium,
   },
   passageCard: {
     borderRadius: 32,
@@ -371,6 +371,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
     letterSpacing: 1.2,
     textTransform: "uppercase",
+    fontFamily: Fonts.bodyMedium,
   },
   contextCard: {
     borderRadius: 22,
@@ -388,7 +389,7 @@ const styles = StyleSheet.create({
   contextText: {
     fontSize: 13,
     lineHeight: 20,
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
   aiSection: {
     gap: 14,
@@ -415,7 +416,7 @@ const styles = StyleSheet.create({
   aiButtonHint: {
     fontSize: 12,
     textAlign: "center",
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
   aiCard: {
     borderRadius: 24,
@@ -427,7 +428,7 @@ const styles = StyleSheet.create({
   },
   aiStatus: {
     fontSize: 14,
-    fontWeight: "600",
+    fontFamily: Fonts.bodyMedium,
   },
   aiStatusHint: {
     fontSize: 12,
@@ -443,7 +444,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     lineHeight: 27,
     width: "100%",
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
   spacer: {
     flex: 1,
@@ -461,8 +462,8 @@ const styles = StyleSheet.create({
   },
   secondaryButtonText: {
     fontSize: 15,
-    fontWeight: "500",
     letterSpacing: 0.5,
+    fontFamily: Fonts.display,
   },
   primaryButton: {
     borderRadius: 22,

@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, ViewProps } from "react-native";
+import { Fonts } from "@/constants/theme";
 import { useColors } from "@/hooks/use-colors";
 
 interface GlassCardProps extends ViewProps {
@@ -69,7 +70,7 @@ export function PassageCard({
     color: colors.foreground,
     lineHeight: 32,
     marginBottom: 16,
-    fontStyle: "italic" as const,
+    fontFamily: Fonts.bodyItalic,
   };
 
   const refStyle = {
@@ -78,6 +79,7 @@ export function PassageCard({
     textAlign: "right" as const,
     textTransform: "uppercase" as const,
     letterSpacing: 1.2,
+    fontFamily: Fonts.bodyMedium,
   };
 
   if (isLoading) {
@@ -151,12 +153,12 @@ export function ReadingCard({
         </View>
         {hasAI && (
           <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, backgroundColor: colors.primary + "33" }}>
-            <Text style={{ fontSize: 10, color: colors.primary, fontWeight: "600", letterSpacing: 1, textTransform: "uppercase" }}>AI</Text>
+            <Text style={{ fontSize: 10, color: colors.primary, letterSpacing: 1, textTransform: "uppercase", fontFamily: Fonts.display }}>AI</Text>
           </View>
         )}
       </View>
 
-      <Text style={{ fontSize: 15, color: colors.foreground, marginBottom: 8, lineHeight: 22, fontStyle: "italic" }} numberOfLines={2}>
+      <Text style={{ fontSize: 15, color: colors.foreground, marginBottom: 8, lineHeight: 22, fontFamily: Fonts.bodyItalic }} numberOfLines={2}>
         {situation || "No situation recorded"}
       </Text>
 

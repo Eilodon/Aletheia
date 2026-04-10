@@ -200,7 +200,7 @@ export default function ReadingDetailScreen() {
       <ScreenContainer className="px-6 pb-6">
         <View style={styles.loadingWrap}>
           <RitualOrnament variant="sigil" />
-          <Text style={[styles.loadingTitle, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+          <Text style={[styles.loadingTitle, { color: colors.foreground, fontFamily: Fonts.display }]}>
             Đang mở lại phản chiếu
           </Text>
           <View style={styles.loadingCards}>
@@ -217,7 +217,7 @@ export default function ReadingDetailScreen() {
       <ScreenContainer className="px-6 pb-6">
         <View style={styles.emptyWrap}>
           <RitualOrnament variant="eye" size="lg" />
-          <Text style={[styles.emptyTitle, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+          <Text style={[styles.emptyTitle, { color: colors.foreground, fontFamily: Fonts.display }]}>
             Không tìm thấy lần đọc
           </Text>
           <Text style={[styles.emptyText, { color: colors.muted }]}>
@@ -227,7 +227,7 @@ export default function ReadingDetailScreen() {
             onPress={() => router.back()}
             style={[styles.primaryButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}
           >
-            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>Quay lại</Text>
+            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>Quay lại</Text>
           </Pressable>
         </View>
       </ScreenContainer>
@@ -246,7 +246,7 @@ export default function ReadingDetailScreen() {
           </Pressable>
           <RitualOrnament variant="line" />
           <Text style={[styles.kicker, { color: colors.primary }]}>Reflection Archive</Text>
-          <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+          <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.display }]}>
             {sourceName || reading.source_id}
           </Text>
           <Text style={[styles.metaText, { color: colors.muted }]}>{formattedDate}</Text>
@@ -254,7 +254,7 @@ export default function ReadingDetailScreen() {
 
         {passageText ? (
           <View style={[styles.heroCard, { backgroundColor: colors.surface + "C8", borderColor: colors.primary + "42" }]}>
-            <Text style={[styles.heroQuote, { color: colors.foreground, fontFamily: Fonts.serif }]}>“{passageText}”</Text>
+            <Text style={[styles.heroQuote, { color: colors.foreground, fontFamily: Fonts.bodyItalic }]}>“{passageText}”</Text>
             <View style={styles.heroFooter}>
               <View style={[styles.rule, { backgroundColor: colors.primary + "50" }]} />
               <Text style={[styles.heroRef, { color: colors.muted }]}>{passageReference}</Text>
@@ -272,7 +272,7 @@ export default function ReadingDetailScreen() {
         <View style={styles.rowGrid}>
           <View style={[styles.infoCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "22" }]}>
             <Text style={[styles.sectionLabel, { color: colors.primary }]}>Biểu tượng đã chọn</Text>
-            <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: Fonts.serif }]}>{reading.symbol_chosen}</Text>
+            <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: Fonts.display }]}>{reading.symbol_chosen}</Text>
             <Text style={[styles.infoHint, { color: colors.muted }]}>
               {reading.symbol_method === "auto" ? "Được chọn bởi hệ thống" : "Được chọn thủ công"}
             </Text>
@@ -281,7 +281,7 @@ export default function ReadingDetailScreen() {
           {reading.mood_tag ? (
             <View style={[styles.infoCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "22" }]}>
               <Text style={[styles.sectionLabel, { color: colors.primary }]}>Cảm xúc ghi nhận</Text>
-              <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+              <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: Fonts.display }]}>
                 {MOOD_EMOJIS[reading.mood_tag]} {MOOD_LABELS[reading.mood_tag]}
               </Text>
               <Text style={[styles.infoHint, { color: colors.muted }]}>#{reading.mood_tag}</Text>
@@ -348,7 +348,7 @@ export default function ReadingDetailScreen() {
             disabled={isReopening}
             style={[styles.primaryButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72", opacity: isReopening ? 0.65 : 1 }]}
           >
-            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>
               {isReopening ? "Đang mở lại..." : "Đọc lại từ nguồn này"}
             </Text>
           </Pressable>
@@ -356,7 +356,7 @@ export default function ReadingDetailScreen() {
             onPress={() => router.back()}
             style={[styles.primaryButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}
           >
-            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>
               Quay lại lịch sử
             </Text>
           </Pressable>
@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 13,
     textAlign: "center",
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
   heroCard: {
     borderRadius: 30,
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     lineHeight: 34,
     textAlign: "center",
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
   heroFooter: {
     marginTop: 18,
@@ -472,7 +472,7 @@ const styles = StyleSheet.create({
   sectionBody: {
     fontSize: 15,
     lineHeight: 24,
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
   rowGrid: {
     gap: 14,
@@ -490,7 +490,7 @@ const styles = StyleSheet.create({
   },
   infoHint: {
     fontSize: 12,
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
   traceRow: {
     flexDirection: "row",

@@ -94,12 +94,12 @@ export function StepIndicator({ steps, currentStep }: StepIndicatorProps) {
             }}
           >
             {index < currentStep ? (
-              <Animated.Text style={{ color: colors.success, fontSize: 14, fontWeight: "600" }}>✓</Animated.Text>
+              <Animated.Text style={{ color: colors.success, fontSize: 14, fontFamily: Fonts.display }}>✓</Animated.Text>
             ) : (
               <Animated.Text
                 style={{
                   fontSize: 12,
-                  fontWeight: "600",
+                  fontFamily: Fonts.display,
                   color: index === currentStep ? colors.foreground : colors.muted,
                 }}
               >
@@ -166,6 +166,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     textTransform: "uppercase",
     letterSpacing: 0.8,
-    fontFamily: Fonts.serif,
+    fontFamily: Fonts.display,
   },
 });

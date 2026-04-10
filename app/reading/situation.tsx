@@ -59,7 +59,7 @@ export default function SituationScreen() {
 
           <View style={styles.header}>
             <RitualOrnament variant="line" />
-            <Text testID="reading-situation-title" style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+            <Text testID="reading-situation-title" style={[styles.title, { color: colors.foreground, fontFamily: Fonts.display }]}>
               Bạn đang mang điều gì?
             </Text>
             <Text style={[styles.subtitle, { color: colors.muted }]}>
@@ -112,7 +112,7 @@ export default function SituationScreen() {
                 transform: [{ scale: pressed ? 0.98 : 1 }],
               })}
             >
-              <Text style={[styles.primaryText, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+              <Text style={[styles.primaryText, { color: colors.foreground, fontFamily: Fonts.display }]}>
                 {isLoading ? "Đang chuẩn bị..." : "Tiến vào nghi thức"}
               </Text>
             </Pressable>
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 14,
     lineHeight: 23,
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
   inputWrap: {
     flex: 1,
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     minHeight: 220,
     fontSize: 16,
     lineHeight: 28,
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
     paddingHorizontal: 20,
     paddingVertical: 18,
   },
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 11,
     lineHeight: 17,
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
   counter: {
     fontSize: 11,
@@ -228,6 +228,6 @@ const styles = StyleSheet.create({
   skipText: {
     textAlign: "center",
     fontSize: 13,
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
 });

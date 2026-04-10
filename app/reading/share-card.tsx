@@ -60,8 +60,7 @@ function CardPreview({
             fontSize: 23,
             lineHeight: 35,
             textAlign: "center",
-            fontFamily: Fonts.serif,
-            fontStyle: "italic",
+            fontFamily: Fonts.bodyItalic,
           }}
         >
           “{truncateText(passageText)}”
@@ -185,7 +184,7 @@ export default function ShareCardScreen() {
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <RitualOrnament variant="line" />
-            <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}>Chia sẻ lá bài</Text>
+            <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.display }]}>Chia sẻ lá bài</Text>
             <Text style={[styles.subtitle, { color: colors.muted }]}>{selectedSymbol.display_name}</Text>
           </View>
 
@@ -235,7 +234,7 @@ export default function ShareCardScreen() {
                 },
               ]}
             >
-              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>
                 {isSharing ? "Đang chuẩn bị..." : "Chia sẻ"}
               </Text>
             </Pressable>
@@ -269,7 +268,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 13,
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
   previewWrap: {
     alignItems: "center",
@@ -324,10 +323,11 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 14,
     letterSpacing: 0.4,
+    fontFamily: Fonts.display,
   },
   closeText: {
     textAlign: "center",
     fontSize: 13,
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
 });

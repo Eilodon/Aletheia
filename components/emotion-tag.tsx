@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   label: {
-    fontFamily: Fonts.serif,
+    fontFamily: Fonts.display,
     textTransform: "uppercase",
     letterSpacing: 0.5,
   },

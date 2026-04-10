@@ -107,7 +107,7 @@ export default function OnboardingScreen() {
               <>
                 <View style={[styles.heroHalo, { backgroundColor: colors.primary + "10" }]} />
                 <RitualOrnament variant="eye" size="lg" />
-                <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.serif }]}>ALETHEIA</Text>
+                <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.displayStrong }]}>ALETHEIA</Text>
                 <Text style={[styles.kicker, { color: colors.primary }]}>not a fortune • a mirror</Text>
                 <Text style={[styles.tagline, { color: colors.foreground }]}>Dừng lại. Phản chiếu. Hiểu.</Text>
                 <Text style={[styles.body, { color: colors.muted }]}>
@@ -119,7 +119,7 @@ export default function OnboardingScreen() {
             {currentStep === "intent" ? (
               <>
                 <RitualOrnament variant="sigil" />
-                <Text style={[styles.sectionTitle, { color: colors.foreground, fontFamily: Fonts.serif }]}>Hôm nay bạn cần chiếc gương nào?</Text>
+                <Text style={[styles.sectionTitle, { color: colors.foreground, fontFamily: Fonts.display }]}>Hôm nay bạn cần chiếc gương nào?</Text>
                 <Text style={[styles.body, { color: colors.muted }]}>
                   Chọn một ý định mở đầu. Nó giúp Aletheia điều chỉnh sắc thái phản chiếu cho lần đọc đầu tiên.
                 </Text>
@@ -144,7 +144,7 @@ export default function OnboardingScreen() {
                         ]}
                       >
                         <Text style={[styles.intentIcon, { color: colors.primary }]}>{item.icon}</Text>
-                        <Text style={[styles.intentTitle, { color: colors.foreground, fontFamily: Fonts.serif }]}>{item.title}</Text>
+                        <Text style={[styles.intentTitle, { color: colors.foreground, fontFamily: Fonts.display }]}>{item.title}</Text>
                         <Text style={[styles.intentDesc, { color: colors.muted }]}>{item.description}</Text>
                       </Pressable>
                     );
@@ -156,7 +156,7 @@ export default function OnboardingScreen() {
             {currentStep === "ready" ? (
               <>
                 <RitualOrnament variant="line" />
-                <Text style={[styles.sectionTitle, { color: colors.foreground, fontFamily: Fonts.serif }]}>Cách Aletheia hoạt động</Text>
+                <Text style={[styles.sectionTitle, { color: colors.foreground, fontFamily: Fonts.display }]}>Cách Aletheia hoạt động</Text>
                 <View style={styles.checklist}>
                   {[
                     "Bạn mô tả điều đang diễn ra, hoặc để trống nếu muốn.",
@@ -189,7 +189,7 @@ export default function OnboardingScreen() {
                 },
               ]}
             >
-              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.serif }]}>
+              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>
                 {isLastStep ? (isCompleting ? "Đang mở cổng..." : "Bắt đầu lần đọc đầu tiên") : "Tiếp tục"}
               </Text>
             </Pressable>
@@ -264,7 +264,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 15,
     lineHeight: 24,
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
   intentGrid: {
     width: "100%",
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
   intentDesc: {
     fontSize: 13,
     lineHeight: 19,
-    fontStyle: "italic",
+    fontFamily: Fonts.bodyItalic,
   },
   checklist: {
     width: "100%",
@@ -311,6 +311,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     lineHeight: 22,
+    fontFamily: Fonts.body,
   },
   bottom: {
     gap: 12,

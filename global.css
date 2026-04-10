@@ -1,3 +1,28 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@font-face {
+  font-family: "AletheiaDisplay-Regular";
+  src: url("./assets/fonts/Cinzel-Regular.ttf");
+}
+
+@font-face {
+  font-family: "AletheiaDisplay-SemiBold";
+  src: url("./assets/fonts/Cinzel-SemiBold.ttf");
+}
+
+@font-face {
+  font-family: "AletheiaBody-Regular";
+  src: url("./assets/fonts/EBGaramond-Regular.ttf");
+}
+
+@font-face {
+  font-family: "AletheiaBody-Medium";
+  src: url("./assets/fonts/EBGaramond-Medium.ttf");
+}
+
+@font-face {
+  font-family: "AletheiaBody-Italic";
+  src: url("./assets/fonts/EBGaramond-Italic.ttf");
+}

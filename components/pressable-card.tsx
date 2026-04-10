@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { Pressable, Animated, ViewProps } from "react-native";
 import * as Haptics from "expo-haptics";
+import { Fonts } from "@/constants/theme";
 import { useColors } from "@/hooks/use-colors";
 
 interface PressableCardProps extends ViewProps {
@@ -169,7 +170,7 @@ export function AnimatedButton({
         {...props}
       >
         {icon}
-        <Animated.Text style={[{ fontWeight: "600" }, textVariantStyles[variant], textSizeStyles[size]]}>
+        <Animated.Text style={[{ fontFamily: Fonts.display }, textVariantStyles[variant], textSizeStyles[size]]}>
           {title}
         </Animated.Text>
       </Animated.View>
