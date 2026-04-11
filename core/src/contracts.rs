@@ -436,6 +436,106 @@ pub struct ReadingResponse {
     pub error: Option<BridgeError>,
 }
 
+// ============================================================================
+// LOCAL MODEL TYPES (CYCLE 2)
+// ============================================================================
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LocalModelStatus {
+    /// Model not downloaded yet
+    NotDownloaded,
+    /// Download in progress (percentage 0-100)
+    Downloading,
+    /// Model downloaded and ready for inference
+    Ready,
+    /// Model exists but needs update
+    UpdateAvailable,
+    /// Error occurred during download/initialization
+    Error,
+    /// Device does not support local inference
+    Unsupported,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LocalModelInfo {
+    /// Model identifier (e.g., "gemma-3n-e2b")
+    pub model_id: String,
+    /// Current status
+    pub status: LocalModelStatus,
+    /// Download progress percentage (0-100) if downloading
+    pub download_progress: u8,
+    /// Model size in bytes
+    pub model_size_bytes: u64,
+    /// Downloaded size in bytes
+    pub downloaded_bytes: u64,
+    /// Model version string
+    pub version: String,
+    /// Last error message if status is Error
+    pub error_message: Option<String>,
+    /// Estimated time remaining for download (seconds)
+    pub eta_seconds: Option<u32>,
+    /// Device capability - can this device run local inference?
+    pub device_capable: bool,
+    /// Available RAM required for model
+    pub required_ram_mb: u32,
+    /// Available RAM on device
+    pub available_ram_mb: u32,
+}
+
+impl Default for LocalModelInfo {
+    fn default() -> Self {
+        Self {
+            model_id: "gemma-3n-e2b".to_string(),
+            status: LocalModelStatus::NotDownloaded,
+            download_progress: 0,
+            model_size_bytes: 0,
+            downloaded_bytes: 0,
+            version: String::new(),
+            error_message: None,
+            eta_seconds: None,
+            device_capable: false,
+            required_ram_mb: 2048, // 2GB minimum for Gemma 3n E2B
+            available_ram_mb: 0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LocalModelStatusResponse {
+    pub model_info: Option<LocalModelInfo>,
+    pub error: Option<BridgeError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PrepareLocalModelResponse {
+    pub started: bool,
+    pub model_info: Option<LocalModelInfo>,
+    pub error: Option<BridgeError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeviceCapability {
+    /// Device supports local inference
+    pub supported: bool,
+    /// Available RAM in MB
+    pub available_ram_mb: u32,
+    /// CPU cores available
+    pub cpu_cores: u32,
+    /// Has NEON/SIMD support (ARM)
+    pub has_simd: bool,
+    /// Estimated inference speed (tokens/sec)
+    pub estimated_tps: f32,
+    /// Reason if not supported
+    pub unsupported_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeviceCapabilityResponse {
+    pub capability: Option<DeviceCapability>,
+    pub error: Option<BridgeError>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AIInterpretation {
     pub chunks: Vec<String>,

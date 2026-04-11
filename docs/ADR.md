@@ -39,6 +39,7 @@
 | [ADR-AL-39](#adr-al-39--verification-phải-chia-thành-fast-medium-release-tiers) | Verification must be tiered into fast/medium/release | ✅ ACCEPTED |
 | [ADR-AL-40](#adr-al-40--ritualarchive-sharegift-phải-có-event-taxonomy-chung) | Ritual, archive, share, and gift flows must share one event taxonomy | ✅ ACCEPTED |
 | [ADR-AL-41](#adr-al-41--archive-phải-là-retention--growth-surface-không-phải-list-tĩnh) | Archive must be a retention and growth surface | ✅ ACCEPTED |
+| [ADR-AL-45](#adr-al-45--ai-diễn-giải-phải-local-first-cloud-optional) | AI interpretation must be local-first, cloud-optional | ✅ ACCEPTED |
 
 ---
 
@@ -190,6 +191,118 @@ WildcardScreen:
 - Drop-off tại wildcard screen — trigger review nếu completion rate < 85%
 
 **Xem thêm:** CONTRACTS.md `SymbolMethod`, BLUEPRINT.md Section 4 (State Machine)
+
+---
+
+## ADR-AL-45 — AI diễn giải phải local-first, cloud-optional
+
+**Status:** ✅ ACCEPTED  
+**Date:** 2026-04-11  
+**VHEATM Level:** 🔴 MANDATORY  
+**Tags:** `ai` `local-first` `mobile` `cloud` `android` `ios`
+
+### Context
+
+Hiện tại nút "Xin diễn giải" là optional layer đúng theo ADR-AL-1, nhưng runtime thật vẫn chưa có đường model sống ổn định:
+
+- Android path hiện đi qua Rust `AIClient` và các provider HTTP trực tiếp.
+- iOS chưa có native parity thực, vẫn ngoài beta scope.
+- Client-accessible provider key path đã bị gỡ khỏi release surface, nên không thể tiếp tục dựa vào mô hình "app cầm API key rồi gọi model".
+- Model Google đang pin trong repo là `gemini-2.0-flash`, line này đã drift khỏi current recommended model surface.
+
+Trong khi đó, mục tiêu sản phẩm mới là:
+
+- mặc định phải có **local model nhỏ** cho "Xin diễn giải"
+- cloud chỉ là **tùy chọn** khi cần chất lượng cao hơn
+- architecture mới không được phá vỡ hardening boundary vừa khóa quanh secret/provider access
+
+### Options Considered
+
+#### Option A: Giữ cloud-first, chỉ thêm local fallback
+
+| Pros | Cons |
+|---|---|
+| Dễ triển khai ngắn hạn | Trái product requirement local-first |
+| Tận dụng Rust provider client hiện có | Vẫn cần server/key plumbing để chạy model thật |
+| | Network vẫn là happy path, local chỉ là safety net |
+
+**Loại vì:** thứ tự ưu tiên sai. Đây chỉ là biến thể của kiến trúc cũ.
+
+#### Option B: Local-first trong native module, cloud optional qua server proxy ← **CHOSEN**
+
+```
+UI
+  └─ InterpretationOrchestrator
+       ├─ Local provider (default)
+       │    └─ Native inference runtime + downloaded model asset
+       ├─ Cloud provider (optional quality mode)
+       │    └─ Server proxy giữ provider secrets
+       └─ Static fallback prompts
+```
+
+| Pros | Cons |
+|---|---|
+| Đúng product requirement local-first | Cần thêm native inference surface mới |
+| Không trả provider key xuống client | Android/iOS integration effort cao hơn thay model name đơn thuần |
+| Giữ được offline ritual value | Model download + storage management phải làm nghiêm túc |
+| Cho phép quality tier cloud rõ ràng | |
+
+#### Option C: Dùng open model qua Rust core / UniFFI như một provider nữa
+
+| Pros | Cons |
+|---|---|
+| Giữ một orchestration layer trong Rust | Kéo inference runtime nặng vào Rust core hiện tại |
+| Ít đổi TS facade hơn | Sai toolchain cho mobile on-device GenAI hiện nay |
+| | Tăng rủi ro build, binary size, and bridge complexity |
+
+**Loại vì:** Rust core hiện hợp với domain logic và network provider client hơn là làm host cho mobile on-device inference stack.
+
+### Decision
+
+> **Chọn Option B.** "Xin diễn giải" phải mặc định đi local-first. Cloud là một lane chất lượng cao hơn, không phải lane duy nhất.
+
+### Model Decision
+
+#### Local default
+- **Gemma 3n E2B** là first choice cho Android local inference.
+
+**Lý do:**
+- Google positioning rõ ràng là mobile-first/on-device.
+- Footprint động phù hợp hơn các line lớn hơn như Gemma 4.
+- Chất lượng đủ để viết đoạn phản chiếu ngắn nếu prompt và output contract được giữ chặt.
+
+#### Local future optimization
+- **Gemma 3 270M** chỉ nên xem là phase sau, sau khi có eval set + specialization cho đúng tác vụ reflection ngắn.
+
+#### Cloud quality lane
+- **`gpt-4.1-mini`** hoặc **`gemini-2.5-flash`** là quality tier hợp lý.
+- Không chọn cloud `nano` làm mặc định cho tác vụ này vì prose quality và instruction fidelity là trọng tâm.
+
+### Mandatory Patterns
+
+1. **No provider secret on client.** Mọi cloud request phải đi qua server proxy hoặc signed capability flow.
+2. **Local is the default happy path** khi thiết bị đủ capability và model đã sẵn sàng.
+3. **Inference runtime lives in native adapter layer, not in Rust core.**
+4. **Model binaries are downloaded and versioned at runtime, not bundled into APK/IPA.**
+5. **Fallback prompts remain the terminal safety layer** nếu cả local và cloud đều fail.
+
+### Consequences
+
+**Tích cực:**
+- "Xin diễn giải" có thể hoạt động thật cả khi offline hoặc mạng yếu.
+- Product posture nhất quán với triết lý ritual/offline-first.
+- Cloud quality path vẫn tồn tại mà không phá security boundary.
+
+**Trade-offs chấp nhận được:**
+- Android phải đi trước; iOS parity sẽ đến sau.
+- Cần thêm device capability gating, download manager, model lifecycle, và eval harness.
+
+**Rủi ro:**
+- Model local nhỏ có thể drift tone hoặc giảm chất lượng nếu prompt/output contract không đủ chặt.
+- On-device inference có thể gây nóng máy / latency cao trên device yếu.
+- Nếu không tách orchestration rõ, app sẽ lại quay về runtime branching rò rỉ trên UI layer.
+
+**Xem thêm:** `docs/CYCLE_2_LOCAL_AI_PLAN.md`, `BLUEPRINT.md` Section 3, ADR-AL-1, ADR-AL-8
 
 ---
 

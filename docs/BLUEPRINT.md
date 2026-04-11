@@ -39,7 +39,8 @@
 │  │  Notifications │ CardGen │ History Pagination             │ │
 │  └────────────────────────────────────────────────────────────┘ │
 │                                                                  │
-│  External: Claude/OpenAI/Gemini │ Gift Backend │ Node/tRPC      │
+│  External: Local LLM Runtime │ Cloud AI Proxy │ Gift Backend    │
+│            Node/tRPC                                         │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -66,7 +67,10 @@
 | **ReadingEngine** | `core/reading.rs` | Orchestrate reading flow: random source, random passage, random symbols | `Ref<ReadingInput>` | `Ref<ReadingSession>` | Không |
 | **ThemeEngine** | `core/theme.rs` | Random 3 symbols từ theme, resolve auto-choose | `theme_id`, `method` | `Ref<Symbol>` x3 | Không |
 | **Store** | `core/store.rs` | CRUD SQLite: readings, sources, passages, themes, user state | Varies | Varies | Có (SQLite conn) |
-| **AIClient** | `core/ai_client.rs` | Gọi Claude API, handle stream, fallback offline | `Ref<AIRequest>` | `AsyncStream<string>` | Không |
+| **Interpretation Orchestrator** | `lib/services/**` | Chọn local, cloud, hoặc fallback cho "Xin diễn giải" | `Ref<AIRequest>` | `AsyncStream<string>` | Có |
+| **Local Interpretation Adapter** | `modules/aletheia-core-module/**` | Quản lý model local, capability, stream inference | `Ref<AIRequest>` | `AsyncStream<string>` | Có |
+| **Cloud Interpretation Service** | `server/_core/**` | Giữ provider secrets, gọi cloud quality lane | `Ref<AIRequest>` | `AsyncStream<string>` | Không |
+| **AIClient (legacy cloud provider path)** | `core/ai_client.rs` | Cloud-provider orchestration hiện tại; sẽ bị thu hẹp sau khi proxy path hoàn tất | `Ref<AIRequest>` | `AsyncStream<string>` | Không |
 | **CardGenerator** | `core/card_gen.rs` | Render SVG → PNG share card | `Ref<ShareCard>` | `bytes` (PNG) | Không |
 | **GiftClient** | `core/gift_client.rs` | Create/redeem gift qua Gift Backend | `Ref<GiftRequest>` | `Ref<GiftReading>` | Không |
 | **NotificationScheduler** | `core/notif.rs` | Seed daily notification từ matrix, schedule via OS | `user_id`, `date` | `Ref<NotificationEntry>` | Không |
@@ -79,7 +83,7 @@
 
 ## 3. DATA FLOW
 
-### Happy Path — Reading với AI Interpretation (Online)
+### Happy Path — Reading với AI Interpretation (Local First)
 
 ```
 [1] User tap "Lật lá"
@@ -107,9 +111,11 @@
 [7] User tap "Diễn giải"
       │ input: reading_id, passage, symbol, situation_text?
       ▼
-[8] AIClient.request_interpretation()
-      │ → Build prompt (xem AIClient spec)
-      │ → POST Claude API với stream=true
+[8] InterpretationOrchestrator.request()
+      │ → Kiểm tra local model readiness
+      │ → nếu local ready: gọi native local stream
+      │ → nếu user chọn quality mode hoặc local unavailable: gọi cloud proxy
+      │ → nếu cả hai fail: dùng fallback prompts
       │ output: AsyncStream<string>
       ▼
 [9] UI: Stream hiển thị typewriter effect
@@ -129,13 +135,13 @@
 
 ---
 
-### Error Path — AI Timeout / Offline
+### Error Path — Local Unavailable / Cloud Fail / Offline
 
 ```
-[8] AIClient.request_interpretation() → TIMEOUT sau AI_STREAM_TIMEOUT_MS
-      │ hoặc network unavailable
+[8] InterpretationOrchestrator.request()
+      │ local model chưa ready / device không đủ capability / cloud timeout
       ▼
-[8a] AIClient tự động gọi: ReadingEngine.get_fallback_prompts(source_id)
+[8a] Orchestrator tự động gọi: ReadingEngine.get_fallback_prompts(source_id)
       │ → Trả 3 static reflection prompts từ Source.fallback_prompts
       │ is_fallback = true
       ▼

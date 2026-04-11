@@ -17,6 +17,12 @@ export const ENV = {
   forgeApiKey: readEnv("BUILT_IN_FORGE_API_KEY"),
   aiApiUrl: readEnv("AI_API_URL", "BUILT_IN_FORGE_API_URL"),
   aiApiKey: readEnv("AI_API_KEY", "BUILT_IN_FORGE_API_KEY"),
+  localAiUrl: readEnv("OLLAMA_BASE_URL", "LOCAL_AI_URL"),
+  localAiModel: readEnv("OLLAMA_MODEL", "LOCAL_AI_MODEL"),
+  interpretationCloudProvider: readEnv("INTERPRETATION_CLOUD_PROVIDER", "CLOUD_AI_PROVIDER"),
+  interpretationCloudModel: readEnv("INTERPRETATION_CLOUD_MODEL", "CLOUD_AI_MODEL"),
+  openAiApiKey: readEnv("OPENAI_API_KEY", "ALETHEIA_OPENAI_API_KEY"),
+  geminiApiKey: readEnv("GEMINI_API_KEY", "ALETHEIA_GEMINI_API_KEY"),
 };
 
 export function validateServerEnv(): void {

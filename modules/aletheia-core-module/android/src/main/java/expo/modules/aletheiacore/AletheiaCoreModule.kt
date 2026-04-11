@@ -36,6 +36,12 @@ import uniffi.aletheia.UserState
 import uniffi.aletheia.UserStateResponse
 import uniffi.aletheia.UpdateUserStateResponse
 import uniffi.aletheia.CancelInterpretationResponse
+// Local model types are handled natively in Kotlin
+import android.content.Context
+import android.util.Log
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 private data class AletheiaCoreBridgeError(
   val code: String,
@@ -97,6 +103,13 @@ private interface AletheiaCoreClient {
   fun setLocalDate(localDate: String)
   fun redeemGift(token: String): Map<String, Any?>
   fun createGift(sourceId: String?, buyerNote: String?): Map<String, Any?>
+
+  // LOCAL MODEL OPERATIONS (CYCLE 2)
+  fun checkDeviceCapability(context: Context): Map<String, Any?>
+  fun getLocalModelStatus(): Map<String, Any?>
+  fun prepareLocalModel(forceDownload: Boolean): Map<String, Any?>
+  fun cancelLocalModelDownload(): Map<String, Any?>
+  fun deleteLocalModel(): Boolean
 }
 
 private enum class AletheiaCoreBridgeState {
@@ -107,12 +120,24 @@ private enum class AletheiaCoreBridgeState {
 private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
   private var core: AletheiaCore? = null
   private var state = AletheiaCoreBridgeState.NotInitialized
+  
+  // Local inference components (CYCLE 2)
+  private var localInferenceEngine: LocalInferenceEngine? = null
+  private var modelDownloadManager: ModelDownloadManager? = null
+  private var downloadCancelToken: java.util.concurrent.atomic.AtomicBoolean? = null
+  private var downloadProgress: Int = 0
 
   override fun initialize(dbPath: String, giftBackendUrl: String) {
     System.setProperty("uniffi.component.aletheia.libraryOverride", "aletheia_core")
     core?.close()
     core = AletheiaCore(dbPath, giftBackendUrl)
     state = AletheiaCoreBridgeState.Prepared
+  }
+  
+  /// Initialize local inference components with context
+  fun initializeLocalInference(context: Context) {
+    localInferenceEngine = LocalInferenceEngine(context)
+    modelDownloadManager = ModelDownloadManager(context)
   }
 
   override fun setApiKey(provider: String, key: String): Map<String, Any?> {
@@ -269,6 +294,251 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
 
   override fun createGift(sourceId: String?, buyerNote: String?): Map<String, Any?> {
     return serializeCreateGiftResponse(requireCore().createGift(sourceId, buyerNote))
+  }
+
+  // LOCAL MODEL OPERATIONS (CYCLE 2)
+  override fun checkDeviceCapability(context: Context): Map<String, Any?> {
+    // Use native device detection instead of Rust stub
+    val detected = DeviceCapabilityDetector.detect(context)
+    return mapOf(
+      "capability" to mapOf(
+        "supported" to detected["supported"] as Boolean,
+        "available_ram_mb" to detected["available_ram_mb"] as Int,
+        "cpu_cores" to detected["cpu_cores"] as Int,
+        "has_simd" to detected["has_simd"] as Boolean,
+        "estimated_tps" to detected["estimated_tps"] as Float,
+        "unsupported_reason" to detected["unsupported_reason"]
+      ),
+      "error" to null
+    )
+  }
+
+  override fun getLocalModelStatus(): Map<String, Any?> {
+    // Use native model status instead of Rust stub
+    val engine = localInferenceEngine
+    val downloadManager = modelDownloadManager
+    
+    val modelReady = engine?.isModelReady() ?: false
+    val modelSize = downloadManager?.getModelSize() ?: 0L
+    
+    val status = when {
+      downloadCancelToken != null -> "downloading"
+      modelReady -> "ready"
+      else -> "not_downloaded"
+    }
+    
+    return mapOf(
+      "model_info" to mapOf(
+        "model_id" to "gemma-3n-e2b",
+        "status" to status,
+        "download_progress" to downloadProgress,
+        "model_size_bytes" to modelSize,
+        "downloaded_bytes" to if (modelReady) modelSize else 0L,
+        "version" to "1.0.0",
+        "error_message" to null,
+        "eta_seconds" to null,
+        "device_capable" to true,
+        "required_ram_mb" to 2048,
+        "available_ram_mb" to 0
+      ),
+      "error" to null
+    )
+  }
+
+  override fun prepareLocalModel(forceDownload: Boolean): Map<String, Any?> {
+    val downloadManager = modelDownloadManager ?: return mapOf(
+      "started" to false,
+      "model_info" to null,
+      "error" to mapOf("code" to "not_initialized", "message" to "Local inference not initialized")
+    )
+    
+    // Check if already downloading
+    if (downloadCancelToken != null) {
+      return mapOf(
+        "started" to false,
+        "model_info" to getLocalModelStatus()["model_info"],
+        "error" to mapOf("code" to "download_in_progress", "message" to "Download already in progress")
+      )
+    }
+    
+    // Check if already downloaded
+    if (!forceDownload && downloadManager.getModelSize() > 0) {
+      return mapOf(
+        "started" to false,
+        "model_info" to getLocalModelStatus()["model_info"],
+        "error" to null
+      )
+    }
+    
+    // Start download
+    downloadCancelToken = java.util.concurrent.atomic.AtomicBoolean(false)
+    downloadProgress = 0
+    
+    // Launch download in background
+    kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+      try {
+        downloadManager.downloadModel(
+          progressCallback = { progress ->
+            downloadProgress = progress
+          },
+          cancelToken = downloadCancelToken!!
+        )
+      } finally {
+        downloadCancelToken = null
+      }
+    }
+    
+    return mapOf(
+      "started" to true,
+      "model_info" to getLocalModelStatus()["model_info"],
+      "error" to null
+    )
+  }
+
+  override fun cancelLocalModelDownload(): Map<String, Any?> {
+    val token = downloadCancelToken
+    if (token != null) {
+      token.set(true)
+      downloadCancelToken = null
+      downloadProgress = 0
+    }
+    return getLocalModelStatus()
+  }
+
+  override fun deleteLocalModel(): Boolean {
+    val downloadManager = modelDownloadManager ?: return false
+    downloadCancelToken?.set(true)
+    downloadCancelToken = null
+    downloadProgress = 0
+    return downloadManager.deleteModel()
+  }
+
+  // LOCAL INFERENCE STREAM METHODS (CYCLE 2)
+  
+  // Active local inference sessions
+  private val localInferenceSessions = mutableMapOf<String, LocalInferenceSession>()
+  
+  data class LocalInferenceSession(
+    val requestId: String,
+    val chunks: MutableList<String> = mutableListOf(),
+    val fullText: StringBuilder = StringBuilder(),
+    var done: Boolean = false,
+    var cancelled: Boolean = false,
+    val cancelToken: java.util.concurrent.atomic.AtomicBoolean = java.util.concurrent.atomic.AtomicBoolean(false)
+  )
+  
+  /// Start local inference stream
+  fun startLocalInterpretationStream(
+    passage: Map<String, Any?>,
+    symbol: Map<String, Any?>,
+    situationText: String?,
+    userIntent: String?
+  ): Map<String, Any?> {
+    val engine = localInferenceEngine
+    if (engine == null || !engine.isModelReady()) {
+      return mapOf(
+        "request_id" to null,
+        "error" to mapOf("code" to "model_not_ready", "message" to "Local model not initialized or not downloaded")
+      )
+    }
+    
+    val requestId = java.util.UUID.randomUUID().toString()
+    val session = LocalInferenceSession(requestId)
+    localInferenceSessions[requestId] = session
+    
+    // Build prompt from passage, symbol, situation
+    val prompt = buildLocalInferencePrompt(passage, symbol, situationText, userIntent)
+    
+    // Launch inference in background
+    kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.Default) {
+      try {
+        engine.runInference(prompt, session.cancelToken)
+          .collect { chunk ->
+            synchronized(session) {
+              session.chunks.add(chunk)
+              session.fullText.append(chunk)
+            }
+          }
+        session.done = true
+      } catch (e: Exception) {
+        Log.e("AletheiaCore", "Local inference error", e)
+        session.done = true
+      }
+    }
+    
+    return mapOf(
+      "request_id" to requestId,
+      "error" to null
+    )
+  }
+  
+  /// Poll local inference stream for results
+  fun pollLocalInterpretationStream(requestId: String): Map<String, Any?> {
+    val session = localInferenceSessions[requestId]
+    if (session == null) {
+      return mapOf(
+        "request_id" to requestId,
+        "new_chunks" to emptyList<String>(),
+        "full_text" to "",
+        "done" to true,
+        "used_fallback" to false,
+        "cancelled" to false,
+        "error" to mapOf("code" to "session_not_found", "message" to "Inference session not found")
+      )
+    }
+    
+    val newChunks = synchronized(session) {
+      val chunks = session.chunks.toList()
+      session.chunks.clear()
+      chunks
+    }
+    
+    return mapOf(
+      "request_id" to requestId,
+      "new_chunks" to newChunks,
+      "full_text" to session.fullText.toString(),
+      "done" to session.done,
+      "used_fallback" to false,
+      "cancelled" to session.cancelled,
+      "error" to null
+    )
+  }
+  
+  /// Cancel local inference stream
+  fun cancelLocalInterpretationStream(requestId: String): Map<String, Any?> {
+    val session = localInferenceSessions[requestId]
+    if (session != null) {
+      session.cancelToken.set(true)
+      session.cancelled = true
+      session.done = true
+      localInferenceSessions.remove(requestId)
+    }
+    
+    return mapOf(
+      "cancelled" to true,
+      "error" to null
+    )
+  }
+  
+  /// Build prompt for local inference
+  private fun buildLocalInferencePrompt(
+    passage: Map<String, Any?>,
+    symbol: Map<String, Any?>,
+    situationText: String?,
+    userIntent: String?
+  ): String {
+    val passageText = passage["text"] as? String ?: ""
+    val passageRef = passage["reference"] as? String ?: ""
+    val symbolName = symbol["display_name"] as? String ?: ""
+    
+    return buildString {
+      append("Bi u t ng: $symbolName\n")
+      append(" o trích ($passageRef): $passageText\n")
+      if (!situationText.isNullOrBlank()) {
+        append("Tình hu ng: $situationText\n")
+      }
+      append("\nHãy ph n chi u l i i u này cho ng i c.\n")
+    }
   }
 
   private fun requireCore(): AletheiaCore {
@@ -568,6 +838,41 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
     }
   }
 
+  // LOCAL MODEL SERIALIZATION (CYCLE 2)
+  // Note: Using native Kotlin implementation, not UniFFI bindings
+
+  // LocalModelInfo serializer - kept for compatibility
+  private fun serializeLocalModelInfoNative(
+    modelId: String,
+    status: String,
+    downloadProgress: Int,
+    modelSizeBytes: Long,
+    downloadedBytes: Long,
+    version: String,
+    errorMessage: String?,
+    etaSeconds: Int?,
+    deviceCapable: Boolean,
+    requiredRamMb: Int,
+    availableRamMb: Int
+  ): Map<String, Any?> {
+    return mapOf(
+      "model_id" to modelId,
+      "status" to status,
+      "download_progress" to downloadProgress,
+      "model_size_bytes" to modelSizeBytes,
+      "downloaded_bytes" to downloadedBytes,
+      "version" to version,
+      "error_message" to errorMessage,
+      "eta_seconds" to etaSeconds,
+      "device_capable" to deviceCapable,
+      "required_ram_mb" to requiredRamMb,
+      "available_ram_mb" to availableRamMb
+    )
+  }
+
+  // Note: Local model operations use native implementations directly
+  // These serializer functions are kept for potential future use with Rust bindings
+
   private fun deserializeReadingSession(payload: Map<String, Any?>): ReadingSession {
     return ReadingSession(
       tempId = payload.requireString("temp_id"),
@@ -813,7 +1118,8 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
 }
 
 class AletheiaCoreModule : Module() {
-  private val client: AletheiaCoreClient = AletheiaCoreUniFFIAdapter()
+  private val adapter = AletheiaCoreUniFFIAdapter()
+  private val client: AletheiaCoreClient = adapter
 
   override fun definition() = ModuleDefinition {
     Name("AletheiaCoreModule")
@@ -822,6 +1128,12 @@ class AletheiaCoreModule : Module() {
       val dbPath = options["dbPath"].orEmpty()
       val giftBackendUrl = options["giftBackendUrl"].orEmpty()
       client.initialize(dbPath, giftBackendUrl)
+      
+      // Initialize local inference components (CYCLE 2)
+      val context = appContext.reactContext
+      if (context != null) {
+        adapter.initializeLocalInference(context)
+      }
     }
 
     AsyncFunction("bootstrapBundledContent") {
@@ -920,6 +1232,42 @@ class AletheiaCoreModule : Module() {
 
     AsyncFunction("createGift") { sourceId: String?, buyerNote: String? ->
       client.createGift(sourceId, buyerNote)
+    }
+
+    // LOCAL MODEL OPERATIONS (CYCLE 2)
+    AsyncFunction("checkDeviceCapability") {
+      val context = appContext.reactContext ?: throw IllegalStateException("No context available")
+      client.checkDeviceCapability(context)
+    }
+
+    AsyncFunction("getLocalModelStatus") {
+      client.getLocalModelStatus()
+    }
+
+    AsyncFunction("prepareLocalModel") { forceDownload: Boolean ->
+      client.prepareLocalModel(forceDownload)
+    }
+
+    AsyncFunction("cancelLocalModelDownload") {
+      client.cancelLocalModelDownload()
+    }
+
+    AsyncFunction("deleteLocalModel") {
+      client.deleteLocalModel()
+    }
+
+    // LOCAL INFERENCE STREAM (CYCLE 2)
+    AsyncFunction("startLocalInterpretationStream") 
+      { passage: Map<String, Any?>, symbol: Map<String, Any?>, situationText: String?, userIntent: String? ->
+        adapter.startLocalInterpretationStream(passage, symbol, situationText, userIntent)
+      }
+
+    AsyncFunction("pollLocalInterpretationStream") { requestId: String ->
+      adapter.pollLocalInterpretationStream(requestId)
+    }
+
+    AsyncFunction("cancelLocalInterpretationStream") { requestId: String ->
+      adapter.cancelLocalInterpretationStream(requestId)
     }
   }
 }

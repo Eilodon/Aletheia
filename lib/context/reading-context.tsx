@@ -14,7 +14,6 @@ import {
   ErrorCode,
   Symbol as AletheiaSymbol,
 } from "@/lib/types";
-import { aiClient } from "@/lib/services/ai-client";
 import { dbInit } from "@/lib/services/db-init";
 import {
   AUTO_SAVE_DELAY_MS,
@@ -26,6 +25,7 @@ import { coreStore } from "@/lib/services/core-store";
 import { generateId } from "@/lib/utils/id";
 import { trackRitualEvent } from "@/lib/analytics";
 import { captureException } from "@/lib/sentry";
+import { interpretationOrchestrator } from "@/lib/services/interpretation-orchestrator";
 
 interface ReadingContextType {
   // State
@@ -187,7 +187,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
         user_intent: session.user_intent,
       });
 
-      const stream = aiClient.streamInterpretation(
+      const stream = interpretationOrchestrator.streamInterpretation(
         {
           passage,
           symbol: selectedSymbol,

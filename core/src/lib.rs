@@ -6,6 +6,7 @@ mod card_gen;
 mod contracts;
 mod errors;
 mod gift_client;
+mod local_inference;
 mod notif;
 mod reading;
 mod store;
@@ -16,6 +17,7 @@ pub use card_gen::CardGenerator;
 pub use contracts::*;
 pub use errors::AletheiaError;
 pub use gift_client::GiftClient;
+pub use local_inference::LocalInferenceEngine;
 pub use notif::NotificationScheduler;
 pub use reading::ReadingEngine;
 pub use store::Store;
@@ -869,8 +871,87 @@ impl AletheiaCore {
             },
         }
     }
+
+    // ========================================================================
+    // LOCAL MODEL OPERATIONS (CYCLE 2)
+    // ========================================================================
+    //
+    // NOTE: These methods provide stub implementations that return placeholder
+    // data. The actual local inference implementation will be done in the
+    // Android/iOS native modules using on-device ML runtimes (e.g., MediaPipe,
+    // TensorFlow Lite, or llama.cpp). The Rust core serves as the contract
+    // definition and provides the API surface for the native modules.
+    //
+    // The native modules will:
+    // 1. Check device capability (RAM, CPU, SIMD support)
+    // 2. Download/cache the model file
+    // 3. Initialize the inference engine
+    // 4. Run inference and stream results back
+
+    /// Check if this device is capable of running local inference.
+    /// Returns device capability info including RAM, CPU cores, SIMD support.
+    /// This is a stub - actual implementation is in Android/iOS native module.
+    pub fn check_device_capability(&self) -> DeviceCapabilityResponse {
+        // Stub implementation - native module will override
+        // Default to unsupported so native module must explicitly enable
+        DeviceCapabilityResponse {
+            capability: Some(DeviceCapability {
+                supported: false,
+                available_ram_mb: 0,
+                cpu_cores: 0,
+                has_simd: false,
+                estimated_tps: 0.0,
+                unsupported_reason: Some("Native module not initialized".to_string()),
+            }),
+            error: None,
+        }
+    }
+
+    /// Get the current status of the local model.
+    /// Returns download progress, readiness state, and model info.
+    /// This is a stub - actual implementation is in Android/iOS native module.
+    pub fn get_local_model_status(&self) -> LocalModelStatusResponse {
+        // Stub implementation - native module will override
+        LocalModelStatusResponse {
+            model_info: Some(LocalModelInfo::default()),
+            error: None,
+        }
+    }
+
+    /// Prepare the local model for inference.
+    /// If model is not downloaded, starts download.
+    /// If model is downloaded but outdated, updates it.
+    /// This is a stub - actual implementation is in Android/iOS native module.
+    pub fn prepare_local_model(&self, _force_download: bool) -> PrepareLocalModelResponse {
+        // Stub implementation - native module will override
+        PrepareLocalModelResponse {
+            started: false,
+            model_info: Some(LocalModelInfo::default()),
+            error: Some(BridgeError {
+                code: "ERR_LOCAL_MODEL_UNAVAILABLE".to_string(),
+                message: "Local inference not available in Rust core - use native module".to_string(),
+            }),
+        }
+    }
+
+    /// Cancel an ongoing model download.
+    /// This is a stub - actual implementation is in Android/iOS native module.
+    pub fn cancel_local_model_download(&self) -> LocalModelStatusResponse {
+        // Stub implementation - native module will override
+        LocalModelStatusResponse {
+            model_info: Some(LocalModelInfo::default()),
+            error: None,
+        }
+    }
+
+    /// Delete the downloaded local model to free up storage.
+    /// This is a stub - actual implementation is in Android/iOS native module.
+    pub fn delete_local_model(&self) -> bool {
+        // Stub implementation - native module will override
+        false
+    }
 }
 
-// Suppress warning from UniFFI generated scaffolding
-#[allow(unpredictable_function_pointer_comparisons)]
+// UniFFI generated scaffolding - warnings from generated code are expected
+// The unpredictable_function_pointer_comparisons warning is harmless for UniFFI
 uniffi::include_scaffolding!("aletheia");

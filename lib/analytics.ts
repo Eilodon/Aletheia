@@ -244,3 +244,41 @@ export const trackGiftEvent = (
   action: "create_attempted" | "created" | "create_failed" | "shared",
   properties?: Record<string, unknown>,
 ) => track(`gift_${action}`, properties);
+
+// ============================================================================
+// LOCAL INFERENCE TELEMETRY (CYCLE 2)
+// ============================================================================
+
+export const trackLocalModelEvent = (
+  action:
+    | "capability_checked"
+    | "download_started"
+    | "download_progress"
+    | "download_completed"
+    | "download_failed"
+    | "download_cancelled"
+    | "model_deleted"
+    | "inference_started"
+    | "inference_completed"
+    | "inference_failed"
+    | "inference_cancelled",
+  properties?: Record<string, unknown>,
+) => track(`local_model_${action}`, properties);
+
+export const trackInferenceMode = (
+  mode: "local" | "cloud" | "fallback" | "offline",
+  properties?: Record<string, unknown>,
+) =>
+  track("inference_mode_selected", {
+    mode,
+    ...properties,
+  });
+
+export const trackLocalInferencePerformance = (properties: {
+  tokens_per_second: number;
+  total_tokens: number;
+  latency_ms: number;
+  model_id: string;
+  device_ram_mb: number;
+  device_cpu_cores: number;
+}) => track("local_inference_performance", properties);

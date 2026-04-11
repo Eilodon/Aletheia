@@ -58,17 +58,14 @@ class ThemeEngineService {
    * Get all themes (for debugging/settings)
    */
   async getAllThemes(): Promise<Theme[]> {
-    // This would need a new method in store if needed
-    // For now, just get a random one as placeholder
-    return [];
+    return store.getAllThemes();
   }
 
   /**
    * Get theme by ID
    */
-  async getThemeById(_themeId: string): Promise<Theme | null> {
-    // This would need a new method in store if needed
-    return null;
+  async getThemeById(themeId: string): Promise<Theme | null> {
+    return store.getThemeById(themeId);
   }
 }
 

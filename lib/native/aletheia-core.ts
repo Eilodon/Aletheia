@@ -27,6 +27,7 @@ import {
   type NativeRedeemGiftResponse,
   type NativeCreateGiftResponse,
 } from "../../modules/aletheia-core-module/src";
+import { Platform } from "react-native";
 
 class AletheiaNativeClient {
   private module = (() => {
@@ -38,6 +39,12 @@ class AletheiaNativeClient {
   })();
 
   isAvailable(): boolean {
+    // iOS still ships a stub Expo module. Treat it as unavailable until
+    // generated Swift bindings and Rust artifacts are linked for real.
+    if (Platform.OS === "ios") {
+      return false;
+    }
+
     return this.module !== null;
   }
 

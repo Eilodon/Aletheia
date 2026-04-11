@@ -6,7 +6,7 @@
 import { Passage, Symbol } from "@/lib/types";
 import { aiRuntime } from "./ai-runtime";
 
-interface AIRequest {
+export interface AIRequest {
   passage: Passage;
   symbol: Symbol;
   situationText?: string;
@@ -18,7 +18,7 @@ interface AIRequest {
   userIntent?: "clarity" | "comfort" | "challenge" | "guidance";
 }
 
-interface AIInterpretationResult {
+export interface AIInterpretationResult {
   chunks: string[];
   usedFallback: boolean;
 }
@@ -27,7 +27,7 @@ interface AIStreamHandlers {
   onChunk?: (fullText: string, chunk: string) => void;
 }
 
-type AIStreamSession = {
+export type AIStreamSession = {
   promise: Promise<AIInterpretationResult>;
   cancel: () => Promise<boolean>;
 };

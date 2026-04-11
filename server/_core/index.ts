@@ -9,6 +9,13 @@ import { validateServerEnv, ENV } from "./env";
 import { apiLimiter, aiApiLimiter } from "./rateLimit";
 import { getReleaseReadiness } from "./releaseReadiness";
 import { getDb } from "../db";
+import {
+  interpretationRequestSchema,
+  requestInterpretation,
+  streamInterpretation,
+  type InterpretationStreamEvent,
+} from "./interpretationService";
+import { logger } from "./logger";
 
 function getAllowedOrigins(): Set<string> {
   const configured = (process.env.CORS_ALLOWED_ORIGINS ?? "")
@@ -180,6 +187,69 @@ async function startServer() {
   app.get("/api/health/release", (_req, res) => {
     const report = getReleaseReadiness();
     res.status(report.ok ? 200 : 503).json(report);
+  });
+
+  app.post("/api/interpret", aiApiLimiter, async (req, res) => {
+    const parsed = interpretationRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        error: "Invalid interpretation request",
+        issues: parsed.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message,
+        })),
+      });
+      return;
+    }
+
+    try {
+      const result = await requestInterpretation(parsed.data);
+      res.json(result);
+    } catch (error) {
+      logger.error("[interpretation] request failed", error);
+      res.status(500).json({
+        error: "Interpretation request failed",
+      });
+    }
+  });
+
+  app.post("/api/interpret/stream", aiApiLimiter, async (req, res) => {
+    const parsed = interpretationRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        error: "Invalid interpretation request",
+        issues: parsed.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message,
+        })),
+      });
+      return;
+    }
+
+    res.status(200);
+    res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("X-Accel-Buffering", "no");
+
+    const writeEvent = (event: InterpretationStreamEvent) => {
+      res.write(`${JSON.stringify(event)}\n`);
+    };
+
+    try {
+      await streamInterpretation(parsed.data, writeEvent);
+    } catch (error) {
+      logger.error("[interpretation] stream failed", error);
+      writeEvent({
+        type: "done",
+        text: "Hãy để những lời này lắng xuống một chút. Điều gì đang dấy lên trong bạn?",
+        usedFallback: true,
+        mode: "fallback",
+        provider: "fallback",
+        model: "static-fallback",
+      });
+    } finally {
+      res.end();
+    }
   });
 
   // Apply rate limiting to all /api routes

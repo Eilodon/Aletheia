@@ -51,6 +51,13 @@ private protocol AletheiaCoreClient {
   func getUserState(userId: String) async -> [String: Any?]
   func getReadingById(id: String) async -> [String: Any?]
   func updateReadingFlags(id: String, flags: [String: Any]) async -> [String: Any?]
+
+  // LOCAL MODEL OPERATIONS (CYCLE 2)
+  func checkDeviceCapability() async -> [String: Any?]
+  func getLocalModelStatus() async -> [String: Any?]
+  func prepareLocalModel(forceDownload: Bool) async -> [String: Any?]
+  func cancelLocalModelDownload() async -> [String: Any?]
+  func deleteLocalModel() async -> Bool
 }
 
 private enum AletheiaCoreBridgeState {
@@ -201,6 +208,57 @@ private final class AletheiaCoreUniFFIAdapter: AletheiaCoreClient {
     _ = id
     _ = flags
     return response(reading: nil)
+  }
+
+  // LOCAL MODEL OPERATIONS (CYCLE 2)
+  func checkDeviceCapability() async -> [String: Any?] {
+    return [
+      "capability": [
+        "supported": false,
+        "available_ram_mb": 0,
+        "cpu_cores": 0,
+        "has_simd": false,
+        "estimated_tps": 0.0,
+        "unsupported_reason": "iOS native module not initialized"
+      ],
+      "error": nil
+    ]
+  }
+
+  func getLocalModelStatus() async -> [String: Any?] {
+    return [
+      "model_info": [
+        "model_id": "gemma-3n-e2b",
+        "status": "not_downloaded",
+        "download_progress": 0,
+        "model_size_bytes": 0,
+        "downloaded_bytes": 0,
+        "version": "",
+        "error_message": nil,
+        "eta_seconds": nil,
+        "device_capable": false,
+        "required_ram_mb": 2048,
+        "available_ram_mb": 0
+      ],
+      "error": nil
+    ]
+  }
+
+  func prepareLocalModel(forceDownload: Bool) async -> [String: Any?] {
+    _ = forceDownload
+    return [
+      "started": false,
+      "model_info": nil,
+      "error": bridgeError().serialize()
+    ]
+  }
+
+  func cancelLocalModelDownload() async -> [String: Any?] {
+    return await getLocalModelStatus()
+  }
+
+  func deleteLocalModel() async -> Bool {
+    return false
   }
 
   private func bridgeError() -> AletheiaCoreBridgeError {
@@ -357,6 +415,27 @@ public final class AletheiaCoreModule: Module {
 
     AsyncFunction("updateReadingFlags") { (id: String, flags: [String: Any]) in
       await self.client.updateReadingFlags(id: id, flags: flags)
+    }
+
+    // LOCAL MODEL OPERATIONS (CYCLE 2)
+    AsyncFunction("checkDeviceCapability") {
+      await self.client.checkDeviceCapability()
+    }
+
+    AsyncFunction("getLocalModelStatus") {
+      await self.client.getLocalModelStatus()
+    }
+
+    AsyncFunction("prepareLocalModel") { (forceDownload: Bool) in
+      await self.client.prepareLocalModel(forceDownload: forceDownload)
+    }
+
+    AsyncFunction("cancelLocalModelDownload") {
+      await self.client.cancelLocalModelDownload()
+    }
+
+    AsyncFunction("deleteLocalModel") {
+      await self.client.deleteLocalModel()
     }
   }
 }

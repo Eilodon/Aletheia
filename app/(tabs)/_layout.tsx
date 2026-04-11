@@ -48,8 +48,15 @@ export default function TabLayout() {
       <Tabs.Screen
         name="mirror"
         options={{
-          title: "Gương",
+          title: "Gutschein",
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="book.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: "Cài dat",
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="gearshape.fill" color={color} />,
         }}
       />
     </Tabs>

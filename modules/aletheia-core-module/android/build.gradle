@@ -26,4 +26,13 @@ android {
 dependencies {
   implementation 'com.facebook.react:react-android'
   implementation 'net.java.dev.jna:jna:5.14.0'
+  
+  // MediaPipe Tasks GenAI for on-device LLM inference
+  implementation 'com.google.mediapipe:tasks-genai:0.10.27'
+  
+  // OkHttp for model downloads
+  implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+  
+  // Kotlin coroutines for async operations
+  implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.0'
 }

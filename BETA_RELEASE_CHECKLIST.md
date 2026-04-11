@@ -8,12 +8,11 @@
   - [ ] `EXPO_PUBLIC_EAS_PROJECT_ID`
   - [ ] `EXPO_PUBLIC_OWNER_NAME`
   - [ ] `JWT_SECRET`
-  - [ ] `ALETHEIA_APP_SECRET` + `EXPO_PUBLIC_ALETHEIA_APP_SECRET`
   - [ ] `EXPO_PUBLIC_API_BASE_URL`
   - [ ] At least one AI provider key (`ALETHEIA_CLAUDE_API_KEY` / `ALETHEIA_OPENAI_API_KEY` / `ALETHEIA_GEMINI_API_KEY`)
 
 - [ ] Gift backend đã deploy (hoặc gift routes đã ẩn)
-- [ ] OAuth credentials đã configured
+- [ ] Không còn runtime auth/OAuth surface ngoài những gì release thực sự dùng
 
 ## Verification
 

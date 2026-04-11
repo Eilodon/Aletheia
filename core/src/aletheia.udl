@@ -48,6 +48,15 @@ enum ReadingState {
     "Complete"
 };
 
+enum LocalModelStatus {
+    "NotDownloaded",
+    "Downloading",
+    "Ready",
+    "UpdateAvailable",
+    "Error",
+    "Unsupported"
+};
+
 dictionary Symbol {
     string id;
     string display_name;
@@ -231,6 +240,45 @@ dictionary AIInterpretation {
     boolean used_fallback;
 };
 
+dictionary LocalModelInfo {
+    string model_id;
+    LocalModelStatus status;
+    u8 download_progress;
+    u64 model_size_bytes;
+    u64 downloaded_bytes;
+    string version;
+    string? error_message;
+    u32? eta_seconds;
+    boolean device_capable;
+    u32 required_ram_mb;
+    u32 available_ram_mb;
+};
+
+dictionary LocalModelStatusResponse {
+    LocalModelInfo? model_info;
+    BridgeError? error;
+};
+
+dictionary PrepareLocalModelResponse {
+    boolean started;
+    LocalModelInfo? model_info;
+    BridgeError? error;
+};
+
+dictionary DeviceCapability {
+    boolean supported;
+    u32 available_ram_mb;
+    u32 cpu_cores;
+    boolean has_simd;
+    float estimated_tps;
+    string? unsupported_reason;
+};
+
+dictionary DeviceCapabilityResponse {
+    DeviceCapability? capability;
+    BridgeError? error;
+};
+
 dictionary RequestInterpretationResponse {
     AIInterpretation? interpretation;
     BridgeError? error;
@@ -352,4 +400,18 @@ interface AletheiaCore {
         string? source_id,
         string? buyer_note
     );
+
+    // ========================================================================
+    // LOCAL MODEL OPERATIONS (CYCLE 2)
+    // ========================================================================
+
+    DeviceCapabilityResponse check_device_capability();
+
+    LocalModelStatusResponse get_local_model_status();
+
+    PrepareLocalModelResponse prepare_local_model(boolean force_download);
+
+    LocalModelStatusResponse cancel_local_model_download();
+
+    boolean delete_local_model();
 };

@@ -562,6 +562,39 @@ class StoreService {
     };
   }
 
+  async getAllThemes(): Promise<Theme[]> {
+    await this.initialize();
+    if (!this.db) throw new Error("Database not initialized");
+
+    const rows = await this.db.getAllAsync<any>(
+      "SELECT * FROM themes ORDER BY name ASC"
+    );
+
+    const themes = await Promise.all(
+      rows.map(async (row) => {
+        const symbols = await this.db!.getAllAsync<any>(
+          "SELECT * FROM symbols WHERE theme_id = ?",
+          [row.id]
+        );
+
+        return {
+          id: row.id,
+          name: row.name,
+          is_premium: row.is_premium === 1,
+          pack_id: row.pack_id || undefined,
+          price_usd: row.price_usd || undefined,
+          symbols: symbols.map((symbol) => ({
+            id: symbol.id,
+            display_name: symbol.display_name,
+            flavor_text: symbol.flavor_text || undefined,
+          })),
+        } as Theme;
+      })
+    );
+
+    return themes;
+  }
+
   // Readings
   async insertReading(reading: Reading): Promise<void> {
     await this.initialize();

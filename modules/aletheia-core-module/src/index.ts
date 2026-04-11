@@ -225,6 +225,57 @@ export type NativeCreateGiftResponse = {
   error?: NativeBridgeError;
 };
 
+// ============================================================================
+// LOCAL MODEL TYPES (CYCLE 2)
+// ============================================================================
+
+export type NativeLocalModelStatus =
+  | "not_downloaded"
+  | "downloading"
+  | "ready"
+  | "update_available"
+  | "error"
+  | "unsupported";
+
+export type NativeLocalModelInfo = {
+  model_id: string;
+  status: NativeLocalModelStatus;
+  download_progress: number;
+  model_size_bytes: number;
+  downloaded_bytes: number;
+  version: string;
+  error_message?: string;
+  eta_seconds?: number;
+  device_capable: boolean;
+  required_ram_mb: number;
+  available_ram_mb: number;
+};
+
+export type NativeLocalModelStatusResponse = {
+  model_info?: NativeLocalModelInfo;
+  error?: NativeBridgeError;
+};
+
+export type NativePrepareLocalModelResponse = {
+  started: boolean;
+  model_info?: NativeLocalModelInfo;
+  error?: NativeBridgeError;
+};
+
+export type NativeDeviceCapability = {
+  supported: boolean;
+  available_ram_mb: number;
+  cpu_cores: number;
+  has_simd: boolean;
+  estimated_tps: number;
+  unsupported_reason?: string;
+};
+
+export type NativeDeviceCapabilityResponse = {
+  capability?: NativeDeviceCapability;
+  error?: NativeBridgeError;
+};
+
 export type NativeSeedBundledDataOptions = {
   sourcesJson: string;
   passagesJson: string;
@@ -293,6 +344,25 @@ export type NativeAletheiaModule = {
   setLocalDate(localDate: string): Promise<void>;
   redeemGift(token: string): Promise<NativeRedeemGiftResponse>;
   createGift(sourceId?: string, buyerNote?: string): Promise<NativeCreateGiftResponse>;
+  // LOCAL MODEL OPERATIONS (CYCLE 2)
+  checkDeviceCapability(): Promise<NativeDeviceCapabilityResponse>;
+  getLocalModelStatus(): Promise<NativeLocalModelStatusResponse>;
+  prepareLocalModel(forceDownload: boolean): Promise<NativePrepareLocalModelResponse>;
+  cancelLocalModelDownload(): Promise<NativeLocalModelStatusResponse>;
+  deleteLocalModel(): Promise<boolean>;
+  // LOCAL INFERENCE (CYCLE 2)
+  startLocalInterpretationStream(
+    passage: NativePassage,
+    symbol: NativeSymbol,
+    situationText?: string,
+    userIntent?: string,
+  ): Promise<NativeStartInterpretationStreamResponse>;
+  pollLocalInterpretationStream(
+    requestId: string,
+  ): Promise<NativeInterpretationStreamState>;
+  cancelLocalInterpretationStream(
+    requestId: string,
+  ): Promise<NativeCancelInterpretationResponse>;
 };
 
 const nativeModule =

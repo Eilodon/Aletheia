@@ -112,6 +112,11 @@
 **Why it matters:** Paywall UI exists, but RevenueCat SDK is not wired and was intentionally removed from active dependencies.  
 **Target:** Reintroduce a real monetization SDK only when the product path is committed.
 
+### A-05 — Interpretation path has no local-first runtime yet
+**Status:** Open  
+**Why it matters:** Product direction now requires a real local-model default for "Xin diễn giải", but current runtime still depends on cloud-era assumptions plus static fallback.  
+**Target:** Insert an interpretation orchestrator, add Android local inference, and move cloud quality access behind a server proxy.
+
 ---
 
 ## Active Risks
@@ -135,6 +140,7 @@
 - Finish collapsing the remaining service-level runtime branching that is still outside strict adapter boundaries.
 - Expand UniFFI read APIs only for Android-consumed models that still lack clean Rust access.
 - Keep archive/detail parity green while adding new growth surfaces.
+- Build the local-first interpretation architecture: orchestrator, Android local model lane, cloud proxy lane, and eval harness.
 
 ### Priority 2
 - Wire real share-card generation through the native/card pipeline.
