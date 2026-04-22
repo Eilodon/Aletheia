@@ -1,10 +1,16 @@
 import * as fs from "fs";
 import * as path from "path";
 
+type NotificationEntry = {
+  symbol_id: string;
+  question: string;
+};
+
 type BundledContentArtifact = {
   sources: unknown[];
   passages: unknown[];
   themes: unknown[];
+  notification_matrix: NotificationEntry[];
 };
 
 const ROOT_DIR = path.join(__dirname, "..");
@@ -23,7 +29,7 @@ function generateTs(artifact: BundledContentArtifact): string {
  * Source of truth: core/content/bundled-content.json
  */
 
-import type { Passage, Source, Theme } from "@/lib/types";
+import type { Passage, Source, Theme, NotificationEntry } from "@/lib/types";
 
 `;
 
@@ -32,6 +38,8 @@ import type { Passage, Source, Theme } from "@/lib/types";
 export const BUNDLED_PASSAGES = ${JSON.stringify(artifact.passages, null, 2)} as Passage[];
 
 export const BUNDLED_THEMES = ${JSON.stringify(artifact.themes, null, 2)} as Theme[];
+
+export const NOTIFICATION_MATRIX = ${JSON.stringify(artifact.notification_matrix, null, 2)} as NotificationEntry[];
 `;
 }
 

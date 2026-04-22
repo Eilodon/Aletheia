@@ -323,6 +323,19 @@ fileprivate struct FfiConverterUInt32: FfiConverterPrimitive {
     }
 }
 
+fileprivate struct FfiConverterUInt64: FfiConverterPrimitive {
+    typealias FfiType = UInt64
+    typealias SwiftType = UInt64
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> UInt64 {
+        return try lift(readInt(&buf))
+    }
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        writeInt(&buf, lower(value))
+    }
+}
+
 fileprivate struct FfiConverterInt64: FfiConverterPrimitive {
     typealias FfiType = Int64
     typealias SwiftType = Int64
@@ -412,17 +425,22 @@ fileprivate struct FfiConverterString: FfiConverter {
 public protocol AletheiaCoreProtocol {
     func bootstrapBundledContent()   -> SeedBundledDataResponse
     func cancelInterpretationStream(requestId: String)   -> CancelInterpretationResponse
+    func cancelLocalModelDownload()   -> LocalModelStatusResponse
+    func checkDeviceCapability()   -> DeviceCapabilityResponse
     func chooseSymbol(session: ReadingSession, symbolId: String, method: SymbolMethod)   -> ChooseSymbolResponse
     func completeReading(userId: String, reading: Reading)   -> CompleteReadingResponse
     func createGift(sourceId: String?, buyerNote: String?)   -> CreateGiftResponse
+    func deleteLocalModel()   -> Bool
     func getDailyNotificationMessage(userId: String, date: String)   -> NotificationMessageResponse
     func getFallbackPrompts(sourceId: String)   -> FallbackPromptsResponse
+    func getLocalModelStatus()   -> LocalModelStatusResponse
     func getReadingById(id: String)   -> ReadingResponse
     func getReadings(limit: UInt32, offset: UInt32)   -> PaginatedReadingsResponse
     func getSources(premiumAllowed: Bool)   -> SourcesResponse
     func getUserState(userId: String)   -> UserStateResponse
     func performReading(userId: String, sourceId: String?, situationText: String?)   -> PerformReadingResponse
     func pollInterpretationStream(requestId: String)   -> InterpretationStreamState
+    func prepareLocalModel(forceDownload: Bool)   -> PrepareLocalModelResponse
     func redeemGift(token: String)   -> RedeemGiftResponse
     func requestInterpretation(passage: Passage, symbol: Symbol, situationText: String?)   -> RequestInterpretationResponse
     func seedBundledData(sourcesJson: String, passagesJson: String, themesJson: String)   -> SeedBundledDataResponse
@@ -483,6 +501,28 @@ public class AletheiaCore: AletheiaCoreProtocol {
         )
     }
 
+    public func cancelLocalModelDownload()  -> LocalModelStatusResponse {
+        return try!  FfiConverterTypeLocalModelStatusResponse.lift(
+            try! 
+    rustCall() {
+    
+    uniffi_aletheia_core_fn_method_aletheiacore_cancel_local_model_download(self.pointer, $0
+    )
+}
+        )
+    }
+
+    public func checkDeviceCapability()  -> DeviceCapabilityResponse {
+        return try!  FfiConverterTypeDeviceCapabilityResponse.lift(
+            try! 
+    rustCall() {
+    
+    uniffi_aletheia_core_fn_method_aletheiacore_check_device_capability(self.pointer, $0
+    )
+}
+        )
+    }
+
     public func chooseSymbol(session: ReadingSession, symbolId: String, method: SymbolMethod)  -> ChooseSymbolResponse {
         return try!  FfiConverterTypeChooseSymbolResponse.lift(
             try! 
@@ -523,6 +563,17 @@ public class AletheiaCore: AletheiaCoreProtocol {
         )
     }
 
+    public func deleteLocalModel()  -> Bool {
+        return try!  FfiConverterBool.lift(
+            try! 
+    rustCall() {
+    
+    uniffi_aletheia_core_fn_method_aletheiacore_delete_local_model(self.pointer, $0
+    )
+}
+        )
+    }
+
     public func getDailyNotificationMessage(userId: String, date: String)  -> NotificationMessageResponse {
         return try!  FfiConverterTypeNotificationMessageResponse.lift(
             try! 
@@ -543,6 +594,17 @@ public class AletheiaCore: AletheiaCoreProtocol {
     
     uniffi_aletheia_core_fn_method_aletheiacore_get_fallback_prompts(self.pointer, 
         FfiConverterString.lower(sourceId),$0
+    )
+}
+        )
+    }
+
+    public func getLocalModelStatus()  -> LocalModelStatusResponse {
+        return try!  FfiConverterTypeLocalModelStatusResponse.lift(
+            try! 
+    rustCall() {
+    
+    uniffi_aletheia_core_fn_method_aletheiacore_get_local_model_status(self.pointer, $0
     )
 }
         )
@@ -618,6 +680,18 @@ public class AletheiaCore: AletheiaCoreProtocol {
     
     uniffi_aletheia_core_fn_method_aletheiacore_poll_interpretation_stream(self.pointer, 
         FfiConverterString.lower(requestId),$0
+    )
+}
+        )
+    }
+
+    public func prepareLocalModel(forceDownload: Bool)  -> PrepareLocalModelResponse {
+        return try!  FfiConverterTypePrepareLocalModelResponse.lift(
+            try! 
+    rustCall() {
+    
+    uniffi_aletheia_core_fn_method_aletheiacore_prepare_local_model(self.pointer, 
+        FfiConverterBool.lower(forceDownload),$0
     )
 }
         )
@@ -1216,6 +1290,148 @@ public func FfiConverterTypeCreateGiftResponse_lower(_ value: CreateGiftResponse
 }
 
 
+public struct DeviceCapability {
+    public var supported: Bool
+    public var availableRamMb: UInt32
+    public var cpuCores: UInt32
+    public var hasSimd: Bool
+    public var estimatedTps: Float
+    public var unsupportedReason: String?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(supported: Bool, availableRamMb: UInt32, cpuCores: UInt32, hasSimd: Bool, estimatedTps: Float, unsupportedReason: String?) {
+        self.supported = supported
+        self.availableRamMb = availableRamMb
+        self.cpuCores = cpuCores
+        self.hasSimd = hasSimd
+        self.estimatedTps = estimatedTps
+        self.unsupportedReason = unsupportedReason
+    }
+}
+
+
+extension DeviceCapability: Equatable, Hashable {
+    public static func ==(lhs: DeviceCapability, rhs: DeviceCapability) -> Bool {
+        if lhs.supported != rhs.supported {
+            return false
+        }
+        if lhs.availableRamMb != rhs.availableRamMb {
+            return false
+        }
+        if lhs.cpuCores != rhs.cpuCores {
+            return false
+        }
+        if lhs.hasSimd != rhs.hasSimd {
+            return false
+        }
+        if lhs.estimatedTps != rhs.estimatedTps {
+            return false
+        }
+        if lhs.unsupportedReason != rhs.unsupportedReason {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(supported)
+        hasher.combine(availableRamMb)
+        hasher.combine(cpuCores)
+        hasher.combine(hasSimd)
+        hasher.combine(estimatedTps)
+        hasher.combine(unsupportedReason)
+    }
+}
+
+
+public struct FfiConverterTypeDeviceCapability: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DeviceCapability {
+        return try DeviceCapability(
+            supported: FfiConverterBool.read(from: &buf), 
+            availableRamMb: FfiConverterUInt32.read(from: &buf), 
+            cpuCores: FfiConverterUInt32.read(from: &buf), 
+            hasSimd: FfiConverterBool.read(from: &buf), 
+            estimatedTps: FfiConverterFloat.read(from: &buf), 
+            unsupportedReason: FfiConverterOptionString.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: DeviceCapability, into buf: inout [UInt8]) {
+        FfiConverterBool.write(value.supported, into: &buf)
+        FfiConverterUInt32.write(value.availableRamMb, into: &buf)
+        FfiConverterUInt32.write(value.cpuCores, into: &buf)
+        FfiConverterBool.write(value.hasSimd, into: &buf)
+        FfiConverterFloat.write(value.estimatedTps, into: &buf)
+        FfiConverterOptionString.write(value.unsupportedReason, into: &buf)
+    }
+}
+
+
+public func FfiConverterTypeDeviceCapability_lift(_ buf: RustBuffer) throws -> DeviceCapability {
+    return try FfiConverterTypeDeviceCapability.lift(buf)
+}
+
+public func FfiConverterTypeDeviceCapability_lower(_ value: DeviceCapability) -> RustBuffer {
+    return FfiConverterTypeDeviceCapability.lower(value)
+}
+
+
+public struct DeviceCapabilityResponse {
+    public var capability: DeviceCapability?
+    public var error: BridgeError?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(capability: DeviceCapability?, error: BridgeError?) {
+        self.capability = capability
+        self.error = error
+    }
+}
+
+
+extension DeviceCapabilityResponse: Equatable, Hashable {
+    public static func ==(lhs: DeviceCapabilityResponse, rhs: DeviceCapabilityResponse) -> Bool {
+        if lhs.capability != rhs.capability {
+            return false
+        }
+        if lhs.error != rhs.error {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(capability)
+        hasher.combine(error)
+    }
+}
+
+
+public struct FfiConverterTypeDeviceCapabilityResponse: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DeviceCapabilityResponse {
+        return try DeviceCapabilityResponse(
+            capability: FfiConverterOptionTypeDeviceCapability.read(from: &buf), 
+            error: FfiConverterOptionTypeBridgeError.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: DeviceCapabilityResponse, into buf: inout [UInt8]) {
+        FfiConverterOptionTypeDeviceCapability.write(value.capability, into: &buf)
+        FfiConverterOptionTypeBridgeError.write(value.error, into: &buf)
+    }
+}
+
+
+public func FfiConverterTypeDeviceCapabilityResponse_lift(_ buf: RustBuffer) throws -> DeviceCapabilityResponse {
+    return try FfiConverterTypeDeviceCapabilityResponse.lift(buf)
+}
+
+public func FfiConverterTypeDeviceCapabilityResponse_lower(_ value: DeviceCapabilityResponse) -> RustBuffer {
+    return FfiConverterTypeDeviceCapabilityResponse.lower(value)
+}
+
+
 public struct FallbackPromptsResponse {
     public var prompts: [String]
     public var error: BridgeError?
@@ -1450,6 +1666,188 @@ public func FfiConverterTypeInterpretationStreamState_lift(_ buf: RustBuffer) th
 
 public func FfiConverterTypeInterpretationStreamState_lower(_ value: InterpretationStreamState) -> RustBuffer {
     return FfiConverterTypeInterpretationStreamState.lower(value)
+}
+
+
+public struct LocalModelInfo {
+    public var modelId: String
+    public var status: LocalModelStatus
+    public var downloadProgress: UInt8
+    public var modelSizeBytes: UInt64
+    public var downloadedBytes: UInt64
+    public var version: String
+    public var errorMessage: String?
+    public var etaSeconds: UInt32?
+    public var deviceCapable: Bool
+    public var requiredRamMb: UInt32
+    public var availableRamMb: UInt32
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(modelId: String, status: LocalModelStatus, downloadProgress: UInt8, modelSizeBytes: UInt64, downloadedBytes: UInt64, version: String, errorMessage: String?, etaSeconds: UInt32?, deviceCapable: Bool, requiredRamMb: UInt32, availableRamMb: UInt32) {
+        self.modelId = modelId
+        self.status = status
+        self.downloadProgress = downloadProgress
+        self.modelSizeBytes = modelSizeBytes
+        self.downloadedBytes = downloadedBytes
+        self.version = version
+        self.errorMessage = errorMessage
+        self.etaSeconds = etaSeconds
+        self.deviceCapable = deviceCapable
+        self.requiredRamMb = requiredRamMb
+        self.availableRamMb = availableRamMb
+    }
+}
+
+
+extension LocalModelInfo: Equatable, Hashable {
+    public static func ==(lhs: LocalModelInfo, rhs: LocalModelInfo) -> Bool {
+        if lhs.modelId != rhs.modelId {
+            return false
+        }
+        if lhs.status != rhs.status {
+            return false
+        }
+        if lhs.downloadProgress != rhs.downloadProgress {
+            return false
+        }
+        if lhs.modelSizeBytes != rhs.modelSizeBytes {
+            return false
+        }
+        if lhs.downloadedBytes != rhs.downloadedBytes {
+            return false
+        }
+        if lhs.version != rhs.version {
+            return false
+        }
+        if lhs.errorMessage != rhs.errorMessage {
+            return false
+        }
+        if lhs.etaSeconds != rhs.etaSeconds {
+            return false
+        }
+        if lhs.deviceCapable != rhs.deviceCapable {
+            return false
+        }
+        if lhs.requiredRamMb != rhs.requiredRamMb {
+            return false
+        }
+        if lhs.availableRamMb != rhs.availableRamMb {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(modelId)
+        hasher.combine(status)
+        hasher.combine(downloadProgress)
+        hasher.combine(modelSizeBytes)
+        hasher.combine(downloadedBytes)
+        hasher.combine(version)
+        hasher.combine(errorMessage)
+        hasher.combine(etaSeconds)
+        hasher.combine(deviceCapable)
+        hasher.combine(requiredRamMb)
+        hasher.combine(availableRamMb)
+    }
+}
+
+
+public struct FfiConverterTypeLocalModelInfo: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LocalModelInfo {
+        return try LocalModelInfo(
+            modelId: FfiConverterString.read(from: &buf), 
+            status: FfiConverterTypeLocalModelStatus.read(from: &buf), 
+            downloadProgress: FfiConverterUInt8.read(from: &buf), 
+            modelSizeBytes: FfiConverterUInt64.read(from: &buf), 
+            downloadedBytes: FfiConverterUInt64.read(from: &buf), 
+            version: FfiConverterString.read(from: &buf), 
+            errorMessage: FfiConverterOptionString.read(from: &buf), 
+            etaSeconds: FfiConverterOptionUInt32.read(from: &buf), 
+            deviceCapable: FfiConverterBool.read(from: &buf), 
+            requiredRamMb: FfiConverterUInt32.read(from: &buf), 
+            availableRamMb: FfiConverterUInt32.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: LocalModelInfo, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.modelId, into: &buf)
+        FfiConverterTypeLocalModelStatus.write(value.status, into: &buf)
+        FfiConverterUInt8.write(value.downloadProgress, into: &buf)
+        FfiConverterUInt64.write(value.modelSizeBytes, into: &buf)
+        FfiConverterUInt64.write(value.downloadedBytes, into: &buf)
+        FfiConverterString.write(value.version, into: &buf)
+        FfiConverterOptionString.write(value.errorMessage, into: &buf)
+        FfiConverterOptionUInt32.write(value.etaSeconds, into: &buf)
+        FfiConverterBool.write(value.deviceCapable, into: &buf)
+        FfiConverterUInt32.write(value.requiredRamMb, into: &buf)
+        FfiConverterUInt32.write(value.availableRamMb, into: &buf)
+    }
+}
+
+
+public func FfiConverterTypeLocalModelInfo_lift(_ buf: RustBuffer) throws -> LocalModelInfo {
+    return try FfiConverterTypeLocalModelInfo.lift(buf)
+}
+
+public func FfiConverterTypeLocalModelInfo_lower(_ value: LocalModelInfo) -> RustBuffer {
+    return FfiConverterTypeLocalModelInfo.lower(value)
+}
+
+
+public struct LocalModelStatusResponse {
+    public var modelInfo: LocalModelInfo?
+    public var error: BridgeError?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(modelInfo: LocalModelInfo?, error: BridgeError?) {
+        self.modelInfo = modelInfo
+        self.error = error
+    }
+}
+
+
+extension LocalModelStatusResponse: Equatable, Hashable {
+    public static func ==(lhs: LocalModelStatusResponse, rhs: LocalModelStatusResponse) -> Bool {
+        if lhs.modelInfo != rhs.modelInfo {
+            return false
+        }
+        if lhs.error != rhs.error {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(modelInfo)
+        hasher.combine(error)
+    }
+}
+
+
+public struct FfiConverterTypeLocalModelStatusResponse: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LocalModelStatusResponse {
+        return try LocalModelStatusResponse(
+            modelInfo: FfiConverterOptionTypeLocalModelInfo.read(from: &buf), 
+            error: FfiConverterOptionTypeBridgeError.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: LocalModelStatusResponse, into buf: inout [UInt8]) {
+        FfiConverterOptionTypeLocalModelInfo.write(value.modelInfo, into: &buf)
+        FfiConverterOptionTypeBridgeError.write(value.error, into: &buf)
+    }
+}
+
+
+public func FfiConverterTypeLocalModelStatusResponse_lift(_ buf: RustBuffer) throws -> LocalModelStatusResponse {
+    return try FfiConverterTypeLocalModelStatusResponse.lift(buf)
+}
+
+public func FfiConverterTypeLocalModelStatusResponse_lower(_ value: LocalModelStatusResponse) -> RustBuffer {
+    return FfiConverterTypeLocalModelStatusResponse.lower(value)
 }
 
 
@@ -1891,6 +2289,69 @@ public func FfiConverterTypePerformReadingResponse_lift(_ buf: RustBuffer) throw
 
 public func FfiConverterTypePerformReadingResponse_lower(_ value: PerformReadingResponse) -> RustBuffer {
     return FfiConverterTypePerformReadingResponse.lower(value)
+}
+
+
+public struct PrepareLocalModelResponse {
+    public var started: Bool
+    public var modelInfo: LocalModelInfo?
+    public var error: BridgeError?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(started: Bool, modelInfo: LocalModelInfo?, error: BridgeError?) {
+        self.started = started
+        self.modelInfo = modelInfo
+        self.error = error
+    }
+}
+
+
+extension PrepareLocalModelResponse: Equatable, Hashable {
+    public static func ==(lhs: PrepareLocalModelResponse, rhs: PrepareLocalModelResponse) -> Bool {
+        if lhs.started != rhs.started {
+            return false
+        }
+        if lhs.modelInfo != rhs.modelInfo {
+            return false
+        }
+        if lhs.error != rhs.error {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(started)
+        hasher.combine(modelInfo)
+        hasher.combine(error)
+    }
+}
+
+
+public struct FfiConverterTypePrepareLocalModelResponse: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> PrepareLocalModelResponse {
+        return try PrepareLocalModelResponse(
+            started: FfiConverterBool.read(from: &buf), 
+            modelInfo: FfiConverterOptionTypeLocalModelInfo.read(from: &buf), 
+            error: FfiConverterOptionTypeBridgeError.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: PrepareLocalModelResponse, into buf: inout [UInt8]) {
+        FfiConverterBool.write(value.started, into: &buf)
+        FfiConverterOptionTypeLocalModelInfo.write(value.modelInfo, into: &buf)
+        FfiConverterOptionTypeBridgeError.write(value.error, into: &buf)
+    }
+}
+
+
+public func FfiConverterTypePrepareLocalModelResponse_lift(_ buf: RustBuffer) throws -> PrepareLocalModelResponse {
+    return try FfiConverterTypePrepareLocalModelResponse.lift(buf)
+}
+
+public func FfiConverterTypePrepareLocalModelResponse_lower(_ value: PrepareLocalModelResponse) -> RustBuffer {
+    return FfiConverterTypePrepareLocalModelResponse.lower(value)
 }
 
 
@@ -3048,6 +3509,86 @@ public func FfiConverterTypeUserStateResponse_lower(_ value: UserStateResponse) 
 
 // Note that we don't yet support `indirect` for enums.
 // See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
+public enum LocalModelStatus {
+    
+    case notDownloaded
+    case downloading
+    case ready
+    case updateAvailable
+    case error
+    case unsupported
+}
+
+public struct FfiConverterTypeLocalModelStatus: FfiConverterRustBuffer {
+    typealias SwiftType = LocalModelStatus
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LocalModelStatus {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+        
+        case 1: return .notDownloaded
+        
+        case 2: return .downloading
+        
+        case 3: return .ready
+        
+        case 4: return .updateAvailable
+        
+        case 5: return .error
+        
+        case 6: return .unsupported
+        
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: LocalModelStatus, into buf: inout [UInt8]) {
+        switch value {
+        
+        
+        case .notDownloaded:
+            writeInt(&buf, Int32(1))
+        
+        
+        case .downloading:
+            writeInt(&buf, Int32(2))
+        
+        
+        case .ready:
+            writeInt(&buf, Int32(3))
+        
+        
+        case .updateAvailable:
+            writeInt(&buf, Int32(4))
+        
+        
+        case .error:
+            writeInt(&buf, Int32(5))
+        
+        
+        case .unsupported:
+            writeInt(&buf, Int32(6))
+        
+        }
+    }
+}
+
+
+public func FfiConverterTypeLocalModelStatus_lift(_ buf: RustBuffer) throws -> LocalModelStatus {
+    return try FfiConverterTypeLocalModelStatus.lift(buf)
+}
+
+public func FfiConverterTypeLocalModelStatus_lower(_ value: LocalModelStatus) -> RustBuffer {
+    return FfiConverterTypeLocalModelStatus.lower(value)
+}
+
+
+extension LocalModelStatus: Equatable, Hashable {}
+
+
+
+// Note that we don't yet support `indirect` for enums.
+// See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
 public enum MoodTag {
     
     case confused
@@ -3652,6 +4193,27 @@ fileprivate struct FfiConverterOptionTypeCompletedReading: FfiConverterRustBuffe
     }
 }
 
+fileprivate struct FfiConverterOptionTypeDeviceCapability: FfiConverterRustBuffer {
+    typealias SwiftType = DeviceCapability?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeDeviceCapability.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeDeviceCapability.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
 fileprivate struct FfiConverterOptionTypeGiftReadingData: FfiConverterRustBuffer {
     typealias SwiftType = GiftReadingData?
 
@@ -3668,6 +4230,27 @@ fileprivate struct FfiConverterOptionTypeGiftReadingData: FfiConverterRustBuffer
         switch try readInt(&buf) as Int8 {
         case 0: return nil
         case 1: return try FfiConverterTypeGiftReadingData.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+fileprivate struct FfiConverterOptionTypeLocalModelInfo: FfiConverterRustBuffer {
+    typealias SwiftType = LocalModelInfo?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeLocalModelInfo.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeLocalModelInfo.read(from: &buf)
         default: throw UniffiInternalError.unexpectedOptionalTag
         }
     }
@@ -3929,6 +4512,12 @@ private var initializationResult: InitializationResult {
     if (uniffi_aletheia_core_checksum_method_aletheiacore_cancel_interpretation_stream() != 8803) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_aletheia_core_checksum_method_aletheiacore_cancel_local_model_download() != 23938) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_aletheia_core_checksum_method_aletheiacore_check_device_capability() != 40035) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_choose_symbol() != 49755) {
         return InitializationResult.apiChecksumMismatch
     }
@@ -3938,10 +4527,16 @@ private var initializationResult: InitializationResult {
     if (uniffi_aletheia_core_checksum_method_aletheiacore_create_gift() != 53160) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_aletheia_core_checksum_method_aletheiacore_delete_local_model() != 36610) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_get_daily_notification_message() != 39691) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_get_fallback_prompts() != 14357) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_aletheia_core_checksum_method_aletheiacore_get_local_model_status() != 3811) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_get_reading_by_id() != 35673) {
@@ -3960,6 +4555,9 @@ private var initializationResult: InitializationResult {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_poll_interpretation_stream() != 1154) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_aletheia_core_checksum_method_aletheiacore_prepare_local_model() != 9022) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_redeem_gift() != 36624) {

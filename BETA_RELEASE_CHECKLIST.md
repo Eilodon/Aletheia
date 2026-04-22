@@ -4,10 +4,12 @@
 
 ## Pre-Build
 
+- [ ] Copy `.env.example` -> `.env` và điền real values
 - [ ] `.env` đã được điền với real values:
   - [ ] `EXPO_PUBLIC_EAS_PROJECT_ID`
   - [ ] `EXPO_PUBLIC_OWNER_NAME`
   - [ ] `JWT_SECRET`
+  - [ ] `EXPO_PUBLIC_SENTRY_DSN`
   - [ ] `EXPO_PUBLIC_API_BASE_URL`
   - [ ] At least one AI provider key (`ALETHEIA_CLAUDE_API_KEY` / `ALETHEIA_OPENAI_API_KEY` / `ALETHEIA_GEMINI_API_KEY`)
 
@@ -17,6 +19,9 @@
 ## Verification
 
 ```bash
+# Release readiness gate
+pnpm release:report --check
+
 # Typecheck
 pnpm check
 

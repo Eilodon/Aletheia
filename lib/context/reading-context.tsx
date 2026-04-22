@@ -26,6 +26,7 @@ import { generateId } from "@/lib/utils/id";
 import { trackRitualEvent } from "@/lib/analytics";
 import { captureException } from "@/lib/sentry";
 import { interpretationOrchestrator } from "@/lib/services/interpretation-orchestrator";
+import { showToast } from "@/components/toast";
 
 interface ReadingContextType {
   // State
@@ -206,9 +207,16 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
       activeAIStreamCancelRef.current = stream.cancel;
 
       const interpretation = await stream.promise;
-      setAIResponse(interpretation.chunks.join("\n\n"));
+      const finalInterpretationText =
+        interpretation.chunks.length <= 1
+          ? (interpretation.chunks[0] ?? "")
+          : interpretation.chunks.join("");
+      setAIResponse(finalInterpretationText);
       setIsAIFallback(interpretation.usedFallback);
       activeAIStreamCancelRef.current = null;
+      if (interpretation.usedFallback) {
+        showToast("warn", "AI trực tuyến không sẵn sàng. Aletheia đang dùng phản chiếu dự phòng.");
+      }
       trackRitualEvent("ai_completed", {
         source_id: session.source.id,
         symbol_id: selectedSymbol.id,

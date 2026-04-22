@@ -4,7 +4,7 @@
  * Source of truth: core/content/bundled-content.json
  */
 
-import type { Passage, Source, Theme } from "@/lib/types";
+import type { Passage, Source, Theme, NotificationEntry } from "@/lib/types";
 
 export const BUNDLED_SOURCES = [
   {
@@ -706,9 +706,92 @@ export const BUNDLED_THEMES = [
       },
       {
         "id": "ocean",
-        "display_name": "Đại dương",
+        "display_name": "Ð?i d??ng",
         "flavor_text": "Vastness and depth"
       }
     ]
   }
 ] as Theme[];
+
+export const NOTIFICATION_MATRIX = [
+  {
+    "symbol_id": "candle",
+    "question": "Bạn đang thắp sáng hay đang cháy"
+  },
+  {
+    "symbol_id": "key",
+    "question": "Cái gì đang chờ bạn mở"
+  },
+  {
+    "symbol_id": "dawn",
+    "question": "Bạn sẵn sàng cho gì"
+  },
+  {
+    "symbol_id": "mirror",
+    "question": "Bạn thấy gì khi nhìn sâu vào"
+  },
+  {
+    "symbol_id": "door",
+    "question": "Bạn sẽ bước qua hay lùi lại"
+  },
+  {
+    "symbol_id": "bridge",
+    "question": "Bạn đang nối liền những gì"
+  },
+  {
+    "symbol_id": "stone",
+    "question": "Cái gì trong bạn là bất động"
+  },
+  {
+    "symbol_id": "water",
+    "question": "Bạn đang chảy hay đang đứng yên"
+  },
+  {
+    "symbol_id": "fire",
+    "question": "Cái gì trong bạn đang cháy"
+  },
+  {
+    "symbol_id": "wind",
+    "question": "Bạn đang theo hướng nào"
+  },
+  {
+    "symbol_id": "silence",
+    "question": "Bạn có nghe được gì trong im lặng"
+  },
+  {
+    "symbol_id": "seed",
+    "question": "Bạn đang trồng cái gì"
+  },
+  {
+    "symbol_id": "earth",
+    "question": "Bạn cần gì để cảm thấy an toàn"
+  },
+  {
+    "symbol_id": "air",
+    "question": "Bạn cần không gian để làm gì"
+  },
+  {
+    "symbol_id": "metal",
+    "question": "Cái gì cần được tinh chỉnh"
+  },
+  {
+    "symbol_id": "wood",
+    "question": "Bạn đang phát triển như thế nào"
+  },
+  {
+    "symbol_id": "void",
+    "question": "Bạn sợ điều gì trong khoảng trống"
+  },
+  {
+    "symbol_id": "light",
+    "question": "Bạn cần soi sáng cái gì"
+  },
+  {
+    "symbol_id": "shadow",
+    "question": "Bạn đang tránh nhìn vào gì"
+  },
+  {
+    "symbol_id": "thunder",
+    "question": "Bạn sẵn sàng cho sự thay đổi đột ngột"
+  }
+] as NotificationEntry[];

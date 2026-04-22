@@ -435,7 +435,7 @@ impl Store {
         conn.execute(
             r#"UPDATE readings SET
                 ai_interpreted = ?, ai_used_fallback = ?, read_duration_s = ?,
-                mood_tag = ?, is_favorite = ?, shared = ?
+                mood_tag = ?, is_favorite = ?, shared = ?, user_intent = ?
             WHERE id = ?"#,
             params![
                 reading.ai_interpreted as i32,
@@ -447,6 +447,10 @@ impl Store {
                     .map(|m| serde_json::to_string(m).unwrap()),
                 reading.is_favorite as i32,
                 reading.shared as i32,
+                reading
+                    .user_intent
+                    .as_ref()
+                    .map(|i| serde_json::to_string(i).unwrap()),
                 reading.id,
             ],
         )?;

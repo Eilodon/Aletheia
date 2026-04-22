@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 import { getAletheiaCoreModule } from "@/modules/aletheia-core-module";
 import {
@@ -51,8 +51,18 @@ export function useLocalModel(): UseLocalModelResult {
   const [modelInfo, setModelInfo] = useState<NativeLocalModelInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const downloadPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const module = getAletheiaCoreModule();
+
+  const clearDownloadPoll = useCallback(() => {
+    if (!downloadPollRef.current) {
+      return;
+    }
+
+    clearInterval(downloadPollRef.current);
+    downloadPollRef.current = null;
+  }, []);
 
   const checkCapability = useCallback(async () => {
     try {
@@ -94,14 +104,16 @@ export function useLocalModel(): UseLocalModelResult {
       const response = await module.prepareLocalModel(forceDownload);
       
       if (response.started) {
+        clearDownloadPoll();
+
         // Poll for status updates
-        const pollInterval = setInterval(async () => {
+        downloadPollRef.current = setInterval(async () => {
           const status = await module.getLocalModelStatus();
           if (status.model_info) {
             setModelInfo(status.model_info);
             
             if (status.model_info.status !== "downloading") {
-              clearInterval(pollInterval);
+              clearDownloadPoll();
               
               if (status.model_info.status === "ready") {
                 trackLocalModelEvent("download_completed");
@@ -133,7 +145,7 @@ export function useLocalModel(): UseLocalModelResult {
       setError(errorMsg);
       return false;
     }
-  }, [module]);
+  }, [clearDownloadPoll, module]);
 
   const cancelDownload = useCallback(async () => {
     try {
@@ -170,6 +182,8 @@ export function useLocalModel(): UseLocalModelResult {
   useEffect(() => {
     refresh();
   }, [refresh]);
+
+  useEffect(() => clearDownloadPoll, [clearDownloadPoll]);
 
   const isReady = modelInfo?.status === "ready";
   const isSupported = capability?.supported ?? false;

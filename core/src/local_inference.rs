@@ -158,17 +158,19 @@ impl LocalInferenceEngine {
 
         // Language instruction
         parts.push(format!(
-            "Hãy tròi hoàn toàn by ngôn ngôn of this passage: {}.",
+            "Hãy trả lời hoàn toàn bằng ngôn ngữ của đoạn trích này: {}.",
             language
         ));
 
-        // Intent-based tone instruction
+        parts.push("Chỉ trả về đúng 2 phần: một đoạn phản chiếu ngắn và một câu hỏi mở ở dòng cuối.".to_string());
+
+        // Intent-based tone instruction (canonical — must match server interpretationService.ts)
         if let Some(intent) = user_intent {
             let intent_instruction = match intent {
-                "clarity" => "Tone cho làn dòc: phân tích rõ ràng, chính xác. User càn s rõ ràng - giúp h pattern và structure trong tình hu.",
-                "comfort" => "Tone cho làn dòc: m p, ch lành. User càn c an i - t s nh nhàng và compassion lên trên ht.",
-                "challenge" => "Tone cho làn dòc: trc ti p, khng ng i i m t. User mu b thách th c - dng ngi n lên nh ng i khó nghe.",
-                "guidance" => "Tone cho làn dòc: m, khng nh h ng. User v tr d n l i - dng push b t c h ng nào, ch m không gian.",
+                "clarity" => "Tone cho lần đọc này: rõ ràng, gọn, chính xác. User cần thấy pattern trong tình huống.",
+                "comfort" => "Tone cho lần đọc này: ấm áp, nhẹ, giàu compassion nhưng không lên lớp.",
+                "challenge" => "Tone cho lần đọc này: trực tiếp, tỉnh táo, không né điều khó.",
+                "guidance" => "Tone cho lần đọc này: mở, không định hướng, giữ không gian để người đọc tự nghe mình.",
                 _ => "",
             };
             if !intent_instruction.is_empty() {
@@ -178,16 +180,16 @@ impl LocalInferenceEngine {
 
         // Situation text
         if let Some(situation) = situation_text {
-            parts.push(format!("Tình hu ng: {}", situation));
+            parts.push(format!("Tình huống: {}", situation));
             parts.push(
-                "Mirror l i ngôn ng c a ng i dùng khi ph n chi u, nh ng dng l p l i m t cách máy móc."
+                "Mirror lại ngôn ngữ của người dùng khi phản chiếu, nhưng đừng lặp lại một cách máy móc."
                     .to_string(),
             );
         }
 
         // Symbol and passage
-        parts.push(format!("Bi u t ng dã ch n: {}", symbol.display_name));
-        parts.push(format!("Do n trích ({}):\n{}", passage.reference, passage.text));
+        parts.push(format!("Biểu tượng đã chọn: {}", symbol.display_name));
+        parts.push(format!("Đoạn trích ({}):\n{}", passage.reference, passage.text));
 
         // Context
         if let Some(context) = passage
@@ -195,7 +197,7 @@ impl LocalInferenceEngine {
             .as_ref()
             .or(passage.context.as_ref())
         {
-            parts.push(format!("Ng c n cho ng i c (khng nh c l ra): {}", context));
+            parts.push(format!("Ngữ cảnh ẩn cho người đọc (không nhắc lộ ra): {}", context));
         }
 
         parts.join("\n\n")

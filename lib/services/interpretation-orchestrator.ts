@@ -1,8 +1,13 @@
 import { getApiBaseUrl } from "@/constants/oauth";
 import { aiClient, type AIInterpretationResult, type AIRequest, type AIStreamSession } from "./ai-client";
-import { getAletheiaCoreModule } from "@/modules/aletheia-core-module";
+import { aletheiaNativeClient } from "@/lib/native/aletheia-core";
 import { determineInferenceMode } from "@/hooks/use-local-model";
 import { trackInferenceMode, trackLocalModelEvent } from "@/lib/analytics";
+import { Platform } from "react-native";
+import { getCurrentUserId } from "./current-user-id";
+import { getSessionToken } from "@/lib/auth";
+import { AI_STREAM_TIMEOUT_MS } from "@/lib/constants";
+import { APP_ID } from "@/constants/oauth";
 
 type InterpretationMode = "auto" | "quality" | "local";
 
@@ -91,13 +96,93 @@ async function parseServerStream(
   };
 }
 
+type CircuitState = "closed" | "open" | "half-open";
+
+const CIRCUIT_FAILURE_THRESHOLD = 3;
+const CIRCUIT_COOLDOWN_MS = 30_000; // 30s before half-open probe
+
 class InterpretationOrchestratorService {
+  private circuitState: CircuitState = "closed";
+  private circuitFailureCount = 0;
+  private circuitLastFailureTime = 0;
+
+  private getIsOnline(): boolean {
+    if (Platform.OS !== "web") {
+      return true;
+    }
+
+    if (typeof navigator === "undefined") {
+      return true;
+    }
+
+    return navigator.onLine !== false;
+  }
+
   private getServerUrl(): string {
     return getApiBaseUrl();
   }
 
+  private async buildServerHeaders(): Promise<Record<string, string>> {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      Accept: "application/x-ndjson",
+    };
+
+    if (APP_ID) {
+      headers["X-Aletheia-App-Id"] = APP_ID;
+    }
+
+    const [userId, sessionToken] = await Promise.all([
+      getCurrentUserId().catch(() => ""),
+      getSessionToken().catch(() => null),
+    ]);
+
+    if (userId) {
+      headers["X-Aletheia-User-Id"] = userId;
+    }
+
+    if (sessionToken) {
+      headers.Authorization = `Bearer ${sessionToken}`;
+    }
+
+    return headers;
+  }
+
   private shouldUseServer(): boolean {
-    return this.getServerUrl().length > 0;
+    if (!this.getIsOnline() || this.getServerUrl().length === 0) {
+      return false;
+    }
+
+    if (this.circuitState === "closed") {
+      return true;
+    }
+
+    if (this.circuitState === "open") {
+      const elapsed = Date.now() - this.circuitLastFailureTime;
+      if (elapsed >= CIRCUIT_COOLDOWN_MS) {
+        this.circuitState = "half-open";
+        return true; // Allow one probe request
+      }
+      return false;
+    }
+
+    // half-open: allow one request through
+    return true;
+  }
+
+  private recordServerSuccess(): void {
+    if (this.circuitState === "half-open") {
+      this.circuitState = "closed";
+    }
+    this.circuitFailureCount = 0;
+  }
+
+  private recordServerFailure(): void {
+    this.circuitFailureCount++;
+    this.circuitLastFailureTime = Date.now();
+    if (this.circuitFailureCount >= CIRCUIT_FAILURE_THRESHOLD) {
+      this.circuitState = "open";
+    }
   }
 
   /**
@@ -105,12 +190,10 @@ class InterpretationOrchestratorService {
    * Priority: local > cloud > fallback
    */
   private async selectInferenceMode(requestedMode?: InterpretationMode): Promise<InferenceModeSelection> {
-    const module = getAletheiaCoreModule();
-    
     // If user explicitly requested local mode
     if (requestedMode === "local") {
-      const status = await module.getLocalModelStatus();
-      const capability = await module.checkDeviceCapability();
+      const status = await aletheiaNativeClient.getLocalModelStatus();
+      const capability = await aletheiaNativeClient.checkDeviceCapability();
       const localReady = status.model_info?.status === "ready";
       const localSupported = capability.capability?.supported ?? false;
       
@@ -133,8 +216,8 @@ class InterpretationOrchestratorService {
     // Auto mode: check local availability first
     try {
       const [capabilityResponse, modelStatusResponse] = await Promise.all([
-        module.checkDeviceCapability(),
-        module.getLocalModelStatus(),
+        aletheiaNativeClient.checkDeviceCapability(),
+        aletheiaNativeClient.getLocalModelStatus(),
       ]);
 
       const capability = capabilityResponse.capability;
@@ -143,20 +226,18 @@ class InterpretationOrchestratorService {
       const localSupported = capability?.supported ?? false;
       const localReady = modelInfo?.status === "ready";
       
-      // Check if we have API keys configured
-      const hasApiKey = await this.hasApiKeyConfigured();
-
+      // Remove apiKey checking as it's not feasible from client side anymore
       const mode = determineInferenceMode({
-        isOnline: navigator.onLine,
+        isOnline: this.getIsOnline(),
         isLocalReady: localReady,
         isLocalSupported: localSupported,
-        hasApiKey,
+        hasApiKey: false, // We don't verify API keys from the client anymore
       });
 
       trackInferenceMode(mode, {
         local_supported: localSupported,
         local_ready: localReady,
-        has_api_key: hasApiKey,
+        has_api_key: false,
         requested_mode: requestedMode ?? "auto",
       });
 
@@ -171,11 +252,7 @@ class InterpretationOrchestratorService {
     }
   }
 
-  private async hasApiKeyConfigured(): Promise<boolean> {
-    // Check if any API key is set in the native module
-    // This is a simplified check - in practice you'd check the actual key storage
-    return true; // Assume keys are configured for now
-  }
+// Removed hasApiKeyConfigured since it relies on checking native module and we want to correctly route requests.
 
   streamInterpretation(
     request: InterpretationRequestPayload,
@@ -187,18 +264,17 @@ class InterpretationOrchestratorService {
     const promise = (async () => {
       // Select inference mode
       const selection = await this.selectInferenceMode(request.mode);
+      const startMs = Date.now();
+      let serverTimeout: ReturnType<typeof setTimeout> | null = null;
       
       // If local mode is selected and ready, use native local inference
       if (selection.mode === "local" && selection.localReady) {
         trackLocalModelEvent("inference_started", {
           model_id: "gemma-3n-e2b",
         });
-        
-        // Use native module for local inference
-        const module = getAletheiaCoreModule();
-        
+
         // Start local inference stream
-        const streamResponse = await module.startLocalInterpretationStream(
+        const streamResponse = await aletheiaNativeClient.startLocalInterpretationStream(
           request.passage,
           request.symbol,
           request.situationText,
@@ -211,7 +287,12 @@ class InterpretationOrchestratorService {
           // Poll for results
           const chunks: string[] = [];
           while (true) {
-            const state = await module.pollLocalInterpretationStream(localRequestId);
+            if (Date.now() - startMs > AI_STREAM_TIMEOUT_MS) {
+              await aletheiaNativeClient.cancelLocalInterpretationStream(localRequestId);
+              throw new Error("Local interpretation timed out.");
+            }
+
+            const state = await aletheiaNativeClient.pollLocalInterpretationStream(localRequestId);
             
             for (const chunk of state.new_chunks) {
               chunks.push(chunk);
@@ -232,35 +313,60 @@ class InterpretationOrchestratorService {
 
       // Use server-side orchestration if available
       if (this.shouldUseServer()) {
-        const response = await fetch(`${this.getServerUrl()}/api/interpret/stream`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/x-ndjson",
-          },
-          body: JSON.stringify({
-            passage: request.passage,
-            symbol: request.symbol,
-            situationText: request.situationText,
-            resonanceContext: request.resonanceContext,
-            sourceLanguage: request.sourceLanguage,
-            sourceFallbackPrompts: request.sourceFallbackPrompts,
-            userIntent: request.userIntent,
-            mode: request.mode ?? "auto",
-          }),
-          signal: controller.signal,
-        });
+        serverTimeout = setTimeout(() => {
+          controller?.abort();
+        }, AI_STREAM_TIMEOUT_MS);
 
-        if (!response.ok) {
-          throw new Error(`Interpretation request failed with status ${response.status}`);
+        try {
+          const response = await fetch(`${this.getServerUrl()}/api/interpret/stream`, {
+            method: "POST",
+            headers: await this.buildServerHeaders(),
+            body: JSON.stringify({
+              passage: request.passage,
+              symbol: request.symbol,
+              situationText: request.situationText,
+              resonanceContext: request.resonanceContext,
+              sourceLanguage: request.sourceLanguage,
+              sourceFallbackPrompts: request.sourceFallbackPrompts,
+              userIntent: request.userIntent,
+              mode: request.mode ?? "auto",
+            }),
+            signal: controller.signal,
+          });
+
+          if (!response.ok) {
+            this.recordServerFailure();
+            throw new Error(
+              response.status === 401
+                ? "AI request identity was rejected by the server."
+                : `Interpretation request failed with status ${response.status}`,
+            );
+          }
+
+          const result = await parseServerStream(response, handlers);
+          this.recordServerSuccess();
+          return result;
+        } catch (streamError) {
+          this.recordServerFailure();
+          throw streamError;
+        } finally {
+          if (serverTimeout) {
+            clearTimeout(serverTimeout);
+          }
         }
-
-        return parseServerStream(response, handlers);
       }
 
       // Fallback to direct aiClient (native path)
       return aiClient.streamInterpretation(request, handlers).promise;
     })().catch(async (error) => {
+      const reason = error instanceof Error ? error.message : String(error);
+      console.warn("[Orchestrator] Primary interpretation path failed, using fallback:", reason);
+      trackInferenceMode("fallback", {
+        reason,
+        requested_mode: request.mode ?? "auto",
+        server_available: this.shouldUseServer(),
+      });
+
       return aiClient.requestInterpretation(request).catch(() => {
         throw error;
       });
@@ -272,8 +378,7 @@ class InterpretationOrchestratorService {
       promise,
       cancel: async () => {
         if (localRequestId) {
-          const module = getAletheiaCoreModule();
-          await module.cancelInterpretationStream(localRequestId);
+          await aletheiaNativeClient.cancelLocalInterpretationStream(localRequestId);
         }
         if (controller) {
           controller.abort();

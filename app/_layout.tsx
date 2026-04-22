@@ -117,6 +117,8 @@ export default function RootLayout() {
   const [frame, setFrame] = useState<Rect>(initialFrame);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState<boolean | null>(null);
   const [bootstrapDetail, setBootstrapDetail] = useState("Đang dựng nhịp khởi tạo cốt lõi.");
+  const [bootstrapError, setBootstrapError] = useState<string | null>(null);
+  const [bootstrapAttempt, setBootstrapAttempt] = useState(0);
   const [fontsLoaded] = useFonts({
     "AletheiaDisplay-Regular": require("../assets/fonts/Cinzel-Regular.ttf"),
     "AletheiaDisplay-SemiBold": require("../assets/fonts/Cinzel-SemiBold.ttf"),
@@ -150,6 +152,8 @@ export default function RootLayout() {
 
     const bootstrapApp = async () => {
       try {
+        setBootstrapError(null);
+        setIsOnboardingComplete(null);
         setBootstrapDetail("Đang khởi tạo kho cục bộ và runtime cốt lõi.");
         await dbInit.initialize();
 
@@ -190,13 +194,14 @@ export default function RootLayout() {
             });
         }, 0);
       } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
         console.error("Failed to bootstrap app shell:", error);
         track("app_bootstrap_failed", {
-          reason: error instanceof Error ? error.message : String(error),
+          reason,
           total_ms: Date.now() - bootstrapStart,
         });
         if (!cancelled) {
-          setIsOnboardingComplete(false);
+          setBootstrapError(reason);
           setBootstrapDetail("Không thể hoàn tất khởi tạo cục bộ.");
         }
       }
@@ -211,7 +216,7 @@ export default function RootLayout() {
       }
       void flushAnalytics();
     };
-  }, [isIosHold]);
+  }, [bootstrapAttempt, isIosHold]);
 
   useEffect(() => {
     if (fontsLoaded) {
@@ -253,6 +258,26 @@ export default function RootLayout() {
 
   if (!fontsLoaded) {
     return null;
+  }
+
+  if (bootstrapError && !isIosHold) {
+    return (
+      <ThemeProvider>
+        <SafeAreaProvider initialMetrics={providerInitialMetrics}>
+          <RootGate
+            title="Khởi tạo cục bộ thất bại"
+            body="Android beta này cần Rust core sẵn sàng trước khi bạn có thể tiếp tục."
+            detail={bootstrapError}
+            actionLabel="Thử lại"
+            onAction={() => {
+              setBootstrapError(null);
+              setBootstrapDetail("Đang thử khởi tạo lại runtime cốt lõi.");
+              setBootstrapAttempt((attempt) => attempt + 1);
+            }}
+          />
+        </SafeAreaProvider>
+      </ThemeProvider>
+    );
   }
 
   // Show loading while checking onboarding

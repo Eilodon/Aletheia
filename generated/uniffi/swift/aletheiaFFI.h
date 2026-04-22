@@ -71,15 +71,23 @@ RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_bootstrap_bundled_content
 );
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_cancel_interpretation_stream(void*_Nonnull ptr, RustBuffer request_id, RustCallStatus *_Nonnull out_status
 );
+RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_cancel_local_model_download(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_check_device_capability(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_choose_symbol(void*_Nonnull ptr, RustBuffer session, RustBuffer symbol_id, RustBuffer method, RustCallStatus *_Nonnull out_status
 );
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_complete_reading(void*_Nonnull ptr, RustBuffer user_id, RustBuffer reading, RustCallStatus *_Nonnull out_status
 );
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_create_gift(void*_Nonnull ptr, RustBuffer source_id, RustBuffer buyer_note, RustCallStatus *_Nonnull out_status
 );
+int8_t uniffi_aletheia_core_fn_method_aletheiacore_delete_local_model(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_get_daily_notification_message(void*_Nonnull ptr, RustBuffer user_id, RustBuffer date, RustCallStatus *_Nonnull out_status
 );
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_get_fallback_prompts(void*_Nonnull ptr, RustBuffer source_id, RustCallStatus *_Nonnull out_status
+);
+RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_get_local_model_status(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
 );
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_get_reading_by_id(void*_Nonnull ptr, RustBuffer id, RustCallStatus *_Nonnull out_status
 );
@@ -92,6 +100,8 @@ RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_get_user_state(void*_Nonn
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_perform_reading(void*_Nonnull ptr, RustBuffer user_id, RustBuffer source_id, RustBuffer situation_text, RustCallStatus *_Nonnull out_status
 );
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_poll_interpretation_stream(void*_Nonnull ptr, RustBuffer request_id, RustCallStatus *_Nonnull out_status
+);
+RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_prepare_local_model(void*_Nonnull ptr, int8_t force_download, RustCallStatus *_Nonnull out_status
 );
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_redeem_gift(void*_Nonnull ptr, RustBuffer token, RustCallStatus *_Nonnull out_status
 );
@@ -229,6 +239,12 @@ uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_bootstrap_bundled_con
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_cancel_interpretation_stream(void
     
 );
+uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_cancel_local_model_download(void
+    
+);
+uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_check_device_capability(void
+    
+);
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_choose_symbol(void
     
 );
@@ -238,10 +254,16 @@ uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_complete_reading(void
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_create_gift(void
     
 );
+uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_delete_local_model(void
+    
+);
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_get_daily_notification_message(void
     
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_get_fallback_prompts(void
+    
+);
+uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_get_local_model_status(void
     
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_get_reading_by_id(void
@@ -260,6 +282,9 @@ uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_perform_reading(void
     
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_poll_interpretation_stream(void
+    
+);
+uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_prepare_local_model(void
     
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_redeem_gift(void

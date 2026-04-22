@@ -391,15 +391,23 @@ internal interface _UniFFILib : Library {
     ): RustBuffer.ByValue
     fun uniffi_aletheia_core_fn_method_aletheiacore_cancel_interpretation_stream(`ptr`: Pointer,`requestId`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_aletheia_core_fn_method_aletheiacore_cancel_local_model_download(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_aletheia_core_fn_method_aletheiacore_check_device_capability(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
+    ): RustBuffer.ByValue
     fun uniffi_aletheia_core_fn_method_aletheiacore_choose_symbol(`ptr`: Pointer,`session`: RustBuffer.ByValue,`symbolId`: RustBuffer.ByValue,`method`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_aletheia_core_fn_method_aletheiacore_complete_reading(`ptr`: Pointer,`userId`: RustBuffer.ByValue,`reading`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_aletheia_core_fn_method_aletheiacore_create_gift(`ptr`: Pointer,`sourceId`: RustBuffer.ByValue,`buyerNote`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
+    fun uniffi_aletheia_core_fn_method_aletheiacore_delete_local_model(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
+    ): Byte
     fun uniffi_aletheia_core_fn_method_aletheiacore_get_daily_notification_message(`ptr`: Pointer,`userId`: RustBuffer.ByValue,`date`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_aletheia_core_fn_method_aletheiacore_get_fallback_prompts(`ptr`: Pointer,`sourceId`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_aletheia_core_fn_method_aletheiacore_get_local_model_status(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_aletheia_core_fn_method_aletheiacore_get_reading_by_id(`ptr`: Pointer,`id`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
@@ -412,6 +420,8 @@ internal interface _UniFFILib : Library {
     fun uniffi_aletheia_core_fn_method_aletheiacore_perform_reading(`ptr`: Pointer,`userId`: RustBuffer.ByValue,`sourceId`: RustBuffer.ByValue,`situationText`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_aletheia_core_fn_method_aletheiacore_poll_interpretation_stream(`ptr`: Pointer,`requestId`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
+    ): RustBuffer.ByValue
+    fun uniffi_aletheia_core_fn_method_aletheiacore_prepare_local_model(`ptr`: Pointer,`forceDownload`: Byte,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
     fun uniffi_aletheia_core_fn_method_aletheiacore_redeem_gift(`ptr`: Pointer,`token`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
@@ -547,15 +557,23 @@ internal interface _UniFFILib : Library {
     ): Short
     fun uniffi_aletheia_core_checksum_method_aletheiacore_cancel_interpretation_stream(
     ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_cancel_local_model_download(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_check_device_capability(
+    ): Short
     fun uniffi_aletheia_core_checksum_method_aletheiacore_choose_symbol(
     ): Short
     fun uniffi_aletheia_core_checksum_method_aletheiacore_complete_reading(
     ): Short
     fun uniffi_aletheia_core_checksum_method_aletheiacore_create_gift(
     ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_delete_local_model(
+    ): Short
     fun uniffi_aletheia_core_checksum_method_aletheiacore_get_daily_notification_message(
     ): Short
     fun uniffi_aletheia_core_checksum_method_aletheiacore_get_fallback_prompts(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_get_local_model_status(
     ): Short
     fun uniffi_aletheia_core_checksum_method_aletheiacore_get_reading_by_id(
     ): Short
@@ -568,6 +586,8 @@ internal interface _UniFFILib : Library {
     fun uniffi_aletheia_core_checksum_method_aletheiacore_perform_reading(
     ): Short
     fun uniffi_aletheia_core_checksum_method_aletheiacore_poll_interpretation_stream(
+    ): Short
+    fun uniffi_aletheia_core_checksum_method_aletheiacore_prepare_local_model(
     ): Short
     fun uniffi_aletheia_core_checksum_method_aletheiacore_redeem_gift(
     ): Short
@@ -610,6 +630,12 @@ private fun uniffiCheckApiChecksums(lib: _UniFFILib) {
     if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_cancel_interpretation_stream() != 8803.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_cancel_local_model_download() != 23938.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_check_device_capability() != 40035.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_choose_symbol() != 49755.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
@@ -619,10 +645,16 @@ private fun uniffiCheckApiChecksums(lib: _UniFFILib) {
     if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_create_gift() != 53160.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_delete_local_model() != 36610.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
     if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_get_daily_notification_message() != 39691.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_get_fallback_prompts() != 14357.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_get_local_model_status() != 3811.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_get_reading_by_id() != 35673.toShort()) {
@@ -641,6 +673,9 @@ private fun uniffiCheckApiChecksums(lib: _UniFFILib) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_poll_interpretation_stream() != 1154.toShort()) {
+        throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
+    }
+    if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_prepare_local_model() != 9022.toShort()) {
         throw RuntimeException("UniFFI API checksum mismatch: try cleaning and rebuilding your project")
     }
     if (lib.uniffi_aletheia_core_checksum_method_aletheiacore_redeem_gift() != 36624.toShort()) {
@@ -714,6 +749,26 @@ public object FfiConverterUInt: FfiConverter<UInt, Int> {
 
     override fun write(value: UInt, buf: ByteBuffer) {
         buf.putInt(value.toInt())
+    }
+}
+
+public object FfiConverterULong: FfiConverter<ULong, Long> {
+    override fun lift(value: Long): ULong {
+        return value.toULong()
+    }
+
+    override fun read(buf: ByteBuffer): ULong {
+        return lift(buf.getLong())
+    }
+
+    override fun lower(value: ULong): Long {
+        return value.toLong()
+    }
+
+    override fun allocationSize(value: ULong) = 8
+
+    override fun write(value: ULong, buf: ByteBuffer) {
+        buf.putLong(value.toLong())
     }
 }
 
@@ -998,17 +1053,22 @@ public interface AletheiaCoreInterface {
     
     fun `bootstrapBundledContent`(): SeedBundledDataResponse
     fun `cancelInterpretationStream`(`requestId`: String): CancelInterpretationResponse
+    fun `cancelLocalModelDownload`(): LocalModelStatusResponse
+    fun `checkDeviceCapability`(): DeviceCapabilityResponse
     fun `chooseSymbol`(`session`: ReadingSession, `symbolId`: String, `method`: SymbolMethod): ChooseSymbolResponse
     fun `completeReading`(`userId`: String, `reading`: Reading): CompleteReadingResponse
     fun `createGift`(`sourceId`: String?, `buyerNote`: String?): CreateGiftResponse
+    fun `deleteLocalModel`(): Boolean
     fun `getDailyNotificationMessage`(`userId`: String, `date`: String): NotificationMessageResponse
     fun `getFallbackPrompts`(`sourceId`: String): FallbackPromptsResponse
+    fun `getLocalModelStatus`(): LocalModelStatusResponse
     fun `getReadingById`(`id`: String): ReadingResponse
     fun `getReadings`(`limit`: UInt, `offset`: UInt): PaginatedReadingsResponse
     fun `getSources`(`premiumAllowed`: Boolean): SourcesResponse
     fun `getUserState`(`userId`: String): UserStateResponse
     fun `performReading`(`userId`: String, `sourceId`: String?, `situationText`: String?): PerformReadingResponse
     fun `pollInterpretationStream`(`requestId`: String): InterpretationStreamState
+    fun `prepareLocalModel`(`forceDownload`: Boolean): PrepareLocalModelResponse
     fun `redeemGift`(`token`: String): RedeemGiftResponse
     fun `requestInterpretation`(`passage`: Passage, `symbol`: Symbol, `situationText`: String?): RequestInterpretationResponse
     fun `seedBundledData`(`sourcesJson`: String, `passagesJson`: String, `themesJson`: String): SeedBundledDataResponse
@@ -1065,6 +1125,28 @@ class AletheiaCore(
             FfiConverterTypeCancelInterpretationResponse.lift(it)
         }
     
+    override fun `cancelLocalModelDownload`(): LocalModelStatusResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_cancel_local_model_download(it,
+        
+        _status)
+}
+        }.let {
+            FfiConverterTypeLocalModelStatusResponse.lift(it)
+        }
+    
+    override fun `checkDeviceCapability`(): DeviceCapabilityResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_check_device_capability(it,
+        
+        _status)
+}
+        }.let {
+            FfiConverterTypeDeviceCapabilityResponse.lift(it)
+        }
+    
     override fun `chooseSymbol`(`session`: ReadingSession, `symbolId`: String, `method`: SymbolMethod): ChooseSymbolResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1098,6 +1180,17 @@ class AletheiaCore(
             FfiConverterTypeCreateGiftResponse.lift(it)
         }
     
+    override fun `deleteLocalModel`(): Boolean =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_delete_local_model(it,
+        
+        _status)
+}
+        }.let {
+            FfiConverterBoolean.lift(it)
+        }
+    
     override fun `getDailyNotificationMessage`(`userId`: String, `date`: String): NotificationMessageResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1118,6 +1211,17 @@ class AletheiaCore(
 }
         }.let {
             FfiConverterTypeFallbackPromptsResponse.lift(it)
+        }
+    
+    override fun `getLocalModelStatus`(): LocalModelStatusResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_get_local_model_status(it,
+        
+        _status)
+}
+        }.let {
+            FfiConverterTypeLocalModelStatusResponse.lift(it)
         }
     
     override fun `getReadingById`(`id`: String): ReadingResponse =
@@ -1184,6 +1288,17 @@ class AletheiaCore(
 }
         }.let {
             FfiConverterTypeInterpretationStreamState.lift(it)
+        }
+    
+    override fun `prepareLocalModel`(`forceDownload`: Boolean): PrepareLocalModelResponse =
+        callWithPointer {
+    rustCall() { _status ->
+    _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_prepare_local_model(it,
+        FfiConverterBoolean.lower(`forceDownload`),
+        _status)
+}
+        }.let {
+            FfiConverterTypePrepareLocalModelResponse.lift(it)
         }
     
     override fun `redeemGift`(`token`: String): RedeemGiftResponse =
@@ -1549,6 +1664,82 @@ public object FfiConverterTypeCreateGiftResponse: FfiConverterRustBuffer<CreateG
 
 
 
+data class DeviceCapability (
+    var `supported`: Boolean, 
+    var `availableRamMb`: UInt, 
+    var `cpuCores`: UInt, 
+    var `hasSimd`: Boolean, 
+    var `estimatedTps`: Float, 
+    var `unsupportedReason`: String?
+) {
+    
+    companion object
+}
+
+public object FfiConverterTypeDeviceCapability: FfiConverterRustBuffer<DeviceCapability> {
+    override fun read(buf: ByteBuffer): DeviceCapability {
+        return DeviceCapability(
+            FfiConverterBoolean.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterFloat.read(buf),
+            FfiConverterOptionalString.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: DeviceCapability) = (
+            FfiConverterBoolean.allocationSize(value.`supported`) +
+            FfiConverterUInt.allocationSize(value.`availableRamMb`) +
+            FfiConverterUInt.allocationSize(value.`cpuCores`) +
+            FfiConverterBoolean.allocationSize(value.`hasSimd`) +
+            FfiConverterFloat.allocationSize(value.`estimatedTps`) +
+            FfiConverterOptionalString.allocationSize(value.`unsupportedReason`)
+    )
+
+    override fun write(value: DeviceCapability, buf: ByteBuffer) {
+            FfiConverterBoolean.write(value.`supported`, buf)
+            FfiConverterUInt.write(value.`availableRamMb`, buf)
+            FfiConverterUInt.write(value.`cpuCores`, buf)
+            FfiConverterBoolean.write(value.`hasSimd`, buf)
+            FfiConverterFloat.write(value.`estimatedTps`, buf)
+            FfiConverterOptionalString.write(value.`unsupportedReason`, buf)
+    }
+}
+
+
+
+
+data class DeviceCapabilityResponse (
+    var `capability`: DeviceCapability?, 
+    var `error`: BridgeError?
+) {
+    
+    companion object
+}
+
+public object FfiConverterTypeDeviceCapabilityResponse: FfiConverterRustBuffer<DeviceCapabilityResponse> {
+    override fun read(buf: ByteBuffer): DeviceCapabilityResponse {
+        return DeviceCapabilityResponse(
+            FfiConverterOptionalTypeDeviceCapability.read(buf),
+            FfiConverterOptionalTypeBridgeError.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: DeviceCapabilityResponse) = (
+            FfiConverterOptionalTypeDeviceCapability.allocationSize(value.`capability`) +
+            FfiConverterOptionalTypeBridgeError.allocationSize(value.`error`)
+    )
+
+    override fun write(value: DeviceCapabilityResponse, buf: ByteBuffer) {
+            FfiConverterOptionalTypeDeviceCapability.write(value.`capability`, buf)
+            FfiConverterOptionalTypeBridgeError.write(value.`error`, buf)
+    }
+}
+
+
+
+
 data class FallbackPromptsResponse (
     var `prompts`: List<String>, 
     var `error`: BridgeError?
@@ -1668,6 +1859,102 @@ public object FfiConverterTypeInterpretationStreamState: FfiConverterRustBuffer<
             FfiConverterBoolean.write(value.`done`, buf)
             FfiConverterBoolean.write(value.`usedFallback`, buf)
             FfiConverterBoolean.write(value.`cancelled`, buf)
+            FfiConverterOptionalTypeBridgeError.write(value.`error`, buf)
+    }
+}
+
+
+
+
+data class LocalModelInfo (
+    var `modelId`: String, 
+    var `status`: LocalModelStatus, 
+    var `downloadProgress`: UByte, 
+    var `modelSizeBytes`: ULong, 
+    var `downloadedBytes`: ULong, 
+    var `version`: String, 
+    var `errorMessage`: String?, 
+    var `etaSeconds`: UInt?, 
+    var `deviceCapable`: Boolean, 
+    var `requiredRamMb`: UInt, 
+    var `availableRamMb`: UInt
+) {
+    
+    companion object
+}
+
+public object FfiConverterTypeLocalModelInfo: FfiConverterRustBuffer<LocalModelInfo> {
+    override fun read(buf: ByteBuffer): LocalModelInfo {
+        return LocalModelInfo(
+            FfiConverterString.read(buf),
+            FfiConverterTypeLocalModelStatus.read(buf),
+            FfiConverterUByte.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterULong.read(buf),
+            FfiConverterString.read(buf),
+            FfiConverterOptionalString.read(buf),
+            FfiConverterOptionalUInt.read(buf),
+            FfiConverterBoolean.read(buf),
+            FfiConverterUInt.read(buf),
+            FfiConverterUInt.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: LocalModelInfo) = (
+            FfiConverterString.allocationSize(value.`modelId`) +
+            FfiConverterTypeLocalModelStatus.allocationSize(value.`status`) +
+            FfiConverterUByte.allocationSize(value.`downloadProgress`) +
+            FfiConverterULong.allocationSize(value.`modelSizeBytes`) +
+            FfiConverterULong.allocationSize(value.`downloadedBytes`) +
+            FfiConverterString.allocationSize(value.`version`) +
+            FfiConverterOptionalString.allocationSize(value.`errorMessage`) +
+            FfiConverterOptionalUInt.allocationSize(value.`etaSeconds`) +
+            FfiConverterBoolean.allocationSize(value.`deviceCapable`) +
+            FfiConverterUInt.allocationSize(value.`requiredRamMb`) +
+            FfiConverterUInt.allocationSize(value.`availableRamMb`)
+    )
+
+    override fun write(value: LocalModelInfo, buf: ByteBuffer) {
+            FfiConverterString.write(value.`modelId`, buf)
+            FfiConverterTypeLocalModelStatus.write(value.`status`, buf)
+            FfiConverterUByte.write(value.`downloadProgress`, buf)
+            FfiConverterULong.write(value.`modelSizeBytes`, buf)
+            FfiConverterULong.write(value.`downloadedBytes`, buf)
+            FfiConverterString.write(value.`version`, buf)
+            FfiConverterOptionalString.write(value.`errorMessage`, buf)
+            FfiConverterOptionalUInt.write(value.`etaSeconds`, buf)
+            FfiConverterBoolean.write(value.`deviceCapable`, buf)
+            FfiConverterUInt.write(value.`requiredRamMb`, buf)
+            FfiConverterUInt.write(value.`availableRamMb`, buf)
+    }
+}
+
+
+
+
+data class LocalModelStatusResponse (
+    var `modelInfo`: LocalModelInfo?, 
+    var `error`: BridgeError?
+) {
+    
+    companion object
+}
+
+public object FfiConverterTypeLocalModelStatusResponse: FfiConverterRustBuffer<LocalModelStatusResponse> {
+    override fun read(buf: ByteBuffer): LocalModelStatusResponse {
+        return LocalModelStatusResponse(
+            FfiConverterOptionalTypeLocalModelInfo.read(buf),
+            FfiConverterOptionalTypeBridgeError.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: LocalModelStatusResponse) = (
+            FfiConverterOptionalTypeLocalModelInfo.allocationSize(value.`modelInfo`) +
+            FfiConverterOptionalTypeBridgeError.allocationSize(value.`error`)
+    )
+
+    override fun write(value: LocalModelStatusResponse, buf: ByteBuffer) {
+            FfiConverterOptionalTypeLocalModelInfo.write(value.`modelInfo`, buf)
             FfiConverterOptionalTypeBridgeError.write(value.`error`, buf)
     }
 }
@@ -1906,6 +2193,40 @@ public object FfiConverterTypePerformReadingResponse: FfiConverterRustBuffer<Per
 
     override fun write(value: PerformReadingResponse, buf: ByteBuffer) {
             FfiConverterOptionalTypeReadingSession.write(value.`session`, buf)
+            FfiConverterOptionalTypeBridgeError.write(value.`error`, buf)
+    }
+}
+
+
+
+
+data class PrepareLocalModelResponse (
+    var `started`: Boolean, 
+    var `modelInfo`: LocalModelInfo?, 
+    var `error`: BridgeError?
+) {
+    
+    companion object
+}
+
+public object FfiConverterTypePrepareLocalModelResponse: FfiConverterRustBuffer<PrepareLocalModelResponse> {
+    override fun read(buf: ByteBuffer): PrepareLocalModelResponse {
+        return PrepareLocalModelResponse(
+            FfiConverterBoolean.read(buf),
+            FfiConverterOptionalTypeLocalModelInfo.read(buf),
+            FfiConverterOptionalTypeBridgeError.read(buf),
+        )
+    }
+
+    override fun allocationSize(value: PrepareLocalModelResponse) = (
+            FfiConverterBoolean.allocationSize(value.`started`) +
+            FfiConverterOptionalTypeLocalModelInfo.allocationSize(value.`modelInfo`) +
+            FfiConverterOptionalTypeBridgeError.allocationSize(value.`error`)
+    )
+
+    override fun write(value: PrepareLocalModelResponse, buf: ByteBuffer) {
+            FfiConverterBoolean.write(value.`started`, buf)
+            FfiConverterOptionalTypeLocalModelInfo.write(value.`modelInfo`, buf)
             FfiConverterOptionalTypeBridgeError.write(value.`error`, buf)
     }
 }
@@ -2527,6 +2848,30 @@ public object FfiConverterTypeUserStateResponse: FfiConverterRustBuffer<UserStat
 
 
 
+enum class LocalModelStatus {
+    NOT_DOWNLOADED,DOWNLOADING,READY,UPDATE_AVAILABLE,ERROR,UNSUPPORTED;
+    companion object
+}
+
+public object FfiConverterTypeLocalModelStatus: FfiConverterRustBuffer<LocalModelStatus> {
+    override fun read(buf: ByteBuffer) = try {
+        LocalModelStatus.values()[buf.getInt() - 1]
+    } catch (e: IndexOutOfBoundsException) {
+        throw RuntimeException("invalid enum value, something is very wrong!!", e)
+    }
+
+    override fun allocationSize(value: LocalModelStatus) = 4
+
+    override fun write(value: LocalModelStatus, buf: ByteBuffer) {
+        buf.putInt(value.ordinal + 1)
+    }
+}
+
+
+
+
+
+
 enum class MoodTag {
     CONFUSED,HOPEFUL,ANXIOUS,CURIOUS,GRATEFUL,GRIEF;
     companion object
@@ -2903,6 +3248,35 @@ public object FfiConverterOptionalTypeCompletedReading: FfiConverterRustBuffer<C
 
 
 
+public object FfiConverterOptionalTypeDeviceCapability: FfiConverterRustBuffer<DeviceCapability?> {
+    override fun read(buf: ByteBuffer): DeviceCapability? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeDeviceCapability.read(buf)
+    }
+
+    override fun allocationSize(value: DeviceCapability?): Int {
+        if (value == null) {
+            return 1
+        } else {
+            return 1 + FfiConverterTypeDeviceCapability.allocationSize(value)
+        }
+    }
+
+    override fun write(value: DeviceCapability?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeDeviceCapability.write(value, buf)
+        }
+    }
+}
+
+
+
+
 public object FfiConverterOptionalTypeGiftReadingData: FfiConverterRustBuffer<GiftReadingData?> {
     override fun read(buf: ByteBuffer): GiftReadingData? {
         if (buf.get().toInt() == 0) {
@@ -2925,6 +3299,35 @@ public object FfiConverterOptionalTypeGiftReadingData: FfiConverterRustBuffer<Gi
         } else {
             buf.put(1)
             FfiConverterTypeGiftReadingData.write(value, buf)
+        }
+    }
+}
+
+
+
+
+public object FfiConverterOptionalTypeLocalModelInfo: FfiConverterRustBuffer<LocalModelInfo?> {
+    override fun read(buf: ByteBuffer): LocalModelInfo? {
+        if (buf.get().toInt() == 0) {
+            return null
+        }
+        return FfiConverterTypeLocalModelInfo.read(buf)
+    }
+
+    override fun allocationSize(value: LocalModelInfo?): Int {
+        if (value == null) {
+            return 1
+        } else {
+            return 1 + FfiConverterTypeLocalModelInfo.allocationSize(value)
+        }
+    }
+
+    override fun write(value: LocalModelInfo?, buf: ByteBuffer) {
+        if (value == null) {
+            buf.put(0)
+        } else {
+            buf.put(1)
+            FfiConverterTypeLocalModelInfo.write(value, buf)
         }
     }
 }

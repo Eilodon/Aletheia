@@ -465,6 +465,27 @@ class StoreService {
   }
 
   // Passages
+  async getPassage(passageId: string): Promise<Passage | null> {
+    await this.initialize();
+    if (!this.db) throw new Error("Database not initialized");
+
+    const row = await this.db.getFirstAsync<any>(
+      "SELECT * FROM passages WHERE id = ?",
+      [passageId]
+    );
+
+    if (!row) return null;
+
+    return {
+      id: row.id,
+      source_id: row.source_id,
+      reference: row.reference,
+      text: row.text,
+      context: row.context || undefined,
+      resonance_context: row.resonance_context || undefined,
+    };
+  }
+
   async getRandomPassage(sourceId: string): Promise<Passage | null> {
     await this.initialize();
     if (!this.db) throw new Error("Database not initialized");

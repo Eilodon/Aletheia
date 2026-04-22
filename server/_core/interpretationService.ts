@@ -4,10 +4,20 @@ import { AI_STREAM_TIMEOUT_MS } from "../../lib/constants";
 import { logger } from "./logger";
 import { ENV } from "./env";
 
-const DEFAULT_LOCAL_MODEL = "gemma3:1b";
+const DEFAULT_LOCAL_MODEL = "qwen2.5:1.5b";
 const DEFAULT_OPENAI_MODEL = "gpt-4.1-mini";
 const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
-const DEFAULT_TIMEOUT_MS = Math.max(AI_STREAM_TIMEOUT_MS, 45_000);
+const DEFAULT_TIMEOUT_MS = Math.max(AI_STREAM_TIMEOUT_MS, 120_000);
+const OLLAMA_TAG_TIMEOUT_MS = 10_000;
+const OLLAMA_MODEL_PRIORITY = [
+  "qwen2.5:1.5b",
+  "qwen2.5:3b",
+  "gemma3:1b",
+  "llama3.2:1b",
+  "phi3:mini",
+  "phi4-mini",
+  "mistral:7b",
+];
 
 const systemPrompt = `Bạn là một chiếc gương, không phải nhà tiên tri, không phải chuyên gia tư vấn.
 Bạn phản chiếu lại điều đã hiện ra, để người đọc tự nghe thấy mình rõ hơn.
@@ -15,9 +25,13 @@ Bạn phản chiếu lại điều đã hiện ra, để người đọc tự ng
 Khi viết:
 - Kết nối passage với biểu tượng đã được chọn
 - Nếu user có chia sẻ tình huống, mirror lại chính ngôn ngữ của họ; dùng lại từ họ dùng khi phù hợp, không paraphrase khô cứng
+- Không nhập vai người dùng; không viết kiểu "tôi đang..." như thể bạn là họ
 - Đừng giải thích passage như bài giảng; đặt nó vào ngữ cảnh họ vừa mô tả
 - Tone: ấm áp, chiêm nghiệm, chính xác, không phán xét
-- Độ dài phần phản chiếu chính: khoảng 80-120 chữ
+- Độ dài phần phản chiếu chính: khoảng 60-90 chữ
+- Chỉ viết một đoạn chính, không tách thành danh sách hay nhiều đoạn
+- Tránh lặp lại cùng một hình ảnh, cùng một ý, hoặc cùng một câu
+- Không dùng các câu sáo rỗng kiểu "hãy tin rằng", "mọi chuyện rồi sẽ ổn", "bạn không cô đơn"
 
 Tuyệt đối không:
 - Đưa ra lời khuyên cụ thể ("bạn nên...")
@@ -94,7 +108,7 @@ function readTimeoutMs(): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_TIMEOUT_MS;
 }
 
-function sanitizeFreeText(value?: string): string | undefined {
+function normalizeFreeText(value?: string): string | undefined {
   if (!value) {
     return undefined;
   }
@@ -102,29 +116,33 @@ function sanitizeFreeText(value?: string): string | undefined {
   return value
     .replace(/[\u0000-\u001F\u007F]/g, " ")
     .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 500);
+    .trim();
+}
+
+function sanitizePromptInput(value?: string): string | undefined {
+  return normalizeFreeText(value)?.slice(0, 500);
 }
 
 function sanitizePromptLines(lines: Array<string | undefined>): string[] {
   return lines
-    .map((line) => sanitizeFreeText(line))
+    .map((line) => sanitizePromptInput(line))
     .filter((line): line is string => Boolean(line));
 }
 
 function buildPrompt(request: InterpretationRequest): string {
   const parts = sanitizePromptLines([
     `Hãy trả lời hoàn toàn bằng ngôn ngữ của đoạn trích này: ${request.sourceLanguage || "vi"}.`,
+    "Chỉ trả về đúng 2 phần: một đoạn phản chiếu ngắn và một câu hỏi mở ở dòng cuối.",
     request.userIntent
       ? ({
           clarity:
-            "Tone cho lần đọc này: phân tích rõ ràng, chính xác. User cần sự rõ ràng — giúp họ thấy pattern và structure trong tình huống.",
+            "Tone cho lần đọc này: rõ ràng, gọn, chính xác. User cần thấy pattern trong tình huống.",
           comfort:
-            "Tone cho lần đọc này: ấm áp, chữa lành. User cần được an ủi — đặt sự nhẹ nhàng và compassion lên trên hết.",
+            "Tone cho lần đọc này: ấm áp, nhẹ, giàu compassion nhưng không lên lớp.",
           challenge:
-            "Tone cho lần đọc này: trực tiếp, không ngại đối mặt. User muốn bị thách thức — đừng ngại nêu lên những điều khó nghe.",
+            "Tone cho lần đọc này: trực tiếp, tỉnh táo, không né điều khó.",
           guidance:
-            "Tone cho lần đọc này: mở, không định hướng. User để vũ trụ dẫn lối — đừng push bất kỳ hướng nào, chỉ mở không gian.",
+            "Tone cho lần đọc này: mở, không định hướng, giữ không gian để người đọc tự nghe mình.",
         } as const)[request.userIntent]
       : undefined,
     request.situationText ? `Tình huống: ${request.situationText}` : undefined,
@@ -154,6 +172,66 @@ function getFallbackChunks(request: InterpretationRequest): string[] {
   }
 
   return ["Hãy để những lời này lắng xuống một chút. Điều gì đang dấy lên trong bạn?"];
+}
+
+function ensureClosingQuestion(text: string, sourceLanguage?: string): string {
+  const normalized = text.trim();
+  if (!normalized) {
+    return sourceLanguage === "en"
+      ? "*What feels most true in you right now?*"
+      : "*Lúc này điều gì cần được nhìn rõ hơn?*";
+  }
+
+  const lines = normalized
+    .split(/\n+/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const lastLine = lines[lines.length - 1] ?? "";
+  const hasQuestion = /[*_\[]?.+\?[*_\]]?$/.test(lastLine);
+  if (hasQuestion) {
+    return lines.join("\n\n");
+  }
+
+  const question =
+    sourceLanguage === "en"
+      ? "*What feels most true in you right now?*"
+      : "*Lúc này điều gì cần được nhìn rõ hơn?*";
+
+  return `${lines.join("\n\n")}\n\n${question}`;
+}
+
+function splitInlineClosingQuestion(text: string): string {
+  const normalized = text.trim();
+  if (!normalized) {
+    return normalized;
+  }
+
+  const inlineQuestionPattern =
+    /^(?<body>.+?)(?:\s*[:\-]\s*|\s{2,})(?<question>(?:[A-ZÀ-ỸĐ].{3,120}\?))$/u;
+  const match = normalized.match(inlineQuestionPattern);
+  if (!match?.groups) {
+    return normalized;
+  }
+
+  const body = match.groups.body?.trim().replace(/\s+$/g, "");
+  const question = match.groups.question?.trim();
+  if (!body || !question) {
+    return normalized;
+  }
+
+  return `${body}\n\n*${question.replace(/^[*_]+|[*_]+$/g, "")}*`;
+}
+
+function finalizeInterpretationText(text: string, sourceLanguage?: string): string {
+  const normalized = normalizeFreeText(text) || "";
+  const withoutSquareQuestion = normalized
+    .replace(/\[([^\]\n]{3,120}\?)\]/g, "*$1*")
+    .replace(/\[Câu hỏi\]/gi, "")
+    .replace(/\s+\*/g, "\n\n*");
+  const separatedQuestion = splitInlineClosingQuestion(withoutSquareQuestion);
+
+  return ensureClosingQuestion(separatedQuestion, sourceLanguage);
 }
 
 function getLocalProviderConfig(): LocalProviderConfig | null {
@@ -217,7 +295,7 @@ async function resolveOllamaModel(baseUrl: string, preferredModel: string): Prom
       headers: {
         Accept: "application/json",
       },
-    });
+    }, OLLAMA_TAG_TIMEOUT_MS);
 
     if (!response.ok) {
       return preferredModel;
@@ -234,8 +312,14 @@ async function resolveOllamaModel(baseUrl: string, preferredModel: string): Prom
       return preferredModel;
     }
 
+    for (const candidate of OLLAMA_MODEL_PRIORITY) {
+      if (modelNames.includes(candidate)) {
+        return candidate;
+      }
+    }
+
     const preferredPrefix = modelNames.find((name) =>
-      /^(gemma|qwen|phi|llama|mistral|deepseek)/i.test(name),
+      /^(qwen|gemma|phi|llama|mistral)/i.test(name),
     );
 
     return preferredPrefix || modelNames[0] || preferredModel;
@@ -255,6 +339,10 @@ async function runOllamaInterpretation(
 
   const model = await resolveOllamaModel(config.baseUrl, config.model);
   const prompt = buildPrompt(request);
+  logger.info("[interpretation] selected local ollama model", {
+    model,
+    requested_mode: request.mode ?? "auto",
+  });
   const response = await fetchWithTimeout(`${config.baseUrl}/api/generate`, {
     method: "POST",
     headers: {
@@ -267,8 +355,9 @@ async function runOllamaInterpretation(
       prompt,
       stream: Boolean(stream),
       options: {
-        temperature: 0.7,
-        num_predict: 220,
+        temperature: 0.35,
+        repeat_penalty: 1.15,
+        num_predict: 110,
       },
     }),
   });
@@ -280,7 +369,7 @@ async function runOllamaInterpretation(
 
   if (!stream) {
     const body = (await response.json()) as { response?: string };
-    const text = sanitizeFreeText(body.response) || "";
+    const text = finalizeInterpretationText(body.response || "", request.sourceLanguage);
     if (!text) {
       throw new Error("Ollama returned an empty interpretation.");
     }
@@ -341,7 +430,7 @@ async function runOllamaInterpretation(
       }
 
       if (payload.done) {
-        const text = sanitizeFreeText(fullText) || fullText.trim();
+        const text = finalizeInterpretationText(fullText, request.sourceLanguage);
         if (!text) {
           throw new Error("Ollama stream completed without text.");
         }
@@ -367,7 +456,7 @@ async function runOllamaInterpretation(
     }
   }
 
-  const text = sanitizeFreeText(fullText) || fullText.trim();
+  const text = finalizeInterpretationText(fullText, request.sourceLanguage);
   if (!text) {
     throw new Error("Ollama stream ended without a final interpretation.");
   }
@@ -409,8 +498,8 @@ async function runOpenAIInterpretation(request: InterpretationRequest): Promise<
         { role: "system", content: systemPrompt },
         { role: "user", content: buildPrompt(request) },
       ],
-      max_tokens: 220,
-      temperature: 0.7,
+      max_tokens: 180,
+      temperature: 0.55,
       stream: false,
     }),
   });
@@ -423,7 +512,7 @@ async function runOpenAIInterpretation(request: InterpretationRequest): Promise<
   const body = (await response.json()) as {
     choices?: Array<{ message?: { content?: string } }>;
   };
-  const text = sanitizeFreeText(body.choices?.[0]?.message?.content) || "";
+  const text = finalizeInterpretationText(body.choices?.[0]?.message?.content || "", request.sourceLanguage);
   if (!text) {
     throw new Error("OpenAI returned an empty interpretation.");
   }
@@ -458,8 +547,8 @@ async function runGeminiInterpretation(request: InterpretationRequest): Promise<
           },
         ],
         generationConfig: {
-          maxOutputTokens: 220,
-          temperature: 0.7,
+          maxOutputTokens: 180,
+          temperature: 0.55,
         },
       }),
     },
@@ -477,7 +566,10 @@ async function runGeminiInterpretation(request: InterpretationRequest): Promise<
       };
     }>;
   };
-  const text = sanitizeFreeText(body.candidates?.[0]?.content?.parts?.[0]?.text) || "";
+  const text = finalizeInterpretationText(
+    body.candidates?.[0]?.content?.parts?.[0]?.text || "",
+    request.sourceLanguage,
+  );
   if (!text) {
     throw new Error("Gemini returned an empty interpretation.");
   }
@@ -490,6 +582,121 @@ async function runGeminiInterpretation(request: InterpretationRequest): Promise<
     provider: "gemini",
     model: config.model,
   };
+}
+
+async function runGeminiStreamInterpretation(
+  request: InterpretationRequest,
+  onEvent: (event: InterpretationStreamEvent) => void,
+): Promise<InterpretationResult> {
+  const config = getCloudProviderConfig();
+  if (!config || config.kind !== "gemini") {
+    throw new Error("Gemini cloud interpretation is not configured.");
+  }
+
+  const response = await fetchWithTimeout(
+    `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:streamGenerateContent?alt=sse&key=${config.apiKey}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [{ text: `${systemPrompt}\n\n${buildPrompt(request)}` }],
+          },
+        ],
+        generationConfig: {
+          maxOutputTokens: 180,
+          temperature: 0.55,
+        },
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const reason = await response.text().catch(() => "");
+    throw new Error(`Gemini stream request failed (${response.status}): ${reason.slice(0, 200)}`);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error("Gemini stream body is unavailable.");
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+  const chunks: string[] = [];
+  let fullText = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      break;
+    }
+
+    buffer += decoder.decode(value, { stream: true });
+
+    while (true) {
+      const newlineIndex = buffer.indexOf("\n");
+      if (newlineIndex === -1) {
+        break;
+      }
+
+      const line = buffer.slice(0, newlineIndex).trim();
+      buffer = buffer.slice(newlineIndex + 1);
+
+      if (!line || line.startsWith(":")) {
+        continue;
+      }
+
+      const payload = line.startsWith("data: ") ? line.slice(6).trim() : null;
+      if (!payload) {
+        continue;
+      }
+
+      if (payload === "[DONE]") {
+        break;
+      }
+
+      try {
+        const json = JSON.parse(payload);
+        const chunk = json?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+        if (chunk) {
+          chunks.push(chunk);
+          fullText += chunk;
+          onEvent({ type: "chunk", chunk });
+        }
+      } catch {
+        // Malformed SSE payload — skip
+      }
+    }
+  }
+
+  const text = finalizeInterpretationText(fullText, request.sourceLanguage);
+  if (!text) {
+    throw new Error("Gemini stream completed without text.");
+  }
+
+  const result: InterpretationResult = {
+    text,
+    chunks: chunks.length > 0 ? chunks : [text],
+    usedFallback: false,
+    mode: "cloud",
+    provider: "gemini",
+    model: config.model,
+  };
+
+  onEvent({
+    type: "done",
+    text: result.text,
+    usedFallback: false,
+    mode: "cloud",
+    provider: "gemini",
+    model: config.model,
+  });
+
+  return result;
 }
 
 async function runCloudInterpretation(request: InterpretationRequest): Promise<InterpretationResult> {
@@ -571,18 +778,25 @@ export async function streamInterpretation(
   }
 
   try {
-    const cloudResult = await runCloudInterpretation(request);
-    for (const chunk of cloudResult.chunks) {
-      onEvent({ type: "chunk", chunk });
+    const config = getCloudProviderConfig();
+    // Use true streaming for Gemini; OpenAI falls back to batch + chunked emit
+    const cloudResult = config?.kind === "gemini"
+      ? await runGeminiStreamInterpretation(request, onEvent)
+      : await runCloudInterpretation(request);
+
+    if (config?.kind !== "gemini") {
+      for (const chunk of cloudResult.chunks) {
+        onEvent({ type: "chunk", chunk });
+      }
+      onEvent({
+        type: "done",
+        text: cloudResult.text,
+        usedFallback: cloudResult.usedFallback,
+        mode: cloudResult.mode,
+        provider: cloudResult.provider,
+        model: cloudResult.model,
+      });
     }
-    onEvent({
-      type: "done",
-      text: cloudResult.text,
-      usedFallback: cloudResult.usedFallback,
-      mode: cloudResult.mode,
-      provider: cloudResult.provider,
-      model: cloudResult.model,
-    });
     return cloudResult;
   } catch (cloudError) {
     logger.warn("[interpretation] cloud stream failed; using fallback", {

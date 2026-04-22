@@ -1278,3 +1278,70 @@ Report tối thiểu phải bao gồm artifact Rust Android, UniFFI bindings, bu
 
 - **Positive:** Release review bớt cảm tính và có thể tự động hóa dần.
 - **Trade-off:** Report này phải được cập nhật cùng lúc với thay đổi release surface.
+
+---
+
+## ADR-AL-46 — Dual Auth Model cho Beta, Bearer-only Post-beta
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-04-13
+**VHEATM Level:** 🟡 RECOMMENDED
+**Tags:** `auth` `security` `server` `api`
+
+### Context
+
+Server `requireAiRequestIdentity` middleware (`server/_core/index.ts:193-223`) chấp nhận hai auth path song song:
+
+1. **Bearer token** — `Authorization: Bearer <session_token>` (proper OAuth flow)
+2. **App/User-ID headers** — `X-Aletheia-App-Id` + `X-Aletheia-User-Id` (lightweight identity)
+
+Điều này tạo ra dual auth surface: một path có cryptographic verification, một path chỉ dựa vào header values. Audit (LOW-02) flag đây là security concern.
+
+### Options Considered
+
+#### Option A: Giữ dual auth cho beta, migrate Bearer-only post-beta ← **CHOSEN**
+
+| Pros | Cons |
+|---|---|
+| Beta user không bị break khi auth flow chưa hoàn thiện | Dual surface tồn tại lâu hơn cần thiết |
+| App-ID header cho phép server-side rate limit per-app | Attack surface rộng hơn |
+| Đơn giản hóa client integration | |
+
+#### Option B: Bearer-only ngay lập tức
+
+| Pros | Cons |
+|---|---|
+| Minimal auth surface | Beta client chưa có stable session token flow |
+| Production-ready security | Có thể break mobile clients chưa implement OAuth properly |
+
+**Loại vì:** Beta phase cần linh hoạt. Force Bearer-only trước khi client auth flow stable = risk break app cho early users.
+
+#### Option C: App-ID only, không Bearer
+
+**Loại vì:** Không có cryptographic verification = không thể protect cloud AI endpoints thật sự.
+
+### Decision
+
+> **Chọn Option A.** Dual auth chấp nhận được cho beta vì:
+> 1. `/api/interpret*` đã được bảo vệ bởi `aiApiLimiter` + `apiLimiter` + identity gate.
+> 2. Cloud AI keys không expose qua client — server là sole secret holder.
+> 3. App-ID header cho phép per-app rate limiting hữu ích cho beta monitoring.
+>
+> **Post-beta migration plan:**
+> - Phase 1: Add deprecation warning log khi request dùng App-ID headers không có Bearer token.
+> - Phase 2: Require Bearer token cho `/api/interpret*` (reject App-ID-only requests với 401).
+> - Phase 3: Remove App-ID header parsing entirely. Giữ `X-Aletheia-App-Id` chỉ cho analytics/rate-limit context, không cho auth.
+
+### Consequences
+
+**Tích cực:**
+- Beta không bị auth friction block
+- Clear migration path với 3 phase
+
+**Trade-offs chấp nhận được:**
+- Dual surface tồn tại qua beta period — được mitigate bởi rate limiting và server-side secret holding
+
+**Rủi ro:**
+- Nếu migration bị quên, dual surface tồn tại vô thời hạn — mitigate bằng ADR này ghi rõ post-beta requirement
+
+**Xem thêm:** `server/_core/index.ts:193-223`, ADR-AL-45

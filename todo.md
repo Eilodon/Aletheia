@@ -7,7 +7,6 @@
 - [ ] Run end-to-end Android beta build and smoke test on device
 
 ## P1 — Architecture / SSOT
-- [ ] Move Android bundled content ownership out of TS runtime seeds
 - [ ] Reduce remaining direct native/runtime branching above facade level
 - [ ] Expand UniFFI read-model surface only where Android UI still lacks Rust-backed access
 

@@ -1,4 +1,4 @@
-import { AppState, AppStateStatus } from "react-native";
+import { AppState, AppStateStatus, Platform } from "react-native";
 
 import { captureMessage } from "./sentry";
 
@@ -41,7 +41,7 @@ class Analytics {
       properties: {
         ...properties,
         timestamp: Date.now(),
-        platform: typeof navigator !== "undefined" ? "web" : "native",
+        platform: Platform.OS,
       },
     });
 

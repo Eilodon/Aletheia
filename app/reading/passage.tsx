@@ -182,21 +182,6 @@ export default function PassageScreen() {
             </View>
           </View>
 
-          {passage.context ? (
-            <View
-              style={[
-                styles.contextCard,
-                {
-                  backgroundColor: colors.surface + "A8",
-                  borderColor: colors.primary + "1C",
-                },
-              ]}
-            >
-              <Text style={[styles.contextLabel, { color: colors.primary }]}>Đường gợi</Text>
-              <Text style={[styles.contextText, { color: colors.muted }]}>{passage.context}</Text>
-            </View>
-          ) : null}
-
           <View style={styles.aiSection}>
             {!aiResponse && !showAI ? (
               <Pressable
@@ -222,7 +207,10 @@ export default function PassageScreen() {
             ) : null}
 
             {showAI && (!aiResponse || isRequestingAI) ? (
-              <View style={[styles.aiCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "24" }]}>
+              <View
+                testID="reading-passage-ai-loading"
+                style={[styles.aiCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "24" }]}
+              >
                 <Text style={[styles.aiStatus, { color: colors.primary }]}>Đang xin diễn giải...</Text>
                 <Text style={[styles.aiStatusHint, { color: colors.muted }]}>
                   Aletheia đang ghép tình huống, biểu tượng và ngữ cảnh của đoạn trích.
@@ -233,6 +221,7 @@ export default function PassageScreen() {
 
             {aiResponse ? (
               <View
+                testID="reading-passage-ai-card"
                 style={[
                   styles.aiCard,
                   {
@@ -241,10 +230,15 @@ export default function PassageScreen() {
                   },
                 ]}
               >
-                <Text style={[styles.aiLabel, { color: isAIFallback ? colors.muted : colors.primary }]}>
+                <Text
+                  testID="reading-passage-ai-label"
+                  style={[styles.aiLabel, { color: isAIFallback ? colors.muted : colors.primary }]}
+                >
                   {isAIFallback ? "DIỄN GIẢI NỘI TẠI" : "DIỄN GIẢI"}
                 </Text>
-                <Text style={[styles.aiBody, { color: colors.foreground }]}>{aiResponse}</Text>
+                <Text testID="reading-passage-ai-body" style={[styles.aiBody, { color: colors.foreground }]}>
+                  {aiResponse}
+                </Text>
               </View>
             ) : null}
           </View>
@@ -372,24 +366,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1.2,
     textTransform: "uppercase",
     fontFamily: Fonts.bodyMedium,
-  },
-  contextCard: {
-    borderRadius: 22,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginBottom: 22,
-    gap: 8,
-  },
-  contextLabel: {
-    fontSize: 10,
-    textTransform: "uppercase",
-    letterSpacing: 2,
-  },
-  contextText: {
-    fontSize: 13,
-    lineHeight: 20,
-    fontFamily: Fonts.bodyItalic,
   },
   aiSection: {
     gap: 14,

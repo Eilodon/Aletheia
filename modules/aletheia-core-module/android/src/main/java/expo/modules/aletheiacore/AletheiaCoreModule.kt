@@ -39,7 +39,6 @@ import uniffi.aletheia.CancelInterpretationResponse
 // Local model types are handled natively in Kotlin
 import android.content.Context
 import android.util.Log
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -126,6 +125,8 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
   private var modelDownloadManager: ModelDownloadManager? = null
   private var downloadCancelToken: java.util.concurrent.atomic.AtomicBoolean? = null
   private var downloadProgress: Int = 0
+  
+  private val moduleScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob())
 
   override fun initialize(dbPath: String, giftBackendUrl: String) {
     System.setProperty("uniffi.component.aletheia.libraryOverride", "aletheia_core")
@@ -375,7 +376,7 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
     downloadProgress = 0
     
     // Launch download in background
-    kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.IO) {
+    moduleScope.launch(kotlinx.coroutines.Dispatchers.IO) {
       try {
         downloadManager.downloadModel(
           progressCallback = { progress ->
@@ -450,7 +451,7 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
     val prompt = buildLocalInferencePrompt(passage, symbol, situationText, userIntent)
     
     // Launch inference in background
-    kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.Default) {
+    moduleScope.launch(kotlinx.coroutines.Dispatchers.Default) {
       try {
         engine.runInference(prompt, session.cancelToken)
           .collect { chunk ->
@@ -487,16 +488,18 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
       )
     }
     
+    var fullTextString = ""
     val newChunks = synchronized(session) {
       val chunks = session.chunks.toList()
       session.chunks.clear()
+      fullTextString = session.fullText.toString()
       chunks
     }
     
     return mapOf(
       "request_id" to requestId,
       "new_chunks" to newChunks,
-      "full_text" to session.fullText.toString(),
+      "full_text" to fullTextString,
       "done" to session.done,
       "used_fallback" to false,
       "cancelled" to session.cancelled,
@@ -521,6 +524,7 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
   }
   
   /// Build prompt for local inference
+  // Canonical prompt builder — must match server interpretationService.ts buildPrompt()
   private fun buildLocalInferencePrompt(
     passage: Map<String, Any?>,
     symbol: Map<String, Any?>,
@@ -530,15 +534,40 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
     val passageText = passage["text"] as? String ?: ""
     val passageRef = passage["reference"] as? String ?: ""
     val symbolName = symbol["display_name"] as? String ?: ""
-    
-    return buildString {
-      append("Bi u t ng: $symbolName\n")
-      append(" o trích ($passageRef): $passageText\n")
-      if (!situationText.isNullOrBlank()) {
-        append("Tình hu ng: $situationText\n")
+    val passageContext = passage["resonance_context"] as? String ?: passage["context"] as? String ?: ""
+
+    val parts = mutableListOf<String>()
+
+    parts.add("Hãy trả lời hoàn toàn bằng ngôn ngữ của đoạn trích này: vi.")
+    parts.add("Chỉ trả về đúng 2 phần: một đoạn phản chiếu ngắn và một câu hỏi mở ở dòng cuối.")
+
+    // Intent-based tone instruction (canonical — must match server interpretationService.ts)
+    if (!userIntent.isNullOrBlank()) {
+      val intentInstruction = when (userIntent) {
+        "clarity" -> "Tone cho lần đọc này: rõ ràng, gọn, chính xác. User cần thấy pattern trong tình huống."
+        "comfort" -> "Tone cho lần đọc này: ấm áp, nhẹ, giàu compassion nhưng không lên lớp."
+        "challenge" -> "Tone cho lần đọc này: trực tiếp, tỉnh táo, không né điều khó."
+        "guidance" -> "Tone cho lần đọc này: mở, không định hướng, giữ không gian để người đọc tự nghe mình."
+        else -> ""
       }
-      append("\nHãy ph n chi u l i i u này cho ng i c.\n")
+      if (intentInstruction.isNotEmpty()) {
+        parts.add(intentInstruction)
+      }
     }
+
+    if (!situationText.isNullOrBlank()) {
+      parts.add("Tình huống: $situationText")
+      parts.add("Mirror lại ngôn ngữ của người dùng khi phản chiếu, nhưng đừng lặp lại một cách máy móc.")
+    }
+
+    parts.add("Biểu tượng đã chọn: $symbolName")
+    parts.add("Đoạn trích ($passageRef):\n$passageText")
+
+    if (passageContext.isNotBlank()) {
+      parts.add("Ngữ cảnh ẩn cho người đọc (không nhắc lộ ra): $passageContext")
+    }
+
+    return parts.joinToString("\n\n")
   }
 
   private fun requireCore(): AletheiaCore {
@@ -1124,16 +1153,17 @@ class AletheiaCoreModule : Module() {
   override fun definition() = ModuleDefinition {
     Name("AletheiaCoreModule")
 
-    AsyncFunction("init") { options: Map<String, String> ->
-      val dbPath = options["dbPath"].orEmpty()
-      val giftBackendUrl = options["giftBackendUrl"].orEmpty()
-      client.initialize(dbPath, giftBackendUrl)
-      
-      // Initialize local inference components (CYCLE 2)
+    OnCreate {
       val context = appContext.reactContext
       if (context != null) {
         adapter.initializeLocalInference(context)
       }
+    }
+
+    AsyncFunction("init") { options: Map<String, String> ->
+      val dbPath = options["dbPath"].orEmpty()
+      val giftBackendUrl = options["giftBackendUrl"].orEmpty()
+      client.initialize(dbPath, giftBackendUrl)
     }
 
     AsyncFunction("bootstrapBundledContent") {

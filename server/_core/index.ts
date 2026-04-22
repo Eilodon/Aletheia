@@ -16,6 +16,7 @@ import {
   type InterpretationStreamEvent,
 } from "./interpretationService";
 import { logger } from "./logger";
+import { sdk } from "./sdk";
 
 function getAllowedOrigins(): Set<string> {
   const configured = (process.env.CORS_ALLOWED_ORIGINS ?? "")
@@ -64,12 +65,9 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
-async function startServer() {
-  validateServerEnv();
+export function createApp() {
   const allowedOrigins = getAllowedOrigins();
-
   const app = express();
-  const server = createServer(app);
 
   app.use((req, res, next) => {
     const origin = req.headers.origin;
@@ -98,6 +96,9 @@ async function startServer() {
 
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // Apply rate limiting to all /api routes
+  app.use("/api", apiLimiter);
 
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, timestamp: Date.now() });
@@ -189,7 +190,39 @@ async function startServer() {
     res.status(report.ok ? 200 : 503).json(report);
   });
 
-  app.post("/api/interpret", aiApiLimiter, async (req, res) => {
+  const requireAiRequestIdentity = async (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    const appId = req.header("X-Aletheia-App-Id")?.trim();
+    const userId = req.header("X-Aletheia-User-Id")?.trim();
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    const hasBearer = typeof authHeader === "string" && authHeader.startsWith("Bearer ");
+
+    if (hasBearer) {
+      try {
+        await sdk.authenticateRequest(req);
+        next();
+        return;
+      } catch (error) {
+        logger.warn("[interpretation] rejected invalid bearer auth", {
+          reason: error instanceof Error ? error.message : String(error),
+        });
+        res.status(401).json({ error: "Invalid AI request identity" });
+        return;
+      }
+    }
+
+    if (ENV.appId && appId === ENV.appId && userId) {
+      next();
+      return;
+    }
+
+    res.status(401).json({ error: "AI request identity is required" });
+  };
+
+  app.post("/api/interpret", requireAiRequestIdentity, aiApiLimiter, async (req, res) => {
     const parsed = interpretationRequestSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({
@@ -213,7 +246,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/interpret/stream", aiApiLimiter, async (req, res) => {
+  app.post("/api/interpret/stream", requireAiRequestIdentity, aiApiLimiter, async (req, res) => {
     const parsed = interpretationRequestSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({
@@ -252,9 +285,6 @@ async function startServer() {
     }
   });
 
-  // Apply rate limiting to all /api routes
-  app.use("/api", apiLimiter);
-
   app.use(
     "/api/trpc",
     aiApiLimiter,
@@ -264,6 +294,13 @@ async function startServer() {
     }),
   );
 
+  return app;
+}
+
+export async function startServer() {
+  validateServerEnv();
+  const app = createApp();
+  const server = createServer(app);
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);
 
@@ -274,6 +311,14 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`[api] server listening on port ${port}`);
   });
+
+  return { app, server, port };
 }
 
-startServer().catch(console.error);
+const isMainModule =
+  typeof process.argv[1] === "string" &&
+  import.meta.url === new URL(`file://${process.argv[1]}`).href;
+
+if (isMainModule) {
+  startServer().catch(console.error);
+}

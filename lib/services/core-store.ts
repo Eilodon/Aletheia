@@ -163,11 +163,39 @@ class CoreStoreService {
       return null;
     }
 
-    return {
-      reading,
-      source: BUNDLED_SOURCES.find((item) => item.id === reading.source_id),
-      passage: BUNDLED_PASSAGES.find((item) => item.id === reading.passage_id),
-    };
+    // Try bundled data first, then fall back to native module / store lookup
+    let source: Source | undefined = BUNDLED_SOURCES.find((item) => item.id === reading.source_id);
+    let passage: Passage | undefined = BUNDLED_PASSAGES.find((item) => item.id === reading.passage_id);
+
+    if (!source || !passage) {
+      if (shouldUseAletheiaNative()) {
+        try {
+          await this.ensureNativeReady();
+          if (!source) {
+            const nativeSources = unwrapNativeSourcesResponse(
+              await aletheiaNativeClient.getSources(true),
+            ) as Source[];
+            source = nativeSources.find((s) => s.id === reading.source_id);
+          }
+          // Passage lookup requires store fallback (native module has no getPassageById yet)
+          if (!passage) {
+            passage = await store.getPassage(reading.passage_id) ?? undefined;
+          }
+        } catch {
+          // Native lookup failed — keep bundled result (may be undefined)
+        }
+      } else {
+        // Non-native path: use store directly
+        if (!source) {
+          source = (await store.getSource(reading.source_id)) ?? undefined;
+        }
+        if (!passage) {
+          passage = (await store.getPassage(reading.passage_id)) ?? undefined;
+        }
+      }
+    }
+
+    return { reading, source, passage };
   }
 
   async updateReadingFlags(

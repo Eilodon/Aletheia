@@ -26,6 +26,9 @@ import {
   type NativeNotificationMessageResponse,
   type NativeRedeemGiftResponse,
   type NativeCreateGiftResponse,
+  type NativeDeviceCapabilityResponse,
+  type NativeLocalModelStatusResponse,
+  type NativePrepareLocalModelResponse,
 } from "../../modules/aletheia-core-module/src";
 import { Platform } from "react-native";
 
@@ -176,6 +179,52 @@ class AletheiaNativeClient {
 
   createGift(sourceId?: string, buyerNote?: string): Promise<NativeCreateGiftResponse> {
     return this.requireModule().createGift(sourceId, buyerNote);
+  }
+
+  checkDeviceCapability(): Promise<NativeDeviceCapabilityResponse> {
+    return this.requireModule().checkDeviceCapability();
+  }
+
+  getLocalModelStatus(): Promise<NativeLocalModelStatusResponse> {
+    return this.requireModule().getLocalModelStatus();
+  }
+
+  prepareLocalModel(forceDownload: boolean): Promise<NativePrepareLocalModelResponse> {
+    return this.requireModule().prepareLocalModel(forceDownload);
+  }
+
+  cancelLocalModelDownload(): Promise<NativeLocalModelStatusResponse> {
+    return this.requireModule().cancelLocalModelDownload();
+  }
+
+  deleteLocalModel(): Promise<boolean> {
+    return this.requireModule().deleteLocalModel();
+  }
+
+  startLocalInterpretationStream(
+    passage: NativePassage,
+    symbol: NativeSymbol,
+    situationText?: string,
+    userIntent?: string,
+  ): Promise<NativeStartInterpretationStreamResponse> {
+    return this.requireModule().startLocalInterpretationStream(
+      passage,
+      symbol,
+      situationText,
+      userIntent,
+    );
+  }
+
+  pollLocalInterpretationStream(
+    requestId: string,
+  ): Promise<NativeInterpretationStreamState> {
+    return this.requireModule().pollLocalInterpretationStream(requestId);
+  }
+
+  cancelLocalInterpretationStream(
+    requestId: string,
+  ): Promise<NativeCancelInterpretationResponse> {
+    return this.requireModule().cancelLocalInterpretationStream(requestId);
   }
 }
 

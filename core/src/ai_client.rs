@@ -39,9 +39,13 @@ Bạn phản chiếu lại điều đã hiện ra, để người đọc tự ng
 Khi viết:
 - Kết nối passage với biểu tượng đã được chọn
 - Nếu user có chia sẻ tình huống, mirror lại chính ngôn ngữ của họ; dùng lại từ họ dùng khi phù hợp, không paraphrase khô cứng
+- Không nhập vai người dùng; không viết kiểu "tôi đang..." như thể bạn là họ
 - Đừng giải thích passage như bài giảng; đặt nó vào ngữ cảnh họ vừa mô tả
 - Tone: ấm áp, chiêm nghiệm, chính xác, không phán xét
-- Độ dài phần phản chiếu chính: khoảng 80-120 chữ
+- Độ dài phần phản chiếu chính: khoảng 60-90 chữ
+- Chỉ viết một đoạn chính, không tách thành danh sách hay nhiều đoạn
+- Tránh lặp lại cùng một hình ảnh, cùng một ý, hoặc cùng một câu
+- Không dùng các câu sáo rỗng kiểu "hãy tin rằng", "mọi chuyện rồi sẽ ổn", "bạn không cô đơn"
 
 Tuyệt đối không:
 - Đưa ra lời khuyên cụ thể ("bạn nên...")
@@ -189,13 +193,15 @@ impl AIClient {
             passage_language
         ));
 
-        // Add intent-based tone instruction
+        parts.push("Chỉ trả về đúng 2 phần: một đoạn phản chiếu ngắn và một câu hỏi mở ở dòng cuối.".to_string());
+
+        // Add intent-based tone instruction (canonical — must match server interpretationService.ts)
         if let Some(intent) = user_intent {
             let intent_instruction = match intent {
-                "clarity" => "Tone cho lần đọc này: phân tích rõ ràng, chính xác. User cần sự rõ ràng — giúp họ thấy pattern và structure trong tình huống.",
-                "comfort" => "Tone cho lần đọc này: ấm áp, chữa lành. User cần được an ủi — đặt sự nhẹ nhàng và compassion lên trên hết.",
-                "challenge" => "Tone cho lần đọc này: trực tiếp, không ngại đối mặt. User muốn bị thách thức — đừng ngại nêu lên những điều khó nghe.",
-                "guidance" => "Tone cho lần đọc này: mở, không định hướng. User để vũ trụ dẫn lối — đừng push bất kỳ hướng nào, chỉ mở không gian.",
+                "clarity" => "Tone cho lần đọc này: rõ ràng, gọn, chính xác. User cần thấy pattern trong tình huống.",
+                "comfort" => "Tone cho lần đọc này: ấm áp, nhẹ, giàu compassion nhưng không lên lớp.",
+                "challenge" => "Tone cho lần đọc này: trực tiếp, tỉnh táo, không né điều khó.",
+                "guidance" => "Tone cho lần đọc này: mở, không định hướng, giữ không gian để người đọc tự nghe mình.",
                 _ => "",
             };
             if !intent_instruction.is_empty() {
@@ -426,7 +432,7 @@ impl AIClient {
         });
 
         let url = format!(
-            "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
+            "https://generativelanguage.googleapis.com/v1beta/models/{}:streamGenerateContent?alt=sse&key={}",
             GEMINI_MODEL, api_key
         );
 
@@ -455,27 +461,18 @@ impl AIClient {
             return Err(AletheiaError::ai_unavailable());
         }
 
-        if cancel_token.load(Ordering::SeqCst) {
-            return Err(AletheiaError::ai_unavailable());
-        }
-
-        let json: Value = response.json().await?;
-        let content = json["candidates"]
-            .as_array()
-            .and_then(|arr| arr.get(0))
-            .and_then(|v| v.get("content"))
-            .and_then(|v| v.get("parts"))
-            .and_then(|arr| arr.get(0))
-            .and_then(|v| v.get("text"))
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string();
-
-        if let Some(callback) = on_chunk {
-            callback(content.clone());
-        }
-
-        Ok(vec![content])
+        self.consume_sse_stream(response.bytes_stream(), cancel_token, on_chunk, |json| {
+            json["candidates"]
+                .as_array()
+                .and_then(|arr| arr.get(0))
+                .and_then(|v| v.get("content"))
+                .and_then(|v| v.get("parts"))
+                .and_then(|arr| arr.get(0))
+                .and_then(|v| v.get("text"))
+                .and_then(|v| v.as_str())
+                .map(|value| value.to_string())
+        })
+        .await
     }
 
     fn get_next_provider(&self, current: AIProvider) -> AIProvider {

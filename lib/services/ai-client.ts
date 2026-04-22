@@ -5,6 +5,7 @@
 
 import { Passage, Symbol } from "@/lib/types";
 import { aiRuntime } from "./ai-runtime";
+import { AI_STREAM_TIMEOUT_MS } from "@/lib/constants";
 
 export interface AIRequest {
   passage: Passage;
@@ -156,7 +157,13 @@ class AIClientService {
       const BACKOFF_FACTOR = 1.5;
       let idlePolls = 0;                // Consecutive polls with no new chunks
 
+      const startMs = Date.now();
+
       while (true) {
+        if (Date.now() - startMs > AI_STREAM_TIMEOUT_MS) {
+          throw new Error("Native interpretation stream timed out.");
+        }
+
         const state = await aiRuntime.pollInterpretationStream(requestId);
 
         const hadNewChunks = state.newChunks.length > 0;

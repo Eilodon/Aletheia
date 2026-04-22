@@ -1,7 +1,9 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-const projectRoot = process.cwd();
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.join(scriptDir, "..");
 const scanRoot = path.join(projectRoot, "app");
 
 const forbiddenChecks = [
