@@ -33,7 +33,7 @@ import { Fonts } from "@/constants/theme";
 import { useColors } from "@/hooks/use-colors";
 import { initSentry } from "@/lib/sentry";
 import { assertStartupConfig } from "@/hooks/use-startup-guard";
-import { flushAnalytics, identify, track } from "@/lib/analytics";
+import { flushAnalytics, identify, initAnalytics, track } from "@/lib/analytics";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
@@ -156,7 +156,7 @@ export default function RootLayout() {
         setBootstrapError(null);
         setIsOnboardingComplete(null);
         setBootstrapDetail("Đang khởi tạo kho cục bộ và runtime cốt lõi.");
-        await dbInit.initialize();
+        await Promise.all([dbInit.initialize(), initAnalytics()]);
 
         const afterDbInitMs = Date.now() - bootstrapStart;
         setBootstrapDetail("Đang nạp hồ sơ người dùng và gate onboarding.");

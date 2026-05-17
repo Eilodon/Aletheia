@@ -119,8 +119,35 @@ function normalizeFreeText(value?: string): string | undefined {
     .trim();
 }
 
+// NF-new-02: mirrors INJECTION_PREFIXES in core/src/ai_client.rs.
+// normalizeFreeText() collapses all \s+ to single space before this check runs,
+// so newline-split bypass attempts (e.g. "ignore\nall previous") are already neutralized.
+const INJECTION_PREFIXES = [
+  "ignore all previous",
+  "ignore previous instructions",
+  "forget your instructions",
+  "disregard the above",
+  "disregard all previous",
+  "system:",
+  "[system]",
+  "[instruction]",
+  "you are now",
+  "you must now",
+  "new instructions:",
+  "act as if",
+] as const;
+
 function sanitizePromptInput(value?: string): string | undefined {
-  return normalizeFreeText(value)?.slice(0, 500);
+  const normalized = normalizeFreeText(value);
+  if (!normalized) return undefined;
+  const lower = normalized.toLowerCase();
+  for (const prefix of INJECTION_PREFIXES) {
+    if (lower.includes(prefix)) {
+      logger.warn("[interpretation] potential prompt injection in input — dropped", { prefix });
+      return undefined;
+    }
+  }
+  return normalized.slice(0, 500);
 }
 
 function sanitizePromptLines(lines: Array<string | undefined>): string[] {
@@ -232,6 +259,38 @@ function finalizeInterpretationText(text: string, sourceLanguage?: string): stri
   const separatedQuestion = splitInlineClosingQuestion(withoutSquareQuestion);
 
   return ensureClosingQuestion(separatedQuestion, sourceLanguage);
+}
+
+// R07: lightweight output safety check for harmful content patterns.
+// The system prompt heavily constrains output, but distress injection could trigger harmful mirroring.
+// This regex set covers the highest-risk patterns; extend if new patterns emerge in production.
+const OUTPUT_HARM_PATTERNS: RegExp[] = [
+  /\btự\s*tử\b/i,
+  /\bsuicide\b/i,
+  /\bkill\s+yourself\b/i,
+  /\bself[- ]?harm\b/i,
+  /\btự\s*làm\s*đau\b/i,
+  /\bno\s+way\s+out\b/i,
+  /\bkhông\s+có\s+lối\s+thoát\b/i,
+  /\bchết\s+thôi\b/i,
+];
+
+function isSafeOutput(text: string): boolean {
+  return !OUTPUT_HARM_PATTERNS.some((p) => p.test(text));
+}
+
+function withOutputSafety(
+  result: InterpretationResult,
+  request: InterpretationRequest,
+): InterpretationResult {
+  if (result.usedFallback || isSafeOutput(result.text)) {
+    return result;
+  }
+  logger.warn("[interpretation] output safety check triggered — substituting fallback", {
+    provider: result.provider,
+    model: result.model,
+  });
+  return buildFallbackResult(request);
 }
 
 function getLocalProviderConfig(): LocalProviderConfig | null {
@@ -735,10 +794,10 @@ export async function requestInterpretation(
 
   try {
     if (mode === "quality") {
-      return await tryCloud();
+      return withOutputSafety(await tryCloud(), request);
     }
 
-    return await tryLocal();
+    return withOutputSafety(await tryLocal(), request);
   } catch (primaryError) {
     logger.warn("[interpretation] primary provider failed", {
       mode,
@@ -747,10 +806,10 @@ export async function requestInterpretation(
 
     try {
       if (mode === "quality") {
-        return await tryLocal();
+        return withOutputSafety(await tryLocal(), request);
       }
 
-      return await tryCloud();
+      return withOutputSafety(await tryCloud(), request);
     } catch (secondaryError) {
       logger.warn("[interpretation] secondary provider failed; using fallback", {
         mode,
@@ -770,7 +829,7 @@ export async function streamInterpretation(
 
   try {
     if (mode !== "quality") {
-      return await runOllamaInterpretation(request, onEvent);
+      return withOutputSafety(await runOllamaInterpretation(request, onEvent), request);
     }
   } catch (primaryError) {
     logger.warn("[interpretation] local stream failed", {
@@ -782,9 +841,11 @@ export async function streamInterpretation(
   try {
     const config = getCloudProviderConfig();
     // Use true streaming for Gemini; OpenAI falls back to batch + chunked emit
-    const cloudResult = config?.kind === "gemini"
+    const rawCloud = config?.kind === "gemini"
       ? await runGeminiStreamInterpretation(request, onEvent)
       : await runCloudInterpretation(request);
+
+    const cloudResult = withOutputSafety(rawCloud, request);
 
     if (config?.kind !== "gemini") {
       for (const chunk of cloudResult.chunks) {

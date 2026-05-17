@@ -10,8 +10,8 @@ export function assertStartupConfig(): void {
   if (__DEV__) {
     const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
     if (!projectId || projectId.startsWith('placeholder')) {
-      console.error(
-        '[Aletheia] ⚠️  EXPO_PUBLIC_EAS_PROJECT_ID is not set.\n' +
+      console.warn(
+        '[Aletheia] EXPO_PUBLIC_EAS_PROJECT_ID is not set.\n' +
         '  Run: npx eas project:init\n' +
         '  Then copy the projectId to your .env file.'
       );
