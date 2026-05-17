@@ -131,7 +131,7 @@ pub const MIN_PASSAGE_CHARS: u16 = 20;
 pub const MAX_PASSAGE_CHARS: u16 = 500;
 
 #[allow(dead_code)]
-pub const FREE_HISTORY_DAYS: u16 = 30;
+pub const FREE_HISTORY_DAYS: u16 = 90;
 pub const GIFT_LINK_TTL_SECONDS: u32 = 86_400;
 
 // Pagination

@@ -21,8 +21,10 @@ export const ENV = {
   localAiModel: readEnv("OLLAMA_MODEL", "LOCAL_AI_MODEL"),
   interpretationCloudProvider: readEnv("INTERPRETATION_CLOUD_PROVIDER", "CLOUD_AI_PROVIDER"),
   interpretationCloudModel: readEnv("INTERPRETATION_CLOUD_MODEL", "CLOUD_AI_MODEL"),
+  claudeApiKey: readEnv("ANTHROPIC_API_KEY", "ALETHEIA_CLAUDE_API_KEY"),
   openAiApiKey: readEnv("OPENAI_API_KEY", "ALETHEIA_OPENAI_API_KEY"),
   geminiApiKey: readEnv("GEMINI_API_KEY", "ALETHEIA_GEMINI_API_KEY"),
+  aletheiaAppSecret: readEnv("ALETHEIA_APP_SECRET"),
 };
 
 export function validateServerEnv(): void {

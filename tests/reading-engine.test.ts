@@ -84,6 +84,7 @@ describe("ReadingEngine", () => {
         is_bundled: true,
         is_premium: false,
         fallback_prompts: [],
+        source_type: "bibliomancy" as const,
       });
 
       vi.mocked(themeEngine.getRandomTheme).mockResolvedValue({
@@ -133,6 +134,7 @@ describe("ReadingEngine", () => {
         is_bundled: true,
         is_premium: false,
         fallback_prompts: [],
+        source_type: "bibliomancy" as const,
       });
 
       vi.mocked(themeEngine.getRandomTheme).mockResolvedValue({
@@ -170,6 +172,7 @@ describe("ReadingEngine", () => {
           is_bundled: true,
           is_premium: false,
           fallback_prompts: [],
+          source_type: "bibliomancy" as const,
         },
         theme: {
           id: "moments",
@@ -223,6 +226,7 @@ describe("ReadingEngine", () => {
           is_bundled: true,
           is_premium: false,
           fallback_prompts: [],
+          source_type: "bibliomancy" as const,
         },
         theme: {
           id: "moments",
@@ -291,6 +295,7 @@ describe("ReadingEngine", () => {
         is_bundled: true,
         is_premium: false,
         fallback_prompts: [],
+        source_type: "bibliomancy" as const,
       });
 
       vi.mocked(themeEngine.getRandomTheme).mockResolvedValue({
