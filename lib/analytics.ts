@@ -1,6 +1,41 @@
 import { AppState, AppStateStatus, Platform } from "react-native";
+import * as SecureStore from "expo-secure-store";
 
 import { captureMessage } from "./sentry";
+
+// R14: analytics requires explicit user consent before any events are sent.
+const ANALYTICS_CONSENT_KEY = "aletheia:analytics:consent";
+
+async function loadStoredConsent(): Promise<boolean> {
+  try {
+    if (Platform.OS === "web") {
+      return typeof window !== "undefined" &&
+        window.localStorage.getItem(ANALYTICS_CONSENT_KEY) === "true";
+    }
+    const value = await SecureStore.getItemAsync(ANALYTICS_CONSENT_KEY);
+    return value === "true";
+  } catch {
+    return false;
+  }
+}
+
+async function persistConsent(granted: boolean): Promise<void> {
+  try {
+    if (Platform.OS === "web") {
+      if (typeof window !== "undefined") {
+        granted
+          ? window.localStorage.setItem(ANALYTICS_CONSENT_KEY, "true")
+          : window.localStorage.removeItem(ANALYTICS_CONSENT_KEY);
+      }
+      return;
+    }
+    granted
+      ? await SecureStore.setItemAsync(ANALYTICS_CONSENT_KEY, "true")
+      : await SecureStore.deleteItemAsync(ANALYTICS_CONSENT_KEY);
+  } catch {
+    // non-critical — consent defaults to false on next launch
+  }
+}
 
 const POSTHOG_API_KEY = process.env.EXPO_PUBLIC_POSTHOG_API_KEY;
 const POSTHOG_HOST = process.env.EXPO_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
@@ -12,6 +47,7 @@ interface AnalyticsEvent {
 }
 
 class Analytics {
+  // R14: disabled by default; enabled only after explicit consent + init() call.
   private enabled = false;
   private queue: AnalyticsEvent[] = [];
   private flushTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -23,7 +59,25 @@ class Analytics {
   private currentDistinctId: string | null = null;
 
   constructor() {
+    // enabled stays false until init() restores stored consent.
+  }
+
+  async init(): Promise<void> {
+    if (!POSTHOG_API_KEY || __DEV__) return;
+    const consented = await loadStoredConsent();
+    this.enabled = consented;
+  }
+
+  async grantConsent(): Promise<void> {
+    await persistConsent(true);
     this.enabled = !!POSTHOG_API_KEY && !__DEV__;
+  }
+
+  async revokeConsent(): Promise<void> {
+    this.enabled = false;
+    await persistConsent(false);
+    this.clearScheduledFlush();
+    this.queue = [];
   }
 
   /**
@@ -214,6 +268,12 @@ export const screen = (name: string, properties?: Record<string, unknown>) =>
 export const identify = (id: string, properties?: Record<string, unknown>) =>
   analytics.identify(id, properties);
 export const flushAnalytics = () => analytics.flush();
+
+// R14: consent management — call initAnalytics() at app startup to restore prior consent.
+// Call grantAnalyticsConsent() when user explicitly accepts analytics in the consent UI.
+export const initAnalytics = () => analytics.init();
+export const grantAnalyticsConsent = () => analytics.grantConsent();
+export const revokeAnalyticsConsent = () => analytics.revokeConsent();
 
 export const trackRitualEvent = (
   step:
