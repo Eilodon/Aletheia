@@ -1,0 +1,247 @@
+/**
+ * AI Client Service - Interfaces with Rust Core via UniFFI
+ * Handles AI interpretation requests with multi-provider failover
+ */
+
+import { Passage, Symbol } from "@/lib/types";
+import { aiRuntime } from "./ai-runtime";
+import { AI_STREAM_TIMEOUT_MS } from "@/lib/constants";
+
+export interface AIRequest {
+  passage: Passage;
+  symbol: Symbol;
+  situationText?: string;
+  /** Hidden context injected into AI prompt, not shown to user (AI-05) */
+  resonanceContext?: string;
+  sourceLanguage?: string;
+  sourceFallbackPrompts?: string[];
+  /** UX-01: user's stated reading intent from onboarding */
+  userIntent?: "clarity" | "comfort" | "challenge" | "guidance";
+}
+
+export interface AIInterpretationResult {
+  chunks: string[];
+  usedFallback: boolean;
+}
+
+interface AIStreamHandlers {
+  onChunk?: (fullText: string, chunk: string) => void;
+}
+
+export type AIStreamSession = {
+  promise: Promise<AIInterpretationResult>;
+  cancel: () => Promise<boolean>;
+};
+
+class AIClientService {
+  private initialized = false;
+  private isNativePath(): boolean {
+    return aiRuntime.isNativeAvailable();
+  }
+
+  /**
+   * Initialize the AI client with Rust Core
+   * Call this once on app startup after dbInit
+   */
+  async initialize(_dbPath: string, _giftBackendUrl: string): Promise<void> {
+    try {
+      if (this.isNativePath()) {
+        await aiRuntime.ensureReady();
+        this.initialized = true;
+        return;
+      }
+
+      this.initialized = true;
+      console.log("[AI Client] Initialized successfully");
+    } catch (error) {
+      console.error("[AI Client] Failed to initialize:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Set API key for a specific provider
+   */
+  async setApiKey(provider: "claude" | "gpt4" | "gemini", key: string): Promise<void> {
+    try {
+      if (this.isNativePath()) {
+        await aiRuntime.setApiKey(provider, key);
+        return;
+      }
+
+      console.log(`[AI Client] API key set for ${provider}`);
+    } catch (error) {
+      console.error("[AI Client] Failed to set API key:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Request AI interpretation for a passage
+   * Uses multi-provider failover (Claude → GPT4 → Gemini)
+   */
+  async requestInterpretation(request: AIRequest): Promise<AIInterpretationResult> {
+    if (this.isNativePath()) {
+      const nativeResult = await aiRuntime.requestInterpretation({
+        passage: request.passage,
+        symbol: request.symbol,
+        situationText: request.situationText,
+        resonanceContext: request.resonanceContext,
+        userIntent: request.userIntent,
+      });
+
+      if (nativeResult) {
+        return nativeResult;
+      }
+
+      return {
+        chunks: this.getFallbackInterpretation(request),
+        usedFallback: true,
+      };
+    }
+
+    try {
+      if (!this.initialized) {
+        console.warn("[AI Client] Not initialized, using fallback");
+      }
+
+      return {
+        chunks: this.getFallbackInterpretation(request),
+        usedFallback: true,
+      };
+    } catch (error) {
+      console.error("[AI Client] Request failed:", error);
+      return {
+        chunks: this.getFallbackInterpretation(request),
+        usedFallback: true,
+      };
+    }
+  }
+
+  streamInterpretation(
+    request: AIRequest,
+    handlers: AIStreamHandlers = {},
+  ): AIStreamSession {
+    if (!this.isNativePath()) {
+      return {
+        promise: this.requestInterpretation(request),
+        cancel: async () => false,
+      };
+    }
+
+    let requestId: string | null = null;
+    let cancelled = false;
+
+    const promise = (async () => {
+      requestId = await aiRuntime.startInterpretationStream({
+        passage: request.passage,
+        symbol: request.symbol,
+        situationText: request.situationText,
+        resonanceContext: request.resonanceContext,
+        userIntent: request.userIntent,
+      });
+
+      if (!requestId) {
+        return {
+          chunks: this.getFallbackInterpretation(request),
+          usedFallback: true,
+        };
+      }
+
+      const chunks: string[] = [];
+
+      // Adaptive polling with exponential backoff
+      let pollIntervalMs = 80;          // Start fast for first chunks
+      const MIN_POLL_MS = 80;
+      const MAX_POLL_MS = 500;
+      const BACKOFF_FACTOR = 1.5;
+      let idlePolls = 0;                // Consecutive polls with no new chunks
+
+      const startMs = Date.now();
+
+      while (true) {
+        if (Date.now() - startMs > AI_STREAM_TIMEOUT_MS) {
+          throw new Error("Native interpretation stream timed out.");
+        }
+
+        const state = await aiRuntime.pollInterpretationStream(requestId);
+
+        const hadNewChunks = state.newChunks.length > 0;
+
+        for (const chunk of state.newChunks) {
+          chunks.push(chunk);
+          handlers.onChunk?.(chunks.join(""), chunk);
+        }
+
+        if (state.done) {
+          return {
+            chunks: state.fullText ? [state.fullText] : chunks,
+            usedFallback: state.usedFallback,
+          };
+        }
+
+        if (state.cancelled || cancelled) {
+          return {
+            chunks: state.fullText ? [state.fullText] : chunks,
+            usedFallback: state.usedFallback,
+          };
+        }
+
+        // Adaptive backoff: reset on activity, back off on silence
+        if (hadNewChunks) {
+          pollIntervalMs = MIN_POLL_MS;  // Got data — poll fast again
+          idlePolls = 0;
+        } else {
+          idlePolls++;
+          if (idlePolls > 3) {
+            // No data for 3+ polls — slow down
+            pollIntervalMs = Math.min(
+              Math.floor(pollIntervalMs * BACKOFF_FACTOR),
+              MAX_POLL_MS,
+            );
+          }
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+      }
+    })();
+
+    return {
+      promise,
+      cancel: async () => {
+        cancelled = true;
+        if (!requestId) {
+          return false;
+        }
+        return aiRuntime.cancelInterpretationStream(requestId);
+      },
+    };
+  }
+
+  /**
+   * Get fallback interpretation based on source
+   * Used when AI is unavailable or on first launch
+   */
+  private getFallbackInterpretation(request: AIRequest): string[] {
+    // Prefer source-specific fallback prompts (CONTENT-03)
+    if (request.sourceFallbackPrompts && request.sourceFallbackPrompts.length > 0) {
+      const idx = Math.floor(Math.random() * request.sourceFallbackPrompts.length);
+      return [request.sourceFallbackPrompts[idx]];
+    }
+
+    // Language-aware generic fallback — never show English to Vietnamese users
+    if (request.sourceLanguage === "en") {
+      return ["Take a moment to sit with these words. What do they stir in you?"];
+    }
+    return ["Hãy để những lời này lắng xuống một chút. Điều gì đang dấy lên trong bạn?"];
+  }
+
+  /**
+   * Check if AI client is ready
+   */
+  isReady(): boolean {
+    return this.isNativePath() || this.initialized;
+  }
+}
+
+export const aiClient = new AIClientService();

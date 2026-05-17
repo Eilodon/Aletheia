@@ -1,0 +1,168 @@
+// Load environment variables with proper priority (system > .env)
+import "./scripts/load-env.js";
+import type { ExpoConfig } from "expo/config";
+import withAletheiaCoreModule from "./modules/aletheia-core-module/plugin";
+
+/**
+ * Validates that a required environment variable is set.
+ * Throws a descriptive error if missing.
+ */
+function optionalEnv(name: string): string | undefined {
+  // Use explicit env access instead of dynamic to satisfy bundler
+  const value = (process.env as Record<string, string | undefined>)[name];
+  if (!value || value.startsWith("placeholder")) {
+    if (process.env.ALLOW_PLACEHOLDER_ENV === "1") {
+      return `placeholder-${name.toLowerCase()}`;
+    }
+    return undefined;
+  }
+  return value;
+}
+
+function requireEnvForRelease(name: string): string {
+  const value = optionalEnv(name);
+  if (!value) {
+    throw new Error(`Required environment variable ${name} is not set. Run 'npx eas project:init' to create a project.`);
+  }
+  return value;
+}
+
+// Bundle ID format: space.manus.<project_name_dots>.<timestamp>
+// e.g., "my-app" created at 2024-01-15 10:30:45 -> "space.manus.my.app.t20240115103045"
+// Bundle ID can only contain letters, numbers, and dots
+// Android requires each dot-separated segment to start with a letter
+const rawBundleId = "space.manus.aletheia.app.t20260318170859";
+const bundleId =
+  rawBundleId
+    .replace(/[-_]/g, ".") // Replace hyphens/underscores with dots
+    .replace(/[^a-zA-Z0-9.]/g, "") // Remove invalid chars
+    .replace(/\.+/g, ".") // Collapse consecutive dots
+    .replace(/^\.+|\.+$/g, "") // Trim leading/trailing dots
+    .toLowerCase()
+    .split(".")
+    .map((segment) => {
+      // Android requires each segment to start with a letter
+      // Prefix with 'x' if segment starts with a digit
+      return /^[a-zA-Z]/.test(segment) ? segment : "x" + segment;
+    })
+    .join(".") || "space.manus.app";
+// Extract timestamp from bundle ID and prefix with "manus" for deep link scheme
+// e.g., "space.manus.my.app.t20240115103045" -> "manus20240115103045"
+const timestamp = bundleId.split(".").pop()?.replace(/^t/, "") ?? "";
+const schemeFromBundleId = `manus${timestamp}`;
+
+const env = {
+  // App branding - update these values directly (do not use env vars)
+  appName: "Aletheia - Not a fortune. A mirror.",
+  appSlug: "aletheia-app",
+  // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
+  // Leave empty to use the default icon from assets/images/icon.png
+  logoUrl: "",
+  scheme: schemeFromBundleId,
+  iosBundleId: bundleId,
+  androidPackage: bundleId,
+};
+
+const shouldRequireEasProjectId =
+  process.env.EAS_BUILD === "1" || process.env.REQUIRE_EAS_PROJECT_ID === "1";
+const easProjectId = shouldRequireEasProjectId
+  ? requireEnvForRelease("EXPO_PUBLIC_EAS_PROJECT_ID")
+  : optionalEnv("EXPO_PUBLIC_EAS_PROJECT_ID");
+const ownerName = optionalEnv("EXPO_PUBLIC_OWNER_NAME");
+
+const config: ExpoConfig = {
+  name: env.appName,
+  slug: env.appSlug,
+  version: "1.0.0",
+  orientation: "portrait",
+  icon: "./assets/images/icon.png",
+  scheme: env.scheme,
+  userInterfaceStyle: "dark",
+  primaryColor: "#D8B86A",
+  newArchEnabled: true,
+  ios: {
+    supportsTablet: true,
+    bundleIdentifier: env.iosBundleId,
+    buildNumber: "1",
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+      NSCameraUsageDescription: "Aletheia cần quyền camera để chụp ảnh chia sẻ",
+      NSPhotoLibraryUsageDescription: "Aletheia cần quyền ảnh để lưu ảnh chia sẻ",
+    }
+  },
+  android: {
+    adaptiveIcon: {
+      backgroundColor: "#171520",
+      foregroundImage: "./assets/images/android-icon-foreground.png",
+      backgroundImage: "./assets/images/android-icon-background.png",
+      monochromeImage: "./assets/images/android-icon-monochrome.png",
+    },
+    edgeToEdgeEnabled: true,
+    predictiveBackGestureEnabled: false,
+    package: env.androidPackage,
+    permissions: ["POST_NOTIFICATIONS"],
+    intentFilters: [
+      {
+        action: "VIEW",
+        // Note: autoVerify removed for beta - wildcard host cannot be verified
+        // For production App Links, use specific domain and host assetlinks.json
+        data: [
+          {
+            scheme: env.scheme,
+            host: "*",
+          },
+        ],
+        category: ["BROWSABLE", "DEFAULT"],
+      },
+    ],
+  },
+  web: {
+    bundler: "metro",
+    output: "static",
+    favicon: "./assets/images/favicon.png",
+  },
+  plugins: [
+    withAletheiaCoreModule as unknown as string,
+    "expo-router",
+    "expo-sqlite",
+    [
+      "expo-splash-screen",
+      {
+        image: "./assets/images/splash-icon.png",
+        imageWidth: 200,
+        resizeMode: "contain",
+        backgroundColor: "#171520",
+        dark: {
+          backgroundColor: "#171520",
+        },
+      },
+    ],
+    [
+      "expo-build-properties",
+      {
+        android: {
+          buildArchs: ["arm64-v8a"],
+          minSdkVersion: 24,
+        },
+      },
+    ],
+  ],
+  experiments: {
+    typedRoutes: true,
+    reactCompiler: true,
+  },
+  extra: easProjectId
+    ? {
+        eas: {
+          projectId: easProjectId,
+        },
+      }
+    : undefined,
+  owner: ownerName,
+};
+
+export default config;
+
+// v7 runtime guard — checked in _layout.tsx on first mount
+// Export for use in app startup validation
+export const EAS_PROJECT_ID_SENTINEL = easProjectId;
