@@ -177,6 +177,7 @@ impl AIClient {
                     &prompt,
                     Arc::clone(&cancel_token),
                     on_chunk.clone(),
+                    use_sonnet,
                 )
                 .await
             {
@@ -278,6 +279,7 @@ impl AIClient {
         prompt: &str,
         cancel_token: Arc<AtomicBool>,
         on_chunk: Option<ChunkCallback>,
+        use_sonnet: bool,
     ) -> Result<Vec<String>, AletheiaError> {
         let mut delay = INITIAL_BACKOFF_MS;
         let mut last_error: Option<AletheiaError> = None;
@@ -289,7 +291,7 @@ impl AIClient {
 
             let result = match provider {
                 AIProvider::Claude => {
-                    self.call_claude(prompt, Arc::clone(&cancel_token), on_chunk.clone())
+                    self.call_claude(prompt, Arc::clone(&cancel_token), on_chunk.clone(), use_sonnet)
                         .await
                 }
                 AIProvider::GPT4 => {
@@ -333,6 +335,7 @@ impl AIClient {
         prompt: &str,
         cancel_token: Arc<AtomicBool>,
         on_chunk: Option<ChunkCallback>,
+        use_sonnet: bool,
     ) -> Result<Vec<String>, AletheiaError> {
         let api_key = self
             .api_keys

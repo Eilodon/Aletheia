@@ -71,7 +71,12 @@ async function parseServerStream(
         continue;
       }
 
-      const event = JSON.parse(line) as ServerStreamEvent;
+      let event: ServerStreamEvent;
+      try {
+        event = JSON.parse(line) as ServerStreamEvent;
+      } catch {
+        continue;
+      }
       if (event.type === "chunk") {
         chunks.push(event.chunk);
         handlers.onChunk?.(chunks.join(""), event.chunk);
@@ -270,7 +275,7 @@ class InterpretationOrchestratorService {
       // If local mode is selected and ready, use native local inference
       if (selection.mode === "local" && selection.localReady) {
         trackLocalModelEvent("inference_started", {
-          model_id: "gemma-3n-e2b",
+          model_id: "gemma-3-1b-it-qat-q4_0",
         });
 
         // Start local inference stream

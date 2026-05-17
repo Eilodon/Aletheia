@@ -40,6 +40,12 @@
 | [ADR-AL-40](#adr-al-40--ritualarchive-sharegift-phải-có-event-taxonomy-chung) | Ritual, archive, share, and gift flows must share one event taxonomy | ✅ ACCEPTED |
 | [ADR-AL-41](#adr-al-41--archive-phải-là-retention--growth-surface-không-phải-list-tĩnh) | Archive must be a retention and growth surface | ✅ ACCEPTED |
 | [ADR-AL-45](#adr-al-45--ai-diễn-giải-phải-local-first-cloud-optional) | AI interpretation must be local-first, cloud-optional | ✅ ACCEPTED |
+| [ADR-AL-46](#adr-al-46--dual-auth-model-cho-beta-bearer-only-post-beta) | Dual Auth Model for Beta, Bearer-only Post-beta | ✅ ACCEPTED |
+| [ADR-AL-60](#adr-al-60--local-model-id-phải-là-hằng-số-dùng-chung) | Local model ID phải là hằng số dùng chung | ✅ ACCEPTED |
+| [ADR-AL-61](#adr-al-61--api-provider-keys-phải-dùng-header-không-phải-url-query) | API provider keys phải dùng header, không phải URL query | ✅ ACCEPTED |
+| [ADR-AL-62](#adr-al-62--ios-native-runtime-deferred-cho-đến-khi-uniffi-parity) | iOS native runtime deferred cho đến khi UniFFI parity | ✅ ACCEPTED |
+| [ADR-AL-63](#adr-al-63--bridge-error-codes-phải-map-rõ-ràng-không-silent-fallback) | Bridge error codes phải map rõ ràng, không silent fallback | ✅ ACCEPTED |
+| [ADR-AL-64](#adr-al-64--ai-rate-limiting-phải-dùng-identity-aware-key) | AI rate limiting phải dùng identity-aware key | ✅ ACCEPTED |
 
 ---
 
@@ -1345,3 +1351,204 @@ Server `requireAiRequestIdentity` middleware (`server/_core/index.ts:193-223`) c
 - Nếu migration bị quên, dual surface tồn tại vô thời hạn — mitigate bằng ADR này ghi rõ post-beta requirement
 
 **Xem thêm:** `server/_core/index.ts:193-223`, ADR-AL-45
+
+---
+
+## ADR-AL-60 — Local model ID phải là hằng số dùng chung
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-05-17
+**VHEATM Level:** 🟡 RECOMMENDED
+**VHEATM Cycle:** C1 — Architecture & Interface Boundaries
+**Tags:** `local-model` `android` `constants` `maintenance`
+
+### Context
+
+VHEATM C1 audit phát hiện model ID `"gemma-3n-e2b"` (model cũ từ Cycle 5) còn tồn tại hardcoded tại `lib/services/interpretation-orchestrator.ts:273` sau khi Cycle 6 đã migrate sang `gemma-3-1b-it-qat-q4_0`. Cùng lúc đó, `core/src/local_inference.rs` và `LocalInferenceEngine.kt` đã được cập nhật đúng. Kết quả: model ID bị drift giữa analytics tracking và actual model ID.
+
+### Decision
+
+> **Model ID của local inference model phải được define một lần ở source of truth duy nhất.**
+> - Rust: `LocalInferenceEngine::MODEL_ID` constant
+> - TypeScript/analytics: import từ một shared constants file hoặc hard-align với giá trị Rust
+> - Không được hardcode model ID string ở bất kỳ call site nào ngoài chỗ khai báo
+
+**Immediate fix:** `interpretation-orchestrator.ts:273` đã được cập nhật từ `"gemma-3n-e2b"` sang `"gemma-3-1b-it-qat-q4_0"` trong session này.
+
+### Consequences
+
+- Analytics event `inference_started` sẽ log đúng model ID
+- Future model migrations phải update constant tại một điểm duy nhất
+- **Trade-off:** TypeScript không thể import từ Rust constants — cần manual sync khi model thay đổi
+
+**Xem thêm:** `lib/services/interpretation-orchestrator.ts:273`, `core/src/local_inference.rs`
+
+---
+
+## ADR-AL-61 — API provider keys phải dùng header, không phải URL query
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-05-17
+**VHEATM Level:** 🔴 MANDATORY
+**VHEATM Cycle:** C2 — Security (STRIDE: Information Disclosure)
+**Tags:** `security` `api-keys` `gemini` `server`
+**CWE:** CWE-598 (Use of GET Request Method with Sensitive Query Strings)
+
+### Context
+
+VHEATM C2 audit phát hiện Gemini API key được truyền dưới dạng URL query parameter tại:
+- `server/_core/interpretationService.ts:537` — `?key=${config.apiKey}` (generateContent endpoint)
+- `server/_core/interpretationService.ts:597` — `?key=${config.apiKey}` (streamGenerateContent endpoint)
+
+URL query parameters bị log bởi:
+1. Web server access logs (nginx, Apache)
+2. Reverse proxy logs (Cloudflare, AWS ALB)
+3. CDN edge logs
+4. Browser history (nếu phía client)
+5. Referer headers trên redirect
+
+API key bị leak trong logs → attacker có thể dùng key để tạo AI requests tốn phí.
+
+### Decision
+
+> **Mọi API provider keys (Gemini, OpenAI, Anthropic) phải được truyền qua HTTP headers, không bao giờ qua URL query parameters.**
+>
+> - Gemini: dùng `x-goog-api-key: <key>` header
+> - OpenAI: dùng `Authorization: Bearer <key>` header (đã đúng)
+> - Anthropic: dùng `x-api-key: <key>` header (đã đúng)
+
+**Fix applied:** Cả hai Gemini endpoints trong `interpretationService.ts` đã được cập nhật từ `?key=` query param sang `"x-goog-api-key"` header trong session này.
+
+### Consequences
+
+- API key không còn xuất hiện trong server logs
+- `alt=sse` query param vẫn giữ nguyên (không sensitive, cần thiết cho SSE)
+- **Trade-off:** Không có — đây là Gemini's documented authentication method cho server-side calls
+
+**Xem thêm:** `server/_core/interpretationService.ts:537,597`
+
+---
+
+## ADR-AL-62 — iOS native runtime deferred cho đến khi UniFFI parity
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-05-17
+**VHEATM Level:** 🟡 RECOMMENDED
+**VHEATM Cycle:** C1 — Architecture & Interface Boundaries
+**Tags:** `ios` `native` `uniffi` `platform`
+
+### Context
+
+VHEATM C1 audit xác nhận `runtime-availability.ts` explicitly returns `false` cho iOS khi native module available:
+
+```typescript
+if (Platform.OS === "ios" && aletheiaNativeClient.isAvailable()) {
+  // iOS native support explicitly out of beta scope
+  return false;
+}
+```
+
+UniFFI bindings cho iOS chưa đạt parity với Android Rust path. iOS hiện dùng TypeScript-only path (reading-engine.ts + store.ts).
+
+### Decision
+
+> **iOS native runtime (Rust/UniFFI) bị defer cho đến khi các điều kiện sau được đáp ứng:**
+> 1. UniFFI Swift bindings được generate và test
+> 2. Expo prebuild iOS pipeline được verify với native module
+> 3. iOS CI gate được thêm vào (hiện tại ADR-AL-28 chỉ gate Android + Web)
+>
+> **Trong thời gian đó:**
+> - iOS dùng TypeScript reading-engine.ts path
+> - `shouldUseAletheiaNative()` trả về `false` cho iOS
+> - Warning log được emit một lần per session (đã có)
+
+### Consequences
+
+- iOS users nhận TypeScript-quality experience, không được Rust performance
+- Rust data layer (SQLite schema, SourceType, etc.) không apply cho iOS trong beta
+- **Trade-off:** Shipping Android first với native path chắc chắn hơn là ship iOS với native path chưa verified
+
+**Xem thêm:** `lib/native/runtime-availability.ts:13-21`, ADR-AL-28
+
+---
+
+## ADR-AL-63 — Bridge error codes phải map rõ ràng, không silent fallback
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-05-17
+**VHEATM Level:** 🟡 RECOMMENDED
+**VHEATM Cycle:** C1 — Architecture & Interface Boundaries
+**Tags:** `bridge` `error-handling` `types`
+
+### Context
+
+VHEATM C1 audit phát hiện `bridge.ts:46`:
+
+```typescript
+code: ERROR_CODE_MAP[error.code] ?? ErrorCode.InvalidInput,
+```
+
+Khi Rust trả về một error code không có trong `ERROR_CODE_MAP` (ví dụ: error code mới được add vào Rust nhưng chưa được add vào TypeScript map), error code bị silently map sang `ErrorCode.InvalidInput`. Điều này:
+1. Che giấu unknown errors trong UI ("invalid input" thay vì "unknown error")
+2. Gây khó debug khi Rust và TypeScript out of sync
+3. Có thể mask security-relevant errors (e.g., ERR_DAILY_LIMIT_REACHED → InvalidInput)
+
+### Decision
+
+> **`ERROR_CODE_MAP` trong `bridge.ts` phải exhaustive. Khi một error code không khớp:**
+> 1. Log warning với original error code để aid debugging
+> 2. Map sang `ErrorCode.Unknown` (cần thêm vào enum) thay vì `InvalidInput`
+>
+> **Quy trình khi thêm error code vào Rust (`aletheia.udl`):**
+> 1. Add error code vào UDL
+> 2. Add mapping vào `ERROR_CODE_MAP` trong `bridge.ts`
+> 3. Add test case cho mapping
+
+**Note:** `ErrorCode.Unknown` cần được thêm vào TypeScript enum và handle trong UI layer.
+
+### Consequences
+
+- Unmapped error codes surface rõ ràng thay vì bị mask
+- Easier debugging khi Rust/TypeScript error codes drift
+- **Trade-off:** Cần thêm `ErrorCode.Unknown` vào UI handling
+
+**Xem thêm:** `lib/native/bridge.ts:46`, `lib/types.ts` (ErrorCode enum)
+
+---
+
+## ADR-AL-64 — AI rate limiting phải dùng identity-aware key
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-05-17
+**VHEATM Level:** 🟡 RECOMMENDED
+**VHEATM Cycle:** C2 — Security (STRIDE: Denial of Service)
+**Tags:** `rate-limiting` `security` `server` `api`
+
+### Context
+
+VHEATM C2 audit review `rateLimit.ts`:
+- `aiApiLimiter` (line 42-49): dùng `getAiRequesterKey()` — identity-aware (Bearer token hash hoặc AppId+UserId hash hoặc IP fallback) ✅
+- `apiLimiter` (line 24-31): dùng `ipKeyGenerator(req.ip)` cho general routes — IP-only ⚠️
+
+Tuy nhiên, `req.ip` trong Express phụ thuộc vào `trust proxy` setting. Nếu app chạy behind reverse proxy (Render, Railway, Fly.io) mà không set `app.set('trust proxy', 1)`, `req.ip` sẽ luôn là IP của proxy, không phải client.
+
+**Actual risk:** `apiLimiter` apply cho general routes (không phải AI routes), nên blast radius thấp. AI routes đã được bảo vệ bởi `aiApiLimiter` với identity-aware key.
+
+### Decision
+
+> **AI routes (`/api/interpret*`) phải luôn dùng `aiApiLimiter` với `getAiRequesterKey()`.**
+> **Server phải cấu hình `trust proxy` phù hợp với deployment environment.**
+>
+> Khi deploy behind reverse proxy:
+> ```typescript
+> app.set('trust proxy', 1); // trust first proxy
+> ```
+>
+> `apiLimiter` cho general routes có thể tiếp tục dùng IP-based key, vì đây là defense-in-depth, không phải primary auth gate.
+
+### Consequences
+
+- AI rate limiting hoạt động đúng per-user thay vì per-proxy-IP
+- **Trade-off:** `trust proxy` cần được set đúng theo deployment — sai setting có thể cho phép IP spoofing via X-Forwarded-For
+
+**Xem thêm:** `server/_core/rateLimit.ts`, `server/_core/index.ts`

@@ -15,6 +15,11 @@ export async function createContext(opts: CreateExpressContextOptions): Promise<
     user = await sdk.authenticateRequest(opts.req);
   } catch (error) {
     // Authentication is optional for public procedures.
+    // Log unexpected failures (not expected "no cookie" cases).
+    const msg = error instanceof Error ? error.message : String(error);
+    if (!msg.includes("Invalid session cookie") && !msg.includes("Missing session cookie") && !msg.includes("No session")) {
+      console.warn("[context] unexpected auth error:", msg);
+    }
     user = null;
   }
 

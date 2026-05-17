@@ -166,8 +166,15 @@ export default function ShareCardScreen() {
 
   if (!passage || !session || !selectedSymbol) {
     return (
-      <ScreenContainer className="justify-center items-center">
-        <Text className="text-muted">Không có dữ liệu để chia sẻ</Text>
+      <ScreenContainer className="justify-center items-center p-6">
+        <Text className="text-muted mb-4">Không có dữ liệu để chia sẻ</Text>
+        <Pressable
+          onPress={() => router.back()}
+          accessibilityRole="button"
+          accessibilityLabel="Quay lại"
+        >
+          <Text style={{ color: colors.primary }}>Quay lại</Text>
+        </Pressable>
       </ScreenContainer>
     );
   }

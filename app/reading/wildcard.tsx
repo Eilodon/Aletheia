@@ -10,6 +10,7 @@ import { useColors } from "@/hooks/use-colors";
 import { SymbolMethod } from "@/lib/types";
 import { Fonts } from "@/constants/theme";
 import { DURATION } from "@/lib/constants/animation";
+import { showToast } from "@/components/toast";
 
 function SymbolCard({
   symbol,
@@ -139,6 +140,7 @@ export default function WildcardScreen() {
     } catch (error) {
       console.error("Failed to auto choose:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showToast("error", "Không thể chọn biểu tượng. Vui lòng thử lại.");
       setIsAutoSelecting(false);
     }
   }, [chooseSymbol, isAutoSelecting, router, selectedSymbolId, session]);
@@ -169,6 +171,7 @@ export default function WildcardScreen() {
       } catch (error) {
         console.error("Failed to choose symbol:", error);
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        showToast("error", "Không thể chọn biểu tượng. Vui lòng thử lại.");
         setIsAutoSelecting(false);
       }
     },
