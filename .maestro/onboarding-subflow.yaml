@@ -1,0 +1,10 @@
+appId: space.manus.aletheia.app.t20260318170859
+---
+- tapOn:
+    id: "onboarding-primary-action"
+- tapOn:
+    id: "intent-card-clarity"
+- tapOn:
+    id: "onboarding-primary-action"
+- tapOn:
+    id: "onboarding-primary-action"

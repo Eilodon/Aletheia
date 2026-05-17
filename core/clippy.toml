@@ -1,0 +1,15 @@
+# Aletheia — Clippy configuration (v7, ADR-AL-54 / VHEATM Cycle 5)
+#
+# Enforces zero-panic patterns in production code.
+# Two justifiable expect() remain in lib.rs:
+#   - RUNTIME static init (Tokio): process cannot start without it
+#   - fallback Store::new(":memory:"): init-time, no recovery possible
+# All other unwrap/expect in production code are forbidden.
+
+disallowed-methods = [
+    { path = "std::option::Option::unwrap", reason = "Use ok_or_else()/? — ADR-V7-03" },
+    { path = "std::result::Result::unwrap", reason = "Use map_err()/? — ADR-V7-03" },
+]
+
+cognitive-complexity-threshold = 25
+too-many-arguments-threshold = 10

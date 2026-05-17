@@ -1,0 +1,57 @@
+appId: space.manus.aletheia.app.t20260318170859
+name: "AI Interpretation - Real Device"
+---
+- launchApp:
+    clearState: true
+
+- runFlow:
+    when:
+      visible:
+        id: "onboarding-primary-action"
+    file: onboarding-subflow.yaml
+
+- assertVisible:
+    id: "home-start-reading"
+
+- tapOn:
+    id: "home-start-reading"
+
+- assertVisible:
+    id: "reading-situation-title"
+
+- inputText:
+    id: "reading-situation-input"
+    text: "Android local AI interpretation device test"
+
+- tapOn:
+    id: "reading-situation-continue"
+
+- assertVisible:
+    id: "reading-wildcard-title"
+
+- tapOn:
+    id: "reading-wildcard-auto"
+
+- assertVisible:
+    id: "reading-passage-card"
+
+- extendedWaitUntil:
+    visible:
+      id: "reading-passage-request-ai"
+    timeout: 15000
+
+- tapOn:
+    id: "reading-passage-request-ai"
+
+- extendedWaitUntil:
+    visible:
+      id: "reading-passage-ai-card"
+    timeout: 120000
+
+- assertVisible:
+    id: "reading-passage-ai-label"
+
+- assertVisible:
+    id: "reading-passage-ai-body"
+
+- takeScreenshot: ai-interpretation-real-device

@@ -1,0 +1,735 @@
+{
+  "version": "1.0.0",
+  "created_at": "2026-04-11",
+  "description": "Evaluation dataset for AI interpretation output contract. Used to validate local and cloud model outputs against the Aletheia interpretation rubric.",
+  "output_contract": {
+    "language_fidelity": "Response language must match passage language (vi/en)",
+    "length_constraint": "Main reflection: 80-120 words",
+    "situation_mirroring": "When user shares situation, mirror their language without paraphrasing",
+    "no_direct_advice": "Never use 'b nên...' or 'you should...'",
+    "no_future_prediction": "Never predict outcomes or make definitive future statements",
+    "ending_question": "Final line must be one short open question (< 15 words), in italics format: *[question]*"
+  },
+  "rubric": {
+    "language_fidelity": {
+      "weight": 1.0,
+      "pass_criteria": "Response language matches source_language exactly",
+      "fail_examples": ["Vietnamese response for English passage", "Mixed language without context"]
+    },
+    "tone_fidelity": {
+      "weight": 1.0,
+      "pass_criteria": "Warm, contemplative, non-judgmental tone appropriate to user_intent",
+      "fail_examples": ["Clinical/detached tone", "Preachy or lecturing tone", "Overly casual tone"]
+    },
+    "non_advice_compliance": {
+      "weight": 1.5,
+      "pass_criteria": "No prescriptive statements telling user what to do",
+      "fail_examples": ["B nên...", "You should...", "Try to...", "Make sure you..."]
+    },
+    "ending_question_compliance": {
+      "weight": 1.0,
+      "pass_criteria": "Final line is a single open question < 15 words, in italics, about present moment",
+      "fail_examples": ["No question at end", "Multiple questions", "Question about future", "Question not in italics"]
+    },
+    "length_compliance": {
+      "weight": 0.5,
+      "pass_criteria": "Main reflection between 80-120 words (excluding question)",
+      "fail_examples": ["Under 50 words", "Over 150 words"]
+    },
+    "situation_mirroring": {
+      "weight": 1.0,
+      "pass_criteria": "When situation_text provided, uses user's own words naturally without mechanical repetition",
+      "fail_examples": ["Ignores situation completely", "Paraphrases instead of mirroring", "Repeats situation verbatim"]
+    }
+  },
+  "eval_cases": [
+    {
+      "id": "eval_001",
+      "source_language": "vi",
+      "passage": {
+        "id": "iching_1",
+        "source_id": "i_ching",
+        "reference": "Hexagram 1 ·  drying (Qián)",
+        "text": "The Creative works sublime success, furthering through perseverance."
+      },
+      "symbol": {
+        "id": "candle",
+        "display_name": "Ng\u1ecdn n\u1ebfn"
+      },
+      "situation_text": "T\u00f4i \u0111ang l\u00e0m m\u1ed9t d\u1ef1 \u00e1n \u0111\u00e3 2 n\u0103m nh\u01b0ng v\u1eabn ch\u01b0a th\u1ea5y k\u1ebft qu\u1ea3. C\u1ea3m th\u1ea5y m\u1ec7t m\u1ecfi nh\u01b0ng kh\u00f4ng mu\u1ed1n b\u1ecf cu\u1ed9c.",
+      "user_intent": "clarity",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["d\u1ef1 \u00e1n", "2 n\u0103m", "m\u1ec7t m\u1ecfi", "kh\u00f4ng mu\u1ed1n b\u1ecf cu\u1ed9c"],
+        "tone": "analytical, clear, structured",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_002",
+      "source_language": "vi",
+      "passage": {
+        "id": "tao_2",
+        "source_id": "tao_te_ching",
+        "reference": "Chapter 8",
+        "text": "The highest goodness is like water. Water benefits all things and does not compete."
+      },
+      "symbol": {
+        "id": "water",
+        "display_name": "N\u01b0\u1edbc"
+      },
+      "situation_text": null,
+      "user_intent": "comfort",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": false,
+        "tone": "warm, healing, gentle",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_003",
+      "source_language": "en",
+      "passage": {
+        "id": "bible_2",
+        "source_id": "bible_kjv",
+        "reference": "Matthew 6:34",
+        "text": "Therefore take no thought for the morrow: for the morrow shall take thought for the things of itself."
+      },
+      "symbol": {
+        "id": "dawn",
+        "display_name": "B\u00ecnh minh"
+      },
+      "situation_text": "I've been worrying constantly about losing my job. Every day I wake up anxious about what might happen.",
+      "user_intent": "comfort",
+      "expected_output_markers": {
+        "language": "en",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["worrying", "losing my job", "wake up anxious"],
+        "tone": "warm, healing, gentle",
+        "forbidden_patterns": ["you should", "try to", "make sure"]
+      }
+    },
+    {
+      "id": "eval_004",
+      "source_language": "vi",
+      "passage": {
+        "id": "hafez_6",
+        "source_id": "hafez_divan",
+        "reference": "Ghazal 48",
+        "text": "Fear is the cheapest room in the house. I would like to see you living in better conditions."
+      },
+      "symbol": {
+        "id": "door",
+        "display_name": "C\u00e1nh c\u1eeda"
+      },
+      "situation_text": "T\u00f4i s\u1eafp ph\u1ea3i ra quy\u1ebft \u0111\u1ecbnh l\u1edbn v\u1ec1 chuy\u1ec3n vi\u1ec7c. S\u1ee3 r\u1eb1ng quy\u1ebft \u0111\u1ecbnh sai s\u1ebd h\u1ee7y ho\u1ea1i t\u01b0\u01a1ng lai.",
+      "user_intent": "challenge",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["quy\u1ebft \u0111\u1ecbnh l\u1edbn", "chuy\u1ec3n vi\u1ec7c", "s\u1ee3", "quy\u1ebft \u0111\u1ecbnh sai"],
+        "tone": "direct, unflinching, honest",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_005",
+      "source_language": "vi",
+      "passage": {
+        "id": "rumi_2",
+        "source_id": "rumi_masnavi",
+        "reference": "Book 1",
+        "text": "The wound is the place where the Light enters you."
+      },
+      "symbol": {
+        "id": "mirror",
+        "display_name": "G\u01b0\u01a1ng"
+      },
+      "situation_text": "V\u1eeba chia tay sau 3 n\u0103m y\u00eau nhau. C\u1ea3m th\u1ea5y tr\u1ed1ng r\u1ed7ng v\u00e0 kh\u00f4ng hi\u1ec3u t\u1ea1i sao l\u1ea1i \u0111au nhi\u1ec1u th\u1ebf.",
+      "user_intent": "comfort",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["chia tay", "3 n\u0103m", "tr\u1ed1ng r\u1ed7ng", "\u0111au"],
+        "tone": "warm, healing, gentle",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_006",
+      "source_language": "en",
+      "passage": {
+        "id": "marcus_2",
+        "source_id": "marcus_aurelius",
+        "reference": "Book 4, Section 3",
+        "text": "You have power over your mind\u2014not outside events. Realize this, and you will find strength."
+      },
+      "symbol": {
+        "id": "stone",
+        "display_name": "H\u00f2n \u0111\u00e1"
+      },
+      "situation_text": "My boss keeps changing requirements and I feel powerless. Nothing I do seems to matter.",
+      "user_intent": "clarity",
+      "expected_output_markers": {
+        "language": "en",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["boss", "changing requirements", "powerless", "nothing I do matters"],
+        "tone": "analytical, clear, structured",
+        "forbidden_patterns": ["you should", "try to", "make sure"]
+      }
+    },
+    {
+      "id": "eval_007",
+      "source_language": "vi",
+      "passage": {
+        "id": "iching_4",
+        "source_id": "i_ching",
+        "reference": "Hexagram 11 \u00b7 \u6cf0 (T\u00e0i)",
+        "text": "Peace. The small departs, the great approaches. Good fortune. Success."
+      },
+      "symbol": {
+        "id": "bridge",
+        "display_name": "C\u00e2y c\u1ea7u"
+      },
+      "situation_text": null,
+      "user_intent": "guidance",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": false,
+        "tone": "open, non-directive, spacious",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_008",
+      "source_language": "vi",
+      "passage": {
+        "id": "tao_4",
+        "source_id": "tao_te_ching",
+        "reference": "Chapter 22",
+        "text": "Yield and overcome; bend and be straight; empty and be full."
+      },
+      "symbol": {
+        "id": "river",
+        "display_name": "S\u00f4ng"
+      },
+      "situation_text": "\u0110ang c\u00f3 m\u00e2u thu\u1eabn v\u1edbi ng\u01b0\u1eddi th\u00e2n. T\u00f4i mu\u1ed1n h\u1ecd thay \u0111\u1ed5i nh\u01b0ng h\u1ecd kh\u00f4ng ch\u1ecbu nghe.",
+      "user_intent": "challenge",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["m\u00e2u thu\u1eabn", "ng\u01b0\u1eddi th\u00e2n", "mu\u1ed1n h\u1ecd thay \u0111\u1ed5i", "kh\u00f4ng ch\u1ecbu nghe"],
+        "tone": "direct, unflinching, honest",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_009",
+      "source_language": "en",
+      "passage": {
+        "id": "bible_5",
+        "source_id": "bible_kjv",
+        "reference": "Isaiah 30:15",
+        "text": "In returning and rest shall ye be saved; in quietness and in confidence shall be your strength."
+      },
+      "symbol": {
+        "id": "silence",
+        "display_name": "S\u1ef1 im l\u1eb7ng"
+      },
+      "situation_text": "I've been pushing hard at work for months. Exhausted but can't seem to stop. Afraid if I rest, everything will fall apart.",
+      "user_intent": "comfort",
+      "expected_output_markers": {
+        "language": "en",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["pushing hard", "exhausted", "can't stop", "rest", "fall apart"],
+        "tone": "warm, healing, gentle",
+        "forbidden_patterns": ["you should", "try to", "make sure"]
+      }
+    },
+    {
+      "id": "eval_010",
+      "source_language": "vi",
+      "passage": {
+        "id": "hafez_2",
+        "source_id": "hafez_divan",
+        "reference": "Ghazal 12",
+        "text": "Stay close to anything that makes you glad you are alive."
+      },
+      "symbol": {
+        "id": "fire",
+        "display_name": "L\u1eeda"
+      },
+      "situation_text": "C\u00f4ng vi\u1ec7c hi\u1ec7n t\u1ea1i khi\u1ebfn t\u00f4i c\u1ea3m th\u1ea5y ch\u1ebft d\u1ea7n. Kh\u00f4ng c\u00f2n h\u1ee9ng kh\u1edfi v\u1edbi b\u1ea5t c\u1ee9 \u0111i\u1ec1u g\u00ec.",
+      "user_intent": "clarity",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["c\u00f4ng vi\u1ec7c", "ch\u1ebft d\u1ea7n", "kh\u00f4ng c\u00f2n h\u1ee9ng kh\u1edfi"],
+        "tone": "analytical, clear, structured",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_011",
+      "source_language": "vi",
+      "passage": {
+        "id": "rumi_4",
+        "source_id": "rumi_masnavi",
+        "reference": "Book 2",
+        "text": "What you seek is seeking you."
+      },
+      "symbol": {
+        "id": "key",
+        "display_name": "Ch\u00eca kh\u00f3a"
+      },
+      "situation_text": "T\u00f4i \u0111ang t\u00ecm ki\u1ebfm m\u1ed9t \u0111i\u1ec1u g\u00ec \u0111\u00f3 nh\u01b0ng kh\u00f4ng bi\u1ebft l\u00e0 g\u00ec. C\u1ea3m gi\u00e1c nh\u01b0 th\u1ee7ng m\u1ea5t g\u00ec \u0111\u00f3.",
+      "user_intent": "guidance",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["t\u00ecm ki\u1ebfm", "kh\u00f4ng bi\u1ebft l\u00e0 g\u00ec", "th\u1ee7ng m\u1ea5t"],
+        "tone": "open, non-directive, spacious",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_012",
+      "source_language": "en",
+      "passage": {
+        "id": "marcus_6",
+        "source_id": "marcus_aurelius",
+        "reference": "Book 7, Section 54",
+        "text": "The impediment to action advances action. What stands in the way becomes the way."
+      },
+      "symbol": {
+        "id": "mountain",
+        "display_name": "N\u00fai"
+      },
+      "situation_text": "Every path forward seems blocked. I've tried everything but nothing works. Stuck and frustrated.",
+      "user_intent": "challenge",
+      "expected_output_markers": {
+        "language": "en",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["path blocked", "tried everything", "nothing works", "stuck", "frustrated"],
+        "tone": "direct, unflinching, honest",
+        "forbidden_patterns": ["you should", "try to", "make sure"]
+      }
+    },
+    {
+      "id": "eval_013",
+      "source_language": "vi",
+      "passage": {
+        "id": "iching_7",
+        "source_id": "i_ching",
+        "reference": "Hexagram 29 \u00b7 \u574e (K\u01cen)",
+        "text": "The Abysmal. If you are sincere, you have success in your heart."
+      },
+      "symbol": {
+        "id": "void",
+        "display_name": "Kho\u1ea3ng tr\u1ed1ng"
+      },
+      "situation_text": "\u0110ang \u1edf trong t\u00ecnh hu\u1ed1ng \u00e1p l\u1ef1c cao. Ph\u1ea3i ra quy\u1ebft \u0111\u1ecbnh c\u00f3 th\u1ec3 \u1ea3nh h\u01b0\u1edfng \u0111\u1ebfn nhi\u1ec1u ng\u01b0\u1eddi.",
+      "user_intent": "clarity",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["\u00e1p l\u1ef1c cao", "quy\u1ebft \u0111\u1ecbnh", "\u1ea3nh h\u01b0\u1edfng \u0111\u1ebfn nhi\u1ec1u ng\u01b0\u1eddi"],
+        "tone": "analytical, clear, structured",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_014",
+      "source_language": "vi",
+      "passage": {
+        "id": "tao_6",
+        "source_id": "tao_te_ching",
+        "reference": "Chapter 33",
+        "text": "Knowing others is intelligence; knowing yourself is true wisdom."
+      },
+      "symbol": {
+        "id": "mirror",
+        "display_name": "G\u01b0\u01a1ng"
+      },
+      "situation_text": "Lu\u00f4n so s\u00e1nh m\u00ecnh v\u1edbi ng\u01b0\u1eddi kh\u00e1c. Th\u1ea5y m\u00ecnh thua k\u00e9m v\u1ec1 m\u1ecdi m\u1eb7t.",
+      "user_intent": "comfort",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["so s\u00e1nh", "thua k\u00e9m", "m\u1ecdi m\u1eb7t"],
+        "tone": "warm, healing, gentle",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_015",
+      "source_language": "en",
+      "passage": {
+        "id": "bible_8",
+        "source_id": "bible_kjv",
+        "reference": "2 Corinthians 12:9",
+        "text": "My grace is sufficient for thee: for my strength is made perfect in weakness."
+      },
+      "symbol": {
+        "id": "seed",
+        "display_name": "H\u1ea1t gi\u1ed1ng"
+      },
+      "situation_text": "I failed at something important and feel ashamed. Everyone will think I'm weak and incompetent.",
+      "user_intent": "comfort",
+      "expected_output_markers": {
+        "language": "en",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["failed", "ashamed", "weak", "incompetent"],
+        "tone": "warm, healing, gentle",
+        "forbidden_patterns": ["you should", "try to", "make sure"]
+      }
+    },
+    {
+      "id": "eval_016",
+      "source_language": "vi",
+      "passage": {
+        "id": "hafez_5",
+        "source_id": "hafez_divan",
+        "reference": "Ghazal 41",
+        "text": "Even after all this time, the sun never says to the earth, You owe me."
+      },
+      "symbol": {
+        "id": "light",
+        "display_name": "\u00c1nh s\u00e1ng"
+      },
+      "situation_text": "T\u00f4i \u0111\u00e3 l\u00e0m r\u1ea5t nhi\u1ec1u cho gia \u0111\u00ecnh nh\u01b0ng h\u1ecd v\u1eabn kh\u00f4ng \u0111\u00e1nh gi\u00e1 cao. C\u1ea3m th\u1ea5y b\u1ecb l\u1ee3i d\u1ee5ng.",
+      "user_intent": "challenge",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["l\u00e0m r\u1ea5t nhi\u1ec1u", "gia \u0111\u00ecnh", "kh\u00f4ng \u0111\u00e1nh gi\u00e1 cao", "b\u1ecb l\u1ee3i d\u1ee5ng"],
+        "tone": "direct, unflinching, honest",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_017",
+      "source_language": "vi",
+      "passage": {
+        "id": "rumi_7",
+        "source_id": "rumi_masnavi",
+        "reference": "Book 4",
+        "text": "Yesterday I was clever, so I wanted to change the world. Today I am wise, so I am changing myself."
+      },
+      "symbol": {
+        "id": "water",
+        "display_name": "N\u01b0\u1edbc"
+      },
+      "situation_text": "Mu\u1ed1n thay \u0111\u1ed5i ng\u01b0\u1eddi th\u00e2n nh\u01b0ng h\u1ecd kh\u00f4ng \u0111\u1ed5i. T\u1ee9c v\u00e0 th\u1ea5t v\u1ecdng.",
+      "user_intent": "clarity",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["thay \u0111\u1ed5i ng\u01b0\u1eddi th\u00e2n", "kh\u00f4ng \u0111\u1ed5i", "t\u1ee9c", "th\u1ea5t v\u1ecdng"],
+        "tone": "analytical, clear, structured",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_018",
+      "source_language": "en",
+      "passage": {
+        "id": "marcus_5",
+        "source_id": "marcus_aurelius",
+        "reference": "Book 6, Section 30",
+        "text": "The best revenge is not to be like your enemy."
+      },
+      "symbol": {
+        "id": "stone",
+        "display_name": "H\u00f2n \u0111\u00e1"
+      },
+      "situation_text": "Someone betrayed my trust and hurt me deeply. I keep thinking about how to get back at them.",
+      "user_intent": "challenge",
+      "expected_output_markers": {
+        "language": "en",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["betrayed", "hurt", "get back at them"],
+        "tone": "direct, unflinching, honest",
+        "forbidden_patterns": ["you should", "try to", "make sure"]
+      }
+    },
+    {
+      "id": "eval_019",
+      "source_language": "vi",
+      "passage": {
+        "id": "iching_10",
+        "source_id": "i_ching",
+        "reference": "Hexagram 64 \u00b7 \u672a\u6d4a (W\u00e8i J\u00ec)",
+        "text": "Before completion. Success. The fox gets its tail in the water."
+      },
+      "symbol": {
+        "id": "bridge",
+        "display_name": "C\u00e2y c\u1ea7u"
+      },
+      "situation_text": "S\u1eafp ho\u00e0n th\u00e0nh m\u1ed9t d\u1ef1 \u00e1n l\u1edbn. V\u1eeba t\u1ef1 m\u00e3n v\u00e0 lo l\u1eafng s\u1ebd h\u1ecfng l\u00fac ch\u00f3t.",
+      "user_intent": "clarity",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["ho\u00e0n th\u00e0nh", "d\u1ef1 \u00e1n l\u1edbn", "t\u1ef1 m\u00e3n", "lo l\u1eafng", "h\u1ecfng l\u00fac ch\u00f3t"],
+        "tone": "analytical, clear, structured",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_020",
+      "source_language": "vi",
+      "passage": {
+        "id": "tao_8",
+        "source_id": "tao_te_ching",
+        "reference": "Chapter 44",
+        "text": "Fame or integrity: which is more important? Gain or loss: which is more painful?"
+      },
+      "symbol": {
+        "id": "mirror",
+        "display_name": "G\u01b0\u01a1ng"
+      },
+      "situation_text": "\u0110\u1ee9ng tr\u01b0\u1edbc l\u1ef1a ch\u1ecdn: theo \u0111u\u1ed5i s\u1ef1 nghi\u1ec7p hay gi\u1eef g\u00ecn gia \u0111\u00ecnh. Kh\u00f4ng th\u1ec3 c\u1ea3 hai.",
+      "user_intent": "guidance",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["l\u1ef1a ch\u1ecdn", "s\u1ef1 nghi\u1ec7p", "gia \u0111\u00ecnh", "kh\u00f4ng th\u1ec3 c\u1ea3 hai"],
+        "tone": "open, non-directive, spacious",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_021",
+      "source_language": "en",
+      "passage": {
+        "id": "bible_10",
+        "source_id": "bible_kjv",
+        "reference": "1 Corinthians 13:12",
+        "text": "For now we see through a glass, darkly; but then face to face."
+      },
+      "symbol": {
+        "id": "shadow",
+        "display_name": "B\u00f3ng t\u1ed1i"
+      },
+      "situation_text": "I don't understand what's happening in my life. Everything feels unclear and I can't see where this is going.",
+      "user_intent": "guidance",
+      "expected_output_markers": {
+        "language": "en",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["don't understand", "unclear", "can't see where this is going"],
+        "tone": "open, non-directive, spacious",
+        "forbidden_patterns": ["you should", "try to", "make sure"]
+      }
+    },
+    {
+      "id": "eval_022",
+      "source_language": "vi",
+      "passage": {
+        "id": "hafez_8",
+        "source_id": "hafez_divan",
+        "reference": "Ghazal 61",
+        "text": "What we speak becomes the house we live in."
+      },
+      "symbol": {
+        "id": "door",
+        "display_name": "C\u00e1nh c\u1eeda"
+      },
+      "situation_text": "Hay t\u1ef1 k\u1ec3 m\u00ecnh l\u00e0 ng\u01b0\u1eddi b\u1ea5t h\u1ea1nh. Kh\u00f4ng bi\u1ebft t\u1ea1i sao cu\u1ed9c s\u1ed1ng kh\u00f4ng t\u1ed1t l\u00ean.",
+      "user_intent": "challenge",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["t\u1ef1 k\u1ec3", "b\u1ea5t h\u1ea1nh", "cu\u1ed9c s\u1ed1ng kh\u00f4ng t\u1ed1t l\u00ean"],
+        "tone": "direct, unflinching, honest",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_023",
+      "source_language": "vi",
+      "passage": {
+        "id": "rumi_9",
+        "source_id": "rumi_masnavi",
+        "reference": "Book 5",
+        "text": "Silence is the language of God, all else is poor translation."
+      },
+      "symbol": {
+        "id": "silence",
+        "display_name": "S\u1ef1 im l\u1eb7ng"
+      },
+      "situation_text": "N\u00f3i qu\u00e1 nhi\u1ec1u, suy ngh\u0129 qu\u00e1 nhi\u1ec1u. \u0110\u1ea7u \u00f3c kh\u00f4ng bao gi\u1edd ngh\u1ec9.",
+      "user_intent": "comfort",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["n\u00f3i qu\u00e1 nhi\u1ec1u", "suy ngh\u0129 qu\u00e1 nhi\u1ec1u", "\u0111\u1ea7u \u00f3c kh\u00f4ng ngh\u1ec9"],
+        "tone": "warm, healing, gentle",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_024",
+      "source_language": "en",
+      "passage": {
+        "id": "marcus_7",
+        "source_id": "marcus_aurelius",
+        "reference": "Book 8, Section 36",
+        "text": "Do not indulge in dreams of having what you have not, but reckon up the chief of the blessings you do possess."
+      },
+      "symbol": {
+        "id": "earth",
+        "display_name": "\u0110\u1ea5t"
+      },
+      "situation_text": "I keep comparing my life to others who seem to have more. Never satisfied with what I have.",
+      "user_intent": "clarity",
+      "expected_output_markers": {
+        "language": "en",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["comparing", "others have more", "never satisfied"],
+        "tone": "analytical, clear, structured",
+        "forbidden_patterns": ["you should", "try to", "make sure"]
+      }
+    },
+    {
+      "id": "eval_025",
+      "source_language": "vi",
+      "passage": {
+        "id": "iching_5",
+        "source_id": "i_ching",
+        "reference": "Hexagram 15 \u00b7 \u8b19 (Qi\u0101n)",
+        "text": "Modesty creates success. The superior person carries things through."
+      },
+      "symbol": {
+        "id": "seed",
+        "display_name": "H\u1ea1t gi\u1ed1ng"
+      },
+      "situation_text": "C\u1ea3m th\u1ea5y b\u1ecb \u0111\u00e1nh gi\u00e1 th\u1ea5p t\u1ea1i c\u00f4ng s\u1edf. Ngh\u0129 c\u00f3 n\u00ean th\u1ec3 hi\u1ec7n n\u0103ng l\u1ef1c hay kh\u00f4ng.",
+      "user_intent": "guidance",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["\u0111\u00e1nh gi\u00e1 th\u1ea5p", "c\u00f4ng s\u1edf", "th\u1ec3 hi\u1ec7n n\u0103ng l\u1ef1c"],
+        "tone": "open, non-directive, spacious",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_026",
+      "source_language": "vi",
+      "passage": {
+        "id": "tao_10",
+        "source_id": "tao_te_ching",
+        "reference": "Chapter 76",
+        "text": "A person is born gentle and weak. At death he is hard and stiff."
+      },
+      "symbol": {
+        "id": "wind",
+        "display_name": "G\u00f3"
+      },
+      "situation_text": "C\u1ea3m th\u1ea5y m\u00ecnh tr\u1edf n\u00ean c\u1ee9ng nh\u1eafc, kh\u00f4ng c\u00f2n linh ho\u1ea1t nh\u01b0 tr\u01b0\u1edbc. S\u1ee3 m\u00ecnh \u0111ang m\u1ea5t \u0111i s\u1ef1 s\u1ed1ng.",
+      "user_intent": "challenge",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["c\u1ee9ng nh\u1eafc", "kh\u00f4ng linh ho\u1ea1t", "m\u1ea5t \u0111i s\u1ef1 s\u1ed1ng"],
+        "tone": "direct, unflinching, honest",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_027",
+      "source_language": "en",
+      "passage": {
+        "id": "bible_3",
+        "source_id": "bible_kjv",
+        "reference": "Psalm 46:10",
+        "text": "Be still, and know that I am God."
+      },
+      "symbol": {
+        "id": "mountain",
+        "display_name": "N\u00fai"
+      },
+      "situation_text": "My mind is constantly racing. I can't sit still. Always need to be doing something.",
+      "user_intent": "comfort",
+      "expected_output_markers": {
+        "language": "en",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["mind racing", "can't sit still", "always doing something"],
+        "tone": "warm, healing, gentle",
+        "forbidden_patterns": ["you should", "try to", "make sure"]
+      }
+    },
+    {
+      "id": "eval_028",
+      "source_language": "vi",
+      "passage": {
+        "id": "hafez_10",
+        "source_id": "hafez_divan",
+        "reference": "Ghazal 84",
+        "text": "The beloved has folded a secret inside your longing."
+      },
+      "symbol": {
+        "id": "key",
+        "display_name": "Ch\u00eca kh\u00f3a"
+      },
+      "situation_text": "Khao kh\u00e1t m\u1ed9t \u0111i\u1ec1u g\u00ec \u0111\u00f3 m\u00e0 kh\u00f4ng x\u00e1c \u0111\u1ecbnh \u0111\u01b0\u1ee3c. C\u1ea3m gi\u00e1c tr\u1ed1ng r\u1ed7ng d\u00e0y v\u1eb7t.",
+      "user_intent": "guidance",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["khao kh\u00e1t", "kh\u00f4ng x\u00e1c \u0111\u1ecbnh", "tr\u1ed1ng r\u1ed7ng"],
+        "tone": "open, non-directive, spacious",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_029",
+      "source_language": "vi",
+      "passage": {
+        "id": "rumi_10",
+        "source_id": "rumi_masnavi",
+        "reference": "Book 6",
+        "text": "Set your life on fire. Seek those who fan your flames."
+      },
+      "symbol": {
+        "id": "fire",
+        "display_name": "L\u1eeda"
+      },
+      "situation_text": "Xung quanh t\u00f4i l\u00e0 nh\u1eefng ng\u01b0\u1eddi l\u00e0m t\u1eaft l\u1eeda. Kh\u00f4ng c\u00f2n ai th\u1ea5u hi\u1ec3u.",
+      "user_intent": "challenge",
+      "expected_output_markers": {
+        "language": "vi",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["l\u00e0m t\u1eaft l\u1eeda", "kh\u00f4ng th\u1ea5u hi\u1ec3u"],
+        "tone": "direct, unflinching, honest",
+        "forbidden_patterns": ["b\u1ea1n n\u00ean", "h\u00e3y", "c\u1ed1 g\u1eafng"]
+      }
+    },
+    {
+      "id": "eval_030",
+      "source_language": "en",
+      "passage": {
+        "id": "marcus_10",
+        "source_id": "marcus_aurelius",
+        "reference": "Book 12, Section 36",
+        "text": "Waste no more time arguing what a good man should be. Be one."
+      },
+      "symbol": {
+        "id": "stone",
+        "display_name": "H\u00f2n \u0111\u00e1"
+      },
+      "situation_text": "I keep thinking about who I want to become but never actually change. Stuck in analysis paralysis.",
+      "user_intent": "challenge",
+      "expected_output_markers": {
+        "language": "en",
+        "should_mirror_situation": true,
+        "mirrored_keywords": ["thinking about who I want to become", "never actually change", "analysis paralysis"],
+        "tone": "direct, unflinching, honest",
+        "forbidden_patterns": ["you should", "try to", "make sure"]
+      }
+    }
+  ]
+}

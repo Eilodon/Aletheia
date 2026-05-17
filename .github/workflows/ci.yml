@@ -1,0 +1,266 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+
+  # ── 1. Rust tests (fmt + clippy + test) ────────────────────────────────────
+  rust-test:
+    name: Rust Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('core/Cargo.lock') }}
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: core/target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('core/Cargo.lock') }}
+
+      - name: cargo fmt check
+        working-directory: core
+        run: cargo fmt --check
+
+      - name: cargo clippy (deny warnings)
+        working-directory: core
+        run: cargo clippy -- -D warnings
+
+      - name: cargo test
+        working-directory: core
+        run: cargo test -- --nocapture
+
+      - name: cargo build (release sanity)
+        working-directory: core
+        run: cargo build --release
+
+  # ── 2. UniFFI bindings generation ─────────────────────────────────────────
+  #    Runs ONCE — android-build downloads the artifact.
+  #    v7 fix: no longer called inside build-rust-android (was double-generating).
+  uniffi-bindings:
+    name: UniFFI Bindings
+    runs-on: ubuntu-latest
+    needs: rust-test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo build
+        uses: actions/cache@v4
+        with:
+          path: core/target
+          key: ${{ runner.os }}-cargo-build-${{ hashFiles('core/Cargo.lock') }}
+
+      - name: Cache uniffi-bindgen binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/uniffi-bindgen
+          key: uniffi-bindgen-0.25-${{ runner.os }}
+
+      - name: Install uniffi-bindgen (pinned)
+        run: |
+          if ! command -v uniffi-bindgen >/dev/null 2>&1; then
+            cargo install uniffi-bindgen --version 0.25 --locked
+          fi
+
+      - name: Generate UniFFI bindings
+        run: |
+          chmod +x scripts/build-uniffi-bindings.sh
+          ./scripts/build-uniffi-bindings.sh
+
+      - name: Upload bindings artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: uniffi-bindings
+          path: |
+            generated/uniffi/kotlin/
+            generated/uniffi/swift/
+          retention-days: 7
+
+  # ── 3. Build Rust .so ONLY — arm64-v8a, no armv7 ─────────────────────────
+  #    v7 fixes:
+  #      - Removed armv7-linux-androideabi (not needed, saves 3-5 min)
+  #      - Uses build-so-only.sh instead of build-rust-android.sh
+  #        (build-rust-android.sh was calling uniffi-bindgen again internally)
+  build-so-only:
+    name: Build Rust .so (arm64-v8a)
+    runs-on: ubuntu-latest
+    needs: rust-test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android   # arm64 only — arm32 excluded (ADR-V7)
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-android-${{ hashFiles('core/Cargo.lock') }}
+
+      - name: Cache cargo build (Android)
+        uses: actions/cache@v4
+        with:
+          path: core/target
+          key: ${{ runner.os }}-cargo-android-${{ hashFiles('core/Cargo.lock') }}
+
+      - name: Cache cargo-ndk binary
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/bin/cargo-ndk
+          key: cargo-ndk-3.5.4-${{ runner.os }}
+
+      - name: Install cargo-ndk
+        run: |
+          if ! command -v cargo-ndk >/dev/null 2>&1; then
+            cargo install cargo-ndk --version 3.5.4 --locked
+          fi
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK + NDK r27
+        uses: android-actions/setup-android@v3
+
+      - name: Install NDK r27
+        run: sdkmanager "ndk;27.0.12077973"
+
+      - name: Build .so (arm64-v8a only, no UniFFI re-generation)
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_HOME }}/ndk/27.0.12077973
+        run: |
+          chmod +x scripts/build-so-only.sh
+          bash scripts/build-so-only.sh
+
+      - name: Upload native .so artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rust-android-native
+          path: artifacts/android/
+          retention-days: 7
+
+  # ── 4. Lint + TS + Tests ──────────────────────────────────────────────────
+  lint:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - name: Validate CI environment (ADR-AL-56)
+        run: bash scripts/validate-env.sh --ci
+      - run: pnpm lint
+      - run: pnpm tsc --noEmit
+      - run: pnpm test
+
+      - name: Build server bundle
+        run: pnpm build
+
+      - name: Smoke server entrypoint
+        env:
+          JWT_SECRET: ci-smoke-secret
+          APP_ID: ci-smoke-app
+          OAUTH_SERVER_URL: https://example.invalid
+          OWNER_OPEN_ID: ci-owner
+          PORT: 3900
+        run: |
+          timeout 5s node dist/index.js
+          code=$?
+          if [ "$code" -ne 0 ] && [ "$code" -ne 124 ]; then exit "$code"; fi
+
+  # ── 5. Architecture contract verification ─────────────────────────────────
+  contract-verify:
+    name: Architecture Contracts
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Verify contracts
+        run: node scripts/verify-architecture.mjs
+
+  # ── 6. Android build (depends on bindings + .so + lint) ───────────────────
+  android-build:
+    name: Android Build
+    runs-on: ubuntu-latest
+    needs: [uniffi-bindings, build-so-only, lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Download UniFFI bindings
+        uses: actions/download-artifact@v4
+        with:
+          name: uniffi-bindings
+          path: generated/uniffi/
+
+      - name: Download Rust .so
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-android-native
+          path: artifacts/android/
+
+      - name: Expo prebuild (Android)
+        run: npx expo prebuild --platform android --clean
+
+      - name: Assemble release APK
+        working-directory: android
+        run: ./gradlew assembleRelease
+
+      - name: Verify .so in APK
+        run: |
+          APK=$(find android/app/build/outputs/apk -name "*.apk" | head -1)
+          [ -z "$APK" ] && echo "APK not found" && exit 1
+          unzip -l "$APK" | grep "libaletheia_core.so"
+          echo "✅ libaletheia_core.so present in APK"

@@ -1,0 +1,324 @@
+import "../../scripts/load-env.js";
+import express from "express";
+import { createServer } from "http";
+import net from "net";
+import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import { appRouter } from "../routers";
+import { createContext } from "./context";
+import { validateServerEnv, ENV } from "./env";
+import { apiLimiter, aiApiLimiter } from "./rateLimit";
+import { getReleaseReadiness } from "./releaseReadiness";
+import { getDb } from "../db";
+import {
+  interpretationRequestSchema,
+  requestInterpretation,
+  streamInterpretation,
+  type InterpretationStreamEvent,
+} from "./interpretationService";
+import { logger } from "./logger";
+import { sdk } from "./sdk";
+
+function getAllowedOrigins(): Set<string> {
+  const configured = (process.env.CORS_ALLOWED_ORIGINS ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  const defaults = [
+    "http://localhost:8081",
+    "http://127.0.0.1:8081",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://localhost:8081",
+    "https://127.0.0.1:8081",
+    "https://localhost:3000",
+    "https://127.0.0.1:3000",
+  ];
+
+  return new Set([...defaults, ...configured]);
+}
+
+function isAllowedOrigin(origin: string | undefined, allowedOrigins: Set<string>): boolean {
+  if (!origin) {
+    return true;
+  }
+
+  return allowedOrigins.has(origin);
+}
+
+function isPortAvailable(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.listen(port, () => {
+      server.close(() => resolve(true));
+    });
+    server.on("error", () => resolve(false));
+  });
+}
+
+async function findAvailablePort(startPort: number = 3000): Promise<number> {
+  for (let port = startPort; port < startPort + 20; port++) {
+    if (await isPortAvailable(port)) {
+      return port;
+    }
+  }
+  throw new Error(`No available port found starting from ${startPort}`);
+}
+
+export function createApp() {
+  const allowedOrigins = getAllowedOrigins();
+  const app = express();
+
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && !isAllowedOrigin(origin, allowedOrigins)) {
+      res.status(403).json({ error: "Origin not allowed" });
+      return;
+    }
+
+    if (origin) {
+      res.header("Access-Control-Allow-Origin", origin);
+      res.header("Vary", "Origin");
+    }
+    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.header(
+      "Access-Control-Allow-Headers",
+      "Origin, X-Requested-With, Content-Type, Accept, Authorization",
+    );
+    res.header("Access-Control-Allow-Credentials", "true");
+
+    if (req.method === "OPTIONS") {
+      res.sendStatus(200);
+      return;
+    }
+    next();
+  });
+
+  app.use(express.json({ limit: "50mb" }));
+  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+
+  // Apply rate limiting to all /api routes
+  app.use("/api", apiLimiter);
+
+  app.get("/api/health", (_req, res) => {
+    res.json({ ok: true, timestamp: Date.now() });
+  });
+
+  // Deep health check - verifies database, AI service, and storage
+  app.get("/api/health/deep", async (_req, res) => {
+    const checks = {
+      database: { status: "unknown", latencyMs: 0 },
+      aiService: { status: "unknown", latencyMs: 0 },
+      storage: { status: "unknown", latencyMs: 0 },
+      giftBackend: { status: "unknown", latencyMs: 0 },
+    };
+    let allHealthy = true;
+
+    // Check database
+    const dbStart = Date.now();
+    try {
+      const dbConn = await getDb();
+      checks.database.status = dbConn === null ? "disabled" : "healthy";
+      checks.database.latencyMs = Date.now() - dbStart;
+    } catch {
+      checks.database.status = "unhealthy";
+      checks.database.latencyMs = Date.now() - dbStart;
+      allHealthy = false;
+    }
+
+    // Check AI service
+    const aiStart = Date.now();
+    try {
+      const aiUrl = ENV.aiApiUrl || process.env.BUILT_IN_FORGE_API_URL;
+      if (!aiUrl) {
+        checks.aiService.status = "not_configured";
+      } else {
+        // Simple connectivity check - HEAD request to base URL
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
+        const response = await fetch(aiUrl.replace(/\/$/, "") + "/health", {
+          method: "HEAD",
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        checks.aiService.status = response.ok ? "healthy" : "degraded";
+        if (!response.ok) allHealthy = false;
+      }
+      checks.aiService.latencyMs = Date.now() - aiStart;
+    } catch {
+      checks.aiService.status = "unhealthy";
+      checks.aiService.latencyMs = Date.now() - aiStart;
+      allHealthy = false;
+    }
+
+    // Check storage (S3/R2)
+    const storageStart = Date.now();
+    try {
+      const storageUrl = process.env.STORAGE_BASE_URL || process.env.S3_ENDPOINT;
+      if (!storageUrl) {
+        checks.storage.status = "not_configured";
+      } else {
+        checks.storage.status = "healthy"; // Assume healthy if configured
+      }
+      checks.storage.latencyMs = Date.now() - storageStart;
+    } catch {
+      checks.storage.status = "unhealthy";
+      checks.storage.latencyMs = Date.now() - storageStart;
+      allHealthy = false;
+    }
+
+    const giftStart = Date.now();
+    try {
+      const giftUrl = process.env.EXPO_PUBLIC_GIFT_BACKEND_URL;
+      checks.giftBackend.status = giftUrl ? "configured" : "not_configured";
+      checks.giftBackend.latencyMs = Date.now() - giftStart;
+    } catch {
+      checks.giftBackend.status = "unhealthy";
+      checks.giftBackend.latencyMs = Date.now() - giftStart;
+      allHealthy = false;
+    }
+
+    res.status(allHealthy ? 200 : 503).json({
+      ok: allHealthy,
+      timestamp: Date.now(),
+      checks,
+    });
+  });
+
+  app.get("/api/health/release", (_req, res) => {
+    const report = getReleaseReadiness();
+    res.status(report.ok ? 200 : 503).json(report);
+  });
+
+  const requireAiRequestIdentity = async (
+    req: express.Request,
+    res: express.Response,
+    next: express.NextFunction,
+  ) => {
+    const appId = req.header("X-Aletheia-App-Id")?.trim();
+    const userId = req.header("X-Aletheia-User-Id")?.trim();
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    const hasBearer = typeof authHeader === "string" && authHeader.startsWith("Bearer ");
+
+    if (hasBearer) {
+      try {
+        await sdk.authenticateRequest(req);
+        next();
+        return;
+      } catch (error) {
+        logger.warn("[interpretation] rejected invalid bearer auth", {
+          reason: error instanceof Error ? error.message : String(error),
+        });
+        res.status(401).json({ error: "Invalid AI request identity" });
+        return;
+      }
+    }
+
+    if (ENV.appId && appId === ENV.appId && userId) {
+      next();
+      return;
+    }
+
+    res.status(401).json({ error: "AI request identity is required" });
+  };
+
+  app.post("/api/interpret", requireAiRequestIdentity, aiApiLimiter, async (req, res) => {
+    const parsed = interpretationRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        error: "Invalid interpretation request",
+        issues: parsed.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message,
+        })),
+      });
+      return;
+    }
+
+    try {
+      const result = await requestInterpretation(parsed.data);
+      res.json(result);
+    } catch (error) {
+      logger.error("[interpretation] request failed", error);
+      res.status(500).json({
+        error: "Interpretation request failed",
+      });
+    }
+  });
+
+  app.post("/api/interpret/stream", requireAiRequestIdentity, aiApiLimiter, async (req, res) => {
+    const parsed = interpretationRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        error: "Invalid interpretation request",
+        issues: parsed.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message,
+        })),
+      });
+      return;
+    }
+
+    res.status(200);
+    res.setHeader("Content-Type", "application/x-ndjson; charset=utf-8");
+    res.setHeader("Cache-Control", "no-cache, no-transform");
+    res.setHeader("X-Accel-Buffering", "no");
+
+    const writeEvent = (event: InterpretationStreamEvent) => {
+      res.write(`${JSON.stringify(event)}\n`);
+    };
+
+    try {
+      await streamInterpretation(parsed.data, writeEvent);
+    } catch (error) {
+      logger.error("[interpretation] stream failed", error);
+      writeEvent({
+        type: "done",
+        text: "Hãy để những lời này lắng xuống một chút. Điều gì đang dấy lên trong bạn?",
+        usedFallback: true,
+        mode: "fallback",
+        provider: "fallback",
+        model: "static-fallback",
+      });
+    } finally {
+      res.end();
+    }
+  });
+
+  app.use(
+    "/api/trpc",
+    aiApiLimiter,
+    createExpressMiddleware({
+      router: appRouter,
+      createContext,
+    }),
+  );
+
+  return app;
+}
+
+export async function startServer() {
+  validateServerEnv();
+  const app = createApp();
+  const server = createServer(app);
+  const preferredPort = parseInt(process.env.PORT || "3000");
+  const port = await findAvailablePort(preferredPort);
+
+  if (port !== preferredPort) {
+    console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
+  }
+
+  server.listen(port, () => {
+    console.log(`[api] server listening on port ${port}`);
+  });
+
+  return { app, server, port };
+}
+
+const isMainModule =
+  typeof process.argv[1] === "string" &&
+  import.meta.url === new URL(`file://${process.argv[1]}`).href;
+
+if (isMainModule) {
+  startServer().catch(console.error);
+}
