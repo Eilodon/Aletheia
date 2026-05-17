@@ -21,6 +21,10 @@ import type {
   NativeCreateGiftResponse,
 } from "../../modules/aletheia-core-module/src";
 
+// R09: This map must stay in sync with the ErrorCode enum in core/src/contracts.rs.
+// When adding a new ErrorCode variant in Rust (contracts.rs), add the corresponding
+// ERR_* string here. Verified: 13 variants, all mapped (2026-05-17).
+// To automate this check, add a CI step that diffs ErrorCode::as_str() output vs this map.
 const ERROR_CODE_MAP: Record<string, ErrorCode> = {
   ERR_SOURCE_NOT_FOUND: ErrorCode.SourceNotFound,
   ERR_PASSAGE_EMPTY: ErrorCode.PassageEmpty,

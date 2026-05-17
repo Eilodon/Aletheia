@@ -71,7 +71,10 @@ export async function getUserInfo(): Promise<User | null> {
 export async function setUserInfo(user: User): Promise<void> {
   try {
     if (Platform.OS === "web") {
-      window.sessionStorage.setItem(USER_INFO_KEY, JSON.stringify(user));
+      // R08 fix: sessionStorage is accessible to any JS running on the page (XSS risk).
+      // Strip sensitive PII fields before storing; re-fetch from server when email/name needed.
+      const safeUser: User = { ...user, email: null, name: null };
+      window.sessionStorage.setItem(USER_INFO_KEY, JSON.stringify(safeUser));
       return;
     }
 

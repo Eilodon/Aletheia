@@ -49,12 +49,16 @@ export function getSessionCookieOptions(
 ): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
   const hostname = req.hostname;
   const domain = getParentDomain(hostname);
+  const secure = isSecureRequest(req);
 
   return {
     domain,
     httpOnly: true,
     path: "/",
-    sameSite: "none",
-    secure: isSecureRequest(req),
+    // RFC 6265bis: SameSite=None MUST be paired with Secure=true or browsers reject the cookie.
+    // R02 fix: fall back to SameSite=Lax on non-HTTPS so the cookie is accepted rather than
+    // silently dropped, at the cost of slightly stricter cross-site restrictions.
+    sameSite: secure ? "none" : "lax",
+    secure,
   };
 }

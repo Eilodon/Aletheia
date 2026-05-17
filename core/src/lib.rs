@@ -41,13 +41,12 @@ struct BundledContentArtifact {
 static RUNTIME: once_cell::sync::Lazy<tokio::runtime::Runtime> =
     once_cell::sync::Lazy::new(|| {
         tokio::runtime::Builder::new_multi_thread()
-            .worker_threads(2)
+            // ADR-AL-48: increased from 2 → 4 to handle concurrent AI streams without exhaustion.
+            // ADR-V7-06: Graceful degradation on low-memory Android — falls back to current_thread
+            // if the OS rejects the thread allocation (ENOMEM / Os{code:11}).
+            .worker_threads(4)
             .enable_all()
             .build()
-            // ADR-V7-06: Graceful degradation on low-memory Android devices.
-            // multi_thread can fail with Os{code:11} when thread pool allocation fails under
-            // memory pressure. Fall back to current_thread so app still opens — single-threaded
-            // execution is acceptable for Aletheia's sequential AI call pattern.
             .unwrap_or_else(|e| {
                 tracing::warn!(
                     "multi_thread Tokio runtime failed ({}), falling back to current_thread",

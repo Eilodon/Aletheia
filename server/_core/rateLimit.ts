@@ -23,11 +23,13 @@ export function getAiRequesterKey(req: Request): string {
 
 export const apiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 60, // 60 requests per minute per IP
+  max: 60, // 60 requests per minute
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many requests, please try again later" },
-  keyGenerator: (req: Request): string => ipKeyGenerator(req.ip || "unknown"),
+  // R05 fix: prefer authenticated key (token/app+user) over bare IP so that IP rotation
+  // does not trivially bypass the limit for authenticated clients.
+  keyGenerator: (req: Request): string => getAiRequesterKey(req),
 });
 
 export const authLimiter = rateLimit({

@@ -737,7 +737,7 @@ impl Store {
     // ────────────────────────────────────────────────────────────────────────
 
     pub fn set_local_date(&self, date: String) {
-        if date.len() == 10 && date.chars().nth(4) == Some('-') {
+        if is_valid_local_date(&date) {
             *self.local_date_override.lock() = Some(date);
         }
     }
@@ -815,6 +815,31 @@ fn map_user_state(r: &rusqlite::Row<'_>) -> rusqlite::Result<UserState> {
         onboarding_complete:  r.get::<_, i32>(10)? != 0,
         user_intent:          r.get::<_, Option<String>>(11)?.and_then(|s| serde_json::from_str(&s).ok()),
     })
+}
+
+// Validate a YYYY-MM-DD local date string.
+// Rejects far-future dates (year > 2035) to prevent rate-limit bypass via set_local_date().
+// NF-02: set_local_date() is UniFFI-exported; a tampered APK could set "2099-01-01" and
+// trigger daily-counter reset on every get_user_state() call.
+fn is_valid_local_date(date: &str) -> bool {
+    let b = date.as_bytes();
+    if b.len() != 10 || b[4] != b'-' || b[7] != b'-' {
+        return false;
+    }
+    let parse_seg = |seg: &[u8]| -> Option<u32> {
+        seg.iter().try_fold(0u32, |acc, &c| {
+            if c.is_ascii_digit() {
+                Some(acc * 10 + (c - b'0') as u32)
+            } else {
+                None
+            }
+        })
+    };
+    let year  = match parse_seg(&b[0..4]) { Some(v) => v, None => return false };
+    let month = match parse_seg(&b[5..7]) { Some(v) => v, None => return false };
+    let day   = match parse_seg(&b[8..10]) { Some(v) => v, None => return false };
+    // Accept years within the expected app lifespan; reject far-future bypass values.
+    year >= 2020 && year <= 2035 && month >= 1 && month <= 12 && day >= 1 && day <= 31
 }
 
 fn collect_rows<T>(
@@ -962,7 +987,7 @@ mod error_path_tests {
         let reading = Reading {
             id: "r-err-1".into(), created_at: 42,
             source_id: "s1".into(), passage_id: "p1".into(), theme_id: "t1".into(),
-            symbol_chosen: "sym".into(), symbol_method: SymbolMethod::Random,
+            symbol_chosen: "sym".into(), symbol_method: SymbolMethod::Auto,
             situation_text: Some("test situation with special chars: <>&\"'".into()),
             ai_interpreted: true, ai_used_fallback: false,
             read_duration_s: Some(120), time_to_ai_request_s: Some(5),
@@ -1063,6 +1088,49 @@ mod error_path_tests {
         assert_eq!(re_retrieved.user_intent, Some(UserIntent::Comfort));
     }
 
+    // ── is_valid_local_date: rejects far-future dates and malformed input ────
+
+    #[test]
+    fn local_date_validation_blocks_bypass_and_malformed() {
+        // Valid dates — accepted
+        assert!(is_valid_local_date("2025-01-15"), "current-year date should be accepted");
+        assert!(is_valid_local_date("2030-12-31"), "near-future date should be accepted");
+        assert!(is_valid_local_date("2020-01-01"), "lower-bound year should be accepted");
+        assert!(is_valid_local_date("2035-06-15"), "upper-bound year should be accepted");
+
+        // Far-future bypass values — rejected (NF-02)
+        assert!(!is_valid_local_date("2099-01-01"), "far-future year must be rejected");
+        assert!(!is_valid_local_date("2036-01-01"), "year beyond 2035 must be rejected");
+        assert!(!is_valid_local_date("2019-12-31"), "year before 2020 must be rejected");
+
+        // Malformed strings — rejected
+        assert!(!is_valid_local_date("2025/01/15"), "wrong separator must be rejected");
+        assert!(!is_valid_local_date("25-01-15"),   "2-digit year must be rejected");
+        assert!(!is_valid_local_date("2025-13-01"), "month 13 must be rejected");
+        assert!(!is_valid_local_date("2025-00-10"), "month 0 must be rejected");
+        assert!(!is_valid_local_date("2025-01-32"), "day 32 must be rejected");
+        assert!(!is_valid_local_date(""),            "empty string must be rejected");
+        assert!(!is_valid_local_date("not-a-date"), "garbage must be rejected");
+    }
+
+    #[test]
+    fn set_local_date_rejects_far_future() {
+        let store = Store::new(":memory:").unwrap();
+        // "2099-01-01" must be rejected — it would bypass the daily rate limit
+        store.set_local_date("2099-01-01".into());
+        // Override should remain None, so get_today_str falls back to SQLite date('now')
+        // Verify: daily reset logic uses real date, not the injected future date.
+        let mut state = UserState::default();
+        state.user_id = "bypass-test".into();
+        state.readings_today = 5;
+        state.last_reading_date = Some("2099-01-01".into()); // pretend last read was "future"
+        store.insert_user_state(&state).unwrap();
+        // get_user_state uses today from SQLite; last_reading_date "2099-01-01" != real today
+        // so readings_today will reset to 0 — confirming the bypass is blocked.
+        let fetched = store.get_user_state("bypass-test").unwrap();
+        assert_eq!(fetched.readings_today, 0, "far-future date override must not persist");
+    }
+
     // ── Nonexistent entries return None, not error ────────────────────────────
 
     #[test]
@@ -1082,7 +1150,9 @@ mod error_path_tests {
     fn increment_counters_are_accurate() {
         let store = Store::new(":memory:").unwrap();
         let _state = store.get_user_state("ctr-user").unwrap(); // creates default
-        store.set_local_date("2099-01-01".into());
+        // Use a fixed future date within the valid range (2020-2035) to pin "today"
+        // and prevent the daily-reset logic from zeroing the counters mid-test.
+        store.set_local_date("2030-01-01".into());
 
         store.increment_readings_today("ctr-user").unwrap();
         store.increment_readings_today("ctr-user").unwrap();
