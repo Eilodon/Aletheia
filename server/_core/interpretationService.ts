@@ -52,19 +52,19 @@ const symbolSchema = z.object({
 const passageSchema = z.object({
   id: z.string().min(1),
   source_id: z.string().min(1),
-  reference: z.string().min(1),
-  text: z.string().min(1),
-  context: z.string().optional(),
-  resonance_context: z.string().optional(),
+  reference: z.string().min(1).max(200),
+  text: z.string().min(1).max(1000),
+  context: z.string().max(500).optional(),
+  resonance_context: z.string().max(500).optional(),
 });
 
 export const interpretationRequestSchema = z.object({
   passage: passageSchema,
   symbol: symbolSchema,
-  situationText: z.string().max(2_000).optional(),
-  resonanceContext: z.string().max(2_000).optional(),
+  situationText: z.string().max(500).optional(),
+  resonanceContext: z.string().max(500).optional(),
   sourceLanguage: z.string().max(16).optional(),
-  sourceFallbackPrompts: z.array(z.string().max(500)).optional(),
+  sourceFallbackPrompts: z.array(z.string().max(500)).max(20).optional(),
   userIntent: z.enum(["clarity", "comfort", "challenge", "guidance"]).optional(),
   mode: z.enum(["auto", "quality"]).optional(),
 });
@@ -151,9 +151,9 @@ function buildPrompt(request: InterpretationRequest): string {
       : undefined,
     `Biểu tượng đã chọn: ${request.symbol.display_name}`,
     `Đoạn trích (${request.passage.reference}):\n${request.passage.text}`,
-    request.resonanceContext || request.passage.resonance_context || request.passage.context
+    request.resonanceContext || request.passage.resonance_context
       ? `Ngữ cảnh ẩn cho người đọc (không nhắc lộ ra): ${
-          request.resonanceContext || request.passage.resonance_context || request.passage.context
+          request.resonanceContext || request.passage.resonance_context
         }`
       : undefined,
   ]);
@@ -534,11 +534,12 @@ async function runGeminiInterpretation(request: InterpretationRequest): Promise<
   }
 
   const response = await fetchWithTimeout(
-    `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent?key=${config.apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-goog-api-key": config.apiKey,
       },
       body: JSON.stringify({
         contents: [
@@ -594,11 +595,12 @@ async function runGeminiStreamInterpretation(
   }
 
   const response = await fetchWithTimeout(
-    `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:streamGenerateContent?alt=sse&key=${config.apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${config.model}:streamGenerateContent?alt=sse`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "x-goog-api-key": config.apiKey,
       },
       body: JSON.stringify({
         contents: [
@@ -710,7 +712,7 @@ async function runCloudInterpretation(request: InterpretationRequest): Promise<I
     : runGeminiInterpretation(request);
 }
 
-function buildFallbackResult(request: InterpretationRequest): InterpretationResult {
+export function buildFallbackResult(request: InterpretationRequest): InterpretationResult {
   const chunks = getFallbackChunks(request);
   return {
     text: chunks.join("\n\n"),

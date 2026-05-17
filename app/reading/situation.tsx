@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 
 import { useReading } from "@/lib/context/reading-context";
@@ -9,6 +9,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
 import { SITUATION_SKIP_TEXT_VI } from "@/lib/reading/ritual";
 import { Fonts } from "@/constants/theme";
+import { showToast } from "@/components/toast";
 
 export default function SituationScreen() {
   const [situationText, setSituationText] = useState("");
@@ -16,6 +17,7 @@ export default function SituationScreen() {
   const { startReading } = useReading();
   const colors = useColors();
   const router = useRouter();
+  const { sourceId } = useLocalSearchParams<{ sourceId?: string }>();
 
   const handleContinue = async () => {
     if (isLoading) return;
@@ -24,11 +26,12 @@ export default function SituationScreen() {
     setIsLoading(true);
 
     try {
-      await startReading(undefined, situationText.trim() || undefined);
+      await startReading(sourceId, situationText.trim() || undefined);
       router.push("/reading/wildcard");
     } catch (error) {
       console.error("Failed to start reading:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showToast("error", "Không thể bắt đầu đọc. Vui lòng thử lại.");
     } finally {
       setIsLoading(false);
     }
@@ -41,11 +44,12 @@ export default function SituationScreen() {
     setIsLoading(true);
 
     try {
-      await startReading();
+      await startReading(sourceId);
       router.push("/reading/wildcard");
     } catch (error) {
       console.error("Failed to start reading:", error);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      showToast("error", "Không thể bắt đầu đọc. Vui lòng thử lại.");
     } finally {
       setIsLoading(false);
     }

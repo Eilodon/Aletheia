@@ -164,8 +164,6 @@ class ReadingEngineService {
 
       // Update user state
       const userId = await getCurrentUserId();
-      await store.getUserState(userId);
-
       await store.incrementReadingsToday(userId);
       await store.incrementSessionCount(userId);
       if (reading.ai_interpreted) {

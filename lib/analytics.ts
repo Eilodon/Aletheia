@@ -20,6 +20,7 @@ class Analytics {
   private appStateSubscription: { remove: () => void } | null = null;
   private visibilityHandler: (() => void) | null = null;
   private beforeUnloadHandler: (() => void) | null = null;
+  private currentDistinctId: string | null = null;
 
   constructor() {
     this.enabled = !!POSTHOG_API_KEY && !__DEV__;
@@ -38,6 +39,7 @@ class Analytics {
 
     this.queue.push({
       event,
+      distinctId: this.currentDistinctId ?? undefined,
       properties: {
         ...properties,
         timestamp: Date.now(),
@@ -67,6 +69,8 @@ class Analytics {
    */
   identify(distinctId: string, properties?: Record<string, unknown>): void {
     if (!this.enabled) return;
+
+    this.currentDistinctId = distinctId;
 
     // Send identify event
     this.queue.push({
@@ -121,6 +125,7 @@ class Analytics {
       captureMessage("Analytics flush failed", "warning");
       // Put events back in queue for retry
       this.queue.unshift(...events);
+      this.clearScheduledFlush();
       this.scheduleFlush(5000);
     } finally {
       this.isFlushing = false;

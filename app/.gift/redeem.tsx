@@ -87,10 +87,9 @@ export default function GiftRedeemScreen() {
 
   const handleStartReading = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    // Navigate to reading with the gifted source
     router.replace({
       pathname: "/reading/situation",
-      params: { giftSource: "gifted" },
+      params: redeemResult?.sourceName ? { sourceId: redeemResult.sourceName } : {},
     });
   };
 

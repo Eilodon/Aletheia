@@ -33,7 +33,7 @@ export function initSentry() {
     ],
   });
 
-  console.log("[Sentry] Initialized successfully");
+  if (__DEV__) console.log("[Sentry] Initialized successfully");
 }
 
 export function captureException(error: Error, context?: Record<string, unknown>) {

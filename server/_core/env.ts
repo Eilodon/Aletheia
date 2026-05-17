@@ -12,7 +12,7 @@ export const ENV = {
   appId: readEnv("APP_ID", "EXPO_PUBLIC_APP_ID"),
   cookieSecret: readEnv("JWT_SECRET"),
   oAuthServerUrl: readEnv("OAUTH_SERVER_URL", "EXPO_PUBLIC_OAUTH_SERVER_URL"),
-  ownerOpenId: readEnv("OWNER_OPEN_ID", "EXPO_PUBLIC_OWNER_OPEN_ID"),
+  ownerOpenId: readEnv("OWNER_OPEN_ID"),
   forgeApiUrl: readEnv("BUILT_IN_FORGE_API_URL"),
   forgeApiKey: readEnv("BUILT_IN_FORGE_API_KEY"),
   aiApiUrl: readEnv("AI_API_URL", "BUILT_IN_FORGE_API_URL"),

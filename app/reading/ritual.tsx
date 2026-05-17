@@ -60,11 +60,13 @@ export default function RitualScreen() {
     ]).start();
 
     const timeout = setTimeout(() => {
-      router.replace("/reading/passage");
+      if (passage) {
+        router.replace("/reading/passage");
+      }
     }, 1800);
 
     return () => clearTimeout(timeout);
-  }, [fadeAnim, pulseAnim, router, rotateAnim, scaleAnim]);
+  }, [fadeAnim, passage, pulseAnim, router, rotateAnim, scaleAnim]);
 
   const slowRotate = rotateAnim.interpolate({
     inputRange: [0, 1],

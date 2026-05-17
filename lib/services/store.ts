@@ -21,29 +21,36 @@ import { BUNDLED_SOURCES, BUNDLED_PASSAGES, BUNDLED_THEMES } from "@/lib/data/co
 class StoreService {
   private db: SQLite.SQLiteDatabase | null = null;
   private initialized = false;
+  private initPromise: Promise<void> | null = null;
   private static readonly SCHEMA_VERSION = 7;
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
+    if (this.initPromise) return this.initPromise;
 
-    try {
-      this.db = await SQLite.openDatabaseAsync("aletheia.db");
-      
-      // ARCH-01: Run migrations with versioning
-      await this.runMigrations();
-      
-      // Seed bundled data if empty
-      const sourceCount = await this.db.getFirstAsync<{ count: number }>("SELECT COUNT(*) as count FROM sources");
-      if (!sourceCount || sourceCount.count === 0) {
-        await this.seedBundledData();
+    this.initPromise = (async () => {
+      try {
+        this.db = await SQLite.openDatabaseAsync("aletheia.db");
+
+        // ARCH-01: Run migrations with versioning
+        await this.runMigrations();
+
+        // Seed bundled data if empty
+        const sourceCount = await this.db.getFirstAsync<{ count: number }>("SELECT COUNT(*) as count FROM sources");
+        if (!sourceCount || sourceCount.count === 0) {
+          await this.seedBundledData();
+        }
+
+        this.initialized = true;
+        console.log("[Store] Initialized successfully");
+      } catch (error) {
+        this.initPromise = null;
+        console.error("[Store] Failed to initialize:", error);
+        throw error;
       }
-      
-      this.initialized = true;
-      console.log("[Store] Initialized successfully");
-    } catch (error) {
-      console.error("[Store] Failed to initialize:", error);
-      throw error;
-    }
+    })();
+
+    return this.initPromise;
   }
 
   // ARCH-01: Migration system with PRAGMA user_version
@@ -389,7 +396,7 @@ class StoreService {
       passage_count: row.passage_count,
       is_bundled: row.is_bundled === 1,
       is_premium: row.is_premium === 1,
-      fallback_prompts: row.fallback_prompts ? JSON.parse(row.fallback_prompts) : [],
+      fallback_prompts: row.fallback_prompts ? (() => { try { return JSON.parse(row.fallback_prompts); } catch { return []; } })() : [],
     }));
   }
 
@@ -412,7 +419,7 @@ class StoreService {
       passage_count: row.passage_count,
       is_bundled: row.is_bundled === 1,
       is_premium: row.is_premium === 1,
-      fallback_prompts: row.fallback_prompts ? JSON.parse(row.fallback_prompts) : [],
+      fallback_prompts: row.fallback_prompts ? (() => { try { return JSON.parse(row.fallback_prompts); } catch { return []; } })() : [],
     };
   }
 
@@ -460,7 +467,7 @@ class StoreService {
       passage_count: row.passage_count,
       is_bundled: row.is_bundled === 1,
       is_premium: row.is_premium === 1,
-      fallback_prompts: row.fallback_prompts ? JSON.parse(row.fallback_prompts) : [],
+      fallback_prompts: row.fallback_prompts ? (() => { try { return JSON.parse(row.fallback_prompts); } catch { return []; } })() : [],
     };
   }
 
@@ -732,7 +739,7 @@ class StoreService {
       passage_count: row.passage_count || 0,
       is_bundled: true,
       is_premium: row.is_premium === 1,
-      fallback_prompts: row.fallback_prompts ? JSON.parse(row.fallback_prompts) : [],
+      fallback_prompts: row.fallback_prompts ? (() => { try { return JSON.parse(row.fallback_prompts); } catch { return []; } })() : [],
     }));
   }
 

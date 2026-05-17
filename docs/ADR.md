@@ -40,6 +40,12 @@
 | [ADR-AL-40](#adr-al-40--ritualarchive-sharegift-phải-có-event-taxonomy-chung) | Ritual, archive, share, and gift flows must share one event taxonomy | ✅ ACCEPTED |
 | [ADR-AL-41](#adr-al-41--archive-phải-là-retention--growth-surface-không-phải-list-tĩnh) | Archive must be a retention and growth surface | ✅ ACCEPTED |
 | [ADR-AL-45](#adr-al-45--ai-diễn-giải-phải-local-first-cloud-optional) | AI interpretation must be local-first, cloud-optional | ✅ ACCEPTED |
+| [ADR-AL-46](#adr-al-46--dual-auth-model-cho-beta-bearer-only-post-beta) | Dual Auth Model for Beta, Bearer-only Post-beta | ✅ ACCEPTED |
+| [ADR-AL-60](#adr-al-60--local-model-id-phải-là-hằng-số-dùng-chung) | Local model ID phải là hằng số dùng chung | ✅ ACCEPTED |
+| [ADR-AL-61](#adr-al-61--api-provider-keys-phải-dùng-header-không-phải-url-query) | API provider keys phải dùng header, không phải URL query | ✅ ACCEPTED |
+| [ADR-AL-62](#adr-al-62--ios-native-runtime-deferred-cho-đến-khi-uniffi-parity) | iOS native runtime deferred cho đến khi UniFFI parity | ✅ ACCEPTED |
+| [ADR-AL-63](#adr-al-63--bridge-error-codes-phải-map-rõ-ràng-không-silent-fallback) | Bridge error codes phải map rõ ràng, không silent fallback | ✅ ACCEPTED |
+| [ADR-AL-64](#adr-al-64--ai-rate-limiting-phải-dùng-identity-aware-key) | AI rate limiting phải dùng identity-aware key | ✅ ACCEPTED |
 
 ---
 
@@ -1345,3 +1351,476 @@ Server `requireAiRequestIdentity` middleware (`server/_core/index.ts:193-223`) c
 - Nếu migration bị quên, dual surface tồn tại vô thời hạn — mitigate bằng ADR này ghi rõ post-beta requirement
 
 **Xem thêm:** `server/_core/index.ts:193-223`, ADR-AL-45
+
+---
+
+## ADR-AL-60 — Local model ID phải là hằng số dùng chung
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-05-17
+**VHEATM Level:** 🟡 RECOMMENDED
+**VHEATM Cycle:** C1 — Architecture & Interface Boundaries
+**Tags:** `local-model` `android` `constants` `maintenance`
+
+### Context
+
+VHEATM C1 audit phát hiện model ID `"gemma-3n-e2b"` (model cũ từ Cycle 5) còn tồn tại hardcoded tại `lib/services/interpretation-orchestrator.ts:273` sau khi Cycle 6 đã migrate sang `gemma-3-1b-it-qat-q4_0`. Cùng lúc đó, `core/src/local_inference.rs` và `LocalInferenceEngine.kt` đã được cập nhật đúng. Kết quả: model ID bị drift giữa analytics tracking và actual model ID.
+
+### Decision
+
+> **Model ID của local inference model phải được define một lần ở source of truth duy nhất.**
+> - Rust: `LocalInferenceEngine::MODEL_ID` constant
+> - TypeScript/analytics: import từ một shared constants file hoặc hard-align với giá trị Rust
+> - Không được hardcode model ID string ở bất kỳ call site nào ngoài chỗ khai báo
+
+**Immediate fix:** `interpretation-orchestrator.ts:273` đã được cập nhật từ `"gemma-3n-e2b"` sang `"gemma-3-1b-it-qat-q4_0"` trong session này.
+
+### Consequences
+
+- Analytics event `inference_started` sẽ log đúng model ID
+- Future model migrations phải update constant tại một điểm duy nhất
+- **Trade-off:** TypeScript không thể import từ Rust constants — cần manual sync khi model thay đổi
+
+**Xem thêm:** `lib/services/interpretation-orchestrator.ts:273`, `core/src/local_inference.rs`
+
+---
+
+## ADR-AL-61 — API provider keys phải dùng header, không phải URL query
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-05-17
+**VHEATM Level:** 🔴 MANDATORY
+**VHEATM Cycle:** C2 — Security (STRIDE: Information Disclosure)
+**Tags:** `security` `api-keys` `gemini` `server`
+**CWE:** CWE-598 (Use of GET Request Method with Sensitive Query Strings)
+
+### Context
+
+VHEATM C2 audit phát hiện Gemini API key được truyền dưới dạng URL query parameter tại:
+- `server/_core/interpretationService.ts:537` — `?key=${config.apiKey}` (generateContent endpoint)
+- `server/_core/interpretationService.ts:597` — `?key=${config.apiKey}` (streamGenerateContent endpoint)
+
+URL query parameters bị log bởi:
+1. Web server access logs (nginx, Apache)
+2. Reverse proxy logs (Cloudflare, AWS ALB)
+3. CDN edge logs
+4. Browser history (nếu phía client)
+5. Referer headers trên redirect
+
+API key bị leak trong logs → attacker có thể dùng key để tạo AI requests tốn phí.
+
+### Decision
+
+> **Mọi API provider keys (Gemini, OpenAI, Anthropic) phải được truyền qua HTTP headers, không bao giờ qua URL query parameters.**
+>
+> - Gemini: dùng `x-goog-api-key: <key>` header
+> - OpenAI: dùng `Authorization: Bearer <key>` header (đã đúng)
+> - Anthropic: dùng `x-api-key: <key>` header (đã đúng)
+
+**Fix applied:** Cả hai Gemini endpoints trong `interpretationService.ts` đã được cập nhật từ `?key=` query param sang `"x-goog-api-key"` header trong session này.
+
+### Consequences
+
+- API key không còn xuất hiện trong server logs
+- `alt=sse` query param vẫn giữ nguyên (không sensitive, cần thiết cho SSE)
+- **Trade-off:** Không có — đây là Gemini's documented authentication method cho server-side calls
+
+**Xem thêm:** `server/_core/interpretationService.ts:537,597`
+
+---
+
+## ADR-AL-62 — iOS native runtime deferred cho đến khi UniFFI parity
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-05-17
+**VHEATM Level:** 🟡 RECOMMENDED
+**VHEATM Cycle:** C1 — Architecture & Interface Boundaries
+**Tags:** `ios` `native` `uniffi` `platform`
+
+### Context
+
+VHEATM C1 audit xác nhận `runtime-availability.ts` explicitly returns `false` cho iOS khi native module available:
+
+```typescript
+if (Platform.OS === "ios" && aletheiaNativeClient.isAvailable()) {
+  // iOS native support explicitly out of beta scope
+  return false;
+}
+```
+
+UniFFI bindings cho iOS chưa đạt parity với Android Rust path. iOS hiện dùng TypeScript-only path (reading-engine.ts + store.ts).
+
+### Decision
+
+> **iOS native runtime (Rust/UniFFI) bị defer cho đến khi các điều kiện sau được đáp ứng:**
+> 1. UniFFI Swift bindings được generate và test
+> 2. Expo prebuild iOS pipeline được verify với native module
+> 3. iOS CI gate được thêm vào (hiện tại ADR-AL-28 chỉ gate Android + Web)
+>
+> **Trong thời gian đó:**
+> - iOS dùng TypeScript reading-engine.ts path
+> - `shouldUseAletheiaNative()` trả về `false` cho iOS
+> - Warning log được emit một lần per session (đã có)
+
+### Consequences
+
+- iOS users nhận TypeScript-quality experience, không được Rust performance
+- Rust data layer (SQLite schema, SourceType, etc.) không apply cho iOS trong beta
+- **Trade-off:** Shipping Android first với native path chắc chắn hơn là ship iOS với native path chưa verified
+
+**Xem thêm:** `lib/native/runtime-availability.ts:13-21`, ADR-AL-28
+
+---
+
+## ADR-AL-63 — Bridge error codes phải map rõ ràng, không silent fallback
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-05-17
+**VHEATM Level:** 🟡 RECOMMENDED
+**VHEATM Cycle:** C1 — Architecture & Interface Boundaries
+**Tags:** `bridge` `error-handling` `types`
+
+### Context
+
+VHEATM C1 audit phát hiện `bridge.ts:46`:
+
+```typescript
+code: ERROR_CODE_MAP[error.code] ?? ErrorCode.InvalidInput,
+```
+
+Khi Rust trả về một error code không có trong `ERROR_CODE_MAP` (ví dụ: error code mới được add vào Rust nhưng chưa được add vào TypeScript map), error code bị silently map sang `ErrorCode.InvalidInput`. Điều này:
+1. Che giấu unknown errors trong UI ("invalid input" thay vì "unknown error")
+2. Gây khó debug khi Rust và TypeScript out of sync
+3. Có thể mask security-relevant errors (e.g., ERR_DAILY_LIMIT_REACHED → InvalidInput)
+
+### Decision
+
+> **`ERROR_CODE_MAP` trong `bridge.ts` phải exhaustive. Khi một error code không khớp:**
+> 1. Log warning với original error code để aid debugging
+> 2. Map sang `ErrorCode.Unknown` (cần thêm vào enum) thay vì `InvalidInput`
+>
+> **Quy trình khi thêm error code vào Rust (`aletheia.udl`):**
+> 1. Add error code vào UDL
+> 2. Add mapping vào `ERROR_CODE_MAP` trong `bridge.ts`
+> 3. Add test case cho mapping
+
+**Note:** `ErrorCode.Unknown` cần được thêm vào TypeScript enum và handle trong UI layer.
+
+### Consequences
+
+- Unmapped error codes surface rõ ràng thay vì bị mask
+- Easier debugging khi Rust/TypeScript error codes drift
+- **Trade-off:** Cần thêm `ErrorCode.Unknown` vào UI handling
+
+**Xem thêm:** `lib/native/bridge.ts:46`, `lib/types.ts` (ErrorCode enum)
+
+---
+
+## ADR-AL-64 — AI rate limiting phải dùng identity-aware key
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-05-17
+**VHEATM Level:** 🟡 RECOMMENDED
+**VHEATM Cycle:** C2 — Security (STRIDE: Denial of Service)
+**Tags:** `rate-limiting` `security` `server` `api`
+
+### Context
+
+VHEATM C2 audit review `rateLimit.ts`:
+- `aiApiLimiter` (line 42-49): dùng `getAiRequesterKey()` — identity-aware (Bearer token hash hoặc AppId+UserId hash hoặc IP fallback) ✅
+- `apiLimiter` (line 24-31): dùng `ipKeyGenerator(req.ip)` cho general routes — IP-only ⚠️
+
+Tuy nhiên, `req.ip` trong Express phụ thuộc vào `trust proxy` setting. Nếu app chạy behind reverse proxy (Render, Railway, Fly.io) mà không set `app.set('trust proxy', 1)`, `req.ip` sẽ luôn là IP của proxy, không phải client.
+
+**Actual risk:** `apiLimiter` apply cho general routes (không phải AI routes), nên blast radius thấp. AI routes đã được bảo vệ bởi `aiApiLimiter` với identity-aware key.
+
+### Decision
+
+> **AI routes (`/api/interpret*`) phải luôn dùng `aiApiLimiter` với `getAiRequesterKey()`.**
+> **Server phải cấu hình `trust proxy` phù hợp với deployment environment.**
+>
+> Khi deploy behind reverse proxy:
+> ```typescript
+> app.set('trust proxy', 1); // trust first proxy
+> ```
+>
+> `apiLimiter` cho general routes có thể tiếp tục dùng IP-based key, vì đây là defense-in-depth, không phải primary auth gate.
+
+### Consequences
+
+- AI rate limiting hoạt động đúng per-user thay vì per-proxy-IP
+- **Trade-off:** `trust proxy` cần được set đúng theo deployment — sai setting có thể cho phép IP spoofing via X-Forwarded-For
+
+**Xem thêm:** `server/_core/rateLimit.ts`, `server/_core/index.ts`
+
+---
+
+## ADR-AL-65 — TS Store schema version phải theo Rust migration version
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-05-17
+**VHEATM Level:** 🔴 MANDATORY
+**VHEATM Cycle:** C3 — Data & Persistence
+**Tags:** `schema` `migration` `data-integrity` `store`
+**CWE:** CWE-664
+
+### Context
+
+VHEATM C3 audit phát hiện `StoreService.SCHEMA_VERSION = 7` trong `lib/services/store.ts` trong khi Rust store đã migrate lên `user_version = 8` (thêm cột `source_type` vào bảng `sources`). Web path code đọc từ `sources` sẽ trả về rows thiếu `source_type`, gây silent incorrect behavior.
+
+### Decision
+
+> **TS store schema version phải luôn bằng Rust store schema version.**
+> - Mỗi khi Rust thêm migration (v8, v9, ...), phải thêm migration tương ứng vào TS store.
+> - Cần CI check: assert `StoreService.SCHEMA_VERSION === RUST_SCHEMA_VERSION` (từ file config chung).
+> - Missing migration causes web path to return incomplete Source objects.
+
+### Consequences
+
+- Data consistency giữa web và Android paths
+- **Trade-off:** TS migrations phải được maintain song song với Rust migrations
+
+**Xem thêm:** `lib/services/store.ts:24`, `core/src/store.rs:243`
+
+---
+
+## ADR-AL-66 — StoreService initialize phải dùng promise guard, không boolean flag
+
+**Status:** ✅ ACCEPTED
+**Date:** 2026-05-17
+**VHEATM Level:** 🔴 MANDATORY
+**VHEATM Cycle:** C3 — Data & Persistence
+**Tags:** `store` `concurrency` `initialization`
+**CWE:** CWE-362
+
+### Context
+
+VHEATM C3 audit phát hiện `StoreService.initialize()` dùng `boolean` flag `this.initialized` làm guard. Khi hai async callers mount đồng thời, cả hai đọc `initialized === false` và cả hai proceed to open database, run migrations, and seed data — creating a double-init race.
+
+### Decision
+
+> **`initialize()` phải dùng promise cache làm guard, không boolean:**
+> ```typescript
+> private initPromise: Promise<void> | null = null;
+> async initialize(): Promise<void> {
+>   if (this.initialized) return;
+>   if (this.initPromise) return this.initPromise;
+>   this.initPromise = this._doInit();
+>   return this.initPromise;
+> }
+> ```
+
+**Fix applied:** `lib/services/store.ts` đã được cập nhật trong session này.
+
+### Consequences
+
+- Concurrent initialization calls share one promise
+- **Trade-off:** `initPromise` phải được reset (`null`) khi init fails để allow retry
+
+**Xem thêm:** `lib/services/store.ts:26-47`
+
+---
+
+## ADR-AL-67 — Daily reading limit check phải là atomic check-and-increment
+
+**Status:** ⚠️ DEFERRED (requires schema change)
+**Date:** 2026-05-17
+**VHEATM Level:** 🟡 RECOMMENDED
+**VHEATM Cycle:** C3 — Data & Persistence + C6 — Product
+**Tags:** `data-integrity` `concurrency` `daily-limit`
+**CWE:** CWE-367 (TOCTOU)
+
+### Context
+
+VHEATM C3-R11 + C6-R03 phát hiện daily reading limit được enforce bởi pattern: read `readings_today` → compare → (later) increment. Đây là TOCTOU race: nếu 2 concurrent `performReading` calls cùng read `readings_today = 2` (limit = 3), cả hai pass và user có thể exceed limit.
+
+### Decision
+
+> **Daily limit check phải là atomic SQL operation:**
+> ```sql
+> UPDATE user_state
+> SET readings_today = readings_today + 1
+> WHERE user_id = ? AND (subscription_tier = 'pro' OR readings_today < ?)
+> ```
+> Check `changes()` == 0 to detect limit hit before creating reading session.
+>
+> **Deferred vì:** Requires refactoring cả reading-engine.ts lẫn reading.rs với transaction semantics. Planned for Cycle 7.
+
+### Consequences
+
+- Eliminates race condition in daily limit enforcement
+- **Trade-off:** Requires rethinking performReading → chooseSymbol sequence
+
+**Xem thêm:** `lib/services/reading-engine.ts:44-54`, `core/src/reading.rs:31-45`
+
+---
+
+## ADR-AL-68 — Server phải có Sentry error tracking (không chỉ client)
+
+**Status:** ⚠️ DEFERRED (requires @sentry/node install)
+**Date:** 2026-05-17
+**VHEATM Level:** 🔴 MANDATORY
+**VHEATM Cycle:** C4 — Observability & Ops
+**Tags:** `observability` `sentry` `server` `error-tracking`
+
+### Context
+
+VHEATM C4-R02 phát hiện Sentry chỉ được khởi tạo trên client (`@sentry/react-native`). Express/Node server có zero crash reporting. AI provider failures, OAuth errors, DB failures đều không được captured và không có alert.
+
+### Decision
+
+> **Server phải có `@sentry/node` initialization trước khi ship production:**
+> ```typescript
+> // server/_core/index.ts
+> import * as Sentry from "@sentry/node";
+> Sentry.init({ dsn: process.env.SENTRY_DSN, environment: process.env.NODE_ENV });
+> ```
+> Cộng thêm tRPC `errorFormatter` và Express error handler.
+>
+> **Deferred vì:** Requires package install và CI dependency update. Planned pre-launch.
+
+### Consequences
+
+- Server crashes/errors sẽ được captured và alert
+- **Trade-off:** Sentry DSN phải không xuất hiện trong client bundle (server-only env var)
+
+**Xem thêm:** `lib/sentry.ts`, `server/_core/index.ts`
+
+---
+
+## ADR-AL-69 — AI model tier selection phải được verify server-side
+
+**Status:** ⚠️ DEFERRED (requires IAP integration)
+**Date:** 2026-05-17
+**VHEATM Level:** 🔴 MANDATORY
+**VHEATM Cycle:** C5 — AI Safety (MAESTRO: Model Abuse)
+**Tags:** `ai-safety` `model-selection` `subscription` `security`
+
+### Context
+
+VHEATM C5-R04 phát hiện `use_sonnet` flag được determine từ client-side `getUserState()` call. Subscription tier lưu trong writable local SQLite. Một modified client có thể set `useSonnet = true` mà không có Pro subscription, gây call claude-sonnet-4-6 (đắt hơn 3x) mà không authorize.
+
+### Decision
+
+> **Subscription tier verification cho model selection phải xảy ra server-side:**
+> - Giải pháp: Khi `/api/interpret/stream` nhận request, resolve subscription tier từ JWT claims hoặc server-side user lookup, không từ client-supplied flag.
+> - Client không được gửi bất kỳ flag nào để ảnh hưởng đến model selection.
+>
+> **Deferred vì:** Phụ thuộc vào RevenueCat IAP integration (C6-R01 + C6-R02) và proper JWT claims. Planned cùng với IAP milestone.
+
+### Consequences
+
+- Model abuse không còn possible sau khi fix
+- **Trade-off:** Requires server-side subscription verification infrastructure
+
+**Xem thêm:** `lib/services/ai-runtime.ts:92-108`, `server/_core/interpretationService.ts`
+
+---
+
+## ADR-AL-70 — Paywall phải có thật IAP integration trước beta close
+
+**Status:** ⚠️ DEFERRED (P0 pre-launch gate)
+**Date:** 2026-05-17
+**VHEATM Level:** 🔴 MANDATORY
+**VHEATM Cycle:** C6 — Product & Cross-cutting
+**Tags:** `paywall` `iap` `subscription` `revenue`
+
+### Context
+
+VHEATM C6-R01 + C6-R02 phát hiện:
+1. Paywall `handlePurchase` chỉ set UI notice string, không có RevenueCat/StoreKit/Google Play Billing call
+2. `subscription_tier` lưu trong writable local SQLite — bất kỳ user nào cũng có thể self-upgrade
+
+Đây là **P0 product gap**: app không thể monetize cho đến khi có real IAP integration.
+
+### Decision
+
+> **Trước beta close, phải implement:**
+> 1. RevenueCat SDK integration (iOS + Android)
+> 2. On purchase success: `coreStore.updateUserState({ subscription_tier: "pro" })` từ verified receipt
+> 3. Server-side tier verification từ RevenueCat entitlement API (không từ local SQLite)
+> 4. Restore purchases flow
+>
+> **Interim:** Beta users nhận Pro access qua promo codes / manual tier set.
+
+### Consequences
+
+- Enables monetization
+- Eliminates client-side tier bypass (C6-R02)
+- **Trade-off:** RevenueCat adds ~2MB to bundle size; billing logic phức tạp hơn
+
+**Xem thêm:** `app/.paywall/index.tsx:62-63`, `lib/services/store.ts:262-280`
+
+---
+
+## Production Readiness Verdict — VHEATM 6-Cycle Audit
+
+**Date:** 2026-05-17
+**Verdict:** ⚠️ **CONDITIONAL — NOT READY FOR PRODUCTION**
+
+### Executive Summary
+
+Sau 6 cycles VHEATM audit, codebase đạt chất lượng tốt về architecture (offline-first, dual-path inference, proper error isolation) nhưng có các **blocking gaps** phải được resolve trước production launch.
+
+### Blocking Issues (Must Fix Before Launch)
+
+| ID | Issue | Impact |
+|---|---|---|
+| C6-R01 | No IAP integration — paywall is a stub | Cannot monetize |
+| C6-R02 | Subscription tier client-writable — trivially bypassable | Revenue loss |
+| C3-R17 | `EXPO_PUBLIC_OWNER_OPEN_ID` → admin identity in client bundle | Security breach |
+| C5-R03 | `use_sonnet` scoping bug in Rust — compilation failure | App won't build |
+| C4-R02 | No server-side Sentry | Zero crash visibility in prod |
+| C2-R01 | Gemini key in URL query param | API key exposure in logs |
+
+**Status of blocking issues after this session:**
+- ✅ C3-R17: FIXED (removed EXPO_PUBLIC_ fallback)
+- ✅ C5-R03: FIXED (use_sonnet properly threaded through call chain)
+- ✅ C2-R01: FIXED (Gemini key moved to x-goog-api-key header)
+- ⚠️ C6-R01/R02: DEFERRED (requires RevenueCat integration — ADR-AL-70)
+- ⚠️ C4-R02: DEFERRED (requires @sentry/node — ADR-AL-68)
+
+### High Severity (Fix in Next Cycle)
+
+| ID | Issue |
+|---|---|
+| C3-R01 | TS store at schema v7, Rust at v8 — source_type missing on web path |
+| C3-R02 | Store double-init race (FIXED in this session) |
+| C3-R11 | Daily limit TOCTOU race (ADR-AL-67, deferred) |
+| C5-R01 | Passage fields need max length constraints (FIXED) |
+| C5-R09 | Beta auth path accepts any userId without verification |
+| C4-R01 | Bare console.* bypass structured logger in server |
+| C4-R13 | No alerting on payment failures |
+
+### Architecture Assessment
+
+**Strengths:**
+- Offline-first core loop (ADR-AL-1) — solid
+- Rust/UniFFI native path (Android) — well-structured
+- Dual AI inference path (local + cloud fallback) — correctly implemented
+- Error boundary patterns — good TypeScript discipline
+- Analytics taxonomy — comprehensive events
+
+**Weaknesses requiring roadmap items:**
+- Schema version sync between Rust and TypeScript (C3-R01)
+- Server observability gap (C4-R02, C4-R14)
+- Client-side subscription enforcement (C5-R04, C6-R02)
+- iOS native path pending (ADR-AL-62)
+
+### Recommended Path to Production
+
+1. **Immediate (before any TestFlight/beta release):**
+   - Fix remaining TS schema drift (C3-R01)
+   - Verify Rust compilation with use_sonnet fix
+   - Remove `console.log` PII in server/db.ts (C4-R11)
+
+2. **Before open beta close:**
+   - RevenueCat IAP integration (C6-R01, C6-R02)
+   - Server-side Sentry (@sentry/node) (C4-R02)
+   - Trust proxy configuration for rate limiting (ADR-AL-64)
+
+3. **Before App Store submission:**
+   - Server-side subscription tier verification (C5-R04, ADR-AL-69)
+   - Atomic daily limit enforcement (C3-R11, ADR-AL-67)
+   - Security headers via helmet (C5-R15)
+   - Remove beta dual-auth path (C5-R09, ADR-AL-46 Phase 2)
