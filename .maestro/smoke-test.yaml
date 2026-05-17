@@ -1,0 +1,28 @@
+# Flow 3: Smoke Test - Critical Path
+appId: space.manus.aletheia.app.t20260318170859
+name: "Smoke Test - Critical Path"
+---
+- launchApp
+- runFlow:
+    when:
+      visible:
+        id: "onboarding-primary-action"
+    file: onboarding-subflow.yaml
+- assertVisible:
+    id: "home-start-reading"
+- tapOn:
+    id: "home-start-reading"
+- assertVisible:
+    id: "reading-situation-title"
+- inputText:
+    id: "reading-situation-input"
+    text: "Smoke test Android flow"
+- tapOn:
+    id: "reading-situation-continue"
+- assertVisible:
+    id: "reading-wildcard-title"
+- tapOn:
+    id: "reading-wildcard-auto"
+- assertVisible:
+    id: "reading-passage-card"
+- takeScreenshot: smoke-test-success
