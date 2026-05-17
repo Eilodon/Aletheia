@@ -401,6 +401,7 @@ impl AIClient {
         let request_body = serde_json::json!({
             "model": if use_sonnet { CLAUDE_SONNET_MODEL } else { CLAUDE_MODEL },
             "max_tokens": 400,
+            "temperature": 0.4,
             "stream": true,
             "system": [
                 {
@@ -465,6 +466,7 @@ impl AIClient {
         let request_body = serde_json::json!({
             "model": GPT_MODEL,
             "max_tokens": 200,
+            "temperature": 0.4,
             "stream": true,
             "messages": [
                 { "role": "system", "content": SYSTEM_PROMPT },
@@ -528,7 +530,7 @@ impl AIClient {
             }],
             "generationConfig": {
                 "maxOutputTokens": 200,
-                "temperature": 0.55,
+                "temperature": 0.4,
             }
         });
 

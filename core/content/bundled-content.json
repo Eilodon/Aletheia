@@ -13,7 +13,7 @@
         "Sự thay đổi bắt đầu từ đâu?"
       ],
       "passage_count": 10,
-      "source_type": "hexagram"
+      "source_type": "bibliomancy"
     },
     {
       "id": "tao_te_ching",
@@ -117,7 +117,7 @@
       "resonance_context": "Về việc lộn xộn ban đầu là bình thường, không phải dấu hiệu thất bại. Dành cho user đang bắt đầu điều gì đó và cảm thấy choáng ngợp."
     },
     {
-      "id": "iching_4",
+      "id": "iching_11",
       "source_id": "i_ching",
       "reference": "Hexagram 11 · 泰 (Tài)",
       "text": "Peace. The small departs, the great approaches. Good fortune. Success.",
@@ -125,7 +125,7 @@
       "resonance_context": "Về một giai đoạn khi mọi thứ đang chảy đúng hướng. Dành cho user lo lắng sự bình yên hiện tại sẽ không kéo dài."
     },
     {
-      "id": "iching_5",
+      "id": "iching_15",
       "source_id": "i_ching",
       "reference": "Hexagram 15 · 謙 (Qiān)",
       "text": "Modesty creates success. The superior person carries things through.",
@@ -133,7 +133,7 @@
       "resonance_context": "Về sức mạnh ẩn trong sự khiêm tốn, không phô trương. Dành cho user cảm thấy bị đánh giá thấp hoặc đang cân nhắc có nên thể hiện mình không."
     },
     {
-      "id": "iching_6",
+      "id": "iching_24",
       "source_id": "i_ching",
       "reference": "Hexagram 24 · 復 (Fù)",
       "text": "Return. Success. Going out and coming in without error.",
@@ -141,7 +141,7 @@
       "resonance_context": "Về việc quay lại điều cốt lõi sau khi đi lạc. Dành cho user đang cảm thấy xa rời bản thân hoặc cần reset."
     },
     {
-      "id": "iching_7",
+      "id": "iching_29",
       "source_id": "i_ching",
       "reference": "Hexagram 29 · 坎 (Kǎn)",
       "text": "The Abysmal. If you are sincere, you have success in your heart.",
@@ -149,7 +149,7 @@
       "resonance_context": "Về việc tiếp tục dù đang trong vùng nguy hiểm hoặc không chắc chắn. Dành cho user đang trong tình huống áp lực cao."
     },
     {
-      "id": "iching_8",
+      "id": "iching_31",
       "source_id": "i_ching",
       "reference": "Hexagram 31 · 咸 (Xián)",
       "text": "Influence. Success. Perseverance furthers.",
@@ -157,7 +157,7 @@
       "resonance_context": "Về việc cảm xúc và ảnh hưởng tác động qua lại tự nhiên. Dành cho user đang trong một mối quan hệ hoặc tình huống cần sự kết nối."
     },
     {
-      "id": "iching_9",
+      "id": "iching_47",
       "source_id": "i_ching",
       "reference": "Hexagram 47 · 困 (Kùn)",
       "text": "Oppression. Success. Perseverance. The great person brings about good fortune.",
@@ -165,7 +165,7 @@
       "resonance_context": "Về việc giữ phẩm giá khi bị cản trở hoặc bị đè nén. Dành cho user cảm thấy bế tắc bởi hoàn cảnh bên ngoài."
     },
     {
-      "id": "iching_10",
+      "id": "iching_64",
       "source_id": "i_ching",
       "reference": "Hexagram 64 · 未濟 (Wèi Jì)",
       "text": "Before completion. Success. The fox gets its tail in the water.",
@@ -789,6 +789,46 @@
     {
       "symbol_id": "thunder",
       "question": "Bạn sẵn sàng cho sự thay đổi đột ngột"
-    }
+    },
+    { "symbol_id": "mountain", "question": "Bạn đang đứng trên đỉnh nào" },
+    { "symbol_id": "valley", "question": "Điều gì đang được tích tụ trong chiều sâu" },
+    { "symbol_id": "river", "question": "Bạn đang chảy về phía nào" },
+    { "symbol_id": "ocean", "question": "Cái gì trong bạn là rộng lớn hơn bạn nghĩ" },
+    { "symbol_id": "candle", "question": "Bạn đang chiếu sáng cho ai" },
+    { "symbol_id": "mirror", "question": "Bạn thấy gì mà bạn chưa dám nhìn nhận" },
+    { "symbol_id": "key", "question": "Cánh cửa nào bạn đã có chìa mà chưa mở" },
+    { "symbol_id": "bridge", "question": "Bạn đang nối liền hai phần nào của mình" },
+    { "symbol_id": "seed", "question": "Bạn đang kiên nhẫn chờ gì nảy mầm" },
+    { "symbol_id": "fire", "question": "Điều gì khiến bạn còn muốn thức dậy" },
+    { "symbol_id": "water", "question": "Bạn đang uốn quanh hay đang tìm cách xuyên qua" },
+    { "symbol_id": "stone", "question": "Điều gì trong bạn không cần thay đổi" },
+    { "symbol_id": "wind", "question": "Thứ gì đang lay động mà bạn chưa để ý" },
+    { "symbol_id": "light", "question": "Bạn đang tiến về phía nào" },
+    { "symbol_id": "shadow", "question": "Điều gì bạn đang mang theo mà không nhìn thấy" },
+    { "symbol_id": "silence", "question": "Khi yên lặng, bạn nghe thấy gì trong mình" },
+    { "symbol_id": "dawn", "question": "Điều gì đang bắt đầu dù bạn chưa đặt tên" },
+    { "symbol_id": "door", "question": "Bạn đang chờ ai mở cửa cho bạn" },
+    { "symbol_id": "thunder", "question": "Điều gì vừa rõ ràng hơn sau cú sốc" },
+    { "symbol_id": "earth", "question": "Bạn đang đứng vững trên nền gì" },
+    { "symbol_id": "void", "question": "Khoảng trống nào đang mời bạn điền vào" },
+    { "symbol_id": "metal", "question": "Điều gì cần được mài giũa thêm" },
+    { "symbol_id": "wood", "question": "Bạn đang cong về phía ánh sáng nào" },
+    { "symbol_id": "air", "question": "Bạn cần thở ra điều gì trước" },
+    { "symbol_id": "candle", "question": "Ngọn lửa nào bạn không muốn tắt" },
+    { "symbol_id": "mirror", "question": "Ai đang nhìn bạn qua đôi mắt của bạn" },
+    { "symbol_id": "river", "question": "Bạn đang cưỡng lại dòng chảy nào" },
+    { "symbol_id": "mountain", "question": "Bạn leo lên vì muốn đến hay vì muốn rời" },
+    { "symbol_id": "seed", "question": "Điều gì cần thêm thời gian để bạn không thúc ép nữa" },
+    { "symbol_id": "dawn", "question": "Bạn mang gì từ đêm qua vào ngày hôm nay" },
+    { "symbol_id": "stone", "question": "Điều gì bạn muốn buông nhưng chưa thể" },
+    { "symbol_id": "fire", "question": "Bạn đang nuôi dưỡng hay đang bùng cháy" },
+    { "symbol_id": "ocean", "question": "Điều gì đang kéo bạn xuống sâu hơn" },
+    { "symbol_id": "valley", "question": "Bạn đang tụ năng lượng cho điều gì" },
+    { "symbol_id": "key", "question": "Bạn đang giữ chìa khóa của ai" },
+    { "symbol_id": "bridge", "question": "Bạn đang bắc cầu hay đang đứng giữa" },
+    { "symbol_id": "silence", "question": "Điều gì bạn nói với chính mình khi không ai nghe" },
+    { "symbol_id": "void", "question": "Bạn sợ điều gì nằm trong khoảng không đó" },
+    { "symbol_id": "wind", "question": "Bạn đang thả hay đang giữ" },
+    { "symbol_id": "light", "question": "Điều gì đang trở nên rõ hơn dù bạn không mong" }
   ]
 }

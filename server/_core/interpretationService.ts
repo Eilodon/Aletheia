@@ -5,6 +5,7 @@ import { logger } from "./logger";
 import { ENV } from "./env";
 
 const DEFAULT_LOCAL_MODEL = "qwen2.5:1.5b";
+const DEFAULT_CLAUDE_MODEL = "claude-haiku-4-5-20251001"; // Matches Rust CLAUDE_MODEL
 const DEFAULT_OPENAI_MODEL = "gpt-4.1-mini";
 const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 const DEFAULT_TIMEOUT_MS = Math.max(AI_STREAM_TIMEOUT_MS, 120_000);
@@ -19,6 +20,8 @@ const OLLAMA_MODEL_PRIORITY = [
   "mistral:7b",
 ];
 
+// SYNC-SOURCE: Phải khớp với SYSTEM_PROMPT trong core/src/ai_client.rs.
+// Khi update một bên, update cả hai. Divergence gây inconsistency giữa native và server path.
 const systemPrompt = `Bạn là một chiếc gương, không phải nhà tiên tri, không phải chuyên gia tư vấn.
 Bạn phản chiếu lại điều đã hiện ra, để người đọc tự nghe thấy mình rõ hơn.
 
@@ -41,7 +44,38 @@ Tuyệt đối không:
 Luôn kết thúc bằng một câu hỏi mở ngắn để người đọc tự nghĩ tiếp.
 - Câu hỏi phải hỏi về hiện tại, không hỏi về tương lai
 - Dưới 15 từ
-- Ở dòng riêng cuối cùng, format: *[câu hỏi]*`;
+- Ở dòng riêng cuối cùng, format: *[câu hỏi]*
+
+---
+
+Hiệu chỉnh tone theo từng truyền thống:
+- I Ching / Kinh Dịch: ngôn ngữ biểu tượng và hình ảnh tự nhiên, nhịp điệu của sự chuyển hóa — âm dương không đứng yên
+- Tao Te Ching / Đạo Đức Kinh: tối giản, nghịch lý nhẹ nhàng, không áp đặt — "nước chảy xuống thấp mà thấm vào mọi nơi"
+- Rumi / Masnavi: ấm áp và thi ca, hình ảnh ngọn lửa và ánh sáng, khao khát và cảm giác thuộc về
+- Hafez / Divan: vui tươi và nhẹ nhàng, ẩn dụ rượu và vườn hoa, sự chấp nhận những điều bình thường
+- Bible / KJV: trắc ẩn và cộng đồng, ân sủng không điều kiện, sức nặng và sự nhẹ nhõm cùng tồn tại
+- Marcus Aurelius / Meditations: trực tiếp và thực tế, lý trí phục vụ hành động — không lãng mạn hóa khó khăn
+
+---
+
+Ví dụ phản chiếu đúng (few-shot calibration):
+
+Ví dụ 1:
+Tình huống: "Tôi không biết có nên tiếp tục dự án này không, cảm giác mệt mỏi lắm rồi"
+Passage (Tao Te Ching): "Nước không tranh với đá, nhưng cuối cùng đá cũng mòn"
+Biểu tượng: Sóng nước
+Phản chiếu tốt: "Cái mệt mỏi bạn nhắc đến không nhất thiết là dấu hiệu sai đường — đôi khi nó là dấu hiệu rằng bạn đã đổ ra đủ rồi, và cần một nhịp để thấm vào. Nước không cạn vì chảy; nó cạn khi không còn được bổ sung."
+*Điều gì đang bổ sung lại cho bạn lúc này?*
+
+Ví dụ 2 (không có tình huống):
+Passage (Marcus Aurelius): "Tất cả những gì ngăn cản ta thường là chính bản thân ta"
+Biểu tượng: Chìa khóa
+Phản chiếu tốt: "Có một cửa nào đó đang chờ — không phải vì nó khó mở, mà vì tay bạn chưa thật sự đặt lên tay nắm. Không phải thiếu năng lực, mà là thiếu một khoảnh khắc dứt khoát với chính mình."
+*Hôm nay bạn đang giữ chìa khóa nào mà chưa dùng?*
+
+Ví dụ KHÔNG đúng (để nhận ra và tránh):
+"Bạn đang trải qua một giai đoạn khó khăn nhưng mọi chuyện rồi sẽ ổn. Hãy tin vào bản thân và tiếp tục bước đi. Bạn có đủ sức mạnh để vượt qua thử thách này. Tôi ở đây cùng bạn."
+→ Sai vì: lời động viên rỗng, khẳng định tương lai, không mirror ngôn ngữ của người dùng, nhập vai cảm xúc.`;
 
 const symbolSchema = z.object({
   id: z.string().min(1),
@@ -76,7 +110,7 @@ export type InterpretationResult = {
   chunks: string[];
   usedFallback: boolean;
   mode: "local" | "cloud" | "fallback";
-  provider: "ollama" | "openai" | "gemini" | "fallback";
+  provider: "anthropic" | "ollama" | "openai" | "gemini" | "fallback";
   model: string;
 };
 
@@ -87,7 +121,7 @@ export type InterpretationStreamEvent =
       text: string;
       usedFallback: boolean;
       mode: "local" | "cloud" | "fallback";
-      provider: "ollama" | "openai" | "gemini" | "fallback";
+      provider: "anthropic" | "ollama" | "openai" | "gemini" | "fallback";
       model: string;
     };
 
@@ -98,6 +132,7 @@ type LocalProviderConfig = {
 };
 
 type CloudProviderConfig =
+  | { kind: "anthropic"; apiKey: string; model: string }
   | { kind: "openai"; apiKey: string; model: string }
   | { kind: "gemini"; apiKey: string; model: string }
   | null;
@@ -310,20 +345,26 @@ function getLocalProviderConfig(): LocalProviderConfig | null {
 function getCloudProviderConfig(): CloudProviderConfig {
   const provider = (ENV.interpretationCloudProvider || "").toLowerCase();
 
+  // Explicit selection via env var
+  if (provider === "anthropic" && ENV.claudeApiKey) {
+    return { kind: "anthropic", apiKey: ENV.claudeApiKey, model: ENV.interpretationCloudModel || DEFAULT_CLAUDE_MODEL };
+  }
   if (provider === "openai" && ENV.openAiApiKey) {
-    return {
-      kind: "openai",
-      apiKey: ENV.openAiApiKey,
-      model: ENV.interpretationCloudModel || DEFAULT_OPENAI_MODEL,
-    };
+    return { kind: "openai", apiKey: ENV.openAiApiKey, model: ENV.interpretationCloudModel || DEFAULT_OPENAI_MODEL };
+  }
+  if (provider === "gemini" && ENV.geminiApiKey) {
+    return { kind: "gemini", apiKey: ENV.geminiApiKey, model: ENV.interpretationCloudModel || DEFAULT_GEMINI_MODEL };
   }
 
-  if (provider === "gemini" && ENV.geminiApiKey) {
-    return {
-      kind: "gemini",
-      apiKey: ENV.geminiApiKey,
-      model: ENV.interpretationCloudModel || DEFAULT_GEMINI_MODEL,
-    };
+  // Auto-detect: Claude → OpenAI → Gemini (matches Rust provider priority)
+  if (ENV.claudeApiKey) {
+    return { kind: "anthropic", apiKey: ENV.claudeApiKey, model: DEFAULT_CLAUDE_MODEL };
+  }
+  if (ENV.openAiApiKey) {
+    return { kind: "openai", apiKey: ENV.openAiApiKey, model: DEFAULT_OPENAI_MODEL };
+  }
+  if (ENV.geminiApiKey) {
+    return { kind: "gemini", apiKey: ENV.geminiApiKey, model: DEFAULT_GEMINI_MODEL };
   }
 
   return null;
@@ -414,9 +455,9 @@ async function runOllamaInterpretation(
       prompt,
       stream: Boolean(stream),
       options: {
-        temperature: 0.35,
+        temperature: 0.4,
         repeat_penalty: 1.15,
-        num_predict: 110,
+        num_predict: 140,
       },
     }),
   });
@@ -539,6 +580,93 @@ async function runOllamaInterpretation(
   };
 }
 
+async function runAnthropicInterpretation(
+  request: InterpretationRequest,
+  onEvent?: (event: InterpretationStreamEvent) => void,
+): Promise<InterpretationResult> {
+  const config = getCloudProviderConfig();
+  if (!config || config.kind !== "anthropic") {
+    throw new Error("Anthropic not configured.");
+  }
+
+  const prompt = buildPrompt(request);
+  const streaming = !!onEvent;
+
+  const response = await fetchWithTimeout("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "x-api-key": config.apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-beta": "prompt-caching-2024-07-31",
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: config.model,
+      max_tokens: 400,
+      stream: streaming,
+      system: [{ type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } }],
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  if (!response.ok) {
+    const reason = await response.text().catch(() => "");
+    throw new Error(`Anthropic ${response.status}: ${reason.slice(0, 200)}`);
+  }
+
+  if (!streaming) {
+    const body = (await response.json()) as { content?: Array<{ type: string; text?: string }> };
+    const text = finalizeInterpretationText(
+      body.content?.find((b) => b.type === "text")?.text ?? "",
+      request.sourceLanguage,
+    );
+    if (!text) throw new Error("Anthropic returned empty response.");
+    return { text, chunks: [text], usedFallback: false, mode: "cloud", provider: "anthropic", model: config.model };
+  }
+
+  // Streaming path
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error("Anthropic stream body unavailable.");
+  const decoder = new TextDecoder();
+  let buffer = "";
+  const chunks: string[] = [];
+  let fullText = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    while (true) {
+      const nl = buffer.indexOf("\n");
+      if (nl === -1) break;
+      const line = buffer.slice(0, nl).trim();
+      buffer = buffer.slice(nl + 1);
+      if (!line.startsWith("data: ")) continue;
+      const payload = line.slice(6).trim();
+      if (payload === "[DONE]") break;
+      let json: Record<string, unknown>;
+      try { json = JSON.parse(payload) as Record<string, unknown>; } catch { continue; }
+      const delta = json?.delta as Record<string, unknown> | undefined;
+      if (delta?.type === "text_delta" && typeof delta.text === "string") {
+        chunks.push(delta.text);
+        fullText += delta.text;
+        onEvent!({ type: "chunk", chunk: delta.text });
+      }
+      if (json?.type === "message_stop") break;
+    }
+  }
+
+  const text = finalizeInterpretationText(fullText, request.sourceLanguage);
+  if (!text) throw new Error("Anthropic stream ended without text.");
+
+  const result: InterpretationResult = {
+    text, chunks: chunks.length ? chunks : [text],
+    usedFallback: false, mode: "cloud", provider: "anthropic", model: config.model,
+  };
+  onEvent!({ type: "done", text: result.text, usedFallback: false, mode: "cloud", provider: "anthropic", model: config.model });
+  return result;
+}
+
 async function runOpenAIInterpretation(request: InterpretationRequest): Promise<InterpretationResult> {
   const config = getCloudProviderConfig();
   if (!config || config.kind !== "openai") {
@@ -558,7 +686,7 @@ async function runOpenAIInterpretation(request: InterpretationRequest): Promise<
         { role: "user", content: buildPrompt(request) },
       ],
       max_tokens: 180,
-      temperature: 0.55,
+      temperature: 0.4,
       stream: false,
     }),
   });
@@ -608,7 +736,7 @@ async function runGeminiInterpretation(request: InterpretationRequest): Promise<
         ],
         generationConfig: {
           maxOutputTokens: 180,
-          temperature: 0.55,
+          temperature: 0.4,
         },
       }),
     },
@@ -669,7 +797,7 @@ async function runGeminiStreamInterpretation(
         ],
         generationConfig: {
           maxOutputTokens: 180,
-          temperature: 0.55,
+          temperature: 0.4,
         },
       }),
     },
@@ -762,13 +890,10 @@ async function runGeminiStreamInterpretation(
 
 async function runCloudInterpretation(request: InterpretationRequest): Promise<InterpretationResult> {
   const config = getCloudProviderConfig();
-  if (!config) {
-    throw new Error("Cloud interpretation is not configured.");
-  }
+  if (!config) throw new Error("Cloud interpretation is not configured.");
 
-  return config.kind === "openai"
-    ? runOpenAIInterpretation(request)
-    : runGeminiInterpretation(request);
+  if (config.kind === "anthropic") return runAnthropicInterpretation(request);
+  return config.kind === "openai" ? runOpenAIInterpretation(request) : runGeminiInterpretation(request);
 }
 
 export function buildFallbackResult(request: InterpretationRequest): InterpretationResult {
@@ -840,14 +965,16 @@ export async function streamInterpretation(
 
   try {
     const config = getCloudProviderConfig();
-    // Use true streaming for Gemini; OpenAI falls back to batch + chunked emit
-    const rawCloud = config?.kind === "gemini"
-      ? await runGeminiStreamInterpretation(request, onEvent)
-      : await runCloudInterpretation(request);
+    // Native streaming: Anthropic SSE, Gemini SSE. OpenAI: batch + chunked emit.
+    const rawCloud = config?.kind === "anthropic"
+      ? await runAnthropicInterpretation(request, onEvent)
+      : config?.kind === "gemini"
+        ? await runGeminiStreamInterpretation(request, onEvent)
+        : await runCloudInterpretation(request);
 
     const cloudResult = withOutputSafety(rawCloud, request);
 
-    if (config?.kind !== "gemini") {
+    if (config?.kind !== "gemini" && config?.kind !== "anthropic") {
       for (const chunk of cloudResult.chunks) {
         onEvent({ type: "chunk", chunk });
       }

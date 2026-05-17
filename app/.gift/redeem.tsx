@@ -17,6 +17,7 @@ export default function GiftRedeemScreen() {
   const [redeemResult, setRedeemResult] = useState<{
     success: boolean;
     sourceName?: string;
+    sourceId?: string;
     buyerNote?: string;
     error?: string;
   } | null>(null);
@@ -45,7 +46,8 @@ export default function GiftRedeemScreen() {
       if (gift) {
         setRedeemResult({
           success: true,
-          sourceName: gift.source_id ?? undefined,
+          sourceName: gift.source_name ?? gift.source_id ?? undefined,
+          sourceId: gift.source_id ?? undefined,
           buyerNote: gift.buyer_note ?? undefined,
         });
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -89,7 +91,7 @@ export default function GiftRedeemScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.replace({
       pathname: "/reading/situation",
-      params: redeemResult?.sourceName ? { sourceId: redeemResult.sourceName } : {},
+      params: redeemResult?.sourceId ? { sourceId: redeemResult.sourceId } : {},
     });
   };
 

@@ -109,3 +109,16 @@ aletheia/
 - Trên một số máy thật Xiaomi/MIUI, `maestro launchApp` ngay sau `pm clear` có thể flaky; dùng `pnpm smoke:e2e:android:device -- <adb-serial>` sẽ ổn định hơn vì warm-launch bằng ADB trước
 - Gift backend và monetization đã được disable trong beta theo checklist
 - Chỉ build cho arm64-v8a (minSdkVersion: 24)
+
+## Required Secrets (GitHub Actions)
+
+| Secret | Mô tả |
+|--------|--------|
+| `EXPO_TOKEN` | Token từ expo.dev → Account → Access tokens |
+| `EAS_PROJECT_ID` | UUID từ `npx eas project:init` |
+| `EXPO_OWNER_NAME` | Username Expo account |
+| `ANTHROPIC_API_KEY` | Claude API key — bắt buộc cho AI interpretation |
+| `ALETHEIA_APP_SECRET` | Shared secret client-server (generate: `openssl rand -hex 32`) |
+
+Không có `ANTHROPIC_API_KEY`: build thành công nhưng AI trả fallback text.
+Không có `ALETHEIA_APP_SECRET`: aiConfig endpoint từ chối trả keys về client.

@@ -217,9 +217,10 @@ describe("StoreService", () => {
     mockDb.getAllAsync.mockClear();
     mockDb.runAsync.mockClear();
     mockDb.execAsync.mockClear();
-    const storeInternal = store as unknown as { db: unknown; initialized: boolean };
+    const storeInternal = store as unknown as { db: unknown; initialized: boolean; initPromise: Promise<void> | null };
     storeInternal.db = null;
     storeInternal.initialized = false;
+    storeInternal.initPromise = null;
   });
 
   afterEach(() => {

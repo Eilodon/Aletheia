@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getApiBaseUrl } from "@/constants/oauth";
 import { aiClient, type AIInterpretationResult, type AIRequest, type AIStreamSession } from "./ai-client";
 import { aletheiaNativeClient } from "@/lib/native/aletheia-core";
@@ -13,6 +14,7 @@ type InterpretationMode = "auto" | "quality" | "local";
 
 type InterpretationRequestPayload = AIRequest & {
   mode?: InterpretationMode;
+  useSonnet?: boolean;
 };
 
 type ServerStreamEvent =
@@ -105,11 +107,39 @@ type CircuitState = "closed" | "open" | "half-open";
 
 const CIRCUIT_FAILURE_THRESHOLD = 3;
 const CIRCUIT_COOLDOWN_MS = 30_000; // 30s before half-open probe
+const CIRCUIT_STORAGE_KEY = "aletheia:circuit:state";
+const CIRCUIT_STORAGE_TTL_MS = 30_000; // 30s — khớp với COOLDOWN
 
 class InterpretationOrchestratorService {
   private circuitState: CircuitState = "closed";
   private circuitFailureCount = 0;
   private circuitLastFailureTime = 0;
+
+  constructor() {
+    this.loadCircuitState().catch(() => {});
+  }
+
+  private async loadCircuitState(): Promise<void> {
+    try {
+      const raw = await AsyncStorage.getItem(CIRCUIT_STORAGE_KEY);
+      if (!raw) return;
+      const saved = JSON.parse(raw) as { state: CircuitState; failureCount: number; lastFailureTime: number; savedAt: number };
+      if (Date.now() - saved.savedAt < CIRCUIT_STORAGE_TTL_MS) {
+        this.circuitState = saved.state;
+        this.circuitFailureCount = saved.failureCount;
+        this.circuitLastFailureTime = saved.lastFailureTime;
+      }
+    } catch { /* non-critical */ }
+  }
+
+  private persistCircuitState(): void {
+    AsyncStorage.setItem(CIRCUIT_STORAGE_KEY, JSON.stringify({
+      state: this.circuitState,
+      failureCount: this.circuitFailureCount,
+      lastFailureTime: this.circuitLastFailureTime,
+      savedAt: Date.now(),
+    })).catch(() => {});
+  }
 
   private getIsOnline(): boolean {
     if (Platform.OS !== "web") {
@@ -180,6 +210,7 @@ class InterpretationOrchestratorService {
       this.circuitState = "closed";
     }
     this.circuitFailureCount = 0;
+    this.persistCircuitState();
   }
 
   private recordServerFailure(): void {
@@ -188,6 +219,7 @@ class InterpretationOrchestratorService {
     if (this.circuitFailureCount >= CIRCUIT_FAILURE_THRESHOLD) {
       this.circuitState = "open";
     }
+    this.persistCircuitState();
   }
 
   /**
@@ -231,12 +263,13 @@ class InterpretationOrchestratorService {
       const localSupported = capability?.supported ?? false;
       const localReady = modelInfo?.status === "ready";
       
-      // Remove apiKey checking as it's not feasible from client side anymore
+      // Keys live on server — nếu có mạng, server có keys. hasApiKey = isOnline.
+      // Điều này cho phép cloud path được route đúng khi offline = false.
       const mode = determineInferenceMode({
         isOnline: this.getIsOnline(),
         isLocalReady: localReady,
         isLocalSupported: localSupported,
-        hasApiKey: false, // We don't verify API keys from the client anymore
+        hasApiKey: this.getIsOnline(),
       });
 
       trackInferenceMode(mode, {
@@ -335,6 +368,7 @@ class InterpretationOrchestratorService {
               sourceFallbackPrompts: request.sourceFallbackPrompts,
               userIntent: request.userIntent,
               mode: request.mode ?? "auto",
+              useSonnet: request.useSonnet ?? false,
             }),
             signal: controller.signal,
           });

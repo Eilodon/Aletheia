@@ -104,6 +104,7 @@ export interface Source {
   is_bundled: boolean;
   is_premium: boolean;
   fallback_prompts: string[];
+  source_type: "hexagram" | "bibliomancy" | "meditation";
 }
 
 export interface Passage {

@@ -22,7 +22,7 @@ class StoreService {
   private db: SQLite.SQLiteDatabase | null = null;
   private initialized = false;
   private initPromise: Promise<void> | null = null;
-  private static readonly SCHEMA_VERSION = 7;
+  private static readonly SCHEMA_VERSION = 8;
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
@@ -214,6 +214,16 @@ class StoreService {
       }
     }
     
+    // Migration v8: Add source_type column to sources — mirrors Rust migration v8
+    if (currentVersion < 8) {
+      const sourceCols = await this.db.getAllAsync<{ name: string }>(`PRAGMA table_info(sources)`);
+      if (!sourceCols.some((c) => c.name === "source_type")) {
+        await this.db.execAsync(
+          `ALTER TABLE sources ADD COLUMN source_type TEXT NOT NULL DEFAULT 'bibliomancy';`
+        );
+      }
+    }
+
     await this.db.execAsync(`PRAGMA user_version = ${StoreService.SCHEMA_VERSION}`);
     console.log(`[Store] Migrated to version ${StoreService.SCHEMA_VERSION}`);
   }
@@ -224,8 +234,8 @@ class StoreService {
     // Seed sources
     for (const source of BUNDLED_SOURCES) {
       await this.db.runAsync(
-        `INSERT OR REPLACE INTO sources (id, name, tradition, language, passage_count, is_bundled, is_premium, fallback_prompts) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [source.id, source.name, source.tradition, source.language, source.passage_count, source.is_bundled ? 1 : 0, source.is_premium ? 1 : 0, JSON.stringify(source.fallback_prompts)]
+        `INSERT OR REPLACE INTO sources (id, name, tradition, language, passage_count, is_bundled, is_premium, fallback_prompts, source_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [source.id, source.name, source.tradition, source.language, source.passage_count, source.is_bundled ? 1 : 0, source.is_premium ? 1 : 0, JSON.stringify(source.fallback_prompts), source.source_type]
       );
     }
 
@@ -397,6 +407,7 @@ class StoreService {
       is_bundled: row.is_bundled === 1,
       is_premium: row.is_premium === 1,
       fallback_prompts: row.fallback_prompts ? (() => { try { return JSON.parse(row.fallback_prompts); } catch { return []; } })() : [],
+      source_type: (row.source_type || "bibliomancy") as Source["source_type"],
     }));
   }
 
@@ -420,6 +431,7 @@ class StoreService {
       is_bundled: row.is_bundled === 1,
       is_premium: row.is_premium === 1,
       fallback_prompts: row.fallback_prompts ? (() => { try { return JSON.parse(row.fallback_prompts); } catch { return []; } })() : [],
+      source_type: (row.source_type || "bibliomancy") as Source["source_type"],
     };
   }
 
@@ -468,6 +480,7 @@ class StoreService {
       is_bundled: row.is_bundled === 1,
       is_premium: row.is_premium === 1,
       fallback_prompts: row.fallback_prompts ? (() => { try { return JSON.parse(row.fallback_prompts); } catch { return []; } })() : [],
+      source_type: (row.source_type || "bibliomancy") as Source["source_type"],
     };
   }
 
@@ -740,6 +753,7 @@ class StoreService {
       is_bundled: true,
       is_premium: row.is_premium === 1,
       fallback_prompts: row.fallback_prompts ? (() => { try { return JSON.parse(row.fallback_prompts); } catch { return []; } })() : [],
+      source_type: (row.source_type || "bibliomancy") as Source["source_type"],
     }));
   }
 

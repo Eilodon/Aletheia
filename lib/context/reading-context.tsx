@@ -197,6 +197,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
           sourceLanguage: session.source.language,
           sourceFallbackPrompts: session.source.fallback_prompts,
           userIntent: session.user_intent as "clarity" | "comfort" | "challenge" | "guidance" | undefined,
+          useSonnet: false, // TODO: set true when subscription_tier === "pro"
         },
         {
           onChunk: (fullText) => {

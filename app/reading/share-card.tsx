@@ -31,7 +31,11 @@ function CardPreview({
 
   const truncateText = (text: string, maxLength = 120) => {
     if (text.length <= maxLength) return text;
-    return text.slice(0, maxLength - 3) + "...";
+    const candidate = text.slice(0, maxLength);
+    // Find last space to avoid mid-word cut (important for Vietnamese compound words)
+    const lastSpace = candidate.lastIndexOf(" ");
+    const cutPoint = lastSpace > maxLength * 0.7 ? lastSpace : maxLength;
+    return text.slice(0, cutPoint).trimEnd() + "…";
   };
 
   return (
