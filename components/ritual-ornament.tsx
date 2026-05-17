@@ -1,9 +1,9 @@
-import Svg, { Circle, Line, Path } from "react-native-svg";
+import Svg, { Circle, Line, Path, Polygon } from "react-native-svg";
 import { View } from "react-native";
 
 import { useColors } from "@/hooks/use-colors";
 
-type OrnamentVariant = "line" | "dot" | "eye" | "sigil";
+type OrnamentVariant = "line" | "dot" | "eye" | "sigil" | "compass" | "cross" | "diamond" | "star";
 
 export function RitualOrnament({
   variant = "line",
@@ -58,6 +58,79 @@ export function RitualOrnament({
         <Path d="M38 12 38 64" stroke={colors.primary + "32"} strokeWidth="0.8" />
         <Circle cx="38" cy="38" r="8" stroke={colors.primary + "92"} strokeWidth="1" fill={colors.primary + "10"} />
         <Circle cx="38" cy="38" r="3" fill={colors.primary + "88"} />
+      </Svg>
+    );
+  }
+
+  if (variant === "compass") {
+    return (
+      <Svg width={64 * scale} height={64 * scale} viewBox="0 0 64 64" fill="none">
+        <Circle cx="32" cy="32" r="28" stroke={colors.primary + "30"} strokeWidth="0.8" />
+        <Circle cx="32" cy="32" r="20" stroke={colors.border + "60"} strokeWidth="0.6" strokeDasharray="2 4" />
+        <Path d="M32 4 L36 28 L32 32 L28 28 Z" fill={colors.primary + "AA"} />
+        <Path d="M32 60 L28 36 L32 32 L36 36 Z" fill={colors.primary + "44"} />
+        <Path d="M4 32 L28 28 L32 32 L28 36 Z" fill={colors.primary + "66"} />
+        <Path d="M60 32 L36 36 L32 32 L36 28 Z" fill={colors.primary + "44"} />
+        <Circle cx="32" cy="32" r="4" stroke={colors.primary + "CC"} strokeWidth="1" fill={colors.primary + "20"} />
+        <Circle cx="32" cy="32" r="1.5" fill={colors.primary + "EE"} />
+        <Line x1="32" y1="4" x2="32" y2="2" stroke={colors.primary + "60"} strokeWidth="1" />
+        <Line x1="32" y1="62" x2="32" y2="60" stroke={colors.primary + "60"} strokeWidth="1" />
+        <Line x1="2" y1="32" x2="4" y2="32" stroke={colors.primary + "60"} strokeWidth="1" />
+        <Line x1="60" y1="32" x2="62" y2="32" stroke={colors.primary + "60"} strokeWidth="1" />
+      </Svg>
+    );
+  }
+
+  if (variant === "cross") {
+    return (
+      <Svg width={56 * scale} height={56 * scale} viewBox="0 0 56 56" fill="none">
+        <Circle cx="28" cy="28" r="24" stroke={colors.primary + "28"} strokeWidth="0.7" />
+        <Line x1="28" y1="6" x2="28" y2="50" stroke={colors.primary + "70"} strokeWidth="1.2" />
+        <Line x1="6" y1="28" x2="50" y2="28" stroke={colors.primary + "70"} strokeWidth="1.2" />
+        <Line x1="28" y1="6" x2="28" y2="18" stroke={colors.primary + "CC"} strokeWidth="1.4" />
+        <Line x1="6" y1="28" x2="18" y2="28" stroke={colors.primary + "66"} strokeWidth="1" />
+        <Line x1="38" y1="28" x2="50" y2="28" stroke={colors.primary + "66"} strokeWidth="1" />
+        <Circle cx="28" cy="28" r="5" stroke={colors.primary + "88"} strokeWidth="1" fill={colors.primary + "14"} />
+        <Circle cx="28" cy="6" r="2" fill={colors.primary + "80"} />
+        <Circle cx="28" cy="50" r="1.5" fill={colors.primary + "44"} />
+        <Circle cx="6" cy="28" r="1.5" fill={colors.primary + "44"} />
+        <Circle cx="50" cy="28" r="1.5" fill={colors.primary + "44"} />
+        <Line x1="22" y1="22" x2="34" y2="34" stroke={colors.primary + "22"} strokeWidth="0.6" />
+        <Line x1="34" y1="22" x2="22" y2="34" stroke={colors.primary + "22"} strokeWidth="0.6" />
+      </Svg>
+    );
+  }
+
+  if (variant === "diamond") {
+    return (
+      <Svg width={52 * scale} height={52 * scale} viewBox="0 0 52 52" fill="none">
+        <Path d="M26 4 L48 26 L26 48 L4 26 Z" stroke={colors.primary + "80"} strokeWidth="1.2" fill={colors.primary + "08"} />
+        <Path d="M26 10 L42 26 L26 42 L10 26 Z" stroke={colors.border + "70"} strokeWidth="0.8" fill="none" />
+        <Path d="M26 16 L36 26 L26 36 L16 26 Z" stroke={colors.primary + "60"} strokeWidth="0.9" fill={colors.primary + "10"} />
+        <Circle cx="26" cy="4" r="2" fill={colors.primary + "AA"} />
+        <Circle cx="26" cy="48" r="1.5" fill={colors.primary + "60"} />
+        <Circle cx="4" cy="26" r="1.5" fill={colors.primary + "60"} />
+        <Circle cx="48" cy="26" r="1.5" fill={colors.primary + "60"} />
+        <Circle cx="26" cy="26" r="3" fill={colors.primary + "88"} />
+        <Circle cx="26" cy="26" r="1.2" fill={colors.foreground + "CC"} />
+      </Svg>
+    );
+  }
+
+  if (variant === "star") {
+    return (
+      <Svg width={60 * scale} height={60 * scale} viewBox="0 0 60 60" fill="none">
+        <Circle cx="30" cy="30" r="26" stroke={colors.primary + "22"} strokeWidth="0.7" strokeDasharray="1 3" />
+        <Polygon
+          points="30,4 35,24 54,24 39,37 45,57 30,44 15,57 21,37 6,24 25,24"
+          stroke={colors.primary + "90"} strokeWidth="1" fill={colors.primary + "14"} strokeLinejoin="round"
+        />
+        <Polygon
+          points="30,12 33,24 44,24 35,31 38,43 30,36 22,43 25,31 16,24 27,24"
+          stroke={colors.primary + "50"} strokeWidth="0.7" fill={colors.primary + "0A"} strokeLinejoin="round"
+        />
+        <Circle cx="30" cy="30" r="4" fill={colors.primary + "70"} />
+        <Circle cx="30" cy="30" r="2" fill={colors.foreground + "CC"} />
       </Svg>
     );
   }
