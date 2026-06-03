@@ -128,3 +128,4 @@ lib/data/content/
 
 expo-env.d.ts
 # @end expo-cli
+.worktrees/
