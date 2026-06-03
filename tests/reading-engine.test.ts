@@ -7,7 +7,9 @@ vi.mock("@/lib/services/store", () => ({
     getUserState: vi.fn(),
     getSource: vi.fn(),
     getRandomSource: vi.fn(),
+    getRandomSourceWeighted: vi.fn(),
     getRandomPassage: vi.fn(),
+    getRandomPassageExcluding: vi.fn(),
     insertReading: vi.fn(),
     incrementReadingsToday: vi.fn(),
     incrementAICallsToday: vi.fn(),
@@ -23,6 +25,11 @@ vi.mock("@/lib/services/theme-engine", () => ({
 
 vi.mock("@/lib/services/current-user-id", () => ({
   getCurrentUserId: vi.fn().mockResolvedValue("test-user-123"),
+}));
+
+vi.mock("@/lib/utils/novelty-guard", () => ({
+  getRecentPassageIds: vi.fn().mockResolvedValue([]),
+  recordPassageId: vi.fn().mockResolvedValue(undefined),
 }));
 
 import { store } from "@/lib/services/store";
@@ -77,7 +84,7 @@ describe("ReadingEngine", () => {
         weekly_summary_enabled: false,
       });
 
-      vi.mocked(store.getRandomSource).mockResolvedValue({
+      vi.mocked(store.getRandomSourceWeighted).mockResolvedValue({
         id: "i_ching",
         name: "I Ching",
         tradition: Tradition.Chinese,
@@ -128,7 +135,7 @@ describe("ReadingEngine", () => {
         weekly_summary_enabled: false,
       });
 
-      vi.mocked(store.getRandomSource).mockResolvedValue({
+      vi.mocked(store.getRandomSourceWeighted).mockResolvedValue({
         id: "i_ching",
         name: "I Ching",
         tradition: Tradition.Chinese,
@@ -199,7 +206,7 @@ describe("ReadingEngine", () => {
         started_at: Date.now(),
       };
 
-      vi.mocked(store.getRandomPassage).mockResolvedValue({
+      vi.mocked(store.getRandomPassageExcluding).mockResolvedValue({
         id: "passage-1",
         source_id: "i_ching",
         reference: "Hexagram 1",
@@ -253,7 +260,7 @@ describe("ReadingEngine", () => {
         started_at: Date.now(),
       };
 
-      vi.mocked(store.getRandomPassage).mockResolvedValue({
+      vi.mocked(store.getRandomPassageExcluding).mockResolvedValue({
         id: "passage-1",
         source_id: "i_ching",
         reference: "Hexagram 1",
@@ -290,7 +297,7 @@ describe("ReadingEngine", () => {
         weekly_summary_enabled: false,
       });
 
-      vi.mocked(store.getRandomSource).mockResolvedValue({
+      vi.mocked(store.getRandomSourceWeighted).mockResolvedValue({
         id: "i_ching",
         name: "I Ching",
         tradition: Tradition.Chinese,

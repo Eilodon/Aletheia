@@ -401,7 +401,7 @@ describe("StoreService", () => {
 
       const message = await store.getDailyNotificationMessage("user-1", "2025-06-15");
 
-      expect(message.title).toBe("✦ Vũ trụ hôm nay lật");
+      expect(message.title).toBe("✦ Một mảnh gương nhỏ");
       expect(message.question).toBeTruthy();
       expect(message.body).toContain("?");
       expect(message.body).toContain(".");
