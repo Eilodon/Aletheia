@@ -24,30 +24,69 @@ export const ENV = {
   claudeApiKey: readEnv("ANTHROPIC_API_KEY", "ALETHEIA_CLAUDE_API_KEY"),
   openAiApiKey: readEnv("OPENAI_API_KEY", "ALETHEIA_OPENAI_API_KEY"),
   geminiApiKey: readEnv("GEMINI_API_KEY", "ALETHEIA_GEMINI_API_KEY"),
-  aletheiaAppSecret: readEnv("ALETHEIA_APP_SECRET"),
 };
 
+const JWT_SECRET_MIN_LENGTH = 32;
+
+function parseCorsAllowedOrigins(): string[] {
+  return (process.env.CORS_ALLOWED_ORIGINS ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+}
+
+function validateProductionCorsAllowedOrigins(): void {
+  if (process.env.NODE_ENV !== "production") {
+    return;
+  }
+
+  const origins = parseCorsAllowedOrigins();
+  if (origins.length === 0) {
+    throw new Error("[env] CORS_ALLOWED_ORIGINS is required in production");
+  }
+
+  for (const origin of origins) {
+    if (origin === "*") {
+      throw new Error("[env] CORS_ALLOWED_ORIGINS must not contain wildcard '*' in production");
+    }
+
+    let parsed: URL;
+    try {
+      parsed = new URL(origin);
+    } catch {
+      throw new Error(`[env] Invalid CORS_ALLOWED_ORIGINS entry: ${origin}`);
+    }
+
+    if (!["http:", "https:"].includes(parsed.protocol) || parsed.origin !== origin) {
+      throw new Error(
+        `[env] CORS_ALLOWED_ORIGINS entries must be exact HTTP(S) origins without paths: ${origin}`,
+      );
+    }
+  }
+}
+
 export function validateServerEnv(): void {
-  const missingRequired = [];
   if (!ENV.cookieSecret) {
-    missingRequired.push("JWT_SECRET");
+    throw new Error("[env] JWT_SECRET is required");
   }
-
-  if (missingRequired.length > 0) {
+  if (ENV.cookieSecret.length < JWT_SECRET_MIN_LENGTH) {
     throw new Error(
-      `[env] Missing required server environment variables: ${missingRequired.join(", ")}`,
+      `[env] JWT_SECRET must be at least ${JWT_SECRET_MIN_LENGTH} characters (current: ${ENV.cookieSecret.length}). ` +
+      "Generate one with: openssl rand -hex 32",
     );
   }
 
-  const missingShared = [];
-  if (!ENV.appId) missingShared.push("APP_ID");
-  if (!ENV.oAuthServerUrl) missingShared.push("OAUTH_SERVER_URL");
-  if (!ENV.ownerOpenId) missingShared.push("OWNER_OPEN_ID");
+  const missingAuth: string[] = [];
+  if (!ENV.appId) missingAuth.push("APP_ID");
+  if (!ENV.oAuthServerUrl) missingAuth.push("OAUTH_SERVER_URL");
+  if (!ENV.ownerOpenId) missingAuth.push("OWNER_OPEN_ID");
 
-  if (missingShared.length > 0) {
-    console.warn(
-      `[env] Missing shared auth environment variables: ${missingShared.join(", ")}. ` +
-      "Public routes can still start, but OAuth/auth bootstrap will stay incomplete.",
+  if (missingAuth.length > 0) {
+    throw new Error(
+      `[env] Missing required auth environment variables: ${missingAuth.join(", ")}. ` +
+      "Users cannot authenticate without these. See .env.example for reference.",
     );
   }
+
+  validateProductionCorsAllowedOrigins();
 }

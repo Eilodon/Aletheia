@@ -7,13 +7,13 @@
       "language": "vi",
       "is_bundled": true,
       "is_premium": false,
+      "passage_count": 35,
+      "source_type": "bibliomancy",
       "fallback_prompts": [
         "Điều gì trong tình huống này là không thể thay đổi?",
         "Bạn đang chống lại hay chấp nhận?",
         "Sự thay đổi bắt đầu từ đâu?"
-      ],
-      "passage_count": 10,
-      "source_type": "bibliomancy"
+      ]
     },
     {
       "id": "tao_te_ching",
@@ -22,13 +22,13 @@
       "language": "vi",
       "is_bundled": true,
       "is_premium": false,
+      "passage_count": 28,
+      "source_type": "meditation",
       "fallback_prompts": [
         "Làm thế nào để bạn có thể hành động mà không cố gắng?",
         "Cái gì mà bạn đang cố gắng kiểm soát?",
         "Sự bất động có thể dạy bạn điều gì?"
-      ],
-      "passage_count": 10,
-      "source_type": "meditation"
+      ]
     },
     {
       "id": "bible_kjv",
@@ -37,13 +37,13 @@
       "language": "en",
       "is_bundled": true,
       "is_premium": false,
+      "passage_count": 13,
+      "source_type": "bibliomancy",
       "fallback_prompts": [
         "What does this passage reveal about grace?",
         "How does this truth challenge your assumptions?",
         "What invitation is hidden in these words?"
-      ],
-      "passage_count": 10,
-      "source_type": "bibliomancy"
+      ]
     },
     {
       "id": "hafez_divan",
@@ -52,13 +52,13 @@
       "language": "vi",
       "is_bundled": true,
       "is_premium": false,
+      "passage_count": 12,
+      "source_type": "bibliomancy",
       "fallback_prompts": [
         "Tình yêu nào đang gọi bạn?",
         "Bạn đang tìm kiếm điều gì ở ngoài khi nó ở bên trong?",
         "Nếu bạn không sợ, bạn sẽ làm gì?"
-      ],
-      "passage_count": 10,
-      "source_type": "bibliomancy"
+      ]
     },
     {
       "id": "rumi_masnavi",
@@ -67,13 +67,13 @@
       "language": "vi",
       "is_bundled": true,
       "is_premium": false,
+      "passage_count": 12,
+      "source_type": "bibliomancy",
       "fallback_prompts": [
         "Bạn đang quay vòng quanh cái gì?",
         "Nơi nào là nhà thực sự của bạn?",
         "Tình yêu đang mời bạn đi đâu?"
-      ],
-      "passage_count": 10,
-      "source_type": "bibliomancy"
+      ]
     },
     {
       "id": "marcus_aurelius",
@@ -82,495 +82,975 @@
       "language": "en",
       "is_bundled": true,
       "is_premium": false,
+      "passage_count": 20,
+      "source_type": "bibliomancy",
       "fallback_prompts": [
         "What is within your control right now?",
         "How can you practice virtue in this moment?",
         "What would the wise person do?"
-      ],
-      "passage_count": 10,
-      "source_type": "bibliomancy"
+      ]
     }
   ],
   "passages": [
     {
       "id": "iching_1",
       "source_id": "i_ching",
-      "reference": "Hexagram 1 · 乾 (Qián)",
-      "text": "The Creative works sublime success, furthering through perseverance.",
-      "context": "The beginning of all things",
+      "reference": "Quẻ 1 · Kiền · Trời",
+      "text": "Kiền nguyên, hanh, lợi, trinh. Mạnh mẽ và kiên định là đức của trời.",
+      "context": "Sức mạnh sáng tạo ban đầu",
       "resonance_context": "Về sức mạnh của việc không bỏ cuộc dù chưa thấy kết quả. Dành cho user đang mệt mỏi nhưng chưa muốn dừng."
     },
     {
       "id": "iching_2",
       "source_id": "i_ching",
-      "reference": "Hexagram 2 · 坤 (Kūn)",
-      "text": "The Receptive brings about sublime success, furthering through the perseverance of a mare.",
-      "context": "Receptivity and support",
+      "reference": "Quẻ 2 · Khôn · Đất",
+      "text": "Khôn nguyên, hanh, lợi trinh bằng đức của ngựa cái. Đức của đất là tiếp nhận và nuôi dưỡng.",
+      "context": "Tiếp nhận và nâng đỡ",
       "resonance_context": "Về việc nhận, không phải đẩy — sức mạnh của sự tiếp nhận. Dành cho user đang cố kiểm soát thay vì để mọi thứ tự đến."
     },
     {
       "id": "iching_3",
       "source_id": "i_ching",
-      "reference": "Hexagram 3 · 屯 (Zhūn)",
-      "text": "Difficulty at the beginning works supreme success, furthering through perseverance.",
-      "context": "Learning how to begin without clarity",
+      "reference": "Quẻ 3 · Truân · Khó khăn ban đầu",
+      "text": "Truân: hanh, lợi trinh. Đừng đi đâu cả. Có lợi khi lập chư hầu.",
+      "context": "Khó khăn lúc mới bắt đầu là bình thường",
       "resonance_context": "Về việc lộn xộn ban đầu là bình thường, không phải dấu hiệu thất bại. Dành cho user đang bắt đầu điều gì đó và cảm thấy choáng ngợp."
+    },
+    {
+      "id": "iching_4",
+      "source_id": "i_ching",
+      "reference": "Quẻ 4 · Mông · Sự trẻ con",
+      "text": "Không phải ta tìm kẻ mông muội — kẻ mông muội tìm ta. Lần đầu xin thì đáp. Hỏi lần hai, ba là gây phiền.",
+      "context": "Học hỏi và khiêm tốn",
+      "resonance_context": "Về thái độ cầu học đúng đắn — chỉ khi thực sự muốn thì mới nhận được. Dành cho user đang tìm kiếm câu trả lời từ bên ngoài mà chưa chịu lắng nghe bên trong."
+    },
+    {
+      "id": "iching_5",
+      "source_id": "i_ching",
+      "reference": "Quẻ 5 · Nhu · Chờ đợi",
+      "text": "Nhu: có thành tâm thì quang minh hanh thông. Kiên định thì tốt. Có lợi khi vượt đại thuỷ.",
+      "context": "Chờ đúng lúc không phải là thụ động",
+      "resonance_context": "Về sự chờ đợi có chủ đích — không phải tránh né mà là chuẩn bị. Dành cho user đang nóng vội muốn hành động khi chưa đến lúc."
+    },
+    {
+      "id": "iching_7",
+      "source_id": "i_ching",
+      "reference": "Quẻ 7 · Sư · Quân đội",
+      "text": "Quân đội cần kỷ luật và người cầm đầu đức hạnh — bằng không, dù có số đông cũng hung.",
+      "context": "Tổ chức và lãnh đạo",
+      "resonance_context": "Về việc cần có tổ chức và định hướng trước khi hành động tập thể. Dành cho user đang cố điều phối nhiều thứ một lúc mà không có trung tâm rõ ràng."
+    },
+    {
+      "id": "iching_10",
+      "source_id": "i_ching",
+      "reference": "Quẻ 10 · Lý · Tiến hành cẩn thận",
+      "text": "Dẫm lên đuôi hổ mà hổ không cắn. Hanh thông.",
+      "context": "Cẩn trọng trong tình huống nguy hiểm",
+      "resonance_context": "Về việc tiến vào tình huống khó với thái độ đúng đắn — không sợ hãi nhưng cũng không liều lĩnh. Dành cho user đang đối mặt với thách thức đòi hỏi sự khéo léo."
     },
     {
       "id": "iching_11",
       "source_id": "i_ching",
-      "reference": "Hexagram 11 · 泰 (Tài)",
-      "text": "Peace. The small departs, the great approaches. Good fortune. Success.",
-      "context": "When things soften enough to move again",
+      "reference": "Quẻ 11 · Thái · Thái bình",
+      "text": "Thái: nhỏ đi, lớn đến. Cát hanh.",
+      "context": "Khi mọi thứ đang chảy đúng hướng",
       "resonance_context": "Về một giai đoạn khi mọi thứ đang chảy đúng hướng. Dành cho user lo lắng sự bình yên hiện tại sẽ không kéo dài."
+    },
+    {
+      "id": "iching_12",
+      "source_id": "i_ching",
+      "reference": "Quẻ 12 · Bĩ · Trì trệ",
+      "text": "Bĩ: lớn đi, nhỏ đến. Không hanh thông. Quân tử kiên định không bị cuốn theo.",
+      "context": "Khi mọi thứ bị tắc nghẽn",
+      "resonance_context": "Về giai đoạn trì trệ khi không gì tiến triển — không phải dấu hiệu thất bại vĩnh viễn mà là chu kỳ cần được nhận ra. Dành cho user cảm thấy mọi cố gắng đều vô ích."
     },
     {
       "id": "iching_15",
       "source_id": "i_ching",
-      "reference": "Hexagram 15 · 謙 (Qiān)",
-      "text": "Modesty creates success. The superior person carries things through.",
-      "context": "Quiet strength without display",
+      "reference": "Quẻ 15 · Khiêm · Khiêm tốn",
+      "text": "Khiêm hanh. Quân tử có kết thúc tốt đẹp.",
+      "context": "Sức mạnh ẩn trong khiêm tốn",
       "resonance_context": "Về sức mạnh ẩn trong sự khiêm tốn, không phô trương. Dành cho user cảm thấy bị đánh giá thấp hoặc đang cân nhắc có nên thể hiện mình không."
+    },
+    {
+      "id": "iching_16",
+      "source_id": "i_ching",
+      "reference": "Quẻ 16 · Dự · Hứng khởi",
+      "text": "Dự: có lợi lập chư hầu và xuất quân.",
+      "context": "Chuẩn bị và hứng khởi đúng lúc",
+      "resonance_context": "Về việc biết khi nào năng lượng đang đúng để hành động. Dành cho user đang do dự xem có nên bắt đầu điều gì đó không."
+    },
+    {
+      "id": "iching_20",
+      "source_id": "i_ching",
+      "reference": "Quẻ 20 · Quan · Quan sát",
+      "text": "Quan: rửa tay nhưng chưa tế. Thành thật và đứng đắn.",
+      "context": "Nhìn rõ trước khi hành động",
+      "resonance_context": "Về tầm quan trọng của quan sát và hiểu trước khi can thiệp. Dành cho user đang vội vã đưa ra phán xét hoặc quyết định mà chưa quan sát đủ kỹ."
     },
     {
       "id": "iching_24",
       "source_id": "i_ching",
-      "reference": "Hexagram 24 · 復 (Fù)",
-      "text": "Return. Success. Going out and coming in without error.",
-      "context": "Coming back to what is essential",
+      "reference": "Quẻ 24 · Phục · Trở về",
+      "text": "Phục: hanh thông. Ra vào không lỗi. Bạn bè đến không bị lỗi. Đường trở về không xa.",
+      "context": "Quay về điều cốt lõi",
       "resonance_context": "Về việc quay lại điều cốt lõi sau khi đi lạc. Dành cho user đang cảm thấy xa rời bản thân hoặc cần reset."
+    },
+    {
+      "id": "iching_25",
+      "source_id": "i_ching",
+      "reference": "Quẻ 25 · Vô Vọng · Không tính toán",
+      "text": "Vô Vọng: nguyên hanh lợi trinh. Người không chính thì gặp tai hoạ.",
+      "context": "Hành động tự nhiên không tính toán",
+      "resonance_context": "Về sự trong sáng của hành động thuần tuý, không vụ lợi. Dành cho user đang vật lộn giữa làm điều đúng và làm điều có lợi cho mình."
+    },
+    {
+      "id": "iching_27",
+      "source_id": "i_ching",
+      "reference": "Quẻ 27 · Di · Nuôi dưỡng",
+      "text": "Di: hanh trinh. Quan sát cái miệng — tự mình tìm thức ăn nuôi mình.",
+      "context": "Nuôi dưỡng bản thân và người khác",
+      "resonance_context": "Về việc chú ý đến những gì bạn tiêu thụ — thức ăn, lời nói, suy nghĩ. Dành cho user cảm thấy cạn kiệt và cần xem lại nguồn năng lượng của mình."
     },
     {
       "id": "iching_29",
       "source_id": "i_ching",
-      "reference": "Hexagram 29 · 坎 (Kǎn)",
-      "text": "The Abysmal. If you are sincere, you have success in your heart.",
-      "context": "Danger and the depths",
+      "reference": "Quẻ 29 · Khảm · Vực thẳm",
+      "text": "Nếu bạn thành tâm, bạn có thành công trong lòng. Hành động sẽ được tôn trọng.",
+      "context": "Nguy hiểm và chiều sâu",
       "resonance_context": "Về việc tiếp tục dù đang trong vùng nguy hiểm hoặc không chắc chắn. Dành cho user đang trong tình huống áp lực cao."
     },
     {
       "id": "iching_31",
       "source_id": "i_ching",
-      "reference": "Hexagram 31 · 咸 (Xián)",
-      "text": "Influence. Success. Perseverance furthers.",
-      "context": "The moment something touches you before words",
+      "reference": "Quẻ 31 · Hàm · Cảm ứng",
+      "text": "Hàm: hanh, lợi trinh. Lấy được đàn bà thì tốt.",
+      "context": "Sự cảm ứng và kết nối trước khi có lời",
       "resonance_context": "Về việc cảm xúc và ảnh hưởng tác động qua lại tự nhiên. Dành cho user đang trong một mối quan hệ hoặc tình huống cần sự kết nối."
+    },
+    {
+      "id": "iching_32",
+      "source_id": "i_ching",
+      "reference": "Quẻ 32 · Hằng · Kiên định",
+      "text": "Hằng: hanh, không lỗi, lợi trinh. Có lợi khi đi.",
+      "context": "Sự bền vững và không thay đổi",
+      "resonance_context": "Về việc duy trì sự ổn định trong dài hạn. Dành cho user đang muốn thay đổi quá nhiều thứ cùng một lúc."
+    },
+    {
+      "id": "iching_33",
+      "source_id": "i_ching",
+      "reference": "Quẻ 33 · Độn · Rút lui",
+      "text": "Độn: hanh. Trong việc nhỏ, kiên định thì tốt.",
+      "context": "Khi rút lui là sáng suốt",
+      "resonance_context": "Về việc biết lùi là dũng cảm, không phải hèn nhát. Dành cho user đang cảm thấy tội lỗi vì muốn rút lui khỏi một tình huống hoặc cam kết."
+    },
+    {
+      "id": "iching_36",
+      "source_id": "i_ching",
+      "reference": "Quẻ 36 · Minh Di · Ánh sáng bị che",
+      "text": "Minh Di: lợi trinh trong gian nan. Ánh sáng bị chôn vùi — nhưng vẫn tồn tại.",
+      "context": "Giữ vững trong thời kỳ tối tăm",
+      "resonance_context": "Về việc giữ vững phẩm cách và sáng suốt khi hoàn cảnh bên ngoài tối tăm. Dành cho user đang trong môi trường không ủng hộ hoặc đang bị hiểu lầm."
+    },
+    {
+      "id": "iching_40",
+      "source_id": "i_ching",
+      "reference": "Quẻ 40 · Giải · Giải phóng",
+      "text": "Giải: có lợi ở phía tây nam. Không có việc gì thì trở về. Có việc thì đến sớm.",
+      "context": "Giải phóng sau căng thẳng",
+      "resonance_context": "Về việc buông bỏ những gì đang căng thẳng sau khi đã giải quyết xong. Dành cho user vừa qua giai đoạn khó khăn và cần học cách nghỉ ngơi thực sự."
+    },
+    {
+      "id": "iching_41",
+      "source_id": "i_ching",
+      "reference": "Quẻ 41 · Tổn · Giảm bớt",
+      "text": "Tổn: thành tâm thì hanh thông. Không lỗi. Có thể kiên định. Có lợi khi đi.",
+      "context": "Giảm bớt để tăng thêm",
+      "resonance_context": "Về nghịch lý của việc giảm bớt — ít hơn nhưng sâu hơn. Dành cho user đang cảm thấy phải bỏ đi điều gì đó giá trị để tiến lên."
+    },
+    {
+      "id": "iching_42",
+      "source_id": "i_ching",
+      "reference": "Quẻ 42 · Ích · Tăng thêm",
+      "text": "Ích: có lợi khi đi. Có lợi khi vượt đại thuỷ.",
+      "context": "Thời điểm tăng trưởng và phát triển",
+      "resonance_context": "Về giai đoạn mà mọi hành động đều được khuếch đại. Dành cho user đang tự hỏi liệu đây có phải thời điểm tốt để bắt đầu hay không."
     },
     {
       "id": "iching_47",
       "source_id": "i_ching",
-      "reference": "Hexagram 47 · 困 (Kùn)",
-      "text": "Oppression. Success. Perseverance. The great person brings about good fortune.",
-      "context": "Pressure that asks for inner steadiness",
+      "reference": "Quẻ 47 · Khốn · Bị vây hãm",
+      "text": "Khốn: hanh, kiên trinh. Đại nhân thì tốt. Không lỗi. Có lời nhưng không ai tin.",
+      "context": "Áp lực đòi hỏi sức mạnh nội tâm",
       "resonance_context": "Về việc giữ phẩm giá khi bị cản trở hoặc bị đè nén. Dành cho user cảm thấy bế tắc bởi hoàn cảnh bên ngoài."
+    },
+    {
+      "id": "iching_48",
+      "source_id": "i_ching",
+      "reference": "Quẻ 48 · Tỉnh · Giếng nước",
+      "text": "Tỉnh: thay làng nhưng không thay giếng. Không mất không được. Đến rồi đi nhưng giếng vẫn là giếng.",
+      "context": "Nguồn gốc không thay đổi",
+      "resonance_context": "Về điều cốt lõi không thay đổi dù hoàn cảnh xung quanh thay đổi. Dành cho user đang lo lắng mình sẽ thay đổi khi môi trường thay đổi."
+    },
+    {
+      "id": "iching_50",
+      "source_id": "i_ching",
+      "reference": "Quẻ 50 · Đỉnh · Vạc",
+      "text": "Đỉnh: nguyên cát hanh thông.",
+      "context": "Chuyển hoá và nuôi dưỡng văn hoá",
+      "resonance_context": "Về sự chuyển hoá — nguyên liệu thô thành thứ gì đó có giá trị hơn. Dành cho user đang trong quá trình học hỏi hoặc chuyển đổi bản thân."
+    },
+    {
+      "id": "iching_51",
+      "source_id": "i_ching",
+      "reference": "Quẻ 51 · Chấn · Sấm sét",
+      "text": "Chấn: hanh thông. Sấm sét đến — người hoảng loạn nhưng sau đó cười. Sấm vang trăm dặm vẫn không làm mất thìa và rượu tế.",
+      "context": "Bị giật mình nhưng không mất trung tâm",
+      "resonance_context": "Về việc bị sốc hoặc giật mình nhưng vẫn giữ được trung tâm bình tĩnh. Dành cho user vừa nhận tin xấu bất ngờ hoặc đang trong giai đoạn bất ổn."
+    },
+    {
+      "id": "iching_52",
+      "source_id": "i_ching",
+      "reference": "Quẻ 52 · Cấn · Dừng lại",
+      "text": "Cấn lưng của mình — không nắm bắt thân xác mình. Đi vào sân không thấy người. Không lỗi.",
+      "context": "Sự tĩnh lặng và dừng lại đúng lúc",
+      "resonance_context": "Về việc biết khi nào nên dừng — không phải vì sợ hãi mà vì hiểu biết. Dành cho user đang không thể dừng lại dù biết cần phải dừng."
+    },
+    {
+      "id": "iching_54",
+      "source_id": "i_ching",
+      "reference": "Quẻ 54 · Quy Muội · Người thiếu nữ về nhà chồng",
+      "text": "Quy Muội: đi thì hung. Không có gì có lợi.",
+      "context": "Hành động từ vị trí yếu thế",
+      "resonance_context": "Về sự nguy hiểm khi hành động từ vị trí không phù hợp hoặc vì áp lực bên ngoài. Dành cho user đang cảm thấy bị ép buộc vào quyết định không thuộc về mình."
+    },
+    {
+      "id": "iching_57",
+      "source_id": "i_ching",
+      "reference": "Quẻ 57 · Tốn · Gió nhẹ",
+      "text": "Tốn: nhỏ hanh thông. Có lợi khi đi. Có lợi khi gặp đại nhân.",
+      "context": "Thấm dần như gió",
+      "resonance_context": "Về ảnh hưởng từ từ, kiên định — không ép buộc mà thấm dần. Dành cho user đang cảm thấy mình không tạo được ảnh hưởng đủ nhanh."
+    },
+    {
+      "id": "iching_58",
+      "source_id": "i_ching",
+      "reference": "Quẻ 58 · Đoài · Niềm vui",
+      "text": "Đoài: hanh, lợi trinh.",
+      "context": "Niềm vui thực sự đến từ bên trong",
+      "resonance_context": "Về niềm vui chân thực — không phải từ giải trí mà từ sự kết nối và hiểu biết. Dành cho user đang tìm kiếm niềm vui nhưng cảm thấy trống rỗng."
+    },
+    {
+      "id": "iching_60",
+      "source_id": "i_ching",
+      "reference": "Quẻ 60 · Tiết · Kiềm chế",
+      "text": "Tiết: hanh thông. Kiềm chế đắng cay thì không thể kiên định lâu.",
+      "context": "Kiềm chế bản thân đúng mức",
+      "resonance_context": "Về sự cân bằng giữa kỷ luật và ép buộc — kỷ luật quá khắc nghiệt sẽ không bền. Dành cho user đang tự hành hạ bản thân với những tiêu chuẩn không thực tế."
+    },
+    {
+      "id": "iching_61",
+      "source_id": "i_ching",
+      "reference": "Quẻ 61 · Trung Phu · Thành tâm bên trong",
+      "text": "Trung Phu: cá và heo lành — tốt lành. Có lợi khi vượt đại thuỷ. Lợi trinh.",
+      "context": "Thành tâm tạo ra ảnh hưởng thực sự",
+      "resonance_context": "Về sức mạnh của sự thành tâm — khi bạn thực sự tin điều gì, nó tạo ra ảnh hưởng mà không cần ép buộc. Dành cho user đang nghi ngờ chính mình."
+    },
+    {
+      "id": "iching_63",
+      "source_id": "i_ching",
+      "reference": "Quẻ 63 · Ký Tế · Đã xong",
+      "text": "Ký Tế: hanh trong việc nhỏ. Lợi trinh. Ban đầu tốt, cuối hung. Cáo ướt đuôi — không có gì có lợi.",
+      "context": "Hoàn thành nhưng phải cảnh giác",
+      "resonance_context": "Về sự nguy hiểm của việc tự mãn sau thành công. Khi mọi thứ vừa xong không có nghĩa là đã an toàn. Dành cho user vừa đạt được mục tiêu và đang muốn thả lỏng."
     },
     {
       "id": "iching_64",
       "source_id": "i_ching",
-      "reference": "Hexagram 64 · 未濟 (Wèi Jì)",
-      "text": "Before completion. Success. The fox gets its tail in the water.",
-      "context": "Not finished yet, and that matters",
+      "reference": "Quẻ 64 · Vị Tế · Chưa xong",
+      "text": "Vị Tế: hanh thông. Cáo nhỏ suýt vượt được — ướt đuôi. Không có gì có lợi.",
+      "context": "Gần đến đích nhưng chưa hoàn thành",
       "resonance_context": "Về sự bất cẩn ngay khi gần đến đích. Dành cho user đang gần hoàn thành điều gì đó và có nguy cơ mất tập trung."
     },
     {
       "id": "tao_1",
       "source_id": "tao_te_ching",
-      "reference": "Chapter 1",
-      "text": "The Tao that can be told is not the eternal Tao. The name that can be named is not the eternal name.",
-      "context": "The unknowable nature of reality",
+      "reference": "Đạo Đức Kinh · Chương 1",
+      "text": "Đạo có thể nói được không phải là Đạo thường hằng. Tên có thể gọi được không phải là Tên thường hằng.",
+      "context": "Giới hạn của ngôn ngữ và định nghĩa",
       "resonance_context": "Về giới hạn của việc định nghĩa và kiểm soát. Dành cho user đang cố gắng nắm chắc điều gì đó vốn là mơ hồ."
     },
     {
       "id": "tao_2",
       "source_id": "tao_te_ching",
-      "reference": "Chapter 8",
-      "text": "The highest goodness is like water. Water benefits all things and does not compete.",
-      "context": "Softness that nourishes without force",
-      "resonance_context": "Về sức mạnh của việc phục vụ mà không tranh giành. Dành cho user đang trong môi trường cạnh tranh và cảm thấy cần phải chiến đấu để tồn tại."
+      "reference": "Đạo Đức Kinh · Chương 2",
+      "text": "Thiên hạ đều biết đẹp là đẹp, xấu đã nảy sinh. Đều biết thiện là thiện, bất thiện đã nảy sinh.",
+      "context": "Mọi phán xét tạo ra đối lập",
+      "resonance_context": "Về cách định nghĩa tạo ra ranh giới. Khi user đang phán xét bản thân hoặc người khác, passage này mở ra câu hỏi về bản chất tương đối của đánh giá."
     },
     {
       "id": "tao_3",
       "source_id": "tao_te_ching",
-      "reference": "Chapter 15",
-      "text": "The ancient masters were subtle, mysterious, profound, responsive. The depth of their knowledge is unfathomable.",
-      "context": "Wisdom and mystery",
-      "resonance_context": "Về sự khôn ngoan không phô trương của những người thực sự hiểu biết. Dành cho user đang thắc mắc liệu mình có đủ giỏi không."
+      "reference": "Đạo Đức Kinh · Chương 4",
+      "text": "Đạo là khoảng trống nhưng dùng mãi không đầy. Sâu thẳm như tổ tiên của vạn vật.",
+      "context": "Cái trống rỗng là nguồn gốc",
+      "resonance_context": "Về sức mạnh của sự trống rỗng — không phải thiếu hụt mà là tiềm năng vô hạn. Dành cho user cảm thấy trống rỗng và sợ hãi điều đó."
     },
     {
       "id": "tao_4",
       "source_id": "tao_te_ching",
-      "reference": "Chapter 22",
-      "text": "Yield and overcome; bend and be straight; empty and be full.",
-      "context": "Paradox as a path forward",
-      "resonance_context": "Về nghịch lý: con đường vòng đôi khi là con đường ngắn nhất. Dành cho user đang cố đi thẳng qua vấn đề thay vì tìm cách thông minh hơn."
+      "reference": "Đạo Đức Kinh · Chương 7",
+      "text": "Trời đất trường cửu vì không sống vì mình. Thánh nhân đặt mình ra sau, thân mình lại được trước.",
+      "context": "Vô ngã là nguồn gốc của trường tồn",
+      "resonance_context": "Về nghịch lý của việc buông bỏ bản ngã để đạt được nhiều hơn. Dành cho user đang quá chú trọng đến cái tôi và kết quả của mình."
     },
     {
       "id": "tao_5",
       "source_id": "tao_te_ching",
-      "reference": "Chapter 24",
-      "text": "He who stands on tiptoe is not steady. He who rushes ahead does not go far.",
-      "context": "Ambition without ground",
-      "resonance_context": "Về việc cố gắng quá mức phản tác dụng. Dành cho user đang tự tạo áp lực để nhanh hơn hoặc tốt hơn một cách không bền vững."
+      "reference": "Đạo Đức Kinh · Chương 8",
+      "text": "Điều tốt nhất như nước. Nước lợi ích vạn vật mà không tranh, ở chỗ mọi người đều chê — gần với Đạo.",
+      "context": "Sức mạnh của nhu thuận",
+      "resonance_context": "Về sức mạnh của việc phục vụ mà không tranh giành. Dành cho user đang trong môi trường cạnh tranh và cảm thấy cần phải chiến đấu để tồn tại."
     },
     {
       "id": "tao_6",
       "source_id": "tao_te_ching",
-      "reference": "Chapter 33",
-      "text": "Knowing others is intelligence; knowing yourself is true wisdom.",
-      "context": "Returning attention inward",
-      "resonance_context": "Về sự khác biệt giữa thông minh bên ngoài và trí tuệ bên trong. Dành cho user đang so sánh mình với người khác hoặc đang tìm định hướng."
+      "reference": "Đạo Đức Kinh · Chương 9",
+      "text": "Cầm đầy không bằng thôi đúng lúc. Mài sắc quá không giữ được lâu.",
+      "context": "Biết dừng đúng lúc",
+      "resonance_context": "Về việc biết khi nào là đủ — không tích lũy quá mức, không mài bén quá độ. Dành cho user không biết dừng lại."
     },
     {
       "id": "tao_7",
       "source_id": "tao_te_ching",
-      "reference": "Chapter 37",
-      "text": "The Tao never acts, yet nothing is left undone.",
-      "context": "Effortlessness that still changes reality",
-      "resonance_context": "Về wu wei — hành động mà không cưỡng ép. Dành cho user đang cảm thấy mọi thứ cần sự can thiệp liên tục mới chạy được."
+      "reference": "Đạo Đức Kinh · Chương 11",
+      "text": "Ba mươi căm hội vào một trục, chỗ không của trục mà xe có dụng. Đất sét đắp chén, chỗ không của chén mà chén có dụng.",
+      "context": "Cái trống là cái hữu ích",
+      "resonance_context": "Về vai trò của khoảng trống — chính chỗ không mới tạo ra công dụng. Dành cho user cảm thấy mình không đủ đầy hoặc đang thiếu hụt điều gì đó."
     },
     {
       "id": "tao_8",
       "source_id": "tao_te_ching",
-      "reference": "Chapter 44",
-      "text": "Fame or integrity: which is more important? Gain or loss: which is more painful?",
-      "context": "What it costs to keep holding on",
-      "resonance_context": "Về việc biết điều gì thực sự quan trọng với mình. Dành cho user đang đứng trước một lựa chọn giữa giá trị bên ngoài và bên trong."
+      "reference": "Đạo Đức Kinh · Chương 16",
+      "text": "Đạt đến cực không, giữ vững tĩnh lặng. Vạn vật cùng khởi, ta nhìn chúng trở về. Vạn vật trở về cội nguồn gọi là Tĩnh.",
+      "context": "Trở về cội nguồn",
+      "resonance_context": "Về việc quan sát chu kỳ thay vì bị cuốn vào nó. Dành cho user đang bị cuốn vào drama hoặc cảm xúc và cần tìm lại điểm tĩnh."
     },
     {
       "id": "tao_9",
       "source_id": "tao_te_ching",
-      "reference": "Chapter 48",
-      "text": "In pursuit of knowledge, something is added every day. In pursuit of the Tao, something is dropped every day.",
-      "context": "The wisdom of subtraction",
-      "resonance_context": "Về việc buông bỏ như một thực hành tích cực. Dành cho user đang cảm thấy quá tải và cần cho phép mình làm ít hơn."
+      "reference": "Đạo Đức Kinh · Chương 17",
+      "text": "Bậc trên nhất — dân biết là có. Kế dưới — dân yêu và khen. Kế nữa — dân sợ. Thấp nhất — dân khinh.",
+      "context": "Phẩm chất của lãnh đạo chân chính",
+      "resonance_context": "Về sự khác biệt giữa ảnh hưởng thực và ảnh hưởng thông qua sợ hãi. Dành cho user đang suy nghĩ về cách gây ảnh hưởng đến người khác."
     },
     {
       "id": "tao_10",
       "source_id": "tao_te_ching",
-      "reference": "Chapter 76",
-      "text": "A person is born gentle and weak. At death he is hard and stiff.",
-      "context": "Life belongs to what can still bend",
-      "resonance_context": "Về sự cứng nhắc như một dấu hiệu của sợ hãi hay kiệt sức. Dành cho user đang bảo vệ quan điểm hoặc thói quen đến mức không còn linh hoạt."
+      "reference": "Đạo Đức Kinh · Chương 20",
+      "text": "Ngưng học, hết lo. Giữa ừ và vâng, cách nhau bao xa? Giữa thiện và ác, cách nhau bao xa?",
+      "context": "Ranh giới mờ của các khái niệm",
+      "resonance_context": "Về sự mỏng manh của các phân loại mà ta cho là rõ ràng. Dành cho user đang vật lộn với lựa chọn đạo đức hoặc cảm thấy bị kẹt giữa hai cực."
+    },
+    {
+      "id": "tao_11",
+      "source_id": "tao_te_ching",
+      "reference": "Đạo Đức Kinh · Chương 22",
+      "text": "Khuất mà được giữ nguyên. Cong mà được thẳng. Trũng mà được đầy. Cũ mà được mới. Ít mà được nhiều.",
+      "context": "Nghịch lý của sự yếu mềm",
+      "resonance_context": "Về nghịch lý của việc yếu hơn lại được nhiều hơn. Dành cho user cảm thấy thua kém và đang tự hỏi liệu điều đó có ý nghĩa gì không."
+    },
+    {
+      "id": "tao_12",
+      "source_id": "tao_te_ching",
+      "reference": "Đạo Đức Kinh · Chương 24",
+      "text": "Kiễng chân không đứng vững. Sải chân không đi xa. Tự thể hiện không sáng. Tự biện hộ không nổi bật.",
+      "context": "Cố quá hoá hỏng",
+      "resonance_context": "Về việc cố gắng quá mức tạo ra kết quả ngược. Dành cho user đang cảm thấy cần phải chứng minh bản thân."
+    },
+    {
+      "id": "tao_13",
+      "source_id": "tao_te_ching",
+      "reference": "Đạo Đức Kinh · Chương 26",
+      "text": "Nặng là gốc của nhẹ. Tĩnh là chủ của động.",
+      "context": "Sự tĩnh lặng là nền tảng của hành động",
+      "resonance_context": "Về việc cần có trung tâm tĩnh lặng trước khi hành động. Dành cho user đang quá bận rộn và cảm thấy mất phương hướng."
+    },
+    {
+      "id": "tao_14",
+      "source_id": "tao_te_ching",
+      "reference": "Đạo Đức Kinh · Chương 27",
+      "text": "Người thiện đi không để dấu vết. Người thiện nói không sai lầm. Người thiện tính không cần bút toán.",
+      "context": "Hành động thuần thục không để lại vết tích",
+      "resonance_context": "Về sự thuần thục đến mức tự nhiên — khi bạn giỏi thực sự, bạn không cần phải chứng minh. Dành cho user đang lo lắng về việc tạo ấn tượng."
+    },
+    {
+      "id": "tao_15",
+      "source_id": "tao_te_ching",
+      "reference": "Đạo Đức Kinh · Chương 28",
+      "text": "Biết hùng, giữ thư — làm khe của thiên hạ. Làm khe của thiên hạ, đức thường không xa, trở về với trẻ thơ.",
+      "context": "Kết hợp mạnh và mềm",
+      "resonance_context": "Về việc biết sức mạnh của mình nhưng vẫn chọn ở vị trí tiếp nhận. Dành cho user đang phải cân bằng giữa mạnh mẽ và dễ bị tổn thương."
+    },
+    {
+      "id": "tao_16",
+      "source_id": "tao_te_ching",
+      "reference": "Đạo Đức Kinh · Chương 33",
+      "text": "Biết người là trí. Biết mình là sáng. Thắng người là có sức. Thắng mình là mạnh.",
+      "context": "Tự tri là đỉnh cao của trí tuệ",
+      "resonance_context": "Về sự khác biệt căn bản giữa hiểu người khác và hiểu bản thân. Dành cho user đang tập trung vào người khác mà chưa nhìn vào mình."
+    },
+    {
+      "id": "tao_17",
+      "source_id": "tao_te_ching",
+      "reference": "Đạo Đức Kinh · Chương 36",
+      "text": "Muốn thu lại, trước phải mở ra. Muốn làm yếu, trước phải làm mạnh. Muốn phế bỏ, trước phải nâng lên. Muốn lấy đi, trước phải cho đi.",
+      "context": "Nghịch lý của sự vận động",
+      "resonance_context": "Về cách thức vận hành của chu kỳ — điều gì tăng lên ắt sẽ giảm, điều gì giảm ắt sẽ tăng. Dành cho user đang ở đỉnh cao hoặc đáy thấp và lo lắng về tương lai."
+    },
+    {
+      "id": "tao_18",
+      "source_id": "tao_te_ching",
+      "reference": "Đạo Đức Kinh · Chương 40",
+      "text": "Phản là sự vận động của Đạo. Nhu nhược là dụng của Đạo. Vạn vật trong thiên hạ sinh ra từ Có. Có sinh ra từ Không.",
+      "context": "Sự trở về là quy luật",
+      "resonance_context": "Về việc mọi thứ đều vận động theo chu kỳ và trở về. Dành cho user đang trong giai đoạn xuống dốc và cần nhận ra đây là một phần của chu kỳ."
+    },
+    {
+      "id": "tao_19",
+      "source_id": "tao_te_ching",
+      "reference": "Đạo Đức Kinh · Chương 41",
+      "text": "Bậc sĩ thượng nghe Đạo — cố gắng thực hành. Bậc sĩ trung nghe Đạo — lúc nhớ lúc quên. Bậc sĩ hạ nghe Đạo — cười to.",
+      "context": "Phản ứng khác nhau trước chân lý",
+      "resonance_context": "Về sự khác biệt trong mức độ hiểu và cam kết. Dành cho user đang tự hỏi mình thực sự đang ở đâu trong hành trình của mình."
+    },
+    {
+      "id": "tao_20",
+      "source_id": "tao_te_ching",
+      "reference": "Đạo Đức Kinh · Chương 44",
+      "text": "Tiếng tăm hay thân xác, cái nào thân hơn? Thân xác hay của cải, cái nào quý hơn? Được hay mất, cái nào hại hơn?",
+      "context": "Những ưu tiên thực sự của cuộc đời",
+      "resonance_context": "Về câu hỏi căn bản về ưu tiên. Dành cho user đang hy sinh sức khoẻ hoặc mối quan hệ cho danh tiếng hoặc tài sản."
+    },
+    {
+      "id": "tao_21",
+      "source_id": "tao_te_ching",
+      "reference": "Đạo Đức Kinh · Chương 48",
+      "text": "Theo học mỗi ngày thêm. Theo Đạo mỗi ngày bớt. Bớt rồi lại bớt, đến chỗ vô vi. Vô vi mà không gì không làm.",
+      "context": "Buông bỏ là con đường",
+      "resonance_context": "Về nghịch lý của việc học theo Đạo — không phải thêm vào mà bớt đi. Dành cho user cảm thấy cần thu thập thêm kiến thức, kỹ năng mà vẫn không đủ."
+    },
+    {
+      "id": "tao_22",
+      "source_id": "tao_te_ching",
+      "reference": "Đạo Đức Kinh · Chương 52",
+      "text": "Thiên hạ có mẹ — lấy mẹ biết con. Đã biết con, giữ lấy mẹ — trọn đời không nguy hiểm.",
+      "context": "Trở về nguồn gốc",
+      "resonance_context": "Về việc tìm về nguồn gốc và bản chất căn bản như nơi trú ẩn an toàn nhất. Dành cho user đang cảm thấy lạc lối trong những chi tiết phức tạp của cuộc sống."
+    },
+    {
+      "id": "tao_23",
+      "source_id": "tao_te_ching",
+      "reference": "Đạo Đức Kinh · Chương 55",
+      "text": "Người chứa đức dày ví như trẻ sơ sinh. Ong độc không đốt. Mãnh thú không vồ. Ác điểu không móc.",
+      "context": "Sự trong sáng như trẻ thơ tạo ra bảo vệ tự nhiên",
+      "resonance_context": "Về sự bảo vệ đến từ sự trong sáng và thuần khiết, không từ lá chắn. Dành cho user đang cảm thấy cần tự bảo vệ mình nhưng không biết cách."
+    },
+    {
+      "id": "tao_24",
+      "source_id": "tao_te_ching",
+      "reference": "Đạo Đức Kinh · Chương 64",
+      "text": "An thì dễ giữ. Chưa hiện thì dễ mưu. Mỏng thì dễ tan. Nhỏ thì dễ tán. Làm trước khi có. Trị trước khi loạn.",
+      "context": "Hành động trước khi vấn đề lớn lên",
+      "resonance_context": "Về việc xử lý vấn đề từ khi còn nhỏ. Dành cho user đang trì hoãn đối mặt với điều gì đó vì nghĩ nó chưa nghiêm trọng."
+    },
+    {
+      "id": "tao_25",
+      "source_id": "tao_te_ching",
+      "reference": "Đạo Đức Kinh · Chương 71",
+      "text": "Biết mà cho là không biết — trên. Không biết mà cho là biết — bệnh.",
+      "context": "Khiêm tốn về tri thức",
+      "resonance_context": "Về sự khác biệt giữa trí tuệ và sự tự mãn về hiểu biết. Dành cho user đang tự tin quá mức vào phán đoán của mình."
+    },
+    {
+      "id": "tao_26",
+      "source_id": "tao_te_ching",
+      "reference": "Đạo Đức Kinh · Chương 76",
+      "text": "Người sống mềm mại, người chết cứng đờ. Cỏ cây lúc sống mềm dẻo, lúc chết khô cứng. Cứng mạnh là đồ chết. Mềm yếu là đồ sống.",
+      "context": "Mềm mại là dấu hiệu của sự sống",
+      "resonance_context": "Về việc cứng nhắc là dấu hiệu của sự chết — không phải sức mạnh. Dành cho user đang cảm thấy cần phải cứng rắn và không cho phép bản thân yếu mềm."
+    },
+    {
+      "id": "tao_27",
+      "source_id": "tao_te_ching",
+      "reference": "Đạo Đức Kinh · Chương 78",
+      "text": "Trong thiên hạ không gì mềm yếu hơn nước, nhưng để tấn công cứng mạnh thì không gì thắng được. Nhu thắng cương, yếu thắng mạnh — thiên hạ đều biết mà không ai làm được.",
+      "context": "Nghịch lý của sức mạnh mềm",
+      "resonance_context": "Về sức mạnh của sự kiên nhẫn không phải như đức hạnh mà như bản chất. Khi dùng với tình huống conflict hoặc mệt mỏi, phản chiếu về sự khác biệt giữa kiên trì bằng ý chí và kiên trì bằng bản chất."
+    },
+    {
+      "id": "tao_28",
+      "source_id": "tao_te_ching",
+      "reference": "Đạo Đức Kinh · Chương 81",
+      "text": "Lời chân thật không đẹp. Lời đẹp không chân thật. Người thiện không biện luận. Người biện luận không thiện.",
+      "context": "Chân thật và cái đẹp không luôn đi cùng nhau",
+      "resonance_context": "Về sự đối lập giữa thuyết phục và thành thật. Dành cho user đang cảm thấy phải nói điều đẹp hơn là điều thật."
+    },
+    {
+      "id": "marcus_1",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book II.1",
+      "text": "Begin each day by telling yourself: Today I shall be meeting with interference, ingratitude, insolence, disloyalty, ill-will, and selfishness.",
+      "context": "Preparing for difficulty with equanimity",
+      "resonance_context": "Về việc chuẩn bị tâm lý cho khó khăn thay vì bị bất ngờ. Dành cho user đang cảm thấy bị người khác làm thất vọng hoặc phản bội."
+    },
+    {
+      "id": "marcus_2",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book II.4",
+      "text": "Think not of the remnant of your life as something to be mourned; instead, concentrate on what is here and now.",
+      "context": "Presence over regret",
+      "resonance_context": "Về việc sống trong hiện tại thay vì tiếc nuối quá khứ hoặc lo lắng tương lai. Dành cho user đang bị mắc kẹt trong 'nếu như' và 'lẽ ra'."
+    },
+    {
+      "id": "marcus_3",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book II.14",
+      "text": "Even if you were to live three thousand more years, or thirty thousand, remember that no one loses any other life than the one he now lives.",
+      "context": "The only life is now",
+      "resonance_context": "Về sự không thể phủ nhận của thực tế hiện tại. Dành cho user đang chờ đợi một 'cuộc đời khác' thay vì sống cuộc đời đang có."
+    },
+    {
+      "id": "marcus_4",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book III.6",
+      "text": "Value yourself only by what is really valuable in you — which is nothing more than the choice you are making.",
+      "context": "The only true value is your choices",
+      "resonance_context": "Về việc giá trị thực của một người nằm trong lựa chọn và hành động, không phải danh tiếng hay của cải. Dành cho user đang định giá bản thân qua những thứ bên ngoài."
+    },
+    {
+      "id": "marcus_5",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book IV.3",
+      "text": "Men seek retreats for themselves in the country, by the sea, in the hills... but this is altogether unphilosophical. You can retreat into yourself at any moment.",
+      "context": "Inner retreat is always available",
+      "resonance_context": "Về việc sự bình an không đến từ hoàn cảnh bên ngoài mà từ bên trong. Dành cho user đang cảm thấy cần 'thoát khỏi' cuộc sống hiện tại."
+    },
+    {
+      "id": "marcus_6",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book IV.7",
+      "text": "Do not indulge in such thoughts as these... 'My life is ruined.' These are the words of a man who does not understand what is happening.",
+      "context": "Perspective reframing",
+      "resonance_context": "Về việc phân biệt giữa sự kiện thực và diễn giải chúng ta áp đặt lên sự kiện. Dành cho user đang dramatise hoá tình huống."
+    },
+    {
+      "id": "marcus_7",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book V.8",
+      "text": "On the occasion of every accident that befalls you, remember to turn to yourself and inquire what power you have for turning it to use.",
+      "context": "Every obstacle can be turned to use",
+      "resonance_context": "Về việc tìm kiếm cơ hội trong mọi trở ngại. Dành cho user đang trong tình huống khó khăn và cảm thấy bất lực."
+    },
+    {
+      "id": "marcus_8",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book V.16",
+      "text": "Such as are your habitual thoughts, such also will be the character of your mind; for the soul is dyed by its thoughts.",
+      "context": "Thoughts shape character",
+      "resonance_context": "Về việc những suy nghĩ lặp đi lặp lại định hình con người bạn. Dành cho user đang nhận ra mình hay suy nghĩ tiêu cực và muốn thay đổi."
+    },
+    {
+      "id": "marcus_9",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book VI.2",
+      "text": "How easy it is to repel and to wipe away every impression which is troublesome or unsuitable, and immediately to be in all tranquility.",
+      "context": "Choosing your response to impressions",
+      "resonance_context": "Về việc chúng ta có quyền lựa chọn phản ứng với mọi sự kiện. Dành cho user đang cảm thấy bị điều khiển bởi cảm xúc phản xạ."
+    },
+    {
+      "id": "marcus_10",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book VI.13",
+      "text": "Everything harmonizes with me, which is harmonious to thee, O Universe. Nothing for me is too early or too late, which is in due time for thee.",
+      "context": "Acceptance of universal timing",
+      "resonance_context": "Về việc chấp nhận thời điểm của vũ trụ thay vì ép buộc. Dành cho user đang cảm thấy mọi thứ đến hoặc đi quá sớm hoặc quá muộn."
+    },
+    {
+      "id": "marcus_11",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book VI.30",
+      "text": "Look within. Within is the fountain of good, and it will ever bubble up, if thou wilt ever dig.",
+      "context": "The inner source is always there",
+      "resonance_context": "Về nguồn gốc bên trong không bao giờ cạn. Dành cho user cảm thấy mình không còn nguồn lực hoặc động lực."
+    },
+    {
+      "id": "marcus_12",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book VII.9",
+      "text": "You have power over your mind — not outside events. Realize this, and you will find strength.",
+      "context": "The locus of control",
+      "resonance_context": "Về sự phân biệt căn bản giữa những gì trong tầm kiểm soát và những gì không. Dành cho user đang kiệt sức vì cố kiểm soát những thứ không thể kiểm soát."
+    },
+    {
+      "id": "marcus_13",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book VIII.7",
+      "text": "Do not look around thee to discover other men's ruling principles, but look straight to this, to what nature leads thee.",
+      "context": "Follow your own nature",
+      "resonance_context": "Về việc so sánh mình với người khác là nguồn gốc của khổ đau. Dành cho user đang bị ảnh hưởng quá nhiều bởi kỳ vọng của xã hội."
+    },
+    {
+      "id": "marcus_14",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book VIII.47",
+      "text": "If you are distressed by anything external, the pain is not due to the thing itself but to your estimate of it; and this you have the power to revoke at any moment.",
+      "context": "Pain comes from judgment, not events",
+      "resonance_context": "Về nguồn gốc thực sự của đau khổ — không phải sự kiện mà là cách ta diễn giải. Dành cho user đang đau khổ và không biết tại sao."
+    },
+    {
+      "id": "marcus_15",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book IX.3",
+      "text": "Do not waste the rest of your time here worrying about other people, unless it affects the common good. It will keep you from doing something else.",
+      "context": "Focus on what matters",
+      "resonance_context": "Về việc lo lắng về người khác là cách lãng phí thời gian và năng lực. Dành cho user đang bận tâm quá nhiều về việc người khác nghĩ gì về mình."
+    },
+    {
+      "id": "marcus_16",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book IX.29",
+      "text": "When you wake up in the morning, tell yourself: the people I deal with today will be meddling, ungrateful, arrogant... But I have seen the beauty of good, and the ugliness of evil.",
+      "context": "Compassion through understanding human nature",
+      "resonance_context": "Về việc giữ lòng trắc ẩn dù biết rõ sự yếu đuối của con người. Dành cho user đang cảm thấy thất vọng và cynical về người xung quanh."
+    },
+    {
+      "id": "marcus_17",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book X.8",
+      "text": "Everything we hear is an opinion, not a fact. Everything we see is a perspective, not the truth.",
+      "context": "Epistemological humility",
+      "resonance_context": "Về việc phân biệt ý kiến và sự thật. Dành cho user đang quá chắc chắn về nhận định của mình hoặc đang bị ảnh hưởng bởi ý kiến người khác."
+    },
+    {
+      "id": "marcus_18",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book X.11",
+      "text": "Nothing happens to any man that he is not formed by nature to bear.",
+      "context": "You are built for what you face",
+      "resonance_context": "Về việc khó khăn không vượt quá khả năng chịu đựng của con người. Dành cho user đang cảm thấy không thể tiếp tục."
+    },
+    {
+      "id": "marcus_19",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book XI.13",
+      "text": "The obstacle is the way.",
+      "context": "Resistance as direction",
+      "resonance_context": "Về việc điều cản trở bạn chính là con đường. Dành cho user đang nghĩ cần xóa bỏ trở ngại thay vì học hỏi từ nó."
+    },
+    {
+      "id": "marcus_20",
+      "source_id": "marcus_aurelius",
+      "reference": "Meditations · Book XII.23",
+      "text": "Everything is in a state of flux, and nothing endures. All things come round and round, and the soul is tortured by this.",
+      "context": "Impermanence as a teacher",
+      "resonance_context": "Về vô thường như bản chất của thực tại — không phải điều cần sợ mà là điều cần chấp nhận. Dành cho user đang cố giữ chặt điều gì đó đang thay đổi."
+    },
+    {
+      "id": "rumi_1",
+      "source_id": "rumi_masnavi",
+      "reference": "Rumi · Masnavi I.1-4",
+      "text": "Nghe tiếng sáo lau than vãn về sự chia ly. Kể câu chuyện của những cuộc chia cách.",
+      "context": "Nỗi đau chia ly là nguồn gốc của tiếng hát",
+      "resonance_context": "Về việc nỗi đau chia ly là nguồn gốc của khao khát và sáng tạo. Dành cho user đang đau vì mất mát và không thấy ý nghĩa trong đó."
+    },
+    {
+      "id": "rumi_2",
+      "source_id": "rumi_masnavi",
+      "reference": "Rumi · Masnavi I.10-12",
+      "text": "Ngọn lửa là tình yêu, nước là lý trí. Ngọn lửa tình yêu đốt tất cả lý luận.",
+      "context": "Tình yêu vượt qua lý trí",
+      "resonance_context": "Về sự đối lập giữa tình yêu và lý trí, và việc tình yêu có thể dẫn đến hiểu biết sâu hơn. Dành cho user đang phân vân giữa quyết định bằng lý trí và quyết định bằng trái tim."
+    },
+    {
+      "id": "rumi_3",
+      "source_id": "rumi_masnavi",
+      "reference": "Rumi · Masnavi I.3810",
+      "text": "Vết thương là nơi ánh sáng đi vào trong bạn.",
+      "context": "Đau khổ là cửa mở",
+      "resonance_context": "Về việc vết thương không phải là điều cần chữa lành và che đi, mà là nơi sự phát triển thực sự bắt đầu. Dành cho user đang đau và tự hỏi tại sao."
+    },
+    {
+      "id": "rumi_4",
+      "source_id": "rumi_masnavi",
+      "reference": "Rumi · Masnavi II.277",
+      "text": "Bạn không phải là giọt nước trong đại dương. Bạn là toàn bộ đại dương trong một giọt nước.",
+      "context": "Mỗi người chứa đựng tất cả",
+      "resonance_context": "Về sự đầy đủ và hoàn chỉnh của mỗi cá nhân. Dành cho user cảm thấy mình nhỏ bé và không đủ."
+    },
+    {
+      "id": "rumi_5",
+      "source_id": "rumi_masnavi",
+      "reference": "Rumi · Masnavi III.4232",
+      "text": "Khi bạn đặt chân ra đi và tôi đặt chân ra đi — có một tất yếu trong đó. Mọi sự chia ly đều có sự gặp gỡ ẩn bên trong.",
+      "context": "Mỗi chia ly chứa đựng cuộc gặp gỡ",
+      "resonance_context": "Về việc chia tay và kết thúc không phải là mất mát hoàn toàn. Dành cho user đang trải qua sự kết thúc của một mối quan hệ hoặc giai đoạn."
+    },
+    {
+      "id": "rumi_6",
+      "source_id": "rumi_masnavi",
+      "reference": "Rumi · Masnavi I.1730",
+      "text": "Im lặng là biển của tri thức. Lời nói như bờ biển — đến từ biển và trở về biển.",
+      "context": "Tri thức sâu hơn lời nói",
+      "resonance_context": "Về việc những điều quan trọng nhất không thể nói ra đầy đủ. Dành cho user đang cảm thấy không thể diễn đạt điều họ đang trải qua."
+    },
+    {
+      "id": "rumi_7",
+      "source_id": "rumi_masnavi",
+      "reference": "Rumi · Divan-i Kebir",
+      "text": "Vì tình yêu bạn học được điều bạn chưa bao giờ biết. Vì tình yêu bạn trở thành điều bạn chưa bao giờ là.",
+      "context": "Tình yêu như sự chuyển hoá",
+      "resonance_context": "Về việc tình yêu — không chỉ tình lãng mạn mà cả tình yêu với cuộc sống — là động lực của sự phát triển. Dành cho user cảm thấy mắc kẹt và không thay đổi được."
+    },
+    {
+      "id": "rumi_8",
+      "source_id": "rumi_masnavi",
+      "reference": "Rumi · Masnavi I.130",
+      "text": "Đừng buồn. Bất cứ điều gì bạn mất đi đều đến với bạn ở dạng khác.",
+      "context": "Mất mát và chuyển hoá",
+      "resonance_context": "Về việc những gì ta mất đôi khi trở lại trong hình dạng khác, phù hợp hơn. Dành cho user đang đau vì mất mát và chưa thấy điều gì có thể thay thế."
+    },
+    {
+      "id": "rumi_9",
+      "source_id": "rumi_masnavi",
+      "reference": "Rumi · Masnavi IV.3319",
+      "text": "Hãy sống ở nơi bạn sợ sống. Sự phá huỷ nơi đó là bắt đầu của điều bạn cần.",
+      "context": "Đối mặt với sợ hãi",
+      "resonance_context": "Về việc nơi chúng ta sợ nhất thường là nơi chứa đựng sự tăng trưởng thực sự. Dành cho user đang tránh né một điều gì đó vì sợ hãi."
+    },
+    {
+      "id": "rumi_10",
+      "source_id": "rumi_masnavi",
+      "reference": "Rumi · Masnavi VI.4703",
+      "text": "Ngoài ý tưởng về điều đúng và điều sai, có một cánh đồng. Tôi sẽ gặp bạn ở đó.",
+      "context": "Không gian vượt qua phán xét",
+      "resonance_context": "Về không gian vượt qua các phán xét đúng sai, một nơi mà kết nối thực sự có thể xảy ra. Dành cho user đang bị kẹt trong tranh luận về đúng sai."
+    },
+    {
+      "id": "rumi_11",
+      "source_id": "rumi_masnavi",
+      "reference": "Rumi · Masnavi II.1751",
+      "text": "Chúng ta là một, tôi là bạn và bạn là tôi. Cái thân xác chia cắt chúng ta — nhưng chúng ta là một linh hồn.",
+      "context": "Sự hợp nhất bên dưới sự phân cách",
+      "resonance_context": "Về việc sự chia cắt chỉ là bề mặt. Dành cho user đang cảm thấy cô đơn và tách biệt với người khác."
+    },
+    {
+      "id": "rumi_12",
+      "source_id": "rumi_masnavi",
+      "reference": "Rumi · Masnavi I.3056",
+      "text": "Người tìm kiếm là người tìm thấy. Hành trình tìm kiếm là chính sự tìm thấy.",
+      "context": "Hành trình chính là điểm đến",
+      "resonance_context": "Về việc sự tìm kiếm tự nó đã là một dạng tìm thấy. Dành cho user đang cảm thấy tìm kiếm mãi mà không thấy."
+    },
+    {
+      "id": "hafez_1",
+      "source_id": "hafez_divan",
+      "reference": "Hafez · Divan, Ghazal 1",
+      "text": "Hỡi người hầu rượu, bình rượu vòng quanh đi — vì tình yêu lúc đầu dễ dàng nhưng khó khăn đã đến.",
+      "context": "Tình yêu dễ bắt đầu khó duy trì",
+      "resonance_context": "Về việc mọi tình yêu lớn đều đi kèm thử thách. Dành cho user đang trong giai đoạn khó khăn của mối quan hệ hoặc cam kết."
+    },
+    {
+      "id": "hafez_2",
+      "source_id": "hafez_divan",
+      "reference": "Hafez · Divan, Ghazal 3",
+      "text": "Đừng hỏi ta đi đâu — hãy đi cùng ta. Những nơi ta đến không có tên gọi.",
+      "context": "Hành trình vô định nhưng thực",
+      "resonance_context": "Về việc một số hành trình không thể lên kế hoạch trước. Dành cho user đang do dự vì không thấy rõ điểm đến."
+    },
+    {
+      "id": "hafez_3",
+      "source_id": "hafez_divan",
+      "reference": "Hafez · Divan, Ghazal 7",
+      "text": "Gió buổi sáng mang theo bí mật của trái tim. Hãy thức dậy và nghe những gì nó nói.",
+      "context": "Bình minh mang thông điệp",
+      "resonance_context": "Về việc một số hiểu biết chỉ đến trong sự im lặng của buổi sáng sớm. Dành cho user đang bận rộn đến mức không có không gian để nghe nội tâm."
+    },
+    {
+      "id": "hafez_4",
+      "source_id": "hafez_divan",
+      "reference": "Hafez · Divan, Ghazal 14",
+      "text": "Người khôn ngoan nhìn thấy vẻ đẹp của Thượng Đế trong mọi khuôn mặt. Hãy mở mắt ra — vẻ đẹp ở khắp nơi.",
+      "context": "Cái thiêng liêng trong cái bình thường",
+      "resonance_context": "Về việc tìm thấy điều thiêng liêng trong cái bình thường. Dành cho user đang cảm thấy cuộc sống đang mất đi vẻ đẹp hoặc ý nghĩa."
+    },
+    {
+      "id": "hafez_5",
+      "source_id": "hafez_divan",
+      "reference": "Hafez · Divan, Ghazal 22",
+      "text": "Đừng than vãn về sự bất trung của số phận — ai đã không phải trải qua điều này?",
+      "context": "Khó khăn là phần của kinh nghiệm chung",
+      "resonance_context": "Về việc đau khổ là trải nghiệm phổ quát của con người. Dành cho user đang cảm thấy đặc biệt bất hạnh so với người khác."
+    },
+    {
+      "id": "hafez_6",
+      "source_id": "hafez_divan",
+      "reference": "Hafez · Divan, Ghazal 33",
+      "text": "Trái tim tôi như gương — nó phản chiếu những gì đứng trước nó. Hãy chú ý đến những gì bạn đặt trước nó.",
+      "context": "Trái tim như gương",
+      "resonance_context": "Về việc trái tim phản chiếu những gì ta chú ý đến. Dành cho user đang tự hỏi tại sao tâm trạng mình luôn bị ảnh hưởng bởi môi trường xung quanh."
+    },
+    {
+      "id": "hafez_7",
+      "source_id": "hafez_divan",
+      "reference": "Hafez · Divan, Ghazal 41",
+      "text": "Bán đi lòng khôn ngoan của bạn, mua sự ngạc nhiên. Khôn ngoan là đoán. Ngạc nhiên là nhìn thấy.",
+      "context": "Ngạc nhiên vượt qua sự chắc chắn",
+      "resonance_context": "Về việc sự ngạc nhiên và cởi mở đôi khi dẫn đến hiểu biết sâu hơn sự chắc chắn. Dành cho user đang tự hỏi liệu mình có biết đủ để hành động chưa."
+    },
+    {
+      "id": "hafez_8",
+      "source_id": "hafez_divan",
+      "reference": "Hafez · Divan, Ghazal 55",
+      "text": "Tôi không thể giải thích lửa nào đang thiêu đốt trái tim tôi. Nhưng tôi biết ngọn lửa đó thật.",
+      "context": "Trải nghiệm bên trong không cần giải thích",
+      "resonance_context": "Về việc một số trải nghiệm nội tâm là thật dù không thể giải thích bằng lý trí. Dành cho user đang cảm thấy điều gì đó mạnh mẽ nhưng không thể gọi tên."
+    },
+    {
+      "id": "hafez_9",
+      "source_id": "hafez_divan",
+      "reference": "Hafez · Divan, Ghazal 62",
+      "text": "Người bạo dạn mạo hiểm — người hèn nhát ngồi chờ sự an toàn. Hãy thả mình vào dòng chảy của cuộc sống.",
+      "context": "Dũng cảm là tham gia vào cuộc sống",
+      "resonance_context": "Về sự khác biệt giữa sống thực sự và sống trong an toàn. Dành cho user đang trốn tránh rủi ro và không biết tại sao mình không hạnh phúc."
+    },
+    {
+      "id": "hafez_10",
+      "source_id": "hafez_divan",
+      "reference": "Hafez · Divan, Ghazal 79",
+      "text": "Không ai đến gần trái tim người khác nếu không qua nỗi đau. Đau khổ là cái giá của sự thân mật.",
+      "context": "Dễ bị tổn thương là cái giá của kết nối",
+      "resonance_context": "Về việc kết nối thực sự đòi hỏi sự dễ bị tổn thương. Dành cho user đang giữ khoảng cách với người khác vì sợ bị tổn thương."
+    },
+    {
+      "id": "hafez_11",
+      "source_id": "hafez_divan",
+      "reference": "Hafez · Divan, Ghazal 88",
+      "text": "Đừng lo về ngày mai. Đêm nay có đủ bóng tối và ánh sáng của nó.",
+      "context": "Hiện tại là đủ",
+      "resonance_context": "Về việc chú ý vào hiện tại thay vì lo lắng về tương lai. Dành cho user đang bị lo lắng về tương lai bóp nghẹt khả năng tận hưởng hiện tại."
+    },
+    {
+      "id": "hafez_12",
+      "source_id": "hafez_divan",
+      "reference": "Hafez · Divan, Ghazal 102",
+      "text": "Tôi đã tìm Người ở khắp mọi nơi. Cuối cùng Người ở trong lòng tôi — và tôi đã tìm ở ngoài.",
+      "context": "Điều tìm kiếm đã có sẵn bên trong",
+      "resonance_context": "Về việc điều chúng ta tìm kiếm bên ngoài thường đã có sẵn bên trong. Dành cho user đang tìm kiếm câu trả lời từ bên ngoài."
     },
     {
       "id": "bible_1",
       "source_id": "bible_kjv",
-      "reference": "John 1:1",
-      "text": "In the beginning was the Word, and the Word was with God, and the Word was God.",
-      "context": "The nature of divine presence",
-      "resonance_context": "About the creative and constitutive power of language and naming. Relevant when user is struggling to articulate something important or feels unheard."
+      "reference": "Psalms 23:4",
+      "text": "Yea, though I walk through the valley of the shadow of death, I will fear no evil: for thou art with me.",
+      "context": "Courage in the darkest places",
+      "resonance_context": "Về việc đi qua bóng tối mà không sợ hãi nhờ sự đồng hành. Dành cho user đang trong giai đoạn tối tăm nhất của cuộc đời."
     },
     {
       "id": "bible_2",
       "source_id": "bible_kjv",
-      "reference": "Matthew 6:34",
-      "text": "Therefore take no thought for the morrow: for the morrow shall take thought for the things of itself.",
-      "context": "Trust and presence",
-      "resonance_context": "About releasing pre-emptive anxiety. Relevant when user is spending energy worrying about a future that hasn't arrived yet."
+      "reference": "Psalms 46:10",
+      "text": "Be still, and know that I am God: I will be exalted among the heathen, I will be exalted in the earth.",
+      "context": "Stillness as wisdom",
+      "resonance_context": "Về việc dừng lại và biết — không làm gì cũng là một hành động. Dành cho user đang quá bận rộn và cảm thấy mất kết nối với điều gì đó lớn hơn."
     },
     {
       "id": "bible_3",
       "source_id": "bible_kjv",
-      "reference": "Psalm 46:10",
-      "text": "Be still, and know that I am God.",
-      "context": "Stillness before certainty",
-      "resonance_context": "About the invitation to stop striving and simply be present. Relevant when user is overwhelmed by the need to act, fix, or control."
+      "reference": "Ecclesiastes 3:1-2",
+      "text": "To every thing there is a season, and a time to every purpose under the heaven: a time to be born, and a time to die.",
+      "context": "Everything has its right time",
+      "resonance_context": "Về việc mọi thứ đều có thời điểm của nó. Dành cho user đang cảm thấy điều gì đó đến quá sớm hoặc quá muộn."
     },
     {
       "id": "bible_4",
       "source_id": "bible_kjv",
-      "reference": "Ecclesiastes 3:1",
-      "text": "To every thing there is a season, and a time to every purpose under the heaven.",
-      "context": "Timing beyond personal urgency",
-      "resonance_context": "About trusting timing even when it feels wrong. Relevant when user is pushing against a season they're in rather than moving with it."
+      "reference": "Ecclesiastes 4:6",
+      "text": "Better is an handful with quietness, than both the hands full with travail and vexation of spirit.",
+      "context": "Less with peace is better than more with suffering",
+      "resonance_context": "Về việc ít hơn nhưng bình yên có giá trị hơn nhiều hơn nhưng căng thẳng. Dành cho user đang hy sinh sự bình yên để có được nhiều hơn."
     },
     {
       "id": "bible_5",
       "source_id": "bible_kjv",
-      "reference": "Isaiah 30:15",
-      "text": "In returning and rest shall ye be saved; in quietness and in confidence shall be your strength.",
-      "context": "Strength that does not shout",
-      "resonance_context": "About the counterintuitive strength found in stillness. Relevant when user feels compelled to keep moving when rest is actually needed."
+      "reference": "Ecclesiastes 11:4",
+      "text": "He that observeth the wind shall not sow; and he that regardeth the clouds shall not reap.",
+      "context": "Waiting for perfect conditions means never starting",
+      "resonance_context": "Về việc chờ đợi điều kiện hoàn hảo là lý do không hành động. Dành cho user đang trì hoãn vì chưa thấy thời điểm 'đúng'."
     },
     {
       "id": "bible_6",
       "source_id": "bible_kjv",
       "reference": "Proverbs 4:23",
       "text": "Keep thy heart with all diligence; for out of it are the issues of life.",
-      "context": "Guarding what quietly directs everything",
-      "resonance_context": "About the heart as the origin of everything that matters. Relevant when user is focusing on external circumstances while neglecting their inner state."
+      "context": "The heart is the source of life",
+      "resonance_context": "Về tầm quan trọng của việc bảo vệ và chú ý đến nội tâm. Dành cho user đang bỏ qua cảm xúc và trạng thái bên trong của mình."
     },
     {
       "id": "bible_7",
       "source_id": "bible_kjv",
-      "reference": "Romans 12:12",
-      "text": "Rejoicing in hope; patient in tribulation; continuing instant in prayer.",
-      "context": "Holding posture inside strain",
-      "resonance_context": "About three stances for difficult times: hope, patience, presence. Relevant when user is in a prolonged hard season and looking for how to endure."
+      "reference": "Proverbs 11:2",
+      "text": "When pride cometh, then cometh shame: but with the lowly is wisdom.",
+      "context": "Humility as the seat of wisdom",
+      "resonance_context": "Về mối liên hệ giữa kiêu ngạo và sự sụp đổ. Dành cho user đang cảm thấy tự mãn hoặc đang vật lộn với cái tôi."
     },
     {
       "id": "bible_8",
       "source_id": "bible_kjv",
-      "reference": "2 Corinthians 12:9",
-      "text": "My grace is sufficient for thee: for my strength is made perfect in weakness.",
-      "context": "The place where weakness stops being failure",
-      "resonance_context": "About the paradox where admitting limitation opens a different kind of power. Relevant when user is ashamed of struggling or afraid to be seen as weak."
+      "reference": "Proverbs 14:12",
+      "text": "There is a way which seemeth right unto a man, but the end thereof are the ways of death.",
+      "context": "Self-deception is the deepest danger",
+      "resonance_context": "Về việc tự lừa dối mình là nguy hiểm nhất. Dành cho user đang theo đuổi điều gì đó và không chắc liệu đó có phải là điều thực sự tốt cho mình không."
     },
     {
       "id": "bible_9",
       "source_id": "bible_kjv",
-      "reference": "James 1:5",
-      "text": "If any of you lack wisdom, let him ask of God, that giveth to all men liberally.",
-      "context": "Asking without shame",
-      "resonance_context": "About wisdom being available rather than earned. Relevant when user feels unqualified to make a decision or move forward."
+      "reference": "Matthew 6:34",
+      "text": "Take therefore no thought for the morrow: for the morrow shall take thought for the things of itself. Sufficient unto the day is the evil thereof.",
+      "context": "Each day has its own burden",
+      "resonance_context": "Về việc lo lắng về tương lai làm giảm khả năng đối phó với hiện tại. Dành cho user đang overwhelm bởi những lo lắng về những gì chưa xảy ra."
     },
     {
       "id": "bible_10",
       "source_id": "bible_kjv",
+      "reference": "Matthew 7:3",
+      "text": "And why beholdest thou the mote that is in thy brother's eye, but considerest not the beam that is in thine own eye?",
+      "context": "Self-awareness before judgment of others",
+      "resonance_context": "Về việc phán xét người khác thường là phản ánh của điều ta chưa nhìn nhận trong bản thân. Dành cho user đang bực bội với người khác."
+    },
+    {
+      "id": "bible_11",
+      "source_id": "bible_kjv",
+      "reference": "John 8:32",
+      "text": "And ye shall know the truth, and the truth shall make you free.",
+      "context": "Truth as liberation",
+      "resonance_context": "Về việc hiểu sự thật — dù đau — là con đường đến tự do. Dành cho user đang né tránh sự thật vì sợ nó sẽ đau."
+    },
+    {
+      "id": "bible_12",
+      "source_id": "bible_kjv",
+      "reference": "Romans 8:28",
+      "text": "And we know that all things work together for good to them that love God, to them who are the called according to his purpose.",
+      "context": "Trust in the greater pattern",
+      "resonance_context": "Về việc tin vào một quy luật lớn hơn ngay cả khi không thấy rõ. Dành cho user đang trải qua điều xấu và không thể thấy ý nghĩa trong đó."
+    },
+    {
+      "id": "bible_13",
+      "source_id": "bible_kjv",
       "reference": "1 Corinthians 13:12",
-      "text": "For now we see through a glass, darkly; but then face to face.",
-      "context": "Living with partial sight",
-      "resonance_context": "About the partial nature of current understanding. Relevant when user is frustrated by not seeing the full picture of a situation."
-    },
-    {
-      "id": "hafez_1",
-      "source_id": "hafez_divan",
-      "reference": "Ghazal 1",
-      "text": "I wish I could show you, when you are lonely or in darkness, the astonishing light of your own being.",
-      "context": "Inner radiance",
-      "resonance_context": "Về việc quên mất ánh sáng vốn có của chính mình. Dành cho user đang tìm kiếm điều gì đó bên ngoài mà thực ra đã có sẵn bên trong."
-    },
-    {
-      "id": "hafez_2",
-      "source_id": "hafez_divan",
-      "reference": "Ghazal 12",
-      "text": "Stay close to anything that makes you glad you are alive.",
-      "context": "Choosing what keeps the soul awake",
-      "resonance_context": "Về việc ưu tiên điều thực sự nuôi dưỡng sự sống trong mình. Dành cho user đang lãng phí năng lượng cho những thứ không còn có ý nghĩa."
-    },
-    {
-      "id": "hafez_3",
-      "source_id": "hafez_divan",
-      "reference": "Ghazal 19",
-      "text": "The small man builds cages for everyone he knows, while the sage opens every door.",
-      "context": "The difference between fear and generosity",
-      "resonance_context": "Về sự khác biệt giữa kiểm soát và tự do. Dành cho user đang trong mối quan hệ hoặc môi trường mang tính kiểm soát."
-    },
-    {
-      "id": "hafez_4",
-      "source_id": "hafez_divan",
-      "reference": "Ghazal 33",
-      "text": "Your heart and my heart are very, very old friends.",
-      "context": "Familiarity beneath distance",
-      "resonance_context": "Về kết nối vượt thời gian và sự quen thuộc sâu sắc. Dành cho user đang cảm thấy cô đơn hoặc bị ngắt kết nối với người khác."
-    },
-    {
-      "id": "hafez_5",
-      "source_id": "hafez_divan",
-      "reference": "Ghazal 41",
-      "text": "Even after all this time, the sun never says to the earth, You owe me.",
-      "context": "Love that gives without accounting",
-      "resonance_context": "Về tình yêu và sự cho đi không cần đền đáp. Dành cho user đang kiệt sức vì giữ sổ nợ trong một mối quan hệ."
-    },
-    {
-      "id": "hafez_6",
-      "source_id": "hafez_divan",
-      "reference": "Ghazal 48",
-      "text": "Fear is the cheapest room in the house. I would like to see you living in better conditions.",
-      "context": "Moving out of cramped inner rooms",
-      "resonance_context": "Về việc sợ hãi như nơi cư trú mặc định và khả năng chuyển đến không gian rộng hơn. Dành cho user đang ra quyết định từ nỗi sợ thay vì từ điều mình muốn."
-    },
-    {
-      "id": "hafez_7",
-      "source_id": "hafez_divan",
-      "reference": "Ghazal 55",
-      "text": "Plant so that your own heart will grow.",
-      "context": "Care as cultivation, not performance",
-      "resonance_context": "Về việc đầu tư vào điều nuôi dưỡng phần sâu nhất của mình. Dành cho user đang hỏi nên dành thời gian và năng lượng vào đâu."
-    },
-    {
-      "id": "hafez_8",
-      "source_id": "hafez_divan",
-      "reference": "Ghazal 61",
-      "text": "What we speak becomes the house we live in.",
-      "context": "Language shaping atmosphere",
-      "resonance_context": "Về quyền năng của ngôn ngữ và câu chuyện mình kể về bản thân. Dành cho user đang lặp đi lặp lại một narrative tiêu cực."
-    },
-    {
-      "id": "hafez_9",
-      "source_id": "hafez_divan",
-      "reference": "Ghazal 70",
-      "text": "You have drunk enough of the old wine. Come taste the one poured fresh for this dawn.",
-      "context": "The invitation to stop repeating yourself",
-      "resonance_context": "Về việc bám víu vào quá khứ ngăn cản trải nghiệm hiện tại. Dành cho user đang so sánh hiện tại với một thời kỳ vàng son đã qua."
-    },
-    {
-      "id": "hafez_10",
-      "source_id": "hafez_divan",
-      "reference": "Ghazal 84",
-      "text": "The beloved has folded a secret inside your longing.",
-      "context": "Desire as a clue rather than a wound",
-      "resonance_context": "Về việc khao khát bản thân nó là thông điệp, không chỉ là nỗi đau. Dành cho user đang bị giày vò bởi điều mình muốn nhưng chưa có."
-    },
-    {
-      "id": "rumi_1",
-      "source_id": "rumi_masnavi",
-      "reference": "Book 1",
-      "text": "Out beyond ideas of wrongdoing and rightdoing, there is a field. I'll meet you there.",
-      "context": "Transcendence and unity",
-      "resonance_context": "Về không gian vượt ra ngoài phán xét và đúng sai. Dành cho user đang bị kẹt trong một cuộc tranh luận về ai đúng ai sai."
-    },
-    {
-      "id": "rumi_2",
-      "source_id": "rumi_masnavi",
-      "reference": "Book 1",
-      "text": "The wound is the place where the Light enters you.",
-      "context": "Pain as opening",
-      "resonance_context": "Về việc tổn thương mở ra thay vì chỉ gây đau. Dành cho user đang cố che giấu hoặc phục hồi sau một vết thương cảm xúc."
-    },
-    {
-      "id": "rumi_3",
-      "source_id": "rumi_masnavi",
-      "reference": "Book 2",
-      "text": "Why are you so busy with this or that or good or bad? Pay attention to how things blend.",
-      "context": "Beyond binary certainty",
-      "resonance_context": "Về việc chú ý đến toàn bộ thay vì chỉ phân tích các phần. Dành cho user đang overthink và cần nhìn bức tranh lớn hơn."
-    },
-    {
-      "id": "rumi_4",
-      "source_id": "rumi_masnavi",
-      "reference": "Book 2",
-      "text": "What you seek is seeking you.",
-      "context": "Longing as reciprocity",
-      "resonance_context": "Về tính hai chiều của khao khát — điều ta tìm kiếm cũng đang hướng về ta. Dành cho user cảm thấy đơn độc trong việc theo đuổi điều gì đó."
-    },
-    {
-      "id": "rumi_5",
-      "source_id": "rumi_masnavi",
-      "reference": "Book 3",
-      "text": "Try not to resist life's changes. Let life flow through you.",
-      "context": "Yielding without disappearing",
-      "resonance_context": "Về sự kháng cự và buông bỏ khi đối mặt với thay đổi không mong muốn. Dành cho user đang trong giai đoạn chuyển tiếp."
-    },
-    {
-      "id": "rumi_6",
-      "source_id": "rumi_masnavi",
-      "reference": "Book 3",
-      "text": "Don't grieve. Anything you lose comes round in another form.",
-      "context": "Transformation rather than erasure",
-      "resonance_context": "Về sự mất mát như biến đổi, không phải kết thúc. Dành cho user đang đau buồn vì mất điều gì đó hoặc ai đó."
-    },
-    {
-      "id": "rumi_7",
-      "source_id": "rumi_masnavi",
-      "reference": "Book 4",
-      "text": "Yesterday I was clever, so I wanted to change the world. Today I am wise, so I am changing myself.",
-      "context": "Turning effort inward",
-      "resonance_context": "Về sự trưởng thành từ muốn thay đổi bên ngoài sang thay đổi bên trong. Dành cho user đang thất vọng vì không thể thay đổi người khác hoặc hoàn cảnh."
-    },
-    {
-      "id": "rumi_8",
-      "source_id": "rumi_masnavi",
-      "reference": "Book 4",
-      "text": "Be melting snow. Wash yourself of yourself.",
-      "context": "Softening identity enough to move",
-      "resonance_context": "Về việc buông bỏ cái tôi và những giới hạn tự áp đặt. Dành cho user đang bị kẹt trong một bản sắc hoặc câu chuyện cũ về chính mình."
-    },
-    {
-      "id": "rumi_9",
-      "source_id": "rumi_masnavi",
-      "reference": "Book 5",
-      "text": "Silence is the language of God, all else is poor translation.",
-      "context": "When quiet says more than explanation",
-      "resonance_context": "Về im lặng như nơi ý nghĩa thực sự cư trú. Dành cho user đang quá ồn ào bên trong hoặc cần cho phép mình không nói gì."
-    },
-    {
-      "id": "rumi_10",
-      "source_id": "rumi_masnavi",
-      "reference": "Book 6",
-      "text": "Set your life on fire. Seek those who fan your flames.",
-      "context": "Shared aliveness",
-      "resonance_context": "Về tầm quan trọng của những người nuôi dưỡng sinh lực trong ta. Dành cho user đang trong môi trường hoặc mối quan hệ khiến họ tắt lửa."
-    },
-    {
-      "id": "marcus_1",
-      "source_id": "marcus_aurelius",
-      "reference": "Book 2, Section 1",
-      "text": "When you wake up, think of this: You will encounter busybodies, ingrates, egomaniacs, liars, the angry, and cranks.",
-      "context": "Preparation for life",
-      "resonance_context": "About pre-emptive acceptance of difficult people to avoid reactive suffering. Relevant when user is dreading an interaction or feeling betrayed by someone."
-    },
-    {
-      "id": "marcus_2",
-      "source_id": "marcus_aurelius",
-      "reference": "Book 4, Section 3",
-      "text": "You have power over your mind—not outside events. Realize this, and you will find strength.",
-      "context": "Inner mastery",
-      "resonance_context": "About the Stoic locus of control: what can and cannot be changed. Relevant when user is stuck between wanting something to change and being unable to change it."
-    },
-    {
-      "id": "marcus_3",
-      "source_id": "marcus_aurelius",
-      "reference": "Book 4, Section 49",
-      "text": "Do not act as if you had ten thousand years to throw away.",
-      "context": "Mortality as focus",
-      "resonance_context": "About urgency without anxiety — acting as if time matters because it does. Relevant when user is procrastinating on something they know is important."
-    },
-    {
-      "id": "marcus_4",
-      "source_id": "marcus_aurelius",
-      "reference": "Book 5, Section 1",
-      "text": "At dawn, when you have trouble getting out of bed, tell yourself: I have to go to work—as a human being.",
-      "context": "Duty without drama",
-      "resonance_context": "About the discipline of showing up even when motivation is absent. Relevant when user is struggling with low energy or questioning why they should bother."
-    },
-    {
-      "id": "marcus_5",
-      "source_id": "marcus_aurelius",
-      "reference": "Book 6, Section 30",
-      "text": "The best revenge is not to be like your enemy.",
-      "context": "Character under provocation",
-      "resonance_context": "About integrity as the only response worth giving to those who harm you. Relevant when user feels wronged and is considering retaliation or bitterness."
-    },
-    {
-      "id": "marcus_6",
-      "source_id": "marcus_aurelius",
-      "reference": "Book 7, Section 54",
-      "text": "The impediment to action advances action. What stands in the way becomes the way.",
-      "context": "Obstacle as path",
-      "resonance_context": "About the Stoic inversion: obstacles are the path, not detours from it. Relevant when user is fighting against a situation instead of working through it."
-    },
-    {
-      "id": "marcus_7",
-      "source_id": "marcus_aurelius",
-      "reference": "Book 8, Section 36",
-      "text": "Do not indulge in dreams of having what you have not, but reckon up the chief of the blessings you do possess.",
-      "context": "Returning to what is already here",
-      "resonance_context": "About the practice of noticing what is already present. Relevant when user is in a state of dissatisfaction or comparing their life to an imagined better version."
-    },
-    {
-      "id": "marcus_8",
-      "source_id": "marcus_aurelius",
-      "reference": "Book 9, Section 6",
-      "text": "Erase the impression, check the impulse, quench desire, keep the directing mind in its own power.",
-      "context": "Interrupting the first reaction",
-      "resonance_context": "About the four Stoic disciplines as a complete inner practice. Relevant when user is feeling reactive, impulsive, or overwhelmed by a strong emotion."
-    },
-    {
-      "id": "marcus_9",
-      "source_id": "marcus_aurelius",
-      "reference": "Book 10, Section 3",
-      "text": "No one can prevent you from living as your nature requires.",
-      "context": "Freedom inside conditions",
-      "resonance_context": "About the inviolable freedom to live according to one's values. Relevant when user feels constrained by others' expectations or external pressures."
-    },
-    {
-      "id": "marcus_10",
-      "source_id": "marcus_aurelius",
-      "reference": "Book 12, Section 36",
-      "text": "Waste no more time arguing what a good man should be. Be one.",
-      "context": "Action over self-narration",
-      "resonance_context": "About the gap between discussing virtue and practicing it. Relevant when user is caught in analysis or self-justification instead of acting."
+      "text": "For now we see through a glass, darkly; but then face to face: now I know in part; but then shall I know even as also I am known.",
+      "context": "Partial knowledge and humility",
+      "resonance_context": "Về việc hiểu biết của con người là không hoàn toàn — và điều đó không sao. Dành cho user đang cảm thấy thất vọng vì không hiểu đủ."
     }
   ],
   "themes": [
@@ -582,62 +1062,62 @@
         {
           "id": "candle",
           "display_name": "Ngọn nến",
-          "flavor_text": "Light in darkness"
+          "flavor_text": "Thắp hay để tắt?"
         },
         {
           "id": "key",
           "display_name": "Chìa khóa",
-          "flavor_text": "Opening what is locked"
+          "flavor_text": "Cửa nào chưa mở?"
         },
         {
           "id": "dawn",
           "display_name": "Bình minh",
-          "flavor_text": "Beginning anew"
+          "flavor_text": "Chưa bắt đầu, đã lo."
         },
         {
           "id": "mirror",
           "display_name": "Gương",
-          "flavor_text": "Reflection of truth"
+          "flavor_text": "Thấy ai khi nhìn vào?"
         },
         {
           "id": "door",
           "display_name": "Cánh cửa",
-          "flavor_text": "Threshold and choice"
+          "flavor_text": "Bước qua hay lùi lại?"
         },
         {
           "id": "bridge",
           "display_name": "Cây cầu",
-          "flavor_text": "Connection and passage"
+          "flavor_text": "Giữa đây và đó."
         },
         {
           "id": "stone",
           "display_name": "Hòn đá",
-          "flavor_text": "Stillness and foundation"
+          "flavor_text": "Đứng yên không phải không cảm."
         },
         {
           "id": "water",
           "display_name": "Nước",
-          "flavor_text": "Flow and adaptation"
+          "flavor_text": "Chảy về chỗ thấp nhất."
         },
         {
           "id": "fire",
           "display_name": "Lửa",
-          "flavor_text": "Passion and transformation"
+          "flavor_text": "Nuôi dưỡng hay thiêu đốt?"
         },
         {
           "id": "wind",
           "display_name": "Gió",
-          "flavor_text": "Movement and change"
+          "flavor_text": "Không nhìn thấy nhưng có thật."
         },
         {
           "id": "silence",
           "display_name": "Sự im lặng",
-          "flavor_text": "Space for listening"
+          "flavor_text": "Điều chưa được nói."
         },
         {
           "id": "seed",
           "display_name": "Hạt giống",
-          "flavor_text": "Potential waiting"
+          "flavor_text": "Chưa nảy mầm chưa có gì."
         }
       ]
     },
@@ -649,62 +1129,344 @@
         {
           "id": "earth",
           "display_name": "Đất",
-          "flavor_text": "Grounding and stability"
+          "flavor_text": "Mọi thứ đều trở về đây."
         },
         {
           "id": "air",
           "display_name": "Không khí",
-          "flavor_text": "Clarity and breath"
+          "flavor_text": "Hiện hữu mà không nắm được."
         },
         {
           "id": "metal",
           "display_name": "Kim loại",
-          "flavor_text": "Strength and refinement"
+          "flavor_text": "Qua lửa mới thành hình."
         },
         {
           "id": "wood",
           "display_name": "Gỗ",
-          "flavor_text": "Growth and flexibility"
+          "flavor_text": "Uốn mình theo gió vẫn sống."
         },
         {
           "id": "void",
           "display_name": "Khoảng trống",
-          "flavor_text": "Emptiness and potential"
+          "flavor_text": "Trống mới chứa được."
         },
         {
           "id": "light",
           "display_name": "Ánh sáng",
-          "flavor_text": "Illumination"
+          "flavor_text": "Đổ vào không chỗ nào chứa hết."
         },
         {
           "id": "shadow",
           "display_name": "Bóng tối",
-          "flavor_text": "Mystery and depth"
+          "flavor_text": "Có ánh sáng mới có bóng."
         },
         {
           "id": "thunder",
           "display_name": "Sấm sét",
-          "flavor_text": "Sudden awakening"
+          "flavor_text": "Cảnh báo trước hay sau?"
         },
         {
           "id": "mountain",
           "display_name": "Núi",
-          "flavor_text": "Steadfastness"
+          "flavor_text": "Không qua được thì đi vòng."
         },
         {
           "id": "valley",
           "display_name": "Thung lũng",
-          "flavor_text": "Receptivity"
+          "flavor_text": "Chỗ thấp nhất tích nhiều nhất."
         },
         {
           "id": "river",
           "display_name": "Sông",
-          "flavor_text": "Continuous flow"
+          "flavor_text": "Không ai tắm hai lần cùng dòng."
         },
         {
           "id": "ocean",
-          "display_name": "Ð?i d??ng",
-          "flavor_text": "Vastness and depth"
+          "display_name": "Đại dương",
+          "flavor_text": "Sâu đến mức không đo được."
+        }
+      ]
+    },
+    {
+      "id": "creatures",
+      "name": "Vương quốc sinh linh",
+      "is_premium": false,
+      "symbols": [
+        {
+          "id": "elephant",
+          "display_name": "Con voi",
+          "flavor_text": "Trí nhớ không xóa được."
+        },
+        {
+          "id": "fox",
+          "display_name": "Con cáo",
+          "flavor_text": "Khôn ngoan hay xảo quyệt?"
+        },
+        {
+          "id": "turtle",
+          "display_name": "Con rùa",
+          "flavor_text": "Chậm mà chắc."
+        },
+        {
+          "id": "tiger",
+          "display_name": "Con hổ",
+          "flavor_text": "Sức mạnh biết chờ đợi."
+        },
+        {
+          "id": "crane",
+          "display_name": "Con cò",
+          "flavor_text": "Kiên nhẫn không phải thụ động."
+        },
+        {
+          "id": "snake",
+          "display_name": "Con rắn",
+          "flavor_text": "Lột xác để tiếp tục."
+        },
+        {
+          "id": "eagle",
+          "display_name": "Đại bàng",
+          "flavor_text": "Tầm nhìn từ trên cao."
+        },
+        {
+          "id": "wolf",
+          "display_name": "Sói",
+          "flavor_text": "Một mình hay cùng đàn?"
+        }
+      ]
+    },
+    {
+      "id": "celestial",
+      "name": "Bầu trời sâu",
+      "is_premium": false,
+      "symbols": [
+        {
+          "id": "crescent",
+          "display_name": "Trăng lưỡi liềm",
+          "flavor_text": "Đang lớn hay đang hao?"
+        },
+        {
+          "id": "full_moon",
+          "display_name": "Trăng tròn",
+          "flavor_text": "Đến lúc hiển lộ."
+        },
+        {
+          "id": "eclipse",
+          "display_name": "Nhật thực",
+          "flavor_text": "Khuất không có nghĩa là mất."
+        },
+        {
+          "id": "north_star",
+          "display_name": "Sao Bắc Đẩu",
+          "flavor_text": "Điểm neo không lay chuyển."
+        },
+        {
+          "id": "shooting_star",
+          "display_name": "Sao băng",
+          "flavor_text": "Chớp nhoáng nhưng có thật."
+        },
+        {
+          "id": "dawn_sky",
+          "display_name": "Trời bình minh",
+          "flavor_text": "Trước khi ngày bắt đầu."
+        },
+        {
+          "id": "dusk",
+          "display_name": "Hoàng hôn",
+          "flavor_text": "Giữa hai thế giới."
+        },
+        {
+          "id": "galaxy",
+          "display_name": "Thiên hà",
+          "flavor_text": "Nhỏ bé nhưng là một phần."
+        }
+      ]
+    },
+    {
+      "id": "landscape",
+      "name": "Địa hình nội tâm",
+      "is_premium": false,
+      "symbols": [
+        {
+          "id": "cave",
+          "display_name": "Hang động",
+          "flavor_text": "Đi vào hay đi ra?"
+        },
+        {
+          "id": "summit",
+          "display_name": "Đỉnh núi",
+          "flavor_text": "Đứng đây thì thấy gì?"
+        },
+        {
+          "id": "delta",
+          "display_name": "Cửa sông",
+          "flavor_text": "Nơi tất cả đổ về."
+        },
+        {
+          "id": "desert",
+          "display_name": "Sa mạc",
+          "flavor_text": "Vắng lặng không phải trống rỗng."
+        },
+        {
+          "id": "forest",
+          "display_name": "Khu rừng",
+          "flavor_text": "Có thứ chỉ sống trong bóng tối."
+        },
+        {
+          "id": "cliff",
+          "display_name": "Vách đá",
+          "flavor_text": "Ranh giới không phải kết thúc."
+        },
+        {
+          "id": "crossroads",
+          "display_name": "Ngã tư",
+          "flavor_text": "Không quyết định cũng là quyết định."
+        },
+        {
+          "id": "shore",
+          "display_name": "Bờ biển",
+          "flavor_text": "Giữa đất liền và biển cả."
+        }
+      ]
+    },
+    {
+      "id": "ritual_objects",
+      "name": "Vật thể nghi thức",
+      "is_premium": false,
+      "symbols": [
+        {
+          "id": "incense",
+          "display_name": "Hương khói",
+          "flavor_text": "Điều vô hình cũng có hình."
+        },
+        {
+          "id": "bell",
+          "display_name": "Chuông",
+          "flavor_text": "Tiếng vang còn lại sau khi im."
+        },
+        {
+          "id": "ash",
+          "display_name": "Tro tàn",
+          "flavor_text": "Đã qua nhưng còn để lại dấu."
+        },
+        {
+          "id": "bowl",
+          "display_name": "Chiếc bát",
+          "flavor_text": "Chứa đựng mà không giữ chặt."
+        },
+        {
+          "id": "thread",
+          "display_name": "Sợi chỉ",
+          "flavor_text": "Mong manh mà kết nối."
+        },
+        {
+          "id": "scroll",
+          "display_name": "Cuộn giấy",
+          "flavor_text": "Chưa được mở ra."
+        },
+        {
+          "id": "hourglass",
+          "display_name": "Đồng hồ cát",
+          "flavor_text": "Không ai thêm được cát vào."
+        },
+        {
+          "id": "scales",
+          "display_name": "Cán cân",
+          "flavor_text": "Nặng hay nhẹ là do ta cầm."
+        }
+      ]
+    },
+    {
+      "id": "geometry",
+      "name": "Hình học ẩn dụ",
+      "is_premium": false,
+      "symbols": [
+        {
+          "id": "circle",
+          "display_name": "Vòng tròn",
+          "flavor_text": "Không có điểm bắt đầu hay kết thúc."
+        },
+        {
+          "id": "spiral",
+          "display_name": "Xoắn ốc",
+          "flavor_text": "Quay về nhưng không giống trước."
+        },
+        {
+          "id": "crossmark",
+          "display_name": "Dấu thập",
+          "flavor_text": "Hai chiều gặp tại một điểm."
+        },
+        {
+          "id": "labyrinth",
+          "display_name": "Mê cung",
+          "flavor_text": "Con đường duy nhất là đi tiếp."
+        },
+        {
+          "id": "triangle",
+          "display_name": "Tam giác",
+          "flavor_text": "Ba điểm tạo nên một bề mặt."
+        },
+        {
+          "id": "horizon",
+          "display_name": "Đường chân trời",
+          "flavor_text": "Luôn ở phía trước dù đi mãi."
+        },
+        {
+          "id": "knot",
+          "display_name": "Nút thắt",
+          "flavor_text": "Được tạo ra để tháo."
+        },
+        {
+          "id": "infinity",
+          "display_name": "Vô cực",
+          "flavor_text": "Không có điểm nào là điểm cuối."
+        }
+      ]
+    },
+    {
+      "id": "thresholds",
+      "name": "Ngưỡng & Chuyển giao",
+      "is_premium": false,
+      "symbols": [
+        {
+          "id": "threshold",
+          "display_name": "Ngưỡng cửa",
+          "flavor_text": "Chưa vào, chưa ra."
+        },
+        {
+          "id": "ending",
+          "display_name": "Kết thúc",
+          "flavor_text": "Mọi kết thúc mở ra điều khác."
+        },
+        {
+          "id": "pause",
+          "display_name": "Khoảng dừng",
+          "flavor_text": "Không làm cũng là hành động."
+        },
+        {
+          "id": "turning_point",
+          "display_name": "Bước ngoặt",
+          "flavor_text": "Trước và sau không còn giống nhau."
+        },
+        {
+          "id": "letting_go",
+          "display_name": "Buông",
+          "flavor_text": "Giữ thêm sẽ mất nhiều hơn."
+        },
+        {
+          "id": "return",
+          "display_name": "Trở về",
+          "flavor_text": "Không phải bước lùi."
+        },
+        {
+          "id": "waiting",
+          "display_name": "Chờ đợi",
+          "flavor_text": "Không phải không làm gì."
+        },
+        {
+          "id": "empty_hand",
+          "display_name": "Bàn tay trống",
+          "flavor_text": "Chỉ tay không mới nhận được."
         }
       ]
     }
@@ -780,7 +1542,7 @@
     },
     {
       "symbol_id": "light",
-      "question": "Bạn cần soi sáng cái gì"
+      "question": "Điều gì đang trở nên rõ hơn dù bạn không mong"
     },
     {
       "symbol_id": "shadow",
@@ -790,45 +1552,213 @@
       "symbol_id": "thunder",
       "question": "Bạn sẵn sàng cho sự thay đổi đột ngột"
     },
-    { "symbol_id": "mountain", "question": "Bạn đang đứng trên đỉnh nào" },
-    { "symbol_id": "valley", "question": "Điều gì đang được tích tụ trong chiều sâu" },
-    { "symbol_id": "river", "question": "Bạn đang chảy về phía nào" },
-    { "symbol_id": "ocean", "question": "Cái gì trong bạn là rộng lớn hơn bạn nghĩ" },
-    { "symbol_id": "candle", "question": "Bạn đang chiếu sáng cho ai" },
-    { "symbol_id": "mirror", "question": "Bạn thấy gì mà bạn chưa dám nhìn nhận" },
-    { "symbol_id": "key", "question": "Cánh cửa nào bạn đã có chìa mà chưa mở" },
-    { "symbol_id": "bridge", "question": "Bạn đang nối liền hai phần nào của mình" },
-    { "symbol_id": "seed", "question": "Bạn đang kiên nhẫn chờ gì nảy mầm" },
-    { "symbol_id": "fire", "question": "Điều gì khiến bạn còn muốn thức dậy" },
-    { "symbol_id": "water", "question": "Bạn đang uốn quanh hay đang tìm cách xuyên qua" },
-    { "symbol_id": "stone", "question": "Điều gì trong bạn không cần thay đổi" },
-    { "symbol_id": "wind", "question": "Thứ gì đang lay động mà bạn chưa để ý" },
-    { "symbol_id": "light", "question": "Bạn đang tiến về phía nào" },
-    { "symbol_id": "shadow", "question": "Điều gì bạn đang mang theo mà không nhìn thấy" },
-    { "symbol_id": "silence", "question": "Khi yên lặng, bạn nghe thấy gì trong mình" },
-    { "symbol_id": "dawn", "question": "Điều gì đang bắt đầu dù bạn chưa đặt tên" },
-    { "symbol_id": "door", "question": "Bạn đang chờ ai mở cửa cho bạn" },
-    { "symbol_id": "thunder", "question": "Điều gì vừa rõ ràng hơn sau cú sốc" },
-    { "symbol_id": "earth", "question": "Bạn đang đứng vững trên nền gì" },
-    { "symbol_id": "void", "question": "Khoảng trống nào đang mời bạn điền vào" },
-    { "symbol_id": "metal", "question": "Điều gì cần được mài giũa thêm" },
-    { "symbol_id": "wood", "question": "Bạn đang cong về phía ánh sáng nào" },
-    { "symbol_id": "air", "question": "Bạn cần thở ra điều gì trước" },
-    { "symbol_id": "candle", "question": "Ngọn lửa nào bạn không muốn tắt" },
-    { "symbol_id": "mirror", "question": "Ai đang nhìn bạn qua đôi mắt của bạn" },
-    { "symbol_id": "river", "question": "Bạn đang cưỡng lại dòng chảy nào" },
-    { "symbol_id": "mountain", "question": "Bạn leo lên vì muốn đến hay vì muốn rời" },
-    { "symbol_id": "seed", "question": "Điều gì cần thêm thời gian để bạn không thúc ép nữa" },
-    { "symbol_id": "dawn", "question": "Bạn mang gì từ đêm qua vào ngày hôm nay" },
-    { "symbol_id": "stone", "question": "Điều gì bạn muốn buông nhưng chưa thể" },
-    { "symbol_id": "fire", "question": "Bạn đang nuôi dưỡng hay đang bùng cháy" },
-    { "symbol_id": "ocean", "question": "Điều gì đang kéo bạn xuống sâu hơn" },
-    { "symbol_id": "valley", "question": "Bạn đang tụ năng lượng cho điều gì" },
-    { "symbol_id": "key", "question": "Bạn đang giữ chìa khóa của ai" },
-    { "symbol_id": "bridge", "question": "Bạn đang bắc cầu hay đang đứng giữa" },
-    { "symbol_id": "silence", "question": "Điều gì bạn nói với chính mình khi không ai nghe" },
-    { "symbol_id": "void", "question": "Bạn sợ điều gì nằm trong khoảng không đó" },
-    { "symbol_id": "wind", "question": "Bạn đang thả hay đang giữ" },
-    { "symbol_id": "light", "question": "Điều gì đang trở nên rõ hơn dù bạn không mong" }
+    {
+      "symbol_id": "mountain",
+      "question": "Bạn đang đứng trên đỉnh nào"
+    },
+    {
+      "symbol_id": "valley",
+      "question": "Điều gì đang được tích tụ trong chiều sâu"
+    },
+    {
+      "symbol_id": "river",
+      "question": "Bạn đang chảy về phía nào"
+    },
+    {
+      "symbol_id": "ocean",
+      "question": "Điều gì đang kéo bạn xuống sâu hơn"
+    },
+    {
+      "symbol_id": "elephant",
+      "question": "Bạn đang gánh điều gì mà không cần thiết"
+    },
+    {
+      "symbol_id": "fox",
+      "question": "Bạn đang dùng khôn ngoan hay xảo quyệt"
+    },
+    {
+      "symbol_id": "turtle",
+      "question": "Điều gì đang khiến bạn rút vào trong"
+    },
+    {
+      "symbol_id": "tiger",
+      "question": "Sức mạnh nào bạn đang giữ lại"
+    },
+    {
+      "symbol_id": "crane",
+      "question": "Bạn đang chờ đúng thời điểm hay tránh hành động"
+    },
+    {
+      "symbol_id": "snake",
+      "question": "Điều gì cần được lột bỏ"
+    },
+    {
+      "symbol_id": "eagle",
+      "question": "Bạn thấy gì khi nhìn từ xa hơn"
+    },
+    {
+      "symbol_id": "wolf",
+      "question": "Bạn đang chọn một mình hay cùng đàn"
+    },
+    {
+      "symbol_id": "crescent",
+      "question": "Bạn đang trong pha lớn hay pha hao"
+    },
+    {
+      "symbol_id": "full_moon",
+      "question": "Điều gì đang hiển lộ ra"
+    },
+    {
+      "symbol_id": "eclipse",
+      "question": "Điều gì đang tạm khuất"
+    },
+    {
+      "symbol_id": "north_star",
+      "question": "Điểm neo của bạn là gì"
+    },
+    {
+      "symbol_id": "shooting_star",
+      "question": "Điều gì chớp nhoáng nhưng thật"
+    },
+    {
+      "symbol_id": "dawn_sky",
+      "question": "Bạn đang ở trước điều gì"
+    },
+    {
+      "symbol_id": "dusk",
+      "question": "Bạn đang ở giữa hai điều gì"
+    },
+    {
+      "symbol_id": "galaxy",
+      "question": "Bạn là một phần của điều gì lớn hơn"
+    },
+    {
+      "symbol_id": "cave",
+      "question": "Bạn đang đi vào hay đi ra"
+    },
+    {
+      "symbol_id": "summit",
+      "question": "Đứng ở đây bạn thấy gì"
+    },
+    {
+      "symbol_id": "delta",
+      "question": "Tất cả trong bạn đang đổ về đâu"
+    },
+    {
+      "symbol_id": "desert",
+      "question": "Bạn đang học gì từ sự vắng lặng"
+    },
+    {
+      "symbol_id": "forest",
+      "question": "Điều gì đang sống trong bóng tối của bạn"
+    },
+    {
+      "symbol_id": "cliff",
+      "question": "Bạn đang đứng ở rìa nào"
+    },
+    {
+      "symbol_id": "crossroads",
+      "question": "Bạn đang trì hoãn quyết định nào"
+    },
+    {
+      "symbol_id": "shore",
+      "question": "Bạn đang ở giữa điều gì và điều gì"
+    },
+    {
+      "symbol_id": "incense",
+      "question": "Điều vô hình nào bạn đang cảm nhận"
+    },
+    {
+      "symbol_id": "bell",
+      "question": "Tiếng vang nào còn lại trong bạn"
+    },
+    {
+      "symbol_id": "ash",
+      "question": "Điều gì đã qua nhưng còn để lại dấu"
+    },
+    {
+      "symbol_id": "bowl",
+      "question": "Bạn đang chứa đựng gì lúc này"
+    },
+    {
+      "symbol_id": "thread",
+      "question": "Bạn đang kết nối điều gì mà sợ đứt"
+    },
+    {
+      "symbol_id": "scroll",
+      "question": "Điều gì bạn chưa dám đọc"
+    },
+    {
+      "symbol_id": "hourglass",
+      "question": "Bạn đang dùng thời gian để làm gì"
+    },
+    {
+      "symbol_id": "scales",
+      "question": "Bạn đang cân nhắc hai điều gì"
+    },
+    {
+      "symbol_id": "circle",
+      "question": "Bạn đang ở điểm nào trên vòng tròn"
+    },
+    {
+      "symbol_id": "spiral",
+      "question": "Bạn đang quay về điều gì theo cách mới"
+    },
+    {
+      "symbol_id": "crossmark",
+      "question": "Hai chiều nào đang gặp nhau trong bạn"
+    },
+    {
+      "symbol_id": "labyrinth",
+      "question": "Bạn đang ở đâu trong mê cung của mình"
+    },
+    {
+      "symbol_id": "triangle",
+      "question": "Ba thứ nào đang tạo nên bức tranh của bạn"
+    },
+    {
+      "symbol_id": "horizon",
+      "question": "Điều gì luôn ở phía trước dù bạn đi mãi"
+    },
+    {
+      "symbol_id": "knot",
+      "question": "Nút thắt nào bạn đang cần tháo"
+    },
+    {
+      "symbol_id": "infinity",
+      "question": "Điều gì bạn nghĩ có giới hạn mà không có"
+    },
+    {
+      "symbol_id": "threshold",
+      "question": "Bạn đang đứng ở cửa nào"
+    },
+    {
+      "symbol_id": "ending",
+      "question": "Kết thúc nào đang mở ra điều gì"
+    },
+    {
+      "symbol_id": "pause",
+      "question": "Bạn đang dừng lại hay đang trốn"
+    },
+    {
+      "symbol_id": "turning_point",
+      "question": "Điều gì đã thay đổi mà bạn chưa công nhận"
+    },
+    {
+      "symbol_id": "letting_go",
+      "question": "Bạn đang giữ lại điều gì vì sợ mất"
+    },
+    {
+      "symbol_id": "return",
+      "question": "Bạn đang trở về hay đang chạy trốn"
+    },
+    {
+      "symbol_id": "waiting",
+      "question": "Bạn đang chờ điều gì để bắt đầu"
+    },
+    {
+      "symbol_id": "empty_hand",
+      "question": "Bạn cần buông gì để nhận được gì"
+    }
   ]
 }

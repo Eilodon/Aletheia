@@ -168,7 +168,8 @@ impl Store {
                     [],
                     |r| r.get::<_, i32>(0),
                 )
-                .unwrap_or(0) > 0
+                .unwrap_or(0)
+                    > 0
             };
             if !col_exists("time_to_ai_request_s", "readings") {
                 tx.execute_batch("ALTER TABLE readings ADD COLUMN time_to_ai_request_s INTEGER;")?;
@@ -177,7 +178,9 @@ impl Store {
                 tx.execute_batch("ALTER TABLE readings ADD COLUMN notification_opened INTEGER NOT NULL DEFAULT 0;")?;
             }
             if !col_exists("session_count", "user_state") {
-                tx.execute_batch("ALTER TABLE user_state ADD COLUMN session_count INTEGER NOT NULL DEFAULT 0;")?;
+                tx.execute_batch(
+                    "ALTER TABLE user_state ADD COLUMN session_count INTEGER NOT NULL DEFAULT 0;",
+                )?;
             }
             tx.execute("PRAGMA user_version = 4", [])?;
         }
@@ -203,7 +206,8 @@ impl Store {
                     [],
                     |r| r.get::<_, i32>(0),
                 )
-                .unwrap_or(0) > 0;
+                .unwrap_or(0)
+                > 0;
             if !exists {
                 tx.execute_batch("ALTER TABLE readings ADD COLUMN user_intent TEXT;")?;
             }
@@ -217,7 +221,8 @@ impl Store {
                     [],
                     |r| r.get::<_, i32>(0),
                 )
-                .unwrap_or(0) > 0;
+                .unwrap_or(0)
+                > 0;
             if !exists {
                 tx.execute_batch("ALTER TABLE user_state ADD COLUMN user_intent TEXT;")?;
             }
@@ -231,7 +236,8 @@ impl Store {
                     [],
                     |r| r.get::<_, i32>(0),
                 )
-                .unwrap_or(0) > 0;
+                .unwrap_or(0)
+                > 0;
             if !col_exists {
                 // DEFAULT 'bibliomancy' — backward-compatible với tất cả sources hiện có
                 tx.execute_batch(
@@ -241,8 +247,24 @@ impl Store {
             tx.execute("PRAGMA user_version = 8", [])?;
         }
 
+        if user_version < 9 {
+            let exists: bool = tx
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('user_state') WHERE name='weekly_summary_enabled'",
+                    [],
+                    |r| r.get::<_, i32>(0),
+                )
+                .unwrap_or(0) > 0;
+            if !exists {
+                tx.execute_batch(
+                    "ALTER TABLE user_state ADD COLUMN weekly_summary_enabled INTEGER NOT NULL DEFAULT 0;"
+                )?;
+            }
+            tx.execute("PRAGMA user_version = 9", [])?;
+        }
+
         tx.commit()?;
-        info!("Migrations complete (schema v8, WAL)");
+        info!("Migrations complete (schema v9, WAL)");
         Ok(())
     }
 
@@ -264,8 +286,8 @@ impl Store {
         let tx = conn.unchecked_transaction()?;
 
         for source in sources {
-            let tradition   = ser(&source.tradition, "tradition")?;
-            let fallback    = ser(&source.fallback_prompts, "fallback_prompts")?;
+            let tradition = ser(&source.tradition, "tradition")?;
+            let fallback = ser(&source.fallback_prompts, "fallback_prompts")?;
             let source_type = ser(&source.source_type, "source_type")?;
             tx.execute(
                 r#"INSERT INTO sources
@@ -289,7 +311,13 @@ impl Store {
         for theme in themes {
             tx.execute(
                 "INSERT INTO themes (id,name,is_premium,pack_id,price_usd) VALUES (?,?,?,?,?)",
-                params![theme.id, theme.name, theme.is_premium as i32, theme.pack_id, theme.price_usd],
+                params![
+                    theme.id,
+                    theme.name,
+                    theme.is_premium as i32,
+                    theme.pack_id,
+                    theme.price_usd
+                ],
             )?;
             for symbol in &theme.symbols {
                 tx.execute(
@@ -300,8 +328,12 @@ impl Store {
         }
 
         tx.commit()?;
-        info!("Seeded bundled data (sources={}, passages={}, themes={})",
-              sources.len(), passages.len(), themes.len());
+        info!(
+            "Seeded bundled data (sources={}, passages={}, themes={})",
+            sources.len(),
+            passages.len(),
+            themes.len()
+        );
         Ok(true)
     }
 
@@ -312,8 +344,16 @@ impl Store {
     pub fn insert_reading(&self, reading: &Reading) -> Result<(), AletheiaError> {
         // Pre-serialize before acquiring lock
         let symbol_method = ser(&reading.symbol_method, "symbol_method")?;
-        let user_intent   = reading.user_intent.as_ref().map(|i| ser(i, "user_intent")).transpose()?;
-        let mood_tag      = reading.mood_tag.as_ref().map(|m| ser(m, "mood_tag")).transpose()?;
+        let user_intent = reading
+            .user_intent
+            .as_ref()
+            .map(|i| ser(i, "user_intent"))
+            .transpose()?;
+        let mood_tag = reading
+            .mood_tag
+            .as_ref()
+            .map(|m| ser(m, "mood_tag"))
+            .transpose()?;
 
         let conn = self.conn.lock();
         conn.execute(
@@ -323,12 +363,23 @@ impl Store {
                 read_duration_s,time_to_ai_request_s,notification_opened,mood_tag,is_favorite,shared
             ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"#,
             params![
-                reading.id, reading.created_at, reading.source_id, reading.passage_id,
-                reading.theme_id, reading.symbol_chosen, symbol_method, reading.situation_text,
-                reading.ai_interpreted as i32, reading.ai_used_fallback as i32, user_intent,
-                reading.read_duration_s, reading.time_to_ai_request_s,
-                reading.notification_opened as i32, mood_tag,
-                reading.is_favorite as i32, reading.shared as i32,
+                reading.id,
+                reading.created_at,
+                reading.source_id,
+                reading.passage_id,
+                reading.theme_id,
+                reading.symbol_chosen,
+                symbol_method,
+                reading.situation_text,
+                reading.ai_interpreted as i32,
+                reading.ai_used_fallback as i32,
+                user_intent,
+                reading.read_duration_s,
+                reading.time_to_ai_request_s,
+                reading.notification_opened as i32,
+                mood_tag,
+                reading.is_favorite as i32,
+                reading.shared as i32,
             ],
         )?;
         Ok(())
@@ -363,7 +414,7 @@ impl Store {
                FROM readings WHERE id = ?"#,
         )?;
         match stmt.query_row(params![id], map_reading) {
-            Ok(r)  => Ok(Some(r)),
+            Ok(r) => Ok(Some(r)),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(AletheiaError::from(e)),
         }
@@ -371,8 +422,16 @@ impl Store {
 
     #[allow(dead_code)]
     pub fn update_reading(&self, reading: &Reading) -> Result<(), AletheiaError> {
-        let mood_tag    = reading.mood_tag.as_ref().map(|m| ser(m, "mood_tag")).transpose()?;
-        let user_intent = reading.user_intent.as_ref().map(|i| ser(i, "user_intent")).transpose()?;
+        let mood_tag = reading
+            .mood_tag
+            .as_ref()
+            .map(|m| ser(m, "mood_tag"))
+            .transpose()?;
+        let user_intent = reading
+            .user_intent
+            .as_ref()
+            .map(|i| ser(i, "user_intent"))
+            .transpose()?;
         let conn = self.conn.lock();
         conn.execute(
             r#"UPDATE readings SET
@@ -380,9 +439,14 @@ impl Store {
                 mood_tag=?,is_favorite=?,shared=?,user_intent=?
                WHERE id=?"#,
             params![
-                reading.ai_interpreted as i32, reading.ai_used_fallback as i32,
-                reading.read_duration_s, mood_tag, reading.is_favorite as i32,
-                reading.shared as i32, user_intent, reading.id,
+                reading.ai_interpreted as i32,
+                reading.ai_used_fallback as i32,
+                reading.read_duration_s,
+                mood_tag,
+                reading.is_favorite as i32,
+                reading.shared as i32,
+                user_intent,
+                reading.id,
             ],
         )?;
         Ok(())
@@ -394,8 +458,8 @@ impl Store {
 
     #[allow(dead_code)]
     pub fn insert_source(&self, source: &Source) -> Result<(), AletheiaError> {
-        let tradition   = ser(&source.tradition, "tradition")?;
-        let fallback    = ser(&source.fallback_prompts, "fallback_prompts")?;
+        let tradition = ser(&source.tradition, "tradition")?;
+        let fallback = ser(&source.fallback_prompts, "fallback_prompts")?;
         let source_type = ser(&source.source_type, "source_type")?;
         let conn = self.conn.lock();
         conn.execute(
@@ -414,7 +478,7 @@ impl Store {
         let conn = self.conn.lock();
         let mut stmt = conn.prepare("SELECT * FROM sources WHERE id = ?")?;
         match stmt.query_row(params![id], map_source) {
-            Ok(s)  => Ok(Some(s)),
+            Ok(s) => Ok(Some(s)),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(AletheiaError::from(e)),
         }
@@ -428,8 +492,11 @@ impl Store {
     #[allow(dead_code)]
     pub fn get_sources(&self, premium_allowed: bool) -> Result<Vec<Source>, AletheiaError> {
         let conn = self.conn.lock();
-        let sql  = if premium_allowed { "SELECT * FROM sources" }
-                   else               { "SELECT * FROM sources WHERE is_premium = 0" };
+        let sql = if premium_allowed {
+            "SELECT * FROM sources"
+        } else {
+            "SELECT * FROM sources WHERE is_premium = 0"
+        };
         let mut stmt = conn.prepare(sql)?;
         let rows = stmt.query_map([], map_source)?;
         collect_rows(rows)
@@ -446,22 +513,32 @@ impl Store {
             .filter(|l| !l.is_empty());
 
         let mut filters: Vec<&str> = Vec::new();
-        if !premium_allowed { filters.push("is_premium = 0"); }
-        if lang.is_some()   { filters.push("language = ?"); }
+        if !premium_allowed {
+            filters.push("is_premium = 0");
+        }
+        if lang.is_some() {
+            filters.push("language = ?");
+        }
 
-        let where_clause = if filters.is_empty() { String::new() }
-                           else { format!(" WHERE {}", filters.join(" AND ")) };
+        let where_clause = if filters.is_empty() {
+            String::new()
+        } else {
+            format!(" WHERE {}", filters.join(" AND "))
+        };
 
-        let sql = format!("SELECT * FROM sources{} ORDER BY RANDOM() LIMIT 1", where_clause);
+        let sql = format!(
+            "SELECT * FROM sources{} ORDER BY RANDOM() LIMIT 1",
+            where_clause
+        );
         let mut stmt = conn.prepare(&sql)?;
 
         let result = match lang.as_deref() {
             Some(l) => stmt.query_row([l], map_source),
-            None    => stmt.query_row([], map_source),
+            None => stmt.query_row([], map_source),
         };
 
         match result {
-            Ok(s)  => Ok(Some(s)),
+            Ok(s) => Ok(Some(s)),
             Err(rusqlite::Error::QueryReturnedNoRows) if lang.is_some() => {
                 let fb_sql = if premium_allowed {
                     "SELECT * FROM sources ORDER BY RANDOM() LIMIT 1"
@@ -470,7 +547,7 @@ impl Store {
                 };
                 let mut fb = conn.prepare(fb_sql)?;
                 match fb.query_row([], map_source) {
-                    Ok(s)  => Ok(Some(s)),
+                    Ok(s) => Ok(Some(s)),
                     Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
                     Err(e) => Err(AletheiaError::from(e)),
                 }
@@ -493,11 +570,10 @@ impl Store {
 
     pub fn get_random_passage(&self, source_id: &str) -> Result<Option<Passage>, AletheiaError> {
         let conn = self.conn.lock();
-        let mut stmt = conn.prepare(
-            "SELECT * FROM passages WHERE source_id = ? ORDER BY RANDOM() LIMIT 1",
-        )?;
+        let mut stmt =
+            conn.prepare("SELECT * FROM passages WHERE source_id = ? ORDER BY RANDOM() LIMIT 1")?;
         match stmt.query_row(params![source_id], map_passage) {
-            Ok(p)  => Ok(Some(p)),
+            Ok(p) => Ok(Some(p)),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(AletheiaError::from(e)),
         }
@@ -506,11 +582,9 @@ impl Store {
     /// Lấy passage theo ID cụ thể — dùng cho I Ching deterministic mapping
     pub fn get_passage_by_id(&self, passage_id: &str) -> Result<Option<Passage>, AletheiaError> {
         let conn = self.conn.lock();
-        let mut stmt = conn.prepare(
-            "SELECT * FROM passages WHERE id = ? LIMIT 1",
-        )?;
+        let mut stmt = conn.prepare("SELECT * FROM passages WHERE id = ? LIMIT 1")?;
         match stmt.query_row(params![passage_id], map_passage) {
-            Ok(p)  => Ok(Some(p)),
+            Ok(p) => Ok(Some(p)),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(AletheiaError::from(e)),
         }
@@ -525,7 +599,13 @@ impl Store {
         let conn = self.conn.lock();
         conn.execute(
             "INSERT INTO themes (id,name,is_premium,pack_id,price_usd) VALUES (?,?,?,?,?)",
-            params![theme.id, theme.name, theme.is_premium as i32, theme.pack_id, theme.price_usd],
+            params![
+                theme.id,
+                theme.name,
+                theme.is_premium as i32,
+                theme.pack_id,
+                theme.price_usd
+            ],
         )?;
         for symbol in &theme.symbols {
             conn.execute(
@@ -541,14 +621,24 @@ impl Store {
         let conn = self.conn.lock();
         let mut ts = conn.prepare("SELECT * FROM themes WHERE id = ?")?;
         match ts.query_row(params![id], |r| {
-            Ok(Theme { id: r.get(0)?, name: r.get(1)?,
-                       is_premium: r.get::<_, i32>(2)? != 0,
-                       pack_id: r.get(3)?, price_usd: r.get(4)?, symbols: vec![] })
+            Ok(Theme {
+                id: r.get(0)?,
+                name: r.get(1)?,
+                is_premium: r.get::<_, i32>(2)? != 0,
+                pack_id: r.get(3)?,
+                price_usd: r.get(4)?,
+                symbols: vec![],
+            })
         }) {
             Ok(mut theme) => {
                 let mut ss = conn.prepare("SELECT * FROM symbols WHERE theme_id = ?")?;
-                let syms = ss.query_map(params![id], |r| Ok(Symbol {
-                    id: r.get(0)?, display_name: r.get(2)?, flavor_text: r.get(3)? }))?;
+                let syms = ss.query_map(params![id], |r| {
+                    Ok(Symbol {
+                        id: r.get(0)?,
+                        display_name: r.get(2)?,
+                        flavor_text: r.get(3)?,
+                    })
+                })?;
                 theme.symbols = syms.filter_map(|s| s.ok()).collect();
                 Ok(Some(theme))
             }
@@ -559,18 +649,31 @@ impl Store {
 
     pub fn get_random_theme(&self, premium_allowed: bool) -> Result<Option<Theme>, AletheiaError> {
         let conn = self.conn.lock();
-        let sql = if premium_allowed { "SELECT * FROM themes ORDER BY RANDOM() LIMIT 1" }
-                  else               { "SELECT * FROM themes WHERE is_premium=0 ORDER BY RANDOM() LIMIT 1" };
+        let sql = if premium_allowed {
+            "SELECT * FROM themes ORDER BY RANDOM() LIMIT 1"
+        } else {
+            "SELECT * FROM themes WHERE is_premium=0 ORDER BY RANDOM() LIMIT 1"
+        };
         let mut ts = conn.prepare(sql)?;
         match ts.query_row([], |r| {
-            Ok(Theme { id: r.get(0)?, name: r.get(1)?,
-                       is_premium: r.get::<_, i32>(2)? != 0,
-                       pack_id: r.get(3)?, price_usd: r.get(4)?, symbols: vec![] })
+            Ok(Theme {
+                id: r.get(0)?,
+                name: r.get(1)?,
+                is_premium: r.get::<_, i32>(2)? != 0,
+                pack_id: r.get(3)?,
+                price_usd: r.get(4)?,
+                symbols: vec![],
+            })
         }) {
             Ok(mut theme) => {
                 let mut ss = conn.prepare("SELECT * FROM symbols WHERE theme_id = ?")?;
-                let syms = ss.query_map(params![&theme.id], |r| Ok(Symbol {
-                    id: r.get(0)?, display_name: r.get(2)?, flavor_text: r.get(3)? }))?;
+                let syms = ss.query_map(params![&theme.id], |r| {
+                    Ok(Symbol {
+                        id: r.get(0)?,
+                        display_name: r.get(2)?,
+                        flavor_text: r.get(3)?,
+                    })
+                })?;
                 theme.symbols = syms.filter_map(|s| s.ok()).collect();
                 Ok(Some(theme))
             }
@@ -579,22 +682,38 @@ impl Store {
         }
     }
 
-    pub fn get_random_symbols(&self, theme_id: &str, count: usize) -> Result<Vec<Symbol>, AletheiaError> {
+    pub fn get_random_symbols(
+        &self,
+        theme_id: &str,
+        count: usize,
+    ) -> Result<Vec<Symbol>, AletheiaError> {
         let conn = self.conn.lock();
-        let sql = format!("SELECT * FROM symbols WHERE theme_id=? ORDER BY RANDOM() LIMIT {}", count);
+        let sql = format!(
+            "SELECT * FROM symbols WHERE theme_id=? ORDER BY RANDOM() LIMIT {}",
+            count
+        );
         let mut stmt = conn.prepare(&sql)?;
-        let rows = stmt.query_map(params![theme_id], |r| Ok(Symbol {
-            id: r.get(0)?, display_name: r.get(2)?, flavor_text: r.get(3)? }))?;
+        let rows = stmt.query_map(params![theme_id], |r| {
+            Ok(Symbol {
+                id: r.get(0)?,
+                display_name: r.get(2)?,
+                flavor_text: r.get(3)?,
+            })
+        })?;
         collect_rows(rows)
     }
 
     pub fn get_symbol_by_id(&self, id: &str) -> Result<Option<Symbol>, AletheiaError> {
         let conn = self.conn.lock();
         let mut stmt = conn.prepare("SELECT * FROM symbols WHERE id = ?")?;
-        match stmt.query_row(params![id], |r| Ok(Symbol {
-            id: r.get(0)?, display_name: r.get(2)?, flavor_text: r.get(3)? }))
-        {
-            Ok(s)  => Ok(Some(s)),
+        match stmt.query_row(params![id], |r| {
+            Ok(Symbol {
+                id: r.get(0)?,
+                display_name: r.get(2)?,
+                flavor_text: r.get(3)?,
+            })
+        }) {
+            Ok(s) => Ok(Some(s)),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(AletheiaError::from(e)),
         }
@@ -624,7 +743,10 @@ impl Store {
                 Ok(state)
             }
             Err(rusqlite::Error::QueryReturnedNoRows) => {
-                let default = UserState { user_id: user_id.to_string(), ..UserState::default() };
+                let default = UserState {
+                    user_id: user_id.to_string(),
+                    ..UserState::default()
+                };
                 self.insert_user_state(&default)?;
                 Ok(default)
             }
@@ -633,43 +755,68 @@ impl Store {
     }
 
     pub fn insert_user_state(&self, state: &UserState) -> Result<(), AletheiaError> {
-        let tier        = ser(&state.subscription_tier, "subscription_tier")?;
-        let user_intent = state.user_intent.as_ref().map(|i| ser(i, "user_intent")).transpose()?;
+        let tier = ser(&state.subscription_tier, "subscription_tier")?;
+        let user_intent = state
+            .user_intent
+            .as_ref()
+            .map(|i| ser(i, "user_intent"))
+            .transpose()?;
         let conn = self.conn.lock();
         conn.execute(
             r#"INSERT INTO user_state (
                 user_id,subscription_tier,readings_today,ai_calls_today,
                 session_count,last_reading_date,notification_enabled,notification_time,
-                preferred_language,dark_mode,onboarding_complete,user_intent
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)"#,
+                preferred_language,dark_mode,onboarding_complete,user_intent,
+                weekly_summary_enabled
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)"#,
             params![
-                state.user_id, tier, state.readings_today, state.ai_calls_today,
-                state.session_count, state.last_reading_date,
-                state.notification_enabled as i32, state.notification_time,
-                state.preferred_language, state.dark_mode as i32,
-                state.onboarding_complete as i32, user_intent,
+                state.user_id,
+                tier,
+                state.readings_today,
+                state.ai_calls_today,
+                state.session_count,
+                state.last_reading_date,
+                state.notification_enabled as i32,
+                state.notification_time,
+                state.preferred_language,
+                state.dark_mode as i32,
+                state.onboarding_complete as i32,
+                user_intent,
+                state.weekly_summary_enabled as i32,
             ],
         )?;
         Ok(())
     }
 
     pub fn update_user_state(&self, state: &UserState) -> Result<(), AletheiaError> {
-        let tier        = ser(&state.subscription_tier, "subscription_tier")?;
-        let user_intent = state.user_intent.as_ref().map(|i| ser(i, "user_intent")).transpose()?;
+        let tier = ser(&state.subscription_tier, "subscription_tier")?;
+        let user_intent = state
+            .user_intent
+            .as_ref()
+            .map(|i| ser(i, "user_intent"))
+            .transpose()?;
         let conn = self.conn.lock();
         conn.execute(
             r#"UPDATE user_state SET
                 subscription_tier=?,readings_today=?,ai_calls_today=?,
                 session_count=?,last_reading_date=?,notification_enabled=?,
                 notification_time=?,preferred_language=?,dark_mode=?,
-                onboarding_complete=?,user_intent=?
+                onboarding_complete=?,user_intent=?,weekly_summary_enabled=?
                WHERE user_id=?"#,
             params![
-                tier, state.readings_today, state.ai_calls_today,
-                state.session_count, state.last_reading_date,
-                state.notification_enabled as i32, state.notification_time,
-                state.preferred_language, state.dark_mode as i32,
-                state.onboarding_complete as i32, user_intent, state.user_id,
+                tier,
+                state.readings_today,
+                state.ai_calls_today,
+                state.session_count,
+                state.last_reading_date,
+                state.notification_enabled as i32,
+                state.notification_time,
+                state.preferred_language,
+                state.dark_mode as i32,
+                state.onboarding_complete as i32,
+                user_intent,
+                state.weekly_summary_enabled as i32,
+                state.user_id,
             ],
         )?;
         Ok(())
@@ -677,7 +824,7 @@ impl Store {
 
     pub fn increment_readings_today(&self, user_id: &str) -> Result<(), AletheiaError> {
         let today = self.get_today_str()?;
-        let conn  = self.conn.lock();
+        let conn = self.conn.lock();
         conn.execute(
             "UPDATE user_state SET readings_today=readings_today+1, last_reading_date=? WHERE user_id=?",
             params![today, user_id],
@@ -708,7 +855,10 @@ impl Store {
     // ────────────────────────────────────────────────────────────────────────
 
     #[allow(dead_code)]
-    pub fn insert_notification_entry(&self, entry: &NotificationEntry) -> Result<(), AletheiaError> {
+    pub fn insert_notification_entry(
+        &self,
+        entry: &NotificationEntry,
+    ) -> Result<(), AletheiaError> {
         let conn = self.conn.lock();
         conn.execute(
             "INSERT INTO notification_matrix (symbol_id, question) VALUES (?, ?)",
@@ -720,8 +870,12 @@ impl Store {
     pub fn get_notification_matrix(&self) -> Result<Vec<NotificationEntry>, AletheiaError> {
         let conn = self.conn.lock();
         let mut stmt = conn.prepare("SELECT * FROM notification_matrix")?;
-        let rows = stmt.query_map([], |r| Ok(NotificationEntry {
-            symbol_id: r.get(1)?, question: r.get(2)? }))?;
+        let rows = stmt.query_map([], |r| {
+            Ok(NotificationEntry {
+                symbol_id: r.get(1)?,
+                question: r.get(2)?,
+            })
+        })?;
         collect_rows(rows)
     }
 
@@ -729,7 +883,9 @@ impl Store {
         let conn = self.conn.lock();
         let mut stmt = conn.prepare("SELECT fallback_prompts FROM sources WHERE id = ?")?;
         let result: Option<String> = stmt.query_row([source_id], |r| r.get(0)).ok();
-        Ok(result.and_then(|p| from_str::<Vec<String>>(&p).ok()).unwrap_or_default())
+        Ok(result
+            .and_then(|p| from_str::<Vec<String>>(&p).ok())
+            .unwrap_or_default())
     }
 
     // ────────────────────────────────────────────────────────────────────────
@@ -755,65 +911,75 @@ impl Store {
 
 fn map_reading(r: &rusqlite::Row<'_>) -> rusqlite::Result<Reading> {
     Ok(Reading {
-        id:                   r.get(0)?,
-        created_at:           r.get(1)?,
-        source_id:            r.get(2)?,
-        passage_id:           r.get(3)?,
-        theme_id:             r.get(4)?,
-        symbol_chosen:        r.get(5)?,
-        symbol_method:        serde_json::from_str(&r.get::<_, String>(6)?).unwrap_or(SymbolMethod::Manual),
-        situation_text:       r.get(7)?,
-        ai_interpreted:       r.get::<_, i32>(8)? != 0,
-        ai_used_fallback:     r.get::<_, i32>(9)? != 0,
-        read_duration_s:      r.get(10)?,
+        id: r.get(0)?,
+        created_at: r.get(1)?,
+        source_id: r.get(2)?,
+        passage_id: r.get(3)?,
+        theme_id: r.get(4)?,
+        symbol_chosen: r.get(5)?,
+        symbol_method: serde_json::from_str(&r.get::<_, String>(6)?)
+            .unwrap_or(SymbolMethod::Manual),
+        situation_text: r.get(7)?,
+        ai_interpreted: r.get::<_, i32>(8)? != 0,
+        ai_used_fallback: r.get::<_, i32>(9)? != 0,
+        read_duration_s: r.get(10)?,
         time_to_ai_request_s: r.get(11)?,
-        notification_opened:  r.get::<_, i32>(12)? != 0,
-        mood_tag:             r.get::<_, Option<String>>(13)?.and_then(|s| serde_json::from_str(&s).ok()),
-        is_favorite:          r.get::<_, i32>(14)? != 0,
-        shared:               r.get::<_, i32>(15)? != 0,
-        user_intent:          r.get::<_, Option<String>>(16)?.and_then(|s| serde_json::from_str(&s).ok()),
+        notification_opened: r.get::<_, i32>(12)? != 0,
+        mood_tag: r
+            .get::<_, Option<String>>(13)?
+            .and_then(|s| serde_json::from_str(&s).ok()),
+        is_favorite: r.get::<_, i32>(14)? != 0,
+        shared: r.get::<_, i32>(15)? != 0,
+        user_intent: r
+            .get::<_, Option<String>>(16)?
+            .and_then(|s| serde_json::from_str(&s).ok()),
     })
 }
 
 fn map_source(r: &rusqlite::Row<'_>) -> rusqlite::Result<Source> {
     Ok(Source {
-        id:               r.get(0)?,
-        name:             r.get(1)?,
-        tradition:        serde_json::from_str(&r.get::<_, String>(2)?).unwrap_or(Tradition::Universal),
-        language:         r.get(3)?,
-        passage_count:    r.get(4)?,
-        is_bundled:       r.get::<_, i32>(5)? != 0,
-        is_premium:       r.get::<_, i32>(6)? != 0,
+        id: r.get(0)?,
+        name: r.get(1)?,
+        tradition: serde_json::from_str(&r.get::<_, String>(2)?).unwrap_or(Tradition::Universal),
+        language: r.get(3)?,
+        passage_count: r.get(4)?,
+        is_bundled: r.get::<_, i32>(5)? != 0,
+        is_premium: r.get::<_, i32>(6)? != 0,
         fallback_prompts: serde_json::from_str(&r.get::<_, String>(7)?).unwrap_or_default(),
-        source_type:      serde_json::from_str(&r.get::<_, String>(8)?).unwrap_or(SourceType::Bibliomancy),
+        source_type: serde_json::from_str(&r.get::<_, String>(8)?)
+            .unwrap_or(SourceType::Bibliomancy),
     })
 }
 
 fn map_passage(r: &rusqlite::Row<'_>) -> rusqlite::Result<Passage> {
     Ok(Passage {
-        id:                r.get(0)?,
-        source_id:         r.get(1)?,
-        reference:         r.get(2)?,
-        text:              r.get(3)?,
-        context:           r.get(4)?,
+        id: r.get(0)?,
+        source_id: r.get(1)?,
+        reference: r.get(2)?,
+        text: r.get(3)?,
+        context: r.get(4)?,
         resonance_context: r.get(5)?,
     })
 }
 
 fn map_user_state(r: &rusqlite::Row<'_>) -> rusqlite::Result<UserState> {
     Ok(UserState {
-        user_id:              r.get(0)?,
-        subscription_tier:    serde_json::from_str(&r.get::<_, String>(1)?).unwrap_or(SubscriptionTier::Free),
-        readings_today:       r.get(2)?,
-        ai_calls_today:       r.get(3)?,
-        session_count:        r.get(4)?,
-        last_reading_date:    r.get(5)?,
+        user_id: r.get(0)?,
+        subscription_tier: serde_json::from_str(&r.get::<_, String>(1)?)
+            .unwrap_or(SubscriptionTier::Free),
+        readings_today: r.get(2)?,
+        ai_calls_today: r.get(3)?,
+        session_count: r.get(4)?,
+        last_reading_date: r.get(5)?,
         notification_enabled: r.get::<_, i32>(6)? != 0,
-        notification_time:    r.get(7)?,
-        preferred_language:   r.get(8)?,
-        dark_mode:            r.get::<_, i32>(9)? != 0,
-        onboarding_complete:  r.get::<_, i32>(10)? != 0,
-        user_intent:          r.get::<_, Option<String>>(11)?.and_then(|s| serde_json::from_str(&s).ok()),
+        notification_time: r.get(7)?,
+        preferred_language: r.get(8)?,
+        dark_mode: r.get::<_, i32>(9)? != 0,
+        onboarding_complete: r.get::<_, i32>(10)? != 0,
+        user_intent: r
+            .get::<_, Option<String>>(11)?
+            .and_then(|s| serde_json::from_str(&s).ok()),
+        weekly_summary_enabled: r.get::<_, Option<i32>>(12)?.unwrap_or(0) != 0,
     })
 }
 
@@ -835,18 +1001,29 @@ fn is_valid_local_date(date: &str) -> bool {
             }
         })
     };
-    let year  = match parse_seg(&b[0..4]) { Some(v) => v, None => return false };
-    let month = match parse_seg(&b[5..7]) { Some(v) => v, None => return false };
-    let day   = match parse_seg(&b[8..10]) { Some(v) => v, None => return false };
+    let year = match parse_seg(&b[0..4]) {
+        Some(v) => v,
+        None => return false,
+    };
+    let month = match parse_seg(&b[5..7]) {
+        Some(v) => v,
+        None => return false,
+    };
+    let day = match parse_seg(&b[8..10]) {
+        Some(v) => v,
+        None => return false,
+    };
     // Accept years within the expected app lifespan; reject far-future bypass values.
-    year >= 2020 && year <= 2035 && month >= 1 && month <= 12 && day >= 1 && day <= 31
+    (2020..=2035).contains(&year) && (1..=12).contains(&month) && (1..=31).contains(&day)
 }
 
 fn collect_rows<T>(
     rows: rusqlite::MappedRows<'_, impl FnMut(&rusqlite::Row<'_>) -> rusqlite::Result<T>>,
 ) -> Result<Vec<T>, AletheiaError> {
     let mut out = Vec::new();
-    for row in rows { out.push(row?); }
+    for row in rows {
+        out.push(row?);
+    }
     Ok(out)
 }
 
@@ -856,56 +1033,90 @@ fn collect_rows<T>(
 mod tests {
     use super::*;
 
-    fn make_store() -> Store { Store::new(":memory:").unwrap() }
+    fn make_store() -> Store {
+        Store::new(":memory:").unwrap()
+    }
 
     fn src() -> Source {
-        Source { id: "src-1".into(), name: "Test".into(),
-                 tradition: Tradition::Universal, language: "en".into(),
-                 passage_count: 1, is_bundled: true, is_premium: false,
-                 fallback_prompts: vec!["p1".into()],
-                 source_type: SourceType::Bibliomancy }
+        Source {
+            id: "src-1".into(),
+            name: "Test".into(),
+            tradition: Tradition::Universal,
+            language: "en".into(),
+            passage_count: 1,
+            is_bundled: true,
+            is_premium: false,
+            fallback_prompts: vec!["p1".into()],
+            source_type: SourceType::Bibliomancy,
+        }
     }
     fn thm() -> Theme {
-        Theme { id: "thm-1".into(), name: "Thm".into(), symbols: vec![],
-                is_premium: false, pack_id: None, price_usd: None }
+        Theme {
+            id: "thm-1".into(),
+            name: "Thm".into(),
+            symbols: vec![],
+            is_premium: false,
+            pack_id: None,
+            price_usd: None,
+        }
     }
     fn psg() -> Passage {
-        Passage { id: "psg-1".into(), source_id: "src-1".into(), reference: "1:1".into(),
-                  text: "Test.".into(), context: None, resonance_context: None }
+        Passage {
+            id: "psg-1".into(),
+            source_id: "src-1".into(),
+            reference: "1:1".into(),
+            text: "Test.".into(),
+            context: None,
+            resonance_context: None,
+        }
     }
 
-    #[test] fn store_init_wal() {
+    #[test]
+    fn store_init_wal() {
         let s = make_store();
         assert_eq!(s.get_sources_count().unwrap(), 0);
     }
 
-    #[test] fn insert_get_source() {
+    #[test]
+    fn insert_get_source() {
         let s = make_store();
         s.insert_source(&src()).unwrap();
         assert_eq!(s.get_source("src-1").unwrap().unwrap().name, "Test");
         assert!(s.get_source("nope").unwrap().is_none());
     }
 
-    #[test] fn reading_roundtrip() {
+    #[test]
+    fn reading_roundtrip() {
         let s = make_store();
         s.insert_source(&src()).unwrap();
         s.insert_theme(&thm()).unwrap();
         s.insert_passage(&psg()).unwrap();
         let r = Reading {
-            id: "r-1".into(), created_at: 9999, source_id: "src-1".into(),
-            passage_id: "psg-1".into(), theme_id: "thm-1".into(),
-            symbol_chosen: "sym".into(), symbol_method: SymbolMethod::Manual,
-            situation_text: Some("hi".into()), ai_interpreted: false, ai_used_fallback: false,
-            read_duration_s: None, time_to_ai_request_s: None,
-            notification_opened: false, mood_tag: None, is_favorite: false,
-            shared: false, user_intent: None,
+            id: "r-1".into(),
+            created_at: 9999,
+            source_id: "src-1".into(),
+            passage_id: "psg-1".into(),
+            theme_id: "thm-1".into(),
+            symbol_chosen: "sym".into(),
+            symbol_method: SymbolMethod::Manual,
+            situation_text: Some("hi".into()),
+            ai_interpreted: false,
+            ai_used_fallback: false,
+            read_duration_s: None,
+            time_to_ai_request_s: None,
+            notification_opened: false,
+            mood_tag: None,
+            is_favorite: false,
+            shared: false,
+            user_intent: None,
         };
         s.insert_reading(&r).unwrap();
         assert_eq!(s.get_readings(10, 0).unwrap().len(), 1);
         assert_eq!(s.get_readings_count().unwrap(), 1);
     }
 
-    #[test] fn daily_reset() {
+    #[test]
+    fn daily_reset() {
         let s = make_store();
         let mut state = UserState::default();
         state.user_id = "u1".into();
@@ -918,7 +1129,8 @@ mod tests {
         assert_eq!(updated.last_reading_date.as_deref(), Some("2025-01-02"));
     }
 
-    #[test] fn seed_idempotent() {
+    #[test]
+    fn seed_idempotent() {
         let s = make_store();
         assert!(s.seed_bundled_data(&[src()], &[psg()], &[thm()]).unwrap());
         assert!(!s.seed_bundled_data(&[src()], &[psg()], &[thm()]).unwrap());
@@ -942,9 +1154,13 @@ mod error_path_tests {
         let store = Store::new(":memory:").unwrap();
         // Insert source first
         let src = Source {
-            id: "p-src".into(), name: "P".into(),
-            tradition: Tradition::Universal, language: "en".into(),
-            passage_count: 1, is_bundled: true, is_premium: false,
+            id: "p-src".into(),
+            name: "P".into(),
+            tradition: Tradition::Universal,
+            language: "en".into(),
+            passage_count: 1,
+            is_bundled: true,
+            is_premium: false,
             fallback_prompts: vec![],
             source_type: SourceType::Bibliomancy,
         };
@@ -966,18 +1182,31 @@ mod error_path_tests {
         let store = Store::new(":memory:").unwrap();
         // Insert prerequisite data
         let src = Source {
-            id: "s1".into(), name: "S".into(), tradition: Tradition::Universal,
-            language: "vi".into(), passage_count: 1, is_bundled: true,
-            is_premium: false, fallback_prompts: vec![],
+            id: "s1".into(),
+            name: "S".into(),
+            tradition: Tradition::Universal,
+            language: "vi".into(),
+            passage_count: 1,
+            is_bundled: true,
+            is_premium: false,
+            fallback_prompts: vec![],
             source_type: SourceType::Bibliomancy,
         };
         let thm = Theme {
-            id: "t1".into(), name: "T".into(), symbols: vec![],
-            is_premium: false, pack_id: None, price_usd: None,
+            id: "t1".into(),
+            name: "T".into(),
+            symbols: vec![],
+            is_premium: false,
+            pack_id: None,
+            price_usd: None,
         };
         let psg = Passage {
-            id: "p1".into(), source_id: "s1".into(), reference: "1".into(),
-            text: "txt".into(), context: None, resonance_context: None,
+            id: "p1".into(),
+            source_id: "s1".into(),
+            reference: "1".into(),
+            text: "txt".into(),
+            context: None,
+            resonance_context: None,
         };
         store.insert_source(&src).unwrap();
         store.insert_theme(&thm).unwrap();
@@ -985,15 +1214,22 @@ mod error_path_tests {
 
         // Reading with all optional fields
         let reading = Reading {
-            id: "r-err-1".into(), created_at: 42,
-            source_id: "s1".into(), passage_id: "p1".into(), theme_id: "t1".into(),
-            symbol_chosen: "sym".into(), symbol_method: SymbolMethod::Auto,
+            id: "r-err-1".into(),
+            created_at: 42,
+            source_id: "s1".into(),
+            passage_id: "p1".into(),
+            theme_id: "t1".into(),
+            symbol_chosen: "sym".into(),
+            symbol_method: SymbolMethod::Auto,
             situation_text: Some("test situation with special chars: <>&\"'".into()),
-            ai_interpreted: true, ai_used_fallback: false,
-            read_duration_s: Some(120), time_to_ai_request_s: Some(5),
+            ai_interpreted: true,
+            ai_used_fallback: false,
+            read_duration_s: Some(120),
+            time_to_ai_request_s: Some(5),
             notification_opened: false,
             mood_tag: Some(MoodTag::Hopeful),
-            is_favorite: true, shared: false,
+            is_favorite: true,
+            shared: false,
             user_intent: Some(UserIntent::Guidance),
         };
         // Must succeed — ser() handles all fields without panicking
@@ -1012,9 +1248,14 @@ mod error_path_tests {
     fn duplicate_source_id_upserts_source_type() {
         let store = Store::new(":memory:").unwrap();
         let mut src = Source {
-            id: "dup".into(), name: "Dup".into(), tradition: Tradition::Universal,
-            language: "en".into(), passage_count: 1, is_bundled: true,
-            is_premium: false, fallback_prompts: vec![],
+            id: "dup".into(),
+            name: "Dup".into(),
+            tradition: Tradition::Universal,
+            language: "en".into(),
+            passage_count: 1,
+            is_bundled: true,
+            is_premium: false,
+            fallback_prompts: vec![],
             source_type: SourceType::Bibliomancy,
         };
         store.insert_source(&src).unwrap();
@@ -1045,23 +1286,34 @@ mod error_path_tests {
     fn seed_is_atomic() {
         let store = Store::new(":memory:").unwrap();
         let sources = vec![Source {
-            id: "s-atom".into(), name: "Atom".into(),
-            tradition: Tradition::Universal, language: "en".into(),
-            passage_count: 1, is_bundled: true, is_premium: false,
+            id: "s-atom".into(),
+            name: "Atom".into(),
+            tradition: Tradition::Universal,
+            language: "en".into(),
+            passage_count: 1,
+            is_bundled: true,
+            is_premium: false,
             fallback_prompts: vec![],
             source_type: SourceType::Bibliomancy,
         }];
         let passages = vec![Passage {
-            id: "p-atom".into(), source_id: "s-atom".into(),
-            reference: "1".into(), text: "t".into(),
-            context: None, resonance_context: None,
+            id: "p-atom".into(),
+            source_id: "s-atom".into(),
+            reference: "1".into(),
+            text: "t".into(),
+            context: None,
+            resonance_context: None,
         }];
         let themes: Vec<Theme> = vec![];
 
         // First seed should succeed
-        assert!(store.seed_bundled_data(&sources, &passages, &themes).unwrap());
+        assert!(store
+            .seed_bundled_data(&sources, &passages, &themes)
+            .unwrap());
         // Second seed must be no-op (sources_count > 0)
-        assert!(!store.seed_bundled_data(&sources, &passages, &themes).unwrap());
+        assert!(!store
+            .seed_bundled_data(&sources, &passages, &themes)
+            .unwrap());
         // Source count must be exactly 1
         assert_eq!(store.get_sources_count().unwrap(), 1);
     }
@@ -1093,24 +1345,63 @@ mod error_path_tests {
     #[test]
     fn local_date_validation_blocks_bypass_and_malformed() {
         // Valid dates — accepted
-        assert!(is_valid_local_date("2025-01-15"), "current-year date should be accepted");
-        assert!(is_valid_local_date("2030-12-31"), "near-future date should be accepted");
-        assert!(is_valid_local_date("2020-01-01"), "lower-bound year should be accepted");
-        assert!(is_valid_local_date("2035-06-15"), "upper-bound year should be accepted");
+        assert!(
+            is_valid_local_date("2025-01-15"),
+            "current-year date should be accepted"
+        );
+        assert!(
+            is_valid_local_date("2030-12-31"),
+            "near-future date should be accepted"
+        );
+        assert!(
+            is_valid_local_date("2020-01-01"),
+            "lower-bound year should be accepted"
+        );
+        assert!(
+            is_valid_local_date("2035-06-15"),
+            "upper-bound year should be accepted"
+        );
 
         // Far-future bypass values — rejected (NF-02)
-        assert!(!is_valid_local_date("2099-01-01"), "far-future year must be rejected");
-        assert!(!is_valid_local_date("2036-01-01"), "year beyond 2035 must be rejected");
-        assert!(!is_valid_local_date("2019-12-31"), "year before 2020 must be rejected");
+        assert!(
+            !is_valid_local_date("2099-01-01"),
+            "far-future year must be rejected"
+        );
+        assert!(
+            !is_valid_local_date("2036-01-01"),
+            "year beyond 2035 must be rejected"
+        );
+        assert!(
+            !is_valid_local_date("2019-12-31"),
+            "year before 2020 must be rejected"
+        );
 
         // Malformed strings — rejected
-        assert!(!is_valid_local_date("2025/01/15"), "wrong separator must be rejected");
-        assert!(!is_valid_local_date("25-01-15"),   "2-digit year must be rejected");
-        assert!(!is_valid_local_date("2025-13-01"), "month 13 must be rejected");
-        assert!(!is_valid_local_date("2025-00-10"), "month 0 must be rejected");
-        assert!(!is_valid_local_date("2025-01-32"), "day 32 must be rejected");
-        assert!(!is_valid_local_date(""),            "empty string must be rejected");
-        assert!(!is_valid_local_date("not-a-date"), "garbage must be rejected");
+        assert!(
+            !is_valid_local_date("2025/01/15"),
+            "wrong separator must be rejected"
+        );
+        assert!(
+            !is_valid_local_date("25-01-15"),
+            "2-digit year must be rejected"
+        );
+        assert!(
+            !is_valid_local_date("2025-13-01"),
+            "month 13 must be rejected"
+        );
+        assert!(
+            !is_valid_local_date("2025-00-10"),
+            "month 0 must be rejected"
+        );
+        assert!(
+            !is_valid_local_date("2025-01-32"),
+            "day 32 must be rejected"
+        );
+        assert!(!is_valid_local_date(""), "empty string must be rejected");
+        assert!(
+            !is_valid_local_date("not-a-date"),
+            "garbage must be rejected"
+        );
     }
 
     #[test]
@@ -1128,7 +1419,10 @@ mod error_path_tests {
         // get_user_state uses today from SQLite; last_reading_date "2099-01-01" != real today
         // so readings_today will reset to 0 — confirming the bypass is blocked.
         let fetched = store.get_user_state("bypass-test").unwrap();
-        assert_eq!(fetched.readings_today, 0, "far-future date override must not persist");
+        assert_eq!(
+            fetched.readings_today, 0,
+            "far-future date override must not persist"
+        );
     }
 
     // ── Nonexistent entries return None, not error ────────────────────────────
@@ -1150,8 +1444,8 @@ mod error_path_tests {
     fn increment_counters_are_accurate() {
         let store = Store::new(":memory:").unwrap();
         let _state = store.get_user_state("ctr-user").unwrap(); // creates default
-        // Use a fixed future date within the valid range (2020-2035) to pin "today"
-        // and prevent the daily-reset logic from zeroing the counters mid-test.
+                                                                // Use a fixed future date within the valid range (2020-2035) to pin "today"
+                                                                // and prevent the daily-reset logic from zeroing the counters mid-test.
         store.set_local_date("2030-01-01".into());
 
         store.increment_readings_today("ctr-user").unwrap();

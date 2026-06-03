@@ -5,68 +5,127 @@ import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { coreStore } from "@/lib/services/core-store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
+import {
+  getCurrentOffering,
+  purchasePackage,
+  restorePurchases,
+} from "@/lib/services/purchases";
+import type { PurchasesPackage } from "react-native-purchases";
 import * as Haptics from "expo-haptics";
 import { track } from "@/lib/analytics";
+import { SubscriptionTier } from "@/lib/types";
 
 const FREE_READINGS_PER_DAY = 3;
 const FREE_AI_PER_DAY = 1;
-const PLANS = {
-  yearly:   { id: "yearly",   label: "Gói Năm",      price: "599.000đ/năm",  badge: "TIẾT KIỆM 50%" },
-  lifetime: { id: "lifetime", label: "Trọn Đời",     price: "999.000đ",      badge: "MỘT LẦN DUY NHẤT" },
-  monthly:  { id: "monthly",  label: "Gói Tháng",    price: "99.000đ/tháng", badge: null },
-} as const;
+// Maps UI plan IDs to RevenueCat package types
+const PLAN_PACKAGE_TYPE: Record<string, string> = {
+  yearly: "ANNUAL",
+  lifetime: "LIFETIME",
+  monthly: "MONTHLY",
+};
 
 export default function PaywallScreen() {
   const colors = useColors();
   const router = useRouter();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
-  const [currentTier, setCurrentTier] = useState<"free" | "pro">("free");
-  const [billingNotice, setBillingNotice] = useState<string | null>(null);
+  const [currentTier, setCurrentTier] = useState<SubscriptionTier>(SubscriptionTier.Free);
+  const [isPurchasing, setIsPurchasing] = useState(false);
+  const [isRestoring, setIsRestoring] = useState(false);
+  const [purchaseError, setPurchaseError] = useState<string | null>(null);
+  const [rcPackages, setRcPackages] = useState<Map<string, PurchasesPackage>>(new Map());
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Check current tier
-    const checkTier = async () => {
+    const bootstrap = async () => {
       try {
         const userId = await getCurrentUserId();
         const userState = await coreStore.getUserState(userId);
         setCurrentTier(userState.subscription_tier);
-      } catch (error) {
-        console.error("Failed to check tier:", error);
+      } catch (e) {
+        console.error("[paywall] failed to load user state:", e);
+      }
+
+      // Load RC offerings — non-blocking, UI works without them
+      try {
+        const offering = await getCurrentOffering();
+        if (offering) {
+          const map = new Map<string, PurchasesPackage>();
+          for (const pkg of offering.availablePackages) {
+            const planId = Object.entries(PLAN_PACKAGE_TYPE).find(
+              ([, type]) => pkg.packageType === type,
+            )?.[0];
+            if (planId) map.set(planId, pkg);
+          }
+          setRcPackages(map);
+        }
+      } catch (e) {
+        console.warn("[paywall] failed to load offerings:", e);
       }
     };
-    checkTier();
 
+    bootstrap();
     track("paywall_viewed", { screen: "paywall" });
-
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 600,
-      useNativeDriver: true,
-    }).start();
+    Animated.timing(fadeAnim, { toValue: 1, duration: 600, useNativeDriver: true }).start();
   }, [fadeAnim]);
 
   const handlePurchase = async () => {
-    if (!selectedPlan) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-      return;
-    }
+    if (!selectedPlan || isPurchasing) return;
 
-    track("paywall_upgrade_tapped", {
-      selected_plan: selectedPlan,
-      current_tier: currentTier,
-      screen: "paywall",
-    });
-
+    track("paywall_upgrade_tapped", { selected_plan: selectedPlan, current_tier: currentTier, screen: "paywall" });
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setBillingNotice("Thanh toán Pro chưa được bật trong beta này. Không có giao dịch hoặc nâng hạng giả được thực hiện.");
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    setIsPurchasing(true);
+    setPurchaseError(null);
+
+    try {
+      const pkg = rcPackages.get(selectedPlan);
+      if (!pkg) {
+        // RC not configured yet — inform honestly
+        setPurchaseError("Thanh toán chưa được kích hoạt trong build này. API key RevenueCat chưa được cấu hình.");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        return;
+      }
+
+      const success = await purchasePackage(pkg);
+      if (success) {
+        await coreStore.updateSubscriptionTier(SubscriptionTier.Pro);
+        track("paywall_purchase_success", { plan: selectedPlan });
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        router.back();
+      }
+      // false = user cancelled, no error needed
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Thanh toán thất bại. Vui lòng thử lại.";
+      setPurchaseError(msg);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      track("paywall_purchase_error", { plan: selectedPlan, error: msg });
+    } finally {
+      setIsPurchasing(false);
+    }
   };
 
   const handleRestore = async () => {
+    if (isRestoring) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setBillingNotice("Khôi phục mua hàng chưa khả dụng vì RevenueCat chưa được tích hợp trong beta hiện tại.");
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    setIsRestoring(true);
+    setPurchaseError(null);
+
+    try {
+      const hasPro = await restorePurchases();
+      if (hasPro) {
+        await coreStore.updateSubscriptionTier(SubscriptionTier.Pro);
+        track("paywall_restore_success");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        router.back();
+      } else {
+        setPurchaseError("Không tìm thấy giao dịch Pro trước đó để khôi phục.");
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      }
+    } catch {
+      setPurchaseError("Khôi phục thất bại. Vui lòng thử lại.");
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    } finally {
+      setIsRestoring(false);
+    }
   };
 
   const handleClose = () => {
@@ -121,7 +180,7 @@ export default function PaywallScreen() {
           </View>
 
           {/* Current tier badge */}
-          {currentTier === "pro" && (
+          {currentTier === SubscriptionTier.Pro && (
             <View className="items-center mb-6">
               <View
                 style={{
@@ -165,7 +224,7 @@ export default function PaywallScreen() {
           </View>
 
           {/* Free tier note - Honest, clear */}
-          {currentTier === "free" && (
+          {currentTier === SubscriptionTier.Free && (
             <View style={{ padding: 16, borderRadius: 14, backgroundColor: colors.surface + "10", marginBottom: 8 }}>
               <Text style={{ fontSize: 13, color: colors.muted, textAlign: "center" }}>
                 Miễn phí: {FREE_READINGS_PER_DAY} lần đọc/ngày • {FREE_AI_PER_DAY} AI/ngày
@@ -173,7 +232,7 @@ export default function PaywallScreen() {
             </View>
           )}
 
-          {currentTier === "free" && billingNotice && (
+          {purchaseError && (
             <View
               style={{
                 padding: 16,
@@ -185,13 +244,13 @@ export default function PaywallScreen() {
               }}
             >
               <Text style={{ fontSize: 13, color: colors.foreground, textAlign: "center", lineHeight: 20 }}>
-                {billingNotice}
+                {purchaseError}
               </Text>
             </View>
           )}
 
           {/* Plans - Premium selection */}
-          {currentTier === "free" && (
+          {currentTier === SubscriptionTier.Free && (
             <View className="gap-3 mb-6">
               {/* Yearly - Recommended */}
               <Pressable
@@ -359,17 +418,17 @@ export default function PaywallScreen() {
 
           {/* Actions - Premium, not aggressive */}
           <View className="gap-3 pb-4">
-            {currentTier === "free" ? (
+            {currentTier === SubscriptionTier.Free ? (
               <>
                 <Pressable
                   onPress={handlePurchase}
-                  disabled={!selectedPlan}
+                  disabled={!selectedPlan || isPurchasing}
                   style={({ pressed }) => ({
-                    backgroundColor: !selectedPlan ? colors.surface + "40" : colors.primary,
+                    backgroundColor: !selectedPlan || isPurchasing ? colors.surface + "40" : colors.primary,
                     paddingHorizontal: 32,
                     paddingVertical: 18,
                     borderRadius: 28,
-                    opacity: pressed || !selectedPlan ? 0.7 : 1,
+                    opacity: pressed || !selectedPlan || isPurchasing ? 0.7 : 1,
                     transform: [{ scale: pressed ? 0.98 : 1 }],
                     shadowColor: colors.primary,
                     shadowOffset: { width: 0, height: 4 },
@@ -379,13 +438,13 @@ export default function PaywallScreen() {
                   })}
                 >
                   <Text style={{ fontSize: 17, fontWeight: "600", color: "#FFFFFF", textAlign: "center" }}>
-                    {selectedPlan ? "Thông báo mở khóa Pro" : "Chọn gói để tiếp tục"}
+                    {isPurchasing ? "Đang xử lý..." : selectedPlan ? "Nâng lên Pro" : "Chọn gói để tiếp tục"}
                   </Text>
                 </Pressable>
 
-                <Pressable onPress={handleRestore} style={{ paddingVertical: 10 }}>
+                <Pressable onPress={handleRestore} disabled={isRestoring} style={{ paddingVertical: 10 }}>
                   <Text style={{ fontSize: 13, color: colors.muted, textAlign: "center" }}>
-                    Đã mua trước đó? Khôi phục
+                    {isRestoring ? "Đang khôi phục..." : "Đã mua trước đó? Khôi phục"}
                   </Text>
                 </Pressable>
               </>
@@ -408,7 +467,7 @@ export default function PaywallScreen() {
             )}
 
             <Text style={{ fontSize: 11, color: colors.muted, textAlign: "center", paddingHorizontal: 20, lineHeight: 18 }}>
-              Trong beta hiện tại, màn hình này chỉ hiển thị cấu trúc gói. Thanh toán thật chưa được bật.
+              Thanh toán được xử lý qua App Store / Google Play. Không lưu thông tin thẻ.
             </Text>
           </View>
         </ScrollView>

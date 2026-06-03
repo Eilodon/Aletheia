@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readingEngine } from "../lib/services/reading-engine";
-import { SubscriptionTier, ErrorCode } from "../lib/types";
+import { SubscriptionTier, ErrorCode, SourceType, SymbolMethod, Tradition } from "../lib/types";
 
 vi.mock("@/lib/services/store", () => ({
   store: {
@@ -50,6 +50,7 @@ describe("ReadingEngine", () => {
         dark_mode: false,
         onboarding_complete: false,
         user_intent: undefined,
+        weekly_summary_enabled: false,
       });
 
       // ACT & ASSERT
@@ -73,18 +74,19 @@ describe("ReadingEngine", () => {
         dark_mode: false,
         onboarding_complete: false,
         user_intent: undefined,
+        weekly_summary_enabled: false,
       });
 
       vi.mocked(store.getRandomSource).mockResolvedValue({
         id: "i_ching",
         name: "I Ching",
-        tradition: "Chinese" as any,
+        tradition: Tradition.Chinese,
         language: "vi",
         passage_count: 10,
         is_bundled: true,
         is_premium: false,
         fallback_prompts: [],
-        source_type: "bibliomancy" as const,
+        source_type: SourceType.Bibliomancy,
       });
 
       vi.mocked(themeEngine.getRandomTheme).mockResolvedValue({
@@ -123,18 +125,19 @@ describe("ReadingEngine", () => {
         dark_mode: false,
         onboarding_complete: false,
         user_intent: undefined,
+        weekly_summary_enabled: false,
       });
 
       vi.mocked(store.getRandomSource).mockResolvedValue({
         id: "i_ching",
         name: "I Ching",
-        tradition: "Chinese" as any,
+        tradition: Tradition.Chinese,
         language: "vi",
         passage_count: 10,
         is_bundled: true,
         is_premium: false,
         fallback_prompts: [],
-        source_type: "bibliomancy" as const,
+        source_type: SourceType.Bibliomancy,
       });
 
       vi.mocked(themeEngine.getRandomTheme).mockResolvedValue({
@@ -166,13 +169,13 @@ describe("ReadingEngine", () => {
         source: {
           id: "i_ching",
           name: "I Ching",
-          tradition: "Chinese" as any,
+          tradition: Tradition.Chinese,
           language: "vi",
           passage_count: 10,
           is_bundled: true,
           is_premium: false,
           fallback_prompts: [],
-          source_type: "bibliomancy" as const,
+          source_type: SourceType.Bibliomancy,
         },
         theme: {
           id: "moments",
@@ -207,7 +210,7 @@ describe("ReadingEngine", () => {
 
       // ACT & ASSERT: "mirror" is not in session.symbols
       await expect(
-        readingEngine.chooseSymbol(session, "mirror", "manual" as any)
+        readingEngine.chooseSymbol(session, "mirror", SymbolMethod.Manual)
       ).rejects.toMatchObject({
         code: ErrorCode.SymbolInvalid,
       });
@@ -220,13 +223,13 @@ describe("ReadingEngine", () => {
         source: {
           id: "i_ching",
           name: "I Ching",
-          tradition: "Chinese" as any,
+          tradition: Tradition.Chinese,
           language: "vi",
           passage_count: 10,
           is_bundled: true,
           is_premium: false,
           fallback_prompts: [],
-          source_type: "bibliomancy" as const,
+          source_type: SourceType.Bibliomancy,
         },
         theme: {
           id: "moments",
@@ -260,7 +263,7 @@ describe("ReadingEngine", () => {
       });
 
       // ACT
-      const result = await readingEngine.chooseSymbol(session, "candle", "manual" as any);
+      const result = await readingEngine.chooseSymbol(session, "candle", SymbolMethod.Manual);
 
       // ASSERT
       expect(result.passage).toBeDefined();
@@ -284,18 +287,19 @@ describe("ReadingEngine", () => {
         dark_mode: false,
         onboarding_complete: false,
         user_intent: undefined,
+        weekly_summary_enabled: false,
       });
 
       vi.mocked(store.getRandomSource).mockResolvedValue({
         id: "i_ching",
         name: "I Ching",
-        tradition: "Chinese" as any,
+        tradition: Tradition.Chinese,
         language: "vi",
         passage_count: 10,
         is_bundled: true,
         is_premium: false,
         fallback_prompts: [],
-        source_type: "bibliomancy" as const,
+        source_type: SourceType.Bibliomancy,
       });
 
       vi.mocked(themeEngine.getRandomTheme).mockResolvedValue({

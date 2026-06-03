@@ -42,15 +42,22 @@ function normalizeKey(relKey: string): string {
   return relKey.replace(/^\/+/, "");
 }
 
+function toBlobPart(data: Buffer | Uint8Array | string): BlobPart {
+  if (typeof data === "string") {
+    return data;
+  }
+
+  const bytes = new Uint8Array(data.byteLength);
+  bytes.set(data);
+  return bytes.buffer;
+}
+
 function toFormData(
   data: Buffer | Uint8Array | string,
   contentType: string,
   fileName: string,
 ): FormData {
-  const blob =
-    typeof data === "string"
-      ? new Blob([data], { type: contentType })
-      : new Blob([data as any], { type: contentType });
+  const blob = new Blob([toBlobPart(data)], { type: contentType });
   const form = new FormData();
   form.append("file", blob, fileName || "file");
   return form;

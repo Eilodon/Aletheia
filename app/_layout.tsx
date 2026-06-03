@@ -34,12 +34,16 @@ import { useColors } from "@/hooks/use-colors";
 import { initSentry } from "@/lib/sentry";
 import { assertStartupConfig } from "@/hooks/use-startup-guard";
 import { flushAnalytics, identify, initAnalytics, track } from "@/lib/analytics";
+import { initializePurchases } from "@/lib/services/purchases";
+import { setLocale } from "@/lib/i18n";
+import { initializeNotificationHandler } from "@/lib/services/notification-service";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
 const DEFAULT_WEB_FRAME: Rect = { x: 0, y: 0, width: 0, height: 0 };
 
 // Initialize Sentry crash reporting before app starts
 initSentry();
+assertStartupConfig();
 void SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
@@ -156,19 +160,38 @@ export default function RootLayout() {
         setBootstrapError(null);
         setIsOnboardingComplete(null);
         setBootstrapDetail("Đang khởi tạo kho cục bộ và runtime cốt lõi.");
+        initializePurchases(); // non-blocking, no-op when not configured
+        initializeNotificationHandler();
         await Promise.all([dbInit.initialize(), initAnalytics()]);
 
         const afterDbInitMs = Date.now() - bootstrapStart;
         setBootstrapDetail("Đang nạp hồ sơ người dùng và gate onboarding.");
 
         const userId = await getCurrentUserId();
-        const userState = await coreStore.getUserState(userId);
+        let userState = await coreStore.getUserState(userId);
 
         if (cancelled) {
           return;
         }
 
+        // On first install (before onboarding), detect device locale and
+        // set preferred_language accordingly so onboarding appears in the
+        // user's native language without requiring manual selection.
+        if (!userState.onboarding_complete && userState.preferred_language === "vi") {
+          try {
+            const deviceLocale = Intl.DateTimeFormat().resolvedOptions().locale ?? "";
+            const detectedLang = deviceLocale.toLowerCase().startsWith("vi") ? "vi" : "en";
+            if (detectedLang !== userState.preferred_language) {
+              userState = { ...userState, preferred_language: detectedLang };
+              await coreStore.updateUserState(userState);
+            }
+          } catch {
+            // Non-critical — fall back to default "vi"
+          }
+        }
+
         setIsOnboardingComplete(userState.onboarding_complete);
+        setLocale(userState.preferred_language);
         identify(userId, {
           onboarding_complete: userState.onboarding_complete,
           subscription_tier: userState.subscription_tier,

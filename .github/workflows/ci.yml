@@ -86,6 +86,9 @@ jobs:
           chmod +x scripts/build-uniffi-bindings.sh
           ./scripts/build-uniffi-bindings.sh
 
+      - name: Validate Swift FFI header syntax
+        run: clang -fsyntax-only -x c generated/uniffi/swift/aletheiaFFI.h
+
       - name: Upload bindings artifact
         uses: actions/upload-artifact@v4
         with:
@@ -181,6 +184,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - name: Validate CI environment (ADR-AL-56)
+        env:
+          EXPO_PUBLIC_EAS_PROJECT_ID: ci-eas-project
         run: bash scripts/validate-env.sh --ci
       - run: pnpm lint
       - run: pnpm tsc --noEmit
@@ -191,10 +196,12 @@ jobs:
 
       - name: Smoke server entrypoint
         env:
-          JWT_SECRET: ci-smoke-secret
+          JWT_SECRET: ci-smoke-secret-for-testing-only-32chars
           APP_ID: ci-smoke-app
           OAUTH_SERVER_URL: https://example.invalid
           OWNER_OPEN_ID: ci-owner
+          NODE_ENV: production
+          CORS_ALLOWED_ORIGINS: https://example.invalid
           PORT: 3900
         run: |
           timeout 5s node dist/index.js

@@ -105,6 +105,13 @@ temp/
 # Tools / Scripts
 .tools/
 
+# Dev tool caches & IDE-local config (not shared)
+.codegraph/
+.hex-skills/
+.claude/
+semgrep-results.json
+.mcp.json
+
 # Legacy local generated data (no longer used by runtime source path)
 lib/data/content/
 

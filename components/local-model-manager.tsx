@@ -126,7 +126,7 @@ export function LocalModelManager() {
             <View style={styles.statusRow}>
               <MaterialIcons name="download" size={16} color={colors.muted} />
               <Text style={[styles.statusText, { color: colors.muted }]}>
-                Not downloaded (~2GB)
+                Not downloaded (~529MB)
               </Text>
             </View>
           )}

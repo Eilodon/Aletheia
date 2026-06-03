@@ -1,11 +1,7 @@
 function randomHex(length: number): string {
-  let output = "";
-  while (output.length < length) {
-    output += Math.floor(Math.random() * 0xffffffff)
-      .toString(16)
-      .padStart(8, "0");
-  }
-  return output.slice(0, length);
+  const bytes = new Uint8Array(Math.ceil(length / 2));
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("").slice(0, length);
 }
 
 export function generateId(): string {

@@ -6,6 +6,7 @@
 
 import { store } from "./store";
 import { Theme, Symbol } from "@/lib/types";
+import { shuffleArray } from "@/lib/utils/random";
 
 class ThemeEngineService {
   /**
@@ -26,7 +27,7 @@ class ThemeEngineService {
       console.warn(`[ThemeEngine] Theme not found or not enough symbols`);
       return [];
     }
-    const shuffled = this.shuffleArray([...theme.symbols]);
+    const shuffled = shuffleArray([...theme.symbols]);
     return shuffled.slice(0, 3);
   }
 
@@ -40,18 +41,8 @@ class ThemeEngineService {
       console.warn(`[ThemeEngine] Not enough symbols in theme`);
       return [];
     }
-    const shuffled = this.shuffleArray([...theme.symbols]);
+    const shuffled = shuffleArray([...theme.symbols]);
     return shuffled.slice(0, 3);
-  }
-
-  // ARCH-06: Helper to shuffle array (Fisher-Yates) - same as reading-engine.ts
-  private shuffleArray<T>(array: T[]): T[] {
-    const result = [...array];
-    for (let i = result.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [result[i], result[j]] = [result[j], result[i]];
-    }
-    return result;
   }
 
   /**

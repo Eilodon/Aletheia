@@ -15,8 +15,99 @@ import {
   UserState,
   SubscriptionTier,
   SymbolMethod,
+  SourceType,
 } from "@/lib/types";
 import { BUNDLED_SOURCES, BUNDLED_PASSAGES, BUNDLED_THEMES } from "@/lib/data/content";
+
+type SqliteColumnInfo = { name: string };
+
+type SourceRow = {
+  id: string;
+  name: string;
+  tradition: Source["tradition"];
+  language: string;
+  passage_count: number;
+  is_bundled: number;
+  is_premium: number;
+  fallback_prompts: string | null;
+  source_type: Source["source_type"] | null;
+};
+
+type PassageRow = {
+  id: string;
+  source_id: string;
+  reference: string;
+  text: string;
+  context: string | null;
+  resonance_context: string | null;
+};
+
+type ThemeRow = {
+  id: string;
+  name: string;
+  is_premium: number;
+  pack_id: string | null;
+  price_usd: number | null;
+};
+
+type SymbolRow = {
+  id: string;
+  display_name: string;
+  flavor_text: string | null;
+};
+
+type UserStateRow = {
+  user_id: string;
+  subscription_tier: UserState["subscription_tier"];
+  readings_today: number;
+  ai_calls_today: number;
+  session_count: number | null;
+  last_reading_date: string | null;
+  notification_enabled: number;
+  notification_time: string | null;
+  preferred_language: string;
+  dark_mode: number;
+  onboarding_complete: number;
+  user_intent: UserState["user_intent"] | null;
+  weekly_summary_enabled: number | null;
+};
+
+type ReadingRow = {
+  id: string;
+  created_at: number;
+  source_id: string;
+  passage_id: string;
+  theme_id: string;
+  symbol_chosen: string;
+  symbol_method: string | null;
+  situation_text: string | null;
+  ai_interpreted: number;
+  ai_used_fallback: number;
+  read_duration_s: number | null;
+  time_to_ai_request_s: number | null;
+  notification_opened: number;
+  mood_tag: Reading["mood_tag"] | null;
+  is_favorite: number;
+  shared: number;
+  user_intent: Reading["user_intent"] | null;
+};
+
+function isDuplicateColumnError(error: unknown): boolean {
+  return error instanceof Error && error.message.includes("duplicate column");
+}
+
+function parseFallbackPrompts(raw: string | null | undefined): string[] {
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 class StoreService {
   private db: SQLite.SQLiteDatabase | null = null;
@@ -148,8 +239,8 @@ class StoreService {
     if (currentVersion < 2) {
       try {
         await this.db.execAsync(`ALTER TABLE user_state ADD COLUMN session_count INTEGER NOT NULL DEFAULT 0;`);
-      } catch (e: any) {
-        if (!e.message?.includes("duplicate column")) throw e;
+      } catch (e: unknown) {
+        if (!isDuplicateColumnError(e)) throw e;
       }
     }
 
@@ -165,13 +256,13 @@ class StoreService {
     if (currentVersion < 4) {
       try {
         await this.db.execAsync(`ALTER TABLE readings ADD COLUMN time_to_ai_request_s INTEGER;`);
-      } catch (e: any) {
-        if (!e.message?.includes("duplicate column")) throw e;
+      } catch (e: unknown) {
+        if (!isDuplicateColumnError(e)) throw e;
       }
       try {
         await this.db.execAsync(`ALTER TABLE readings ADD COLUMN notification_opened INTEGER NOT NULL DEFAULT 0;`);
-      } catch (e: any) {
-        if (!e.message?.includes("duplicate column")) throw e;
+      } catch (e: unknown) {
+        if (!isDuplicateColumnError(e)) throw e;
       }
     }
 
@@ -179,7 +270,7 @@ class StoreService {
     // Mirrors Rust store migration v5.
     if (currentVersion < 5) {
       // Check if column already exists before altering
-      const tableInfo = await this.db.getAllAsync<{ name: string }>(
+      const tableInfo = await this.db.getAllAsync<SqliteColumnInfo>(
         `PRAGMA table_info(passages)` 
       );
       const hasResonanceContext = tableInfo.some((col) => col.name === "resonance_context");
@@ -191,7 +282,7 @@ class StoreService {
     }
 
     if (currentVersion < 6) {
-      const readingsInfo = await this.db.getAllAsync<{ name: string }>(
+      const readingsInfo = await this.db.getAllAsync<SqliteColumnInfo>(
         `PRAGMA table_info(readings)`
       );
       const hasUserIntent = readingsInfo.some((col) => col.name === "user_intent");
@@ -203,7 +294,7 @@ class StoreService {
     }
 
     if (currentVersion < 7) {
-      const userStateInfo = await this.db.getAllAsync<{ name: string }>(
+      const userStateInfo = await this.db.getAllAsync<SqliteColumnInfo>(
         `PRAGMA table_info(user_state)`
       );
       const hasUserIntent = userStateInfo.some((col) => col.name === "user_intent");
@@ -216,7 +307,7 @@ class StoreService {
     
     // Migration v8: Add source_type column to sources — mirrors Rust migration v8
     if (currentVersion < 8) {
-      const sourceCols = await this.db.getAllAsync<{ name: string }>(`PRAGMA table_info(sources)`);
+      const sourceCols = await this.db.getAllAsync<SqliteColumnInfo>(`PRAGMA table_info(sources)`);
       if (!sourceCols.some((c) => c.name === "source_type")) {
         await this.db.execAsync(
           `ALTER TABLE sources ADD COLUMN source_type TEXT NOT NULL DEFAULT 'bibliomancy';`
@@ -271,7 +362,7 @@ class StoreService {
     await this.initialize();
     if (!this.db) throw new Error("Database not initialized");
 
-    const row = await this.db.getFirstAsync<any>(
+    const row = await this.db.getFirstAsync<UserStateRow>(
       "SELECT * FROM user_state WHERE user_id = ?",
       [userId]
     );
@@ -291,6 +382,7 @@ class StoreService {
         dark_mode: false,
         onboarding_complete: false,
         user_intent: undefined,
+        weekly_summary_enabled: false,
       };
       await this.updateUserState(defaultState);
       return defaultState;
@@ -315,6 +407,7 @@ class StoreService {
         dark_mode: row.dark_mode === 1,
         onboarding_complete: row.onboarding_complete === 1,
         user_intent: row.user_intent || undefined,
+        weekly_summary_enabled: row.weekly_summary_enabled === 1,
       };
     }
 
@@ -331,6 +424,7 @@ class StoreService {
       dark_mode: row.dark_mode === 1,
       onboarding_complete: row.onboarding_complete === 1,
       user_intent: row.user_intent || undefined,
+      weekly_summary_enabled: row.weekly_summary_enabled === 1,
     };
   }
 
@@ -339,7 +433,7 @@ class StoreService {
     if (!this.db) throw new Error("Database not initialized");
 
     await this.db.runAsync(
-      `INSERT OR REPLACE INTO user_state (user_id, subscription_tier, readings_today, ai_calls_today, session_count, last_reading_date, notification_enabled, notification_time, preferred_language, dark_mode, onboarding_complete, user_intent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT OR REPLACE INTO user_state (user_id, subscription_tier, readings_today, ai_calls_today, session_count, last_reading_date, notification_enabled, notification_time, preferred_language, dark_mode, onboarding_complete, user_intent, weekly_summary_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         state.user_id,
         state.subscription_tier,
@@ -353,6 +447,7 @@ class StoreService {
         state.dark_mode ? 1 : 0,
         state.onboarding_complete ? 1 : 0,
         state.user_intent ?? null,
+        state.weekly_summary_enabled ? 1 : 0,
       ]
     );
   }
@@ -397,7 +492,7 @@ class StoreService {
       ? "SELECT * FROM sources ORDER BY name ASC"
       : "SELECT * FROM sources WHERE is_premium = 0 ORDER BY name ASC";
 
-    const rows = await this.db.getAllAsync<any>(query);
+    const rows = await this.db.getAllAsync<SourceRow>(query);
     return rows.map((row) => ({
       id: row.id,
       name: row.name,
@@ -406,8 +501,8 @@ class StoreService {
       passage_count: row.passage_count,
       is_bundled: row.is_bundled === 1,
       is_premium: row.is_premium === 1,
-      fallback_prompts: row.fallback_prompts ? (() => { try { return JSON.parse(row.fallback_prompts); } catch { return []; } })() : [],
-      source_type: (row.source_type || "bibliomancy") as Source["source_type"],
+      fallback_prompts: parseFallbackPrompts(row.fallback_prompts),
+      source_type: row.source_type || SourceType.Bibliomancy,
     }));
   }
 
@@ -415,7 +510,7 @@ class StoreService {
     await this.initialize();
     if (!this.db) throw new Error("Database not initialized");
 
-    const row = await this.db.getFirstAsync<any>(
+    const row = await this.db.getFirstAsync<SourceRow>(
       "SELECT * FROM sources WHERE id = ?",
       [sourceId]
     );
@@ -430,8 +525,8 @@ class StoreService {
       passage_count: row.passage_count,
       is_bundled: row.is_bundled === 1,
       is_premium: row.is_premium === 1,
-      fallback_prompts: row.fallback_prompts ? (() => { try { return JSON.parse(row.fallback_prompts); } catch { return []; } })() : [],
-      source_type: (row.source_type || "bibliomancy") as Source["source_type"],
+      fallback_prompts: parseFallbackPrompts(row.fallback_prompts),
+      source_type: row.source_type || SourceType.Bibliomancy,
     };
   }
 
@@ -458,13 +553,13 @@ class StoreService {
     const whereClause = filters.length > 0 ? `WHERE ${filters.join(" AND ")}` : "";
     const query = `SELECT * FROM sources ${whereClause} ORDER BY RANDOM() LIMIT 1`;
 
-    let row = await this.db.getFirstAsync<any>(query, params);
+    let row = await this.db.getFirstAsync<SourceRow>(query, params);
 
     if (!row && normalizedLanguage) {
       const fallbackFilters = !premiumAllowed ? ["is_premium = 0"] : [];
       const fallbackWhereClause =
         fallbackFilters.length > 0 ? `WHERE ${fallbackFilters.join(" AND ")}` : "";
-      row = await this.db.getFirstAsync<any>(
+      row = await this.db.getFirstAsync<SourceRow>(
         `SELECT * FROM sources ${fallbackWhereClause} ORDER BY RANDOM() LIMIT 1`,
       );
     }
@@ -479,8 +574,8 @@ class StoreService {
       passage_count: row.passage_count,
       is_bundled: row.is_bundled === 1,
       is_premium: row.is_premium === 1,
-      fallback_prompts: row.fallback_prompts ? (() => { try { return JSON.parse(row.fallback_prompts); } catch { return []; } })() : [],
-      source_type: (row.source_type || "bibliomancy") as Source["source_type"],
+      fallback_prompts: parseFallbackPrompts(row.fallback_prompts),
+      source_type: row.source_type || SourceType.Bibliomancy,
     };
   }
 
@@ -489,7 +584,7 @@ class StoreService {
     await this.initialize();
     if (!this.db) throw new Error("Database not initialized");
 
-    const row = await this.db.getFirstAsync<any>(
+    const row = await this.db.getFirstAsync<PassageRow>(
       "SELECT * FROM passages WHERE id = ?",
       [passageId]
     );
@@ -510,7 +605,7 @@ class StoreService {
     await this.initialize();
     if (!this.db) throw new Error("Database not initialized");
 
-    const row = await this.db.getFirstAsync<any>(
+    const row = await this.db.getFirstAsync<PassageRow>(
       "SELECT * FROM passages WHERE source_id = ? ORDER BY RANDOM() LIMIT 1",
       [sourceId]
     );
@@ -536,10 +631,10 @@ class StoreService {
       ? "SELECT * FROM themes ORDER BY RANDOM() LIMIT 1"
       : "SELECT * FROM themes WHERE is_premium = 0 ORDER BY RANDOM() LIMIT 1";
 
-    const row = await this.db.getFirstAsync<any>(query);
+    const row = await this.db.getFirstAsync<ThemeRow>(query);
     if (!row) return null;
 
-    const symbols = await this.db.getAllAsync<any>(
+    const symbols = await this.db.getAllAsync<SymbolRow>(
       "SELECT * FROM symbols WHERE theme_id = ?",
       [row.id]
     );
@@ -562,7 +657,7 @@ class StoreService {
     await this.initialize();
     if (!this.db) throw new Error("Database not initialized");
 
-    const rows = await this.db.getAllAsync<any>(
+    const rows = await this.db.getAllAsync<SymbolRow>(
       "SELECT * FROM symbols WHERE theme_id = ? ORDER BY RANDOM() LIMIT 3",
       [themeId]
     );
@@ -578,13 +673,13 @@ class StoreService {
     await this.initialize();
     if (!this.db) throw new Error("Database not initialized");
 
-    const row = await this.db.getFirstAsync<any>(
+    const row = await this.db.getFirstAsync<ThemeRow>(
       "SELECT * FROM themes WHERE id = ?",
       [themeId]
     );
     if (!row) return null;
 
-    const symbols = await this.db.getAllAsync<any>(
+    const symbols = await this.db.getAllAsync<SymbolRow>(
       "SELECT * FROM symbols WHERE theme_id = ?",
       [row.id]
     );
@@ -607,13 +702,13 @@ class StoreService {
     await this.initialize();
     if (!this.db) throw new Error("Database not initialized");
 
-    const rows = await this.db.getAllAsync<any>(
+    const rows = await this.db.getAllAsync<ThemeRow>(
       "SELECT * FROM themes ORDER BY name ASC"
     );
 
     const themes = await Promise.all(
       rows.map(async (row) => {
-        const symbols = await this.db!.getAllAsync<any>(
+        const symbols = await this.db!.getAllAsync<SymbolRow>(
           "SELECT * FROM symbols WHERE theme_id = ?",
           [row.id]
         );
@@ -669,7 +764,7 @@ class StoreService {
     await this.initialize();
     if (!this.db) throw new Error("Database not initialized");
 
-    const rows = await this.db.getAllAsync<any>(
+    const rows = await this.db.getAllAsync<ReadingRow>(
       "SELECT * FROM readings ORDER BY created_at DESC LIMIT ? OFFSET ?",
       [limit, offset]
     );
@@ -691,7 +786,7 @@ class StoreService {
     await this.initialize();
     if (!this.db) throw new Error("Database not initialized");
 
-    const row = await this.db.getFirstAsync<any>(
+    const row = await this.db.getFirstAsync<ReadingRow>(
       "SELECT * FROM readings WHERE id = ?",
       [id]
     );
@@ -740,7 +835,7 @@ class StoreService {
     await this.initialize();
     if (!this.db) throw new Error("Database not initialized");
 
-    const rows = await this.db.getAllAsync<any>(
+    const rows = await this.db.getAllAsync<SourceRow>(
       "SELECT * FROM sources WHERE is_premium = 0 ORDER BY name ASC"
     );
 
@@ -752,8 +847,8 @@ class StoreService {
       passage_count: row.passage_count || 0,
       is_bundled: true,
       is_premium: row.is_premium === 1,
-      fallback_prompts: row.fallback_prompts ? (() => { try { return JSON.parse(row.fallback_prompts); } catch { return []; } })() : [],
-      source_type: (row.source_type || "bibliomancy") as Source["source_type"],
+      fallback_prompts: parseFallbackPrompts(row.fallback_prompts),
+      source_type: row.source_type || SourceType.Bibliomancy,
     }));
   }
 
@@ -788,7 +883,7 @@ class StoreService {
     };
   }
 
-  private mapReadingRow(row: any): Reading {
+  private mapReadingRow(row: ReadingRow): Reading {
     return {
       id: row.id,
       created_at: row.created_at,

@@ -5,33 +5,42 @@ import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
+import { OnboardingPassagePreview } from "@/components/onboarding-passage-preview";
 import { useColors } from "@/hooks/use-colors";
 import { coreStore } from "@/lib/services/core-store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
 import { SubscriptionTier, UserIntent } from "@/lib/types";
+import { ONBOARDING_PREVIEW_PASSAGES, ONBOARDING_PREVIEW_PASSAGES_EN } from "@/lib/data/onboarding-content";
 import { Fonts } from "@/constants/theme";
+import { useStrings, getLocale } from "@/lib/i18n";
 
 const STEPS = ["welcome", "intent", "ready"] as const;
-
-const INTENTS = [
-  { intent: UserIntent.Clarity, icon: "✧", title: "Sự rõ ràng", description: "Khi bạn cần gọi đúng tên vấn đề." },
-  { intent: UserIntent.Comfort, icon: "❋", title: "Sự an ủi", description: "Khi bạn cần một giọng nói dịu hơn." },
-  { intent: UserIntent.Challenge, icon: "✦", title: "Một thách thức", description: "Khi bạn sẵn sàng nghe điều không dễ chịu." },
-  { intent: UserIntent.Guidance, icon: "◈", title: "Để vũ trụ dẫn lối", description: "Khi bạn muốn buông kiểm soát và nhận điều đến." },
-];
 
 export default function OnboardingScreen() {
   const colors = useColors();
   const router = useRouter();
+  const s = useStrings();
   const [step, setStep] = useState(0);
   const [selectedIntent, setSelectedIntent] = useState<UserIntent | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [revealComplete, setRevealComplete] = useState(false);
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
   const currentStep = STEPS[step];
   const isLastStep = step === STEPS.length - 1;
 
-  const canContinue = useMemo(() => currentStep !== "intent" || Boolean(selectedIntent), [currentStep, selectedIntent]);
+  const canContinue = useMemo(() => {
+    if (currentStep === "intent") return Boolean(selectedIntent);
+    if (currentStep === "ready") return revealComplete;
+    return true;
+  }, [currentStep, selectedIntent, revealComplete]);
+
+  const intents = useMemo(() => [
+    { intent: UserIntent.Clarity,  icon: "✧", ...s.onboarding.intent.clarity },
+    { intent: UserIntent.Comfort,  icon: "❋", ...s.onboarding.intent.comfort },
+    { intent: UserIntent.Challenge,icon: "✦", ...s.onboarding.intent.challenge },
+    { intent: UserIntent.Guidance, icon: "◈", ...s.onboarding.intent.guidance },
+  ], [s]);
 
   const transitionTo = (nextStep: number) => {
     Animated.sequence([
@@ -78,6 +87,11 @@ export default function OnboardingScreen() {
     completeOnboarding();
   };
 
+  const previewPassages = getLocale() === "en"
+    ? ONBOARDING_PREVIEW_PASSAGES_EN
+    : ONBOARDING_PREVIEW_PASSAGES;
+  const preview = previewPassages[selectedIntent ?? UserIntent.Clarity];
+
   return (
     <ScreenContainer className="px-6 pb-6">
       <View style={styles.root}>
@@ -97,7 +111,9 @@ export default function OnboardingScreen() {
             ))}
           </View>
           <Pressable onPress={handleSkip}>
-            <Text testID="onboarding-skip" style={[styles.skip, { color: colors.muted }]}>Bỏ qua</Text>
+            <Text testID="onboarding-skip" style={[styles.skip, { color: colors.muted }]}>
+              {s.onboarding.skipLabel}
+            </Text>
           </Pressable>
         </View>
 
@@ -107,11 +123,17 @@ export default function OnboardingScreen() {
               <>
                 <View style={[styles.heroHalo, { backgroundColor: colors.primary + "10" }]} />
                 <RitualOrnament variant="eye" size="lg" />
-                <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.displayStrong }]}>ALETHEIA</Text>
-                <Text style={[styles.kicker, { color: colors.primary }]}>not a fortune • a mirror</Text>
-                <Text style={[styles.tagline, { color: colors.foreground }]}>Dừng lại. Phản chiếu. Hiểu.</Text>
+                <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.displayStrong }]}>
+                  {s.onboarding.welcome.title}
+                </Text>
+                <Text style={[styles.kicker, { color: colors.primary }]}>
+                  {s.onboarding.welcome.kicker}
+                </Text>
+                <Text style={[styles.tagline, { color: colors.foreground }]}>
+                  {s.onboarding.welcome.tagline}
+                </Text>
                 <Text style={[styles.body, { color: colors.muted }]}>
-                  Aletheia không nói trước tương lai. Nó tạo ra một không gian tối, chậm và đủ yên để bạn nhìn lại chính mình qua các đoạn trích triết học.
+                  {s.onboarding.welcome.body}
                 </Text>
               </>
             ) : null}
@@ -119,12 +141,14 @@ export default function OnboardingScreen() {
             {currentStep === "intent" ? (
               <>
                 <RitualOrnament variant="sigil" />
-                <Text style={[styles.sectionTitle, { color: colors.foreground, fontFamily: Fonts.display }]}>Hôm nay bạn cần chiếc gương nào?</Text>
+                <Text style={[styles.sectionTitle, { color: colors.foreground, fontFamily: Fonts.display }]}>
+                  {s.onboarding.intent.title}
+                </Text>
                 <Text style={[styles.body, { color: colors.muted }]}>
-                  Chọn một ý định mở đầu. Nó giúp Aletheia điều chỉnh sắc thái phản chiếu cho lần đọc đầu tiên.
+                  {s.onboarding.intent.body}
                 </Text>
                 <View style={styles.intentGrid}>
-                  {INTENTS.map((item) => {
+                  {intents.map((item) => {
                     const isSelected = selectedIntent === item.intent;
                     return (
                       <Pressable
@@ -144,8 +168,12 @@ export default function OnboardingScreen() {
                         ]}
                       >
                         <Text style={[styles.intentIcon, { color: colors.primary }]}>{item.icon}</Text>
-                        <Text style={[styles.intentTitle, { color: colors.foreground, fontFamily: Fonts.display }]}>{item.title}</Text>
-                        <Text style={[styles.intentDesc, { color: colors.muted }]}>{item.description}</Text>
+                        <Text style={[styles.intentTitle, { color: colors.foreground, fontFamily: Fonts.display }]}>
+                          {item.title}
+                        </Text>
+                        <Text style={[styles.intentDesc, { color: colors.muted }]}>
+                          {item.description}
+                        </Text>
                       </Pressable>
                     );
                   })}
@@ -156,20 +184,15 @@ export default function OnboardingScreen() {
             {currentStep === "ready" ? (
               <>
                 <RitualOrnament variant="line" />
-                <Text style={[styles.sectionTitle, { color: colors.foreground, fontFamily: Fonts.display }]}>Cách Aletheia hoạt động</Text>
-                <View style={styles.checklist}>
-                  {[
-                    "Bạn mô tả điều đang diễn ra, hoặc để trống nếu muốn.",
-                    "Bạn chọn một biểu tượng để mở passage.",
-                    "AI chỉ diễn giải khi bạn chủ động yêu cầu.",
-                    "Lịch sử và trạng thái được giữ local trên thiết bị.",
-                  ].map((item) => (
-                    <View key={item} style={[styles.checkItem, { backgroundColor: colors.surface + "B6", borderColor: colors.primary + "18" }]}>
-                      <Text style={[styles.checkGlyph, { color: colors.primary }]}>✦</Text>
-                      <Text style={[styles.checkText, { color: colors.foreground }]}>{item}</Text>
-                    </View>
-                  ))}
-                </View>
+                <Text style={[styles.previewLabel, { color: colors.muted }]}>
+                  {s.onboarding.preview.label}
+                </Text>
+                <OnboardingPassagePreview
+                  text={preview.text}
+                  reference={preview.reference}
+                  closingQuestion={preview.closingQuestion}
+                  onRevealComplete={() => setRevealComplete(true)}
+                />
               </>
             ) : null}
           </View>
@@ -190,10 +213,16 @@ export default function OnboardingScreen() {
               ]}
             >
               <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>
-                {isLastStep ? (isCompleting ? "Đang mở cổng..." : "Bắt đầu lần đọc đầu tiên") : "Tiếp tục"}
+                {isLastStep
+                  ? isCompleting
+                    ? s.onboarding.enteringLabel
+                    : s.onboarding.enterLabel
+                  : s.onboarding.continueLabel}
               </Text>
             </Pressable>
-            <Text style={[styles.stepText, { color: colors.muted }]}>Bước {step + 1} / {STEPS.length}</Text>
+            <Text style={[styles.stepText, { color: colors.muted }]}>
+              {s.onboarding.stepOf(step + 1, STEPS.length)}
+            </Text>
           </View>
         </Animated.View>
       </View>
@@ -202,136 +231,26 @@ export default function OnboardingScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-    paddingTop: 24,
-  },
-  topBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 18,
-  },
-  progressTrack: {
-    flexDirection: "row",
-    gap: 8,
-  },
-  progressPill: {
-    height: 8,
-    borderRadius: 999,
-  },
-  skip: {
-    fontSize: 11,
-    textTransform: "uppercase",
-    letterSpacing: 2,
-  },
-  main: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 16,
-    position: "relative",
-  },
-  heroHalo: {
-    position: "absolute",
-    width: 240,
-    height: 240,
-    borderRadius: 120,
-    top: -24,
-  },
-  title: {
-    fontSize: 40,
-    letterSpacing: 8,
-  },
-  kicker: {
-    fontSize: 10,
-    letterSpacing: 3.2,
-    textTransform: "uppercase",
-  },
-  tagline: {
-    fontSize: 13,
-    letterSpacing: 3.2,
-    textTransform: "uppercase",
-    textAlign: "center",
-  },
-  sectionTitle: {
-    fontSize: 28,
-    lineHeight: 34,
-    textAlign: "center",
-  },
-  body: {
-    maxWidth: 320,
-    textAlign: "center",
-    fontSize: 15,
-    lineHeight: 24,
-    fontFamily: Fonts.bodyItalic,
-  },
-  intentGrid: {
-    width: "100%",
-    gap: 12,
-    marginTop: 8,
-  },
-  intentCard: {
-    borderRadius: 24,
-    borderWidth: 1,
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    gap: 8,
-  },
-  intentIcon: {
-    fontSize: 22,
-  },
-  intentTitle: {
-    fontSize: 18,
-  },
-  intentDesc: {
-    fontSize: 13,
-    lineHeight: 19,
-    fontFamily: Fonts.bodyItalic,
-  },
-  checklist: {
-    width: "100%",
-    gap: 12,
-    marginTop: 8,
-  },
-  checkItem: {
-    flexDirection: "row",
-    gap: 12,
-    alignItems: "flex-start",
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    borderRadius: 18,
-    borderWidth: 1,
-  },
-  checkGlyph: {
-    fontSize: 14,
-    marginTop: 1,
-  },
-  checkText: {
-    flex: 1,
-    fontSize: 14,
-    lineHeight: 22,
-    fontFamily: Fonts.body,
-  },
-  bottom: {
-    gap: 12,
-    paddingBottom: 12,
-  },
-  primaryButton: {
-    borderRadius: 22,
-    borderWidth: 1.2,
-    paddingHorizontal: 24,
-    paddingVertical: 18,
-    alignItems: "center",
-  },
-  primaryButtonText: {
-    fontSize: 18,
-    letterSpacing: 1.2,
-    textAlign: "center",
-    textTransform: "uppercase",
-  },
-  stepText: {
-    textAlign: "center",
-    fontSize: 12,
-  },
+  root: { flex: 1, paddingTop: 24 },
+  topBar: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 18 },
+  progressTrack: { flexDirection: "row", gap: 8 },
+  progressPill: { height: 8, borderRadius: 999 },
+  skip: { fontSize: 11, textTransform: "uppercase", letterSpacing: 2 },
+  main: { flex: 1, justifyContent: "center", alignItems: "center", gap: 16, position: "relative" },
+  heroHalo: { position: "absolute", width: 240, height: 240, borderRadius: 120, top: -24 },
+  title: { fontSize: 40, letterSpacing: 8 },
+  kicker: { fontSize: 10, letterSpacing: 3.2, textTransform: "uppercase" },
+  tagline: { fontSize: 13, letterSpacing: 3.2, textTransform: "uppercase", textAlign: "center" },
+  sectionTitle: { fontSize: 28, lineHeight: 34, textAlign: "center" },
+  previewLabel: { fontSize: 11, letterSpacing: 2.2, textTransform: "uppercase", textAlign: "center", fontFamily: Fonts.bodyItalic },
+  body: { maxWidth: 320, textAlign: "center", fontSize: 15, lineHeight: 24, fontFamily: Fonts.bodyItalic },
+  intentGrid: { width: "100%", gap: 12, marginTop: 8 },
+  intentCard: { borderRadius: 24, borderWidth: 1, paddingHorizontal: 18, paddingVertical: 18, gap: 8 },
+  intentIcon: { fontSize: 22 },
+  intentTitle: { fontSize: 18 },
+  intentDesc: { fontSize: 13, lineHeight: 19, fontFamily: Fonts.bodyItalic },
+  bottom: { gap: 12, paddingBottom: 12 },
+  primaryButton: { borderRadius: 22, borderWidth: 1.2, paddingHorizontal: 24, paddingVertical: 18, alignItems: "center" },
+  primaryButtonText: { fontSize: 18, letterSpacing: 1.2, textAlign: "center", textTransform: "uppercase" },
+  stepText: { textAlign: "center", fontSize: 12 },
 });

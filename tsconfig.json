@@ -23,5 +23,5 @@
     "dist",
     "docs/remix-of-aletheia-main"
   ],
-  "extends": "expo/tsconfig.base"
+  "extends": "expo/tsconfig.base.json"
 }

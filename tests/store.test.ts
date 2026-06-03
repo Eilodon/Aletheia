@@ -2,10 +2,13 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { store } from "../lib/services/store";
 import { SubscriptionTier, SymbolMethod } from "../lib/types";
 
+type MockParam = string | number | null | undefined;
+type MockRow = Record<string, MockParam>;
+
 const mockDb = vi.hoisted(() => ({
-  data: new Map<string, any[]>(),
+  data: new Map<string, MockRow[]>(),
   version: 0,
-  getFirstAsync: vi.fn(async (query: string, params?: any[]) => {
+  getFirstAsync: vi.fn(async (query: string, params?: MockParam[]) => {
     if (query.includes("PRAGMA user_version")) {
       return { version: mockDb.version };
     }
@@ -51,7 +54,7 @@ const mockDb = vi.hoisted(() => ({
     }
     return rows[0] || null;
   }),
-  getAllAsync: vi.fn(async (query: string, params?: any[]) => {
+  getAllAsync: vi.fn(async (query: string, params?: MockParam[]) => {
     const pragmaMatch = query.match(/PRAGMA table_info\((\w+)\)/i);
     if (pragmaMatch) {
       const table = pragmaMatch[1];
@@ -78,11 +81,11 @@ const mockDb = vi.hoisted(() => ({
     const rows = mockDb.data.get(table) || [];
     if (query.includes("WHERE theme_id = ?")) {
       const param = params?.[0];
-      return rows.filter((r: any) => r.theme_id === param);
+      return rows.filter((r) => r.theme_id === param);
     }
     return rows;
   }),
-  runAsync: vi.fn(async (query: string, params?: any[]) => {
+  runAsync: vi.fn(async (query: string, params?: MockParam[]) => {
     if (query.includes("INSERT OR REPLACE INTO user_state")) {
       const table = "user_state";
       const rows = mockDb.data.get(table) || [];
@@ -126,9 +129,10 @@ const mockDb = vi.hoisted(() => ({
       const table = "user_state";
       const rows = mockDb.data.get(table) || [];
       const idx = rows.findIndex((r) => r.user_id === params?.[1]);
-      if (idx >= 0) {
-        rows[idx].readings_today += 1;
-        rows[idx].last_reading_date = params?.[0];
+      const row = rows[idx];
+      if (row) {
+        row.readings_today = Number(row.readings_today ?? 0) + 1;
+        row.last_reading_date = params?.[0];
         mockDb.data.set(table, rows);
       }
       return;
@@ -243,6 +247,7 @@ describe("StoreService", () => {
         dark_mode: false,
         onboarding_complete: false,
         user_intent: undefined,
+        weekly_summary_enabled: false,
       });
 
       // ACT
@@ -269,6 +274,7 @@ describe("StoreService", () => {
         dark_mode: false,
         onboarding_complete: false,
         user_intent: undefined,
+        weekly_summary_enabled: false,
       });
 
       // ACT
@@ -294,6 +300,7 @@ describe("StoreService", () => {
         dark_mode: false,
         onboarding_complete: false,
         user_intent: undefined,
+        weekly_summary_enabled: false,
       });
 
       // ACT

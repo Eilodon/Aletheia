@@ -14,6 +14,8 @@ interface GiftSource {
   selected: boolean;
 }
 
+const GIFT_BACKEND_URL = process.env.EXPO_PUBLIC_GIFT_BACKEND_URL;
+
 export default function GiftCreateScreen() {
   const colors = useColors();
   const router = useRouter();
@@ -25,6 +27,10 @@ export default function GiftCreateScreen() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    if (!GIFT_BACKEND_URL) {
+      return;
+    }
+
     coreStore.getGiftableSources()
       .then((giftableSources) => {
         setSources(giftableSources.map((source) => ({
@@ -44,6 +50,27 @@ export default function GiftCreateScreen() {
       useNativeDriver: true,
     }).start();
   }, [fadeAnim]);
+
+  // Gate: if backend is not configured, show a clear "not available" UI
+  // immediately rather than letting users fill the form and hit an error.
+  if (!GIFT_BACKEND_URL) {
+    return (
+      <ScreenContainer className="p-6">
+        <View className="flex-1 justify-center items-center gap-6">
+          <Text className="text-3xl">🎁</Text>
+          <Text className="text-xl font-semibold text-foreground text-center">
+            Tính năng quà chưa khả dụng
+          </Text>
+          <Text className="text-sm text-muted text-center max-w-xs">
+            Gift backend chưa được cấu hình cho build này. Tính năng sẽ khả dụng khi beta backend sẵn sàng.
+          </Text>
+          <Pressable onPress={() => router.back()} className="py-3 px-6">
+            <Text className="text-sm text-muted text-center">Quay lại</Text>
+          </Pressable>
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   const toggleSource = (id: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

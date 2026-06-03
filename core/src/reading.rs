@@ -52,7 +52,10 @@ impl ReadingEngine {
         } else {
             let premium_allowed = user_state.subscription_tier == SubscriptionTier::Pro;
             self.store
-                .get_random_source(premium_allowed, Some(user_state.preferred_language.as_str()))?
+                .get_random_source(
+                    premium_allowed,
+                    Some(user_state.preferred_language.as_str()),
+                )?
                 .ok_or_else(|| AletheiaError::source_not_found("any"))?
         };
 
@@ -105,11 +108,10 @@ impl ReadingEngine {
                             .ok_or_else(|| AletheiaError::passage_empty(&session.source.id))
                     })?
             }
-            SourceType::Bibliomancy | SourceType::Meditation => {
-                self.store
-                    .get_random_passage(&session.source.id)?
-                    .ok_or_else(|| AletheiaError::passage_empty(&session.source.id))?
-            }
+            SourceType::Bibliomancy | SourceType::Meditation => self
+                .store
+                .get_random_passage(&session.source.id)?
+                .ok_or_else(|| AletheiaError::passage_empty(&session.source.id))?,
         };
 
         info!(

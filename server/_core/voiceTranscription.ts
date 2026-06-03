@@ -1,6 +1,12 @@
 /**
  * Voice transcription helper using internal Speech-to-Text service
  *
+ * BETA SCOPE: This module is NOT registered in server/routers.ts and is
+ * intentionally out of scope for the current beta release. The SSRF
+ * protections (DNS rebind check, private IP block) are production-ready
+ * when this feature is wired up. To enable: import transcribeAudio and
+ * register a `voice.transcribe` tRPC procedure in routers.ts.
+ *
  * Frontend implementation guide:
  * 1. Capture audio using MediaRecorder API
  * 2. Upload audio to storage (e.g., S3) to get URL

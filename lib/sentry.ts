@@ -12,13 +12,13 @@ export function initSentry() {
     dsn: SENTRY_DSN,
     debug: __DEV__,
     enabled: !__DEV__, // Only enable in production builds
-    beforeSend: (event: any) => {
+    beforeSend: (event) => {
       // Filter out sensitive data before sending
       if (event.exception?.values) {
         // Filter stack traces that might contain sensitive info
-        event.exception.values.forEach((value: any) => {
+        event.exception.values.forEach((value) => {
           if (value.stacktrace?.frames) {
-            value.stacktrace.frames = value.stacktrace.frames.map((frame: any) => ({
+            value.stacktrace.frames = value.stacktrace.frames.map((frame) => ({
               ...frame,
               // Remove query params from filenames
               filename: frame.filename?.split("?")[0],
@@ -46,7 +46,7 @@ export function captureException(error: Error, context?: Record<string, unknown>
 
 export function captureMessage(message: string, level: "info" | "warning" | "error" = "info") {
   if (__DEV__) {
-    console.log(`[Sentry] ${level}:`, message);
+    console.log("[Sentry] message", { level, message });
     return;
   }
   Sentry.captureMessage(message, level);

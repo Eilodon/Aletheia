@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Text, TextStyle } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { Fonts } from "@/constants/theme";

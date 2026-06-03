@@ -5,13 +5,11 @@ import { getUserInfo } from "@/lib/auth";
 import { generateId } from "@/lib/utils/id";
 
 const DEVICE_ID_KEY = "aletheia_device_id";
+let webDeviceId: string | null = null;
 
 async function getStoredDeviceId(): Promise<string | null> {
   if (Platform.OS === "web") {
-    if (typeof window === "undefined") {
-      return null;
-    }
-    return window.sessionStorage.getItem(DEVICE_ID_KEY);
+    return webDeviceId;
   }
 
   return SecureStore.getItemAsync(DEVICE_ID_KEY);
@@ -19,10 +17,7 @@ async function getStoredDeviceId(): Promise<string | null> {
 
 async function persistDeviceId(deviceId: string): Promise<void> {
   if (Platform.OS === "web") {
-    if (typeof window === "undefined") {
-      return;
-    }
-    window.sessionStorage.setItem(DEVICE_ID_KEY, deviceId);
+    webDeviceId = deviceId;
     return;
   }
 

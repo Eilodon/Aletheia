@@ -18,6 +18,11 @@ import type {
 const isNonEmptyString = (value: unknown): value is string =>
   typeof value === "string" && value.length > 0;
 
+type OAuthUserInfoWithPlatforms = {
+  platforms?: unknown;
+  platform?: string | null;
+};
+
 export type SessionPayload = {
   openId: string;
   appId: string;
@@ -39,7 +44,22 @@ class OAuthService {
   }
 
   private decodeState(state: string): string {
-    const redirectUri = atob(state);
+    let redirectUri: string;
+    try {
+      redirectUri = atob(state);
+    } catch {
+      throw new Error("Invalid OAuth state parameter");
+    }
+    // Reject non-URL or non-http/https values to prevent open redirect injection
+    let parsed: URL;
+    try {
+      parsed = new URL(redirectUri);
+    } catch {
+      throw new Error("OAuth state contains invalid redirect URI");
+    }
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+      throw new Error("OAuth state redirect URI must use http or https");
+    }
     return redirectUri;
   }
 
@@ -56,7 +76,9 @@ class OAuthService {
     return data;
   }
 
-  async getUserInfoByToken(token: ExchangeTokenResponse): Promise<GetUserInfoResponse> {
+  async getUserInfoByToken(
+    token: Pick<ExchangeTokenResponse, "accessToken">,
+  ): Promise<GetUserInfoResponse> {
     const { data } = await this.client.post<GetUserInfoResponse>(GET_USER_INFO_PATH, {
       accessToken: token.accessToken,
     });
@@ -97,6 +119,21 @@ class SDKServer {
     return first ? first.toLowerCase() : null;
   }
 
+  private normalizeLoginMethod<T extends GetUserInfoResponse | GetUserInfoWithJwtResponse>(
+    data: T,
+  ): T {
+    const providerData: T & OAuthUserInfoWithPlatforms = data;
+    const loginMethod = this.deriveLoginMethod(
+      providerData.platforms,
+      providerData.platform ?? null,
+    );
+    return {
+      ...data,
+      platform: loginMethod,
+      loginMethod,
+    };
+  }
+
   /**
    * Exchange OAuth authorization code for access token
    * @example
@@ -114,16 +151,8 @@ class SDKServer {
   async getUserInfo(accessToken: string): Promise<GetUserInfoResponse> {
     const data = await this.oauthService.getUserInfoByToken({
       accessToken,
-    } as ExchangeTokenResponse);
-    const loginMethod = this.deriveLoginMethod(
-      (data as any)?.platforms,
-      (data as any)?.platform ?? data.platform ?? null,
-    );
-    return {
-      ...(data as any),
-      platform: loginMethod,
-      loginMethod,
-    } as GetUserInfoResponse;
+    });
+    return this.normalizeLoginMethod(data);
   }
 
   private parseCookies(cookieHeader: string | undefined) {
@@ -223,15 +252,7 @@ class SDKServer {
       payload,
     );
 
-    const loginMethod = this.deriveLoginMethod(
-      (data as any)?.platforms,
-      (data as any)?.platform ?? data.platform ?? null,
-    );
-    return {
-      ...(data as any),
-      platform: loginMethod,
-      loginMethod,
-    } as GetUserInfoWithJwtResponse;
+    return this.normalizeLoginMethod(data);
   }
 
   async authenticateRequest(req: Request): Promise<User> {

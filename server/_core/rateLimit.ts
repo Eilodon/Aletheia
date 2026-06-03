@@ -32,15 +32,6 @@ export const apiLimiter = rateLimit({
   keyGenerator: (req: Request): string => getAiRequesterKey(req),
 });
 
-export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // 10 attempts per 15 minutes
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: "Too many authentication attempts, please try again later" },
-  skipSuccessfulRequests: true,
-});
-
 export const aiApiLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 20, // 20 AI requests per minute (more restrictive due to cost)

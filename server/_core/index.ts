@@ -25,26 +25,35 @@ function getAllowedOrigins(): Set<string> {
     .map((value) => value.trim())
     .filter(Boolean);
 
-  const defaults = [
-    "http://localhost:8081",
-    "http://127.0.0.1:8081",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "https://localhost:8081",
-    "https://127.0.0.1:8081",
-    "https://localhost:3000",
-    "https://127.0.0.1:3000",
-  ];
+  // Localhost origins only allowed in non-production environments
+  const devDefaults = process.env.NODE_ENV !== "production"
+    ? [
+        "http://localhost:8081",
+        "http://127.0.0.1:8081",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "https://localhost:8081",
+        "https://127.0.0.1:8081",
+        "https://localhost:3000",
+        "https://127.0.0.1:3000",
+      ]
+    : [];
 
-  return new Set([...defaults, ...configured]);
+  return new Set([...devDefaults, ...configured]);
 }
 
-function isAllowedOrigin(origin: string | undefined, allowedOrigins: Set<string>): boolean {
+function resolveAllowedOrigin(origin: string | undefined, allowedOrigins: Set<string>): string | null {
   if (!origin) {
-    return true;
+    return null;
   }
 
-  return allowedOrigins.has(origin);
+  for (const allowedOrigin of allowedOrigins) {
+    if (allowedOrigin === origin) {
+      return allowedOrigin;
+    }
+  }
+
+  return null;
 }
 
 function isPortAvailable(port: number): Promise<boolean> {
@@ -72,21 +81,22 @@ export function createApp() {
 
   app.use((req, res, next) => {
     const origin = req.headers.origin;
-    if (origin && !isAllowedOrigin(origin, allowedOrigins)) {
+    const allowedOrigin = resolveAllowedOrigin(origin, allowedOrigins);
+    if (origin && !allowedOrigin) {
       res.status(403).json({ error: "Origin not allowed" });
       return;
     }
 
-    if (origin) {
-      res.header("Access-Control-Allow-Origin", origin);
-      res.header("Vary", "Origin");
+    if (allowedOrigin) {
+      res.setHeader("Access-Control-Allow-Origin", allowedOrigin); // nosemgrep: javascript.express.security.cors-misconfiguration.cors-misconfiguration - exact whitelist output from resolveAllowedOrigin().
+      res.setHeader("Vary", "Origin");
     }
-    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    res.header(
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.setHeader(
       "Access-Control-Allow-Headers",
       "Origin, X-Requested-With, Content-Type, Accept, Authorization",
     );
-    res.header("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
 
     if (req.method === "OPTIONS") {
       res.sendStatus(200);
@@ -296,6 +306,11 @@ export function createApp() {
     }),
   );
 
+  app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+    logger.error("[server] Unhandled error", err);
+    res.status(500).json({ error: "Internal server error" });
+  });
+
   return app;
 }
 
@@ -318,8 +333,9 @@ export async function startServer() {
 }
 
 const isMainModule =
-  typeof process.argv[1] === "string" &&
-  import.meta.url === new URL(`file://${process.argv[1]}`).href;
+  typeof require !== "undefined" &&
+  typeof module !== "undefined" &&
+  require.main === module;
 
 if (isMainModule) {
   startServer().catch(console.error);

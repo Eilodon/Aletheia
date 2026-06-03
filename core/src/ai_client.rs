@@ -282,7 +282,10 @@ impl AIClient {
             passage_language
         ));
 
-        parts.push("Chỉ trả về đúng 2 phần: một đoạn phản chiếu ngắn và một câu hỏi mở ở dòng cuối.".to_string());
+        parts.push(
+            "Chỉ trả về đúng 2 phần: một đoạn phản chiếu ngắn và một câu hỏi mở ở dòng cuối."
+                .to_string(),
+        );
 
         // Add intent-based tone instruction (canonical — must match server interpretationService.ts)
         if let Some(intent) = user_intent {
@@ -345,8 +348,13 @@ impl AIClient {
 
             let result = match provider {
                 AIProvider::Claude => {
-                    self.call_claude(prompt, Arc::clone(&cancel_token), on_chunk.clone(), use_sonnet)
-                        .await
+                    self.call_claude(
+                        prompt,
+                        Arc::clone(&cancel_token),
+                        on_chunk.clone(),
+                        use_sonnet,
+                    )
+                    .await
                 }
                 AIProvider::GPT4 => {
                     self.call_gpt4(prompt, Arc::clone(&cancel_token), on_chunk.clone())
@@ -373,17 +381,21 @@ impl AIClient {
                         }
                     }
 
-                    // Exponential backoff with jitter
-                    let jitter = rand::random::<u64>() % 200;
+                    // Exponential backoff with low-cost jitter.
+                    let jitter = std::time::SystemTime::now()
+                        .duration_since(std::time::UNIX_EPOCH)
+                        .map(|duration| u64::from(duration.subsec_nanos()) % 200)
+                        .unwrap_or(0);
                     tokio::time::sleep(tokio::time::Duration::from_millis(delay + jitter)).await;
                     delay *= 2;
                 }
             }
         }
 
-        Err(last_error.unwrap_or_else(|| AletheiaError::ai_unavailable()))
+        Err(last_error.unwrap_or_else(AletheiaError::ai_unavailable))
     }
 
+    #[allow(clippy::disallowed_methods)] // serde_json::json! expands to internal unwraps.
     async fn call_claude(
         &self,
         prompt: &str,
@@ -394,7 +406,7 @@ impl AIClient {
         let api_key = self
             .api_keys
             .get(&AIProvider::Claude)
-            .ok_or_else(|| AletheiaError::ai_unavailable())?;
+            .ok_or_else(AletheiaError::ai_unavailable)?;
 
         // ADR-V7: Prompt caching — cache_control on system prompt saves ~90% input tokens
         // Cache is keyed on first 1024+ token prefix; SYSTEM_PROMPT qualifies.
@@ -415,7 +427,10 @@ impl AIClient {
 
         const CLAUDE_URL: &str = "https://api.anthropic.com/v1/messages";
         if !is_domain_allowed(CLAUDE_URL) {
-            warn!("[AI] Blocked request to non-allowlisted domain: {}", CLAUDE_URL);
+            warn!(
+                "[AI] Blocked request to non-allowlisted domain: {}",
+                CLAUDE_URL
+            );
             return Err(AletheiaError::ai_unavailable());
         }
         let response = self
@@ -426,7 +441,9 @@ impl AIClient {
             .header("anthropic-beta", "prompt-caching-2024-07-31")
             .header("content-type", "application/json")
             .json(&request_body)
-            .timeout(std::time::Duration::from_millis(AI_STREAM_TIMEOUT_MS as u64))
+            .timeout(std::time::Duration::from_millis(
+                AI_STREAM_TIMEOUT_MS as u64,
+            ))
             .send()
             .await?;
 
@@ -450,6 +467,7 @@ impl AIClient {
         .await
     }
 
+    #[allow(clippy::disallowed_methods)] // serde_json::json! expands to internal unwraps.
     async fn call_gpt4(
         &self,
         prompt: &str,
@@ -459,7 +477,7 @@ impl AIClient {
         let api_key = self
             .api_keys
             .get(&AIProvider::GPT4)
-            .ok_or_else(|| AletheiaError::ai_unavailable())?;
+            .ok_or_else(AletheiaError::ai_unavailable)?;
 
         // max_tokens capped at 200 — target response is 80-120 words (~120-180 tokens).
         // Matches TS server path (max_tokens: 180) to ensure consistent product behaviour.
@@ -476,7 +494,10 @@ impl AIClient {
 
         const GPT4_URL: &str = "https://api.openai.com/v1/chat/completions";
         if !is_domain_allowed(GPT4_URL) {
-            warn!("[AI] Blocked request to non-allowlisted domain: {}", GPT4_URL);
+            warn!(
+                "[AI] Blocked request to non-allowlisted domain: {}",
+                GPT4_URL
+            );
             return Err(AletheiaError::ai_unavailable());
         }
         let response = self
@@ -485,7 +506,9 @@ impl AIClient {
             .header("Authorization", format!("Bearer {}", api_key))
             .header("content-type", "application/json")
             .json(&request_body)
-            .timeout(std::time::Duration::from_millis(AI_STREAM_TIMEOUT_MS as u64))
+            .timeout(std::time::Duration::from_millis(
+                AI_STREAM_TIMEOUT_MS as u64,
+            ))
             .send()
             .await?;
 
@@ -509,6 +532,7 @@ impl AIClient {
         .await
     }
 
+    #[allow(clippy::disallowed_methods)] // serde_json::json! expands to internal unwraps.
     async fn call_gemini(
         &self,
         prompt: &str,
@@ -518,7 +542,7 @@ impl AIClient {
         let api_key = self
             .api_keys
             .get(&AIProvider::Gemini)
-            .ok_or_else(|| AletheiaError::ai_unavailable())?;
+            .ok_or_else(AletheiaError::ai_unavailable)?;
 
         // maxOutputTokens capped at 200 — target is 80-120 words (~120-180 tokens).
         // Temperature 0.7 → 0.55 to match TS server path calibration (NF-04).
@@ -548,7 +572,9 @@ impl AIClient {
             .header("x-goog-api-key", api_key)
             .header("content-type", "application/json")
             .json(&request_body)
-            .timeout(std::time::Duration::from_millis(AI_STREAM_TIMEOUT_MS as u64))
+            .timeout(std::time::Duration::from_millis(
+                AI_STREAM_TIMEOUT_MS as u64,
+            ))
             .send()
             .await?;
 
@@ -563,10 +589,11 @@ impl AIClient {
         self.consume_sse_stream(response.bytes_stream(), cancel_token, on_chunk, |json| {
             json["candidates"]
                 .as_array()
-                .and_then(|arr| arr.get(0))
+                .and_then(|arr| arr.first())
                 .and_then(|v| v.get("content"))
                 .and_then(|v| v.get("parts"))
-                .and_then(|arr| arr.get(0))
+                .and_then(|v| v.as_array())
+                .and_then(|arr| arr.first())
                 .and_then(|v| v.get("text"))
                 .and_then(|v| v.as_str())
                 .map(|value| value.to_string())
@@ -616,13 +643,7 @@ impl AIClient {
             // SSE spec: each event field is a line. Only lines starting with
             // exactly "data: " are payload lines. This prevents false matches
             // when AI-generated text contains the string "data: " mid-sentence.
-            loop {
-                // Find the next complete line (ends with \n)
-                let newline_pos = match buffer.find('\n') {
-                    Some(pos) => pos,
-                    None => break, // No complete line yet, wait for more data
-                };
-
+            while let Some(newline_pos) = buffer.find('\n') {
                 // Extract the line (without the trailing \n)
                 let line = buffer[..newline_pos].trim_end_matches('\r').to_string();
                 // Drain processed line including the \n

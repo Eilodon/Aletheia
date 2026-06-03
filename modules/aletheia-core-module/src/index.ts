@@ -90,6 +90,7 @@ export type NativeUserState = {
   dark_mode: boolean;
   onboarding_complete: boolean;
   user_intent?: NativeUserIntent;
+  weekly_summary_enabled: boolean;
 };
 
 export type NativeNotificationMessage = {

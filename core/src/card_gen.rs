@@ -74,8 +74,16 @@ impl CardGenerator {
         let days = secs / 86400;
         let years = 1970 + (days / 365);
         let remaining_days = days % 365;
-        let days_in_year = if (years % 4 == 0 && years % 100 != 0) || (years % 400 == 0) { 366 } else { 365 };
-        let adjusted_days = if days_in_year == 366 && remaining_days >= 60 { remaining_days - 1 } else { remaining_days };
+        let days_in_year = if (years % 4 == 0 && years % 100 != 0) || (years % 400 == 0) {
+            366
+        } else {
+            365
+        };
+        let adjusted_days = if days_in_year == 366 && remaining_days >= 60 {
+            remaining_days - 1
+        } else {
+            remaining_days
+        };
         let months = (adjusted_days / 30) + 1;
         let day = (adjusted_days % 30) + 1;
 

@@ -9,7 +9,7 @@
  */
 
 import { useEffect, useRef, useCallback } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { RitualOrnament } from './ritual-ornament';
@@ -127,7 +127,7 @@ export function GatewayReveal({ onComplete }: Props) {
 
           {/* Eye sigil */}
           <Animated.View style={{ opacity: eyeOpacity, transform: [{ scale: eyeScale }] }}>
-            <RitualOrnament variant="eye" size={56} color={colors.primary} />
+            <RitualOrnament variant="eye" size="lg" />
           </Animated.View>
 
           {/* Title */}

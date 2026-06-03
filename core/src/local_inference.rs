@@ -29,15 +29,15 @@ pub const MODEL_ID: &str = "gemma-3-1b-it-qat-q4_0";
 #[allow(dead_code)]
 pub const MODEL_VERSION: &str = "1.0.0";
 #[allow(dead_code)]
-pub const MODEL_SIZE_BYTES: u64 = 529_000_000;    // 529MB (Google official QAT Q4_0 GGUF)
+pub const MODEL_SIZE_BYTES: u64 = 529_000_000; // 529MB (Google official QAT Q4_0 GGUF)
 #[allow(dead_code)]
-pub const REQUIRED_RAM_MB: u32 = 1024;             // 1GB device RAM minimum (peak usage ~700-800MB)
+pub const REQUIRED_RAM_MB: u32 = 1024; // 1GB device RAM minimum (peak usage ~700-800MB)
 #[allow(dead_code)]
 pub const MIN_CPU_CORES: u32 = 4;
 #[allow(dead_code)]
-pub const ESTIMATED_TPS_LOW: f32 = 5.0;            // mid-range Android với llama.cpp
+pub const ESTIMATED_TPS_LOW: f32 = 5.0; // mid-range Android với llama.cpp
 #[allow(dead_code)]
-pub const ESTIMATED_TPS_HIGH: f32 = 30.0;          // flagship với GPU offload
+pub const ESTIMATED_TPS_HIGH: f32 = 30.0; // flagship với GPU offload
 #[allow(dead_code)]
 pub const HUGGINGFACE_REPO: &str = "google/gemma-3-1b-it-qat-q4_0-gguf";
 #[allow(dead_code)]
@@ -47,7 +47,7 @@ pub const MODEL_DOWNLOAD_URL: &str =
     "https://huggingface.co/google/gemma-3-1b-it-qat-q4_0-gguf/resolve/main/gemma-3-1b-it-q4_0.gguf";
 
 /// Local inference engine state
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct LocalInferenceEngine {
     /// Model info cache
     model_info: LocalModelInfo,
@@ -57,17 +57,6 @@ pub struct LocalInferenceEngine {
     download_in_progress: bool,
     /// Download progress (0-100)
     download_progress: u8,
-}
-
-impl Default for LocalInferenceEngine {
-    fn default() -> Self {
-        Self {
-            model_info: LocalModelInfo::default(),
-            initialized: false,
-            download_in_progress: false,
-            download_progress: 0,
-        }
-    }
 }
 
 impl LocalInferenceEngine {
@@ -103,7 +92,7 @@ impl LocalInferenceEngine {
         _on_progress: Option<Arc<dyn Fn(u8) + Send + Sync>>,
     ) -> Result<(), AletheiaError> {
         info!("LocalInferenceEngine::prepare_model - stub implementation");
-        
+
         // Stub - native module will handle actual download
         Err(AletheiaError::invalid_input(
             "local_model",
@@ -121,11 +110,11 @@ impl LocalInferenceEngine {
     /// Delete the downloaded model.
     pub fn delete_model(&mut self) -> Result<bool, AletheiaError> {
         info!("LocalInferenceEngine::delete_model - stub implementation");
-        
+
         // Reset model info
         self.model_info = LocalModelInfo::default();
         self.initialized = false;
-        
+
         // Stub - native module will handle actual deletion
         Ok(false)
     }
@@ -169,7 +158,10 @@ impl LocalInferenceEngine {
             language
         ));
 
-        parts.push("Chỉ trả về đúng 2 phần: một đoạn phản chiếu ngắn và một câu hỏi mở ở dòng cuối.".to_string());
+        parts.push(
+            "Chỉ trả về đúng 2 phần: một đoạn phản chiếu ngắn và một câu hỏi mở ở dòng cuối."
+                .to_string(),
+        );
 
         // Intent-based tone instruction (canonical — must match server interpretationService.ts)
         if let Some(intent) = user_intent {
@@ -196,7 +188,10 @@ impl LocalInferenceEngine {
 
         // Symbol and passage
         parts.push(format!("Biểu tượng đã chọn: {}", symbol.display_name));
-        parts.push(format!("Đoạn trích ({}):\n{}", passage.reference, passage.text));
+        parts.push(format!(
+            "Đoạn trích ({}):\n{}",
+            passage.reference, passage.text
+        ));
 
         // Context
         if let Some(context) = passage
@@ -204,7 +199,10 @@ impl LocalInferenceEngine {
             .as_ref()
             .or(passage.context.as_ref())
         {
-            parts.push(format!("Ngữ cảnh ẩn cho người đọc (không nhắc lộ ra): {}", context));
+            parts.push(format!(
+                "Ngữ cảnh ẩn cho người đọc (không nhắc lộ ra): {}",
+                context
+            ));
         }
 
         parts.join("\n\n")

@@ -169,6 +169,7 @@ dictionary UserState {
     boolean dark_mode;
     boolean onboarding_complete;
     UserIntent? user_intent;
+    boolean weekly_summary_enabled;
 };
 
 dictionary PaginatedReadings {

@@ -1,6 +1,5 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 
 type CheckState = "ready" | "warning" | "blocked";
 
@@ -9,8 +8,30 @@ interface ReleaseCheck {
   detail: string;
 }
 
-const currentFileDir = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.join(currentFileDir, "..", "..");
+function findProjectRoot(startDir = process.cwd()): string {
+  let currentDir = path.resolve(startDir);
+
+  while (true) {
+    if (
+      existsSync(path.join(currentDir, "package.json")) &&
+      existsSync(path.join(currentDir, "core")) &&
+      existsSync(path.join(currentDir, "server"))
+    ) {
+      return currentDir;
+    }
+
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) {
+      return path.resolve(startDir);
+    }
+
+    currentDir = parentDir;
+  }
+}
+
+const projectRoot = process.env.ALETHEIA_PROJECT_ROOT
+  ? path.resolve(process.env.ALETHEIA_PROJECT_ROOT)
+  : findProjectRoot();
 
 function readinessForFile(relativePath: string, detail: string): ReleaseCheck {
   return existsSync(path.join(projectRoot, relativePath))
@@ -86,7 +107,13 @@ export function getReleaseReadiness(options?: { strict?: boolean }) {
     giftBackend: readinessForEnv(
       ["EXPO_PUBLIC_GIFT_BACKEND_URL"],
       "Gift backend URL is configured.",
-      "Gift backend URL is not configured.",
+      "Gift backend URL not configured — gift creation will surface a config error to users.",
+      "warning",
+    ),
+    revenueCatAndroid: readinessForEnv(
+      ["EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID"],
+      "RevenueCat Android API key is configured.",
+      "RevenueCat Android key not configured — paywall and in-app purchases will show a config error.",
       "warning",
     ),
     aiProviderConfig: readinessForEnv(

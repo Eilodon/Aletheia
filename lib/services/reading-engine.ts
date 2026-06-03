@@ -13,6 +13,7 @@ import {
   AletheiaError,
   Passage,
 } from "@/lib/types";
+import { shuffleArray } from "@/lib/utils/random";
 import {
   FREE_READINGS_PER_DAY,
 } from "@/lib/constants";
@@ -25,16 +26,6 @@ import { generateId } from "@/lib/utils/id";
 class ReadingEngineService {
   private isAletheiaError(error: unknown): error is AletheiaError {
     return typeof error === "object" && error !== null && "code" in error && "message" in error;
-  }
-
-  // ARCH-06: Helper to shuffle array (Fisher-Yates)
-  private shuffleArray<T>(array: T[]): T[] {
-    const result = [...array];
-    for (let i = result.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [result[i], result[j]] = [result[j], result[i]];
-    }
-    return result;
   }
 
   async performReading(sourceId?: string, situationText?: string): Promise<ReadingSession> {
@@ -79,7 +70,7 @@ class ReadingEngineService {
       }
 
       // ARCH-06: Use symbols from theme (already loaded) instead of separate DB query
-      const symbols = this.shuffleArray([...theme.symbols]).slice(0, 3);
+      const symbols = shuffleArray([...theme.symbols]).slice(0, 3);
       if (symbols.length !== 3) {
         throw this.createError(
           ErrorCode.SymbolInvalid,

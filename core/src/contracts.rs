@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 // ENUMS
 // ============================================================================
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum Tradition {
     Chinese,
@@ -15,13 +15,8 @@ pub enum Tradition {
     Islamic,
     Sufi,
     Stoic,
+    #[default]
     Universal,
-}
-
-impl Default for Tradition {
-    fn default() -> Self {
-        Tradition::Universal
-    }
 }
 
 /// Phân loại cách source map symbol → passage
@@ -29,31 +24,21 @@ impl Default for Tradition {
 /// - `Hexagram`: symbol_id deterministically maps to passage (I Ching: 64 quẻ → 64 passages)
 /// - `Bibliomancy`: passage được chọn ngẫu nhiên từ pool (Hafez, Bible, Rumi, Marcus)
 /// - `Meditation`: passage được chọn ngẫu nhiên, ordered by chapter (Tao Te Ching)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum SourceType {
     Hexagram,
+    #[default]
     Bibliomancy,
     Meditation,
 }
 
-impl Default for SourceType {
-    fn default() -> Self {
-        SourceType::Bibliomancy
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum SymbolMethod {
+    #[default]
     Manual,
     Auto,
-}
-
-impl Default for SymbolMethod {
-    fn default() -> Self {
-        SymbolMethod::Manual
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -67,22 +52,18 @@ pub enum MoodTag {
     Grief,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum SubscriptionTier {
+    #[default]
     Free,
     Pro,
 }
 
-impl Default for SubscriptionTier {
-    fn default() -> Self {
-        SubscriptionTier::Free
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
 pub enum ReadingState {
+    #[default]
     Idle,
     SituationInput,
     SourceSelection,
@@ -93,12 +74,6 @@ pub enum ReadingState {
     AiStreaming,
     AiFallback,
     Complete,
-}
-
-impl Default for ReadingState {
-    fn default() -> Self {
-        ReadingState::Idle
-    }
 }
 
 // ============================================================================
@@ -252,6 +227,7 @@ pub struct NotificationMessage {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum UserIntent {
     Clarity,
     Comfort,
@@ -307,6 +283,7 @@ pub struct UserState {
     pub dark_mode: bool,
     pub onboarding_complete: bool,
     pub user_intent: Option<UserIntent>,
+    pub weekly_summary_enabled: bool,
 }
 
 impl Default for UserState {
@@ -324,6 +301,7 @@ impl Default for UserState {
             dark_mode: false,
             onboarding_complete: false,
             user_intent: None,
+            weekly_summary_enabled: false,
         }
     }
 }
@@ -680,12 +658,23 @@ pub fn generate_uuid() -> String {
 
 pub fn generate_base62_token(length: usize) -> String {
     const CHARSET: &[u8] = b"0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    let mut rng = rand::rngs::OsRng;
+    const MAX_UNBIASED_BYTE: u8 = (u8::MAX / CHARSET.len() as u8) * CHARSET.len() as u8;
     let mut token = String::with_capacity(length);
 
-    for _ in 0..length {
-        let idx = rand::Rng::gen_range(&mut rng, 0..CHARSET.len());
-        token.push(CHARSET[idx] as char);
+    while token.len() < length {
+        for byte in uuid::Uuid::new_v4().as_bytes() {
+            if *byte >= MAX_UNBIASED_BYTE {
+                continue;
+            }
+
+            let idx = (*byte % CHARSET.len() as u8) as usize;
+            token.push(CHARSET[idx] as char);
+
+            if token.len() == length {
+                break;
+            }
+        }
     }
+
     token
 }

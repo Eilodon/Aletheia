@@ -2,8 +2,8 @@
  * Aletheia Type Definitions
  * AUTO-GENERATED - Do not edit manually
  * Sync from: core/src/contracts.rs and core/src/aletheia.udl
- * Last synced: 2026-03-30
- * 
+ * Last synced: 2026-06-02
+ *
  * Executable Rust contracts are the source of truth.
  * docs/CONTRACTS.md is a synchronized reference, not the authority.
  */
@@ -21,16 +21,15 @@ export enum Tradition {
   Universal = "universal",
 }
 
+export enum SourceType {
+  Hexagram = "hexagram",
+  Bibliomancy = "bibliomancy",
+  Meditation = "meditation",
+}
+
 export enum SymbolMethod {
   Manual = "manual",
   Auto = "auto",
-}
-
-export enum UserIntent {
-  Clarity = "clarity",     // "Sự rõ ràng" → suggest Stoic/Tao
-  Comfort = "comfort",     // "Sự an ủi" → suggest Rumi/Sufi
-  Challenge = "challenge", // "Một thách thức" → suggest I Ching
-  Guidance = "guidance",   // "Để vũ trụ dẫn lối" → truly random
 }
 
 export enum MoodTag {
@@ -60,6 +59,22 @@ export enum ReadingState {
   Complete = "complete",
 }
 
+export enum UserIntent {
+  Clarity = "clarity",
+  Comfort = "comfort",
+  Challenge = "challenge",
+  Guidance = "guidance",
+}
+
+export enum LocalModelStatus {
+  NotDownloaded = "not_downloaded",
+  Downloading = "downloading",
+  Ready = "ready",
+  UpdateAvailable = "update_available",
+  Error = "error",
+  Unsupported = "unsupported",
+}
+
 export enum ErrorCode {
   SourceNotFound = "source_not_found",
   PassageEmpty = "passage_empty",
@@ -79,6 +94,12 @@ export enum ErrorCode {
 // ============================================================================
 // CORE SCHEMAS
 // ============================================================================
+
+export interface AletheiaError {
+  code: ErrorCode;
+  message: string;
+  context: Record<string, unknown> | undefined;
+}
 
 export interface Symbol {
   id: string;
@@ -104,7 +125,7 @@ export interface Source {
   is_bundled: boolean;
   is_premium: boolean;
   fallback_prompts: string[];
-  source_type: "hexagram" | "bibliomancy" | "meditation";
+  source_type: SourceType;
 }
 
 export interface Passage {
@@ -113,7 +134,6 @@ export interface Passage {
   reference: string;
   text: string;
   context: string | undefined;
-  /** Hidden context injected into AI prompt for deeper interpretation - not shown to user */
   resonance_context: string | undefined;
 }
 
@@ -159,6 +179,26 @@ export interface GiftReading {
   redeemed_at: number | undefined;
 }
 
+export interface GiftReadingData {
+  token: string;
+  buyer_note: string | undefined;
+  source_id: string | undefined;
+  created_at: number;
+  expires_at: number;
+  redeemed: boolean;
+}
+
+export interface RedeemGiftResponse {
+  gift: GiftReadingData | undefined;
+  error: BridgeError | undefined;
+}
+
+export interface CreateGiftResponse {
+  token: string | undefined;
+  deep_link: string | undefined;
+  error: BridgeError | undefined;
+}
+
 export interface UserState {
   user_id: string;
   subscription_tier: SubscriptionTier;
@@ -172,6 +212,7 @@ export interface UserState {
   dark_mode: boolean;
   onboarding_complete: boolean;
   user_intent: UserIntent | undefined;
+  weekly_summary_enabled: boolean;
 }
 
 export interface ReadingSession {
@@ -180,7 +221,7 @@ export interface ReadingSession {
   theme: Theme;
   symbols: Symbol[];
   situation_text: string | undefined;
-  user_intent: UserIntent | undefined; // UX-01: from "Which Mirror Are You"
+  user_intent: UserIntent | undefined;
   started_at: number;
 }
 
@@ -209,15 +250,143 @@ export interface PaginatedReadings {
   has_more: boolean;
 }
 
+export interface SourcesResponse {
+  sources: Source[];
+  error: BridgeError | undefined;
+}
+
+export interface NotificationMessageResponse {
+  message: NotificationMessage | undefined;
+  error: BridgeError | undefined;
+}
+
 export interface CancellationToken {
   id: string;
   is_cancelled: boolean;
 }
 
-export interface AletheiaError {
-  code: ErrorCode;
+export interface BridgeError {
+  code: string;
   message: string;
-  context: Record<string, unknown> | undefined;
+}
+
+export interface PerformReadingResponse {
+  session: ReadingSession | undefined;
+  error: BridgeError | undefined;
+}
+
+export interface ChooseSymbolResponse {
+  chosen: ChosenPassage | undefined;
+  error: BridgeError | undefined;
+}
+
+export interface CompleteReadingResponse {
+  completed: CompletedReading | undefined;
+  error: BridgeError | undefined;
+}
+
+export interface FallbackPromptsResponse {
+  prompts: string[];
+  error: BridgeError | undefined;
+}
+
+export interface UserStateResponse {
+  state: UserState | undefined;
+  error: BridgeError | undefined;
+}
+
+export interface UpdateUserStateResponse {
+  updated: boolean;
+  error: BridgeError | undefined;
+}
+
+export interface PaginatedReadingsResponse {
+  readings: PaginatedReadings | undefined;
+  error: BridgeError | undefined;
+}
+
+export interface ReadingResponse {
+  reading: Reading | undefined;
+  error: BridgeError | undefined;
+}
+
+export interface LocalModelInfo {
+  model_id: string;
+  status: LocalModelStatus;
+  download_progress: number;
+  model_size_bytes: number;
+  downloaded_bytes: number;
+  version: string;
+  error_message: string | undefined;
+  eta_seconds: number | undefined;
+  device_capable: boolean;
+  required_ram_mb: number;
+  available_ram_mb: number;
+}
+
+export interface LocalModelStatusResponse {
+  model_info: LocalModelInfo | undefined;
+  error: BridgeError | undefined;
+}
+
+export interface PrepareLocalModelResponse {
+  started: boolean;
+  model_info: LocalModelInfo | undefined;
+  error: BridgeError | undefined;
+}
+
+export interface DeviceCapability {
+  supported: boolean;
+  available_ram_mb: number;
+  cpu_cores: number;
+  has_simd: boolean;
+  estimated_tps: number;
+  unsupported_reason: string | undefined;
+}
+
+export interface DeviceCapabilityResponse {
+  capability: DeviceCapability | undefined;
+  error: BridgeError | undefined;
+}
+
+export interface AIInterpretation {
+  chunks: string[];
+  used_fallback: boolean;
+}
+
+export interface RequestInterpretationResponse {
+  interpretation: AIInterpretation | undefined;
+  error: BridgeError | undefined;
+}
+
+export interface SetApiKeyResponse {
+  applied: boolean;
+  error: BridgeError | undefined;
+}
+
+export interface StartInterpretationStreamResponse {
+  request_id: string | undefined;
+  error: BridgeError | undefined;
+}
+
+export interface InterpretationStreamState {
+  request_id: string;
+  new_chunks: string[];
+  full_text: string;
+  done: boolean;
+  used_fallback: boolean;
+  cancelled: boolean;
+  error: BridgeError | undefined;
+}
+
+export interface CancelInterpretationResponse {
+  cancelled: boolean;
+  error: BridgeError | undefined;
+}
+
+export interface SeedBundledDataResponse {
+  seeded: boolean;
+  error: BridgeError | undefined;
 }
 
 export interface AIRequest {

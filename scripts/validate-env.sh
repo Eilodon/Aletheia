@@ -11,6 +11,18 @@
 set -euo pipefail
 
 MODE="${1:-}"
+
+# Auto-source .env from project root for local/default checks.
+# CI mode uses the workflow environment as source of truth.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+if [[ "$MODE" != "--ci" && -f "$PROJECT_ROOT/.env" ]]; then
+  set -a
+  # shellcheck source=/dev/null
+  source "$PROJECT_ROOT/.env"
+  set +a
+fi
+
 ERRORS=0
 
 RED='\033[0;31m'

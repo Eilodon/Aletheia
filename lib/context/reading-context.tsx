@@ -3,12 +3,14 @@
  */
 
 import { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { useRouter } from "expo-router";
+import { useRouter, type Href } from "expo-router";
 import {
   Reading,
   ReadingSession,
   ReadingState,
+  SubscriptionTier,
   SymbolMethod,
+  MoodTag,
   Passage,
   AletheiaError,
   ErrorCode,
@@ -22,6 +24,7 @@ import {
 } from "@/lib/reading/ritual";
 
 import { coreStore } from "@/lib/services/core-store";
+import { getCurrentUserId } from "@/lib/services/current-user-id";
 import { generateId } from "@/lib/utils/id";
 import { trackRitualEvent } from "@/lib/analytics";
 import { captureException } from "@/lib/sentry";
@@ -48,13 +51,14 @@ interface ReadingContextType {
   chooseSymbol: (symbolId: string, method: SymbolMethod) => Promise<void>;
   requestAIInterpretation: () => Promise<void>;
   cancelAIInterpretation: () => Promise<void>;
-  saveReading: (moodTag?: string) => Promise<void>;
+  saveReading: (moodTag?: MoodTag) => Promise<void>;
   completeReading: () => void;
   resetReading: () => void;
   clearError: () => void;
 }
 
 const ReadingContext = createContext<ReadingContextType | undefined>(undefined);
+const PAYWALL_ROUTE: Href = "/paywall" as Href;
 
 export function ReadingProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -71,6 +75,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
   const [passageDisplayedAt, setPassageDisplayedAt] = useState<number | null>(null);
   const [aiRequestedAt, setAIRequestedAt] = useState<number | null>(null);
   const [hasSavedReading, setHasSavedReading] = useState(false);
+  const [userTier, setUserTier] = useState<SubscriptionTier>(SubscriptionTier.Free);
   const [error, setError] = useState<AletheiaError | null>(null);
   const activeAIStreamCancelRef = useRef<(() => Promise<boolean>) | null>(null);
   const passageRevealTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
@@ -86,6 +91,13 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
       setCurrentState(ReadingState.SituationInput);
       await dbInit.initialize();
       await coreStore.syncLocalDate().catch(() => {});
+
+      // Load subscription tier fresh each reading — cheap, ensures paywall
+      // purchases reflect immediately without requiring an app restart.
+      const userId = await getCurrentUserId();
+      const userState = await coreStore.getUserState(userId).catch(() => null);
+      if (userState) setUserTier(userState.subscription_tier);
+
       const newSession = await coreStore.performReading(sourceId, situationText);
       trackRitualEvent("start", {
         source_id: newSession.source.id,
@@ -108,7 +120,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
           source_id: sourceId,
           has_situation: Boolean(situationText?.trim()),
         });
-        router.push("/paywall" as any);
+        router.push(PAYWALL_ROUTE);
         return;
       }
 
@@ -197,7 +209,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
           sourceLanguage: session.source.language,
           sourceFallbackPrompts: session.source.fallback_prompts,
           userIntent: session.user_intent as "clarity" | "comfort" | "challenge" | "guidance" | undefined,
-          useSonnet: false, // TODO: set true when subscription_tier === "pro"
+          useSonnet: userTier === SubscriptionTier.Pro,
         },
         {
           onChunk: (fullText) => {
@@ -264,7 +276,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
     }
   }, [selectedSymbol?.id, session?.source.id]);
 
-  const saveReading = useCallback(async (moodTag?: string) => {
+  const saveReading = useCallback(async (moodTag?: MoodTag) => {
     try {
       if (!session || !passage) throw new Error("No active reading");
 
@@ -298,7 +310,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
         read_duration_s: readDuration,
         time_to_ai_request_s: timeToAIRequest,
         notification_opened: false,
-        mood_tag: moodTag as any,
+        mood_tag: moodTag,
         is_favorite: false,
         shared: false,
         user_intent: session.user_intent,

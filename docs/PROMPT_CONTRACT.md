@@ -1,53 +1,65 @@
-# Prompt Contract — Canonical Interpretation Prompt
+# Prompt Contract
 
-> **Source of truth**: `server/_core/interpretationService.ts`
-> All other implementations (Rust `ai_client.rs`, Rust `local_inference.rs`, Android `AletheiaCoreModule.kt`) must converge to this contract.
+Last verified against repo: 2026-06-02.
 
-## System Prompt
+## Canonical Sources
 
-Defined in `server/_core/interpretationService.ts:22-44` and `core/src/ai_client.rs:36-58`.
-
-Both copies are identical. Any change to one must be mirrored to the other.
-
-## Build Prompt Order
-
-The user prompt is assembled in this exact order:
-
-1. **Language instruction**: `Hãy trả lời hoàn toàn bằng ngôn ngữ của đoạn trích này: {language}.`
-2. **Structure instruction**: `Chỉ trả về đúng 2 phần: một đoạn phản chiếu ngắn và một câu hỏi mở ở dòng cuối.`
-3. **Intent tone** (if `userIntent` provided):
-   - `clarity` → `Tone cho lần đọc này: rõ ràng, gọn, chính xác. User cần thấy pattern trong tình huống.`
-   - `comfort` → `Tone cho lần đọc này: ấm áp, nhẹ, giàu compassion nhưng không lên lớp.`
-   - `challenge` → `Tone cho lần đọc này: trực tiếp, tỉnh táo, không né điều khó.`
-   - `guidance` → `Tone cho lần đọc này: mở, không định hướng, giữ không gian để người đọc tự nghe mình.`
-4. **Situation** (if `situationText` provided): `Tình huống: {situationText}`
-5. **Mirror instruction** (if `situationText` provided): `Mirror lại ngôn ngữ của người dùng khi phản chiếu, nhưng đừng lặp lại một cách máy móc.`
-6. **Symbol**: `Biểu tượng đã chọn: {symbol.display_name}`
-7. **Passage**: `Đoạn trích ({passage.reference}):\n{passage.text}`
-8. **Hidden context** (if `resonanceContext || passage.resonance_context || passage.context`): `Ngữ cảnh ẩn cho người đọc (không nhắc lộ ra): {context}`
-
-Parts are joined with `\n\n`.
-
-## Post-Processing (server-only)
-
-Server applies `finalizeInterpretationText()` after AI response:
-- `ensureClosingQuestion()`: guarantees a closing question in `*...*` format
-- `splitInlineClosingQuestion()`: separates inline questions to their own line
-- `normalizeFreeText()`: strips control characters, collapses whitespace
-
-Rust and Android paths do **not** apply post-processing. This is acceptable because:
-- Claude/GPT4 generally follow the system prompt's closing question instruction
-- Local models may occasionally miss it — acceptable trade-off for on-device inference
-
-## Implementation Files
-
-| Path | Status |
+| File | Role |
 |---|---|
-| `server/_core/interpretationService.ts` | Source of truth |
-| `core/src/ai_client.rs` | Synced |
-| `core/src/local_inference.rs` | Synced |
-| `modules/aletheia-core-module/.../AletheiaCoreModule.kt` | Synced |
+| `server/_core/interpretationService.ts` | Server/cloud source of truth for validation, prompt assembly, provider routing, and post-processing. |
+| `core/src/ai_client.rs` | Rust cloud client copy of the system prompt and prompt assembly. |
+| `core/src/local_inference.rs` | Rust local inference interface and prompt builder for native local lanes. |
+| `modules/aletheia-core-module/android/.../LocalInferenceEngine.kt` | Android execution engine for downloaded local model. |
 
-## CI Drift Check
+The server and Rust `SYSTEM_PROMPT` copies should stay semantically identical. Line numbers drift, so search for `systemPrompt` and `SYSTEM_PROMPT` instead of relying on old line refs.
 
-When TS binding generation is implemented (BUG-01), add a CI step that diffs the prompt constants across all 4 files and fails on mismatch.
+## Output Shape
+
+Every interpretation should return exactly:
+
+1. One short reflective paragraph.
+2. One final open question on its own line, formatted as `*[question]*`.
+
+The prompt forbids:
+
+- specific advice,
+- future prediction,
+- judging the user's decision,
+- empty reassurance,
+- speaking as if the model is the user.
+
+## Prompt Assembly Order
+
+1. Language instruction.
+2. Two-part structure instruction.
+3. Optional `userIntent` tone instruction.
+4. Optional sanitized `situationText`.
+5. Optional mirror instruction when situation text exists.
+6. Selected symbol.
+7. Passage reference and text.
+8. Optional hidden context from `resonanceContext`, `passage.resonance_context`, or `passage.context`.
+
+Parts are joined with blank lines.
+
+## Sanitization
+
+User-supplied free text must be normalized, bounded to 500 chars, and checked for prompt-injection prefixes. DB-sourced passage fields are schema-bounded and should not be truncated by the same user-input sanitizer.
+
+## Post-Processing
+
+Server path applies `finalizeInterpretationText()`:
+
+- ensures a closing question,
+- splits inline final questions onto their own line,
+- strips control characters and normalizes whitespace.
+
+Rust/native local paths may not apply all server post-processing. This is acceptable only if local output is treated as beta-quality and fallback behavior remains clear.
+
+## Drift Check
+
+Before changing prompt behavior:
+
+```bash
+rg -n "systemPrompt|SYSTEM_PROMPT|buildPrompt|build_prompt|build_interpretation_prompt" server core modules
+pnpm test -- --run tests/ai-client.test.ts tests/interpretation-service.test.ts tests/interpretation-eval.test.ts
+```

@@ -24,46 +24,45 @@ interface ParsedStruct {
   fields: { name: string; type: string; optional: boolean }[];
 }
 
+function parseUnitEnumVariants(body: string): string[] {
+  // Strip doc comments (///) and regular comments (//) before parsing.
+  // This prevents comment words from being mistaken for variant names.
+  const cleanBody = body.replace(/\/\/[^\n]*/g, "");
+  const values: string[] = [];
+  for (const line of cleanBody.split("\n")) {
+    const trimmed = line.trim();
+    // Match unit variant: PascalCase identifier, optionally followed by comma
+    const m = trimmed.match(/^([A-Z][A-Za-z0-9]*),?$/);
+    if (m) {
+      values.push(m[1]);
+    }
+  }
+  return values;
+}
+
 function parseRustFile(content: string): { enums: ParsedEnum[]; structs: ParsedStruct[] } {
   const enums: ParsedEnum[] = [];
   const structs: ParsedStruct[] = [];
 
-  // Parse enums - detect #[serde(rename_all = "snake_case")]
+  // Parse enums with #[serde(...)] attribute — detect rename_all strategy
   const enumRegex = /#\[serde[^\]]*\]\s*pub enum (\w+)\s*\{([^}]+)\}/g;
   let match;
   while ((match = enumRegex.exec(content)) !== null) {
     const name = match[1];
     const body = match[2];
     const hasSnakeCase = match[0].includes('rename_all = "snake_case"');
-    const values: string[] = [];
-    
-    const valueRegex = /(\w+),?/g;
-    let valueMatch;
-    while ((valueMatch = valueRegex.exec(body)) !== null) {
-      if (valueMatch[1] && !valueMatch[1].startsWith("derive") && !valueMatch[1].startsWith("serde")) {
-        values.push(valueMatch[1]);
-      }
-    }
-    
+    const values = parseUnitEnumVariants(body);
     if (values.length > 0) {
       enums.push({ name, values, hasSnakeCase });
     }
   }
 
-  // Also catch enums without serde attribute (fallback)
+  // Fallback: enums without a #[serde(...)] attribute (serialized with PascalCase names by default)
   const enumRegex2 = /pub enum (\w+)\s*\{([^}]+)\}(?!\s*impl)/g;
   while ((match = enumRegex2.exec(content)) !== null) {
     const name = match[1];
     if (!enums.find(e => e.name === name)) {
-      const body = match[2];
-      const values: string[] = [];
-      const valueRegex = /(\w+),?/g;
-      let valueMatch;
-      while ((valueMatch = valueRegex.exec(body)) !== null) {
-        if (valueMatch[1] && !valueMatch[1].startsWith("derive") && !valueMatch[1].startsWith("serde")) {
-          values.push(valueMatch[1]);
-        }
-      }
+      const values = parseUnitEnumVariants(match[2]);
       if (values.length > 0) {
         enums.push({ name, values, hasSnakeCase: false });
       }
@@ -76,7 +75,7 @@ function parseRustFile(content: string): { enums: ParsedEnum[]; structs: ParsedS
     const name = match[1];
     const body = match[2];
     const fields: { name: string; type: string; optional: boolean }[] = [];
-    
+
     const fieldRegex = /pub (\w+):\s*([^,\n]+)/g;
     let fieldMatch;
     while ((fieldMatch = fieldRegex.exec(body)) !== null) {
@@ -84,21 +83,21 @@ function parseRustFile(content: string): { enums: ParsedEnum[]; structs: ParsedS
       let fieldType = fieldMatch[2].trim();
       const optional = fieldType.startsWith("Option<");
       if (optional) {
-        fieldType = fieldType.replace("Option<", "").replace(">", "");
+        fieldType = fieldType.replace(/^Option</, "").replace(/>$/g, "");
       }
-      
-      // Convert Rust types to TypeScript
+
+      // Convert Rust types to TypeScript (u64 included for model size bytes)
       let tsType = fieldType
         .replace(/String/g, "string")
         .replace(/bool/g, "boolean")
-        .replace(/i64|u32|u8/g, "number")
+        .replace(/i64|u64|u32|u8/g, "number")
         .replace(/f32/g, "number")
         .replace(/Vec<(\w+)>/g, "$1[]")
         .replace(/std::collections::HashMap<String, serde_json::Value>/g, "Record<string, unknown>");
-      
+
       fields.push({ name: fieldName, type: tsType, optional });
     }
-    
+
     if (fields.length > 0) {
       structs.push({ name, fields });
     }
@@ -143,6 +142,12 @@ function generateTypeScript(enums: ParsedEnum[], structs: ParsedStruct[]): strin
   output += `// ============================================================================
 // CORE SCHEMAS
 // ============================================================================
+
+export interface AletheiaError {
+  code: ErrorCode;
+  message: string;
+  context: Record<string, unknown> | undefined;
+}
 
 `;
 

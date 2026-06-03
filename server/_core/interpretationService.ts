@@ -192,33 +192,46 @@ function sanitizePromptLines(lines: Array<string | undefined>): string[] {
 }
 
 function buildPrompt(request: InterpretationRequest): string {
-  const parts = sanitizePromptLines([
+  // Only sanitize user-supplied free-text fields to prevent injection.
+  // DB-sourced fields (passage.text, reference, symbol) are already bounded by
+  // Zod schema validation and must not be truncated or false-positive filtered.
+  const safeSituation = sanitizePromptInput(request.situationText);
+  const safeResonanceContext = sanitizePromptInput(
+    request.resonanceContext ?? request.passage.resonance_context,
+  );
+
+  const parts: string[] = [
     `Hãy trả lời hoàn toàn bằng ngôn ngữ của đoạn trích này: ${request.sourceLanguage || "vi"}.`,
     "Chỉ trả về đúng 2 phần: một đoạn phản chiếu ngắn và một câu hỏi mở ở dòng cuối.",
-    request.userIntent
-      ? ({
-          clarity:
-            "Tone cho lần đọc này: rõ ràng, gọn, chính xác. User cần thấy pattern trong tình huống.",
-          comfort:
-            "Tone cho lần đọc này: ấm áp, nhẹ, giàu compassion nhưng không lên lớp.",
-          challenge:
-            "Tone cho lần đọc này: trực tiếp, tỉnh táo, không né điều khó.",
-          guidance:
-            "Tone cho lần đọc này: mở, không định hướng, giữ không gian để người đọc tự nghe mình.",
-        } as const)[request.userIntent]
-      : undefined,
-    request.situationText ? `Tình huống: ${request.situationText}` : undefined,
-    request.situationText
-      ? "Mirror lại ngôn ngữ của người dùng khi phản chiếu, nhưng đừng lặp lại một cách máy móc."
-      : undefined,
-    `Biểu tượng đã chọn: ${request.symbol.display_name}`,
-    `Đoạn trích (${request.passage.reference}):\n${request.passage.text}`,
-    request.resonanceContext || request.passage.resonance_context
-      ? `Ngữ cảnh ẩn cho người đọc (không nhắc lộ ra): ${
-          request.resonanceContext || request.passage.resonance_context
-        }`
-      : undefined,
-  ]);
+  ];
+
+  if (request.userIntent) {
+    parts.push(
+      ({
+        clarity:
+          "Tone cho lần đọc này: rõ ràng, gọn, chính xác. User cần thấy pattern trong tình huống.",
+        comfort:
+          "Tone cho lần đọc này: ấm áp, nhẹ, giàu compassion nhưng không lên lớp.",
+        challenge: "Tone cho lần đọc này: trực tiếp, tỉnh táo, không né điều khó.",
+        guidance:
+          "Tone cho lần đọc này: mở, không định hướng, giữ không gian để người đọc tự nghe mình.",
+      } as const)[request.userIntent],
+    );
+  }
+
+  if (safeSituation) {
+    parts.push(`Tình huống: ${safeSituation}`);
+    parts.push(
+      "Mirror lại ngôn ngữ của người dùng khi phản chiếu, nhưng đừng lặp lại một cách máy móc.",
+    );
+  }
+
+  parts.push(`Biểu tượng đã chọn: ${request.symbol.display_name}`);
+  parts.push(`Đoạn trích (${request.passage.reference}):\n${request.passage.text}`);
+
+  if (safeResonanceContext) {
+    parts.push(`Ngữ cảnh ẩn cho người đọc (không nhắc lộ ra): ${safeResonanceContext}`);
+  }
 
   return parts.join("\n\n");
 }

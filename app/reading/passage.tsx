@@ -8,9 +8,11 @@ import { RitualOrnament } from "@/components/ritual-ornament";
 import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
 import { COMPLETE_SILENCE_BEAT_MS } from "@/lib/reading/ritual";
-import { DURATION, EASING } from "@/lib/constants/animation";
+import { DURATION } from "@/lib/constants/animation";
 import { Fonts } from "@/constants/theme";
 import { screen, trackShareEvent } from "@/lib/analytics";
+import { useStrings } from "@/lib/i18n";
+import { ReadingState } from "@/lib/types";
 
 export default function PassageScreen() {
   const {
@@ -29,6 +31,7 @@ export default function PassageScreen() {
   } = useReading();
   const colors = useColors();
   const router = useRouter();
+  const s = useStrings();
   const [showAI, setShowAI] = useState(false);
   const [isRequestingAI, setIsRequestingAI] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -37,7 +40,7 @@ export default function PassageScreen() {
   useEffect(() => {
     const animation = Animated.timing(fadeAnim, {
       toValue: 1,
-      duration: DURATION.slower, // v7: slower entrance = more gravity
+      duration: DURATION.slower,
       useNativeDriver: true,
     });
     animation.start();
@@ -45,10 +48,7 @@ export default function PassageScreen() {
   }, [fadeAnim]);
 
   useEffect(() => {
-    screen("passage", {
-      source_id: session?.source.id,
-      has_ai_response: Boolean(aiResponse),
-    });
+    screen("passage", { source_id: session?.source.id, has_ai_response: Boolean(aiResponse) });
   }, [aiResponse, session?.source.id]);
 
   useEffect(() => {
@@ -59,14 +59,10 @@ export default function PassageScreen() {
   }, [aiResponse]);
 
   const handleRequestAI = async () => {
-    if (isRequestingAI || isCompleting || aiResponse) {
-      return;
-    }
-
+    if (isRequestingAI || isCompleting || aiResponse) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setShowAI(true);
     setIsRequestingAI(true);
-
     try {
       await requestAIInterpretation();
     } catch (error) {
@@ -79,19 +75,14 @@ export default function PassageScreen() {
   };
 
   const handleComplete = async () => {
-    if (isCompleting) {
-      return;
-    }
-
+    if (isCompleting) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setIsCompleting(true);
     try {
       await saveReading();
       completeReading();
       router.replace("/");
-      setTimeout(() => {
-        resetReading();
-      }, 64);
+      setTimeout(() => { resetReading(); }, 64);
       await new Promise((resolve) => setTimeout(resolve, COMPLETE_SILENCE_BEAT_MS));
     } catch (error) {
       console.error("Failed to save:", error);
@@ -101,24 +92,23 @@ export default function PassageScreen() {
   };
 
   const handleShare = () => {
-    if (isCompleting || isRequestingAI) {
-      return;
-    }
-
+    if (isCompleting || isRequestingAI) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     if (!session) return;
-    trackShareEvent("entry", {
-      source_id: session.source.id,
-      symbol_id: selectedSymbol?.id,
-      from: "passage",
-    });
+    trackShareEvent("entry", { source_id: session.source.id, symbol_id: selectedSymbol?.id, from: "passage" });
     router.push("/reading/share-card");
+  };
+
+  const interpretStatus = () => {
+    if (currentState === ReadingState.AiStreaming || isRequestingAI) return s.passage.interpretStreaming;
+    if (aiResponse) return isAIFallback ? s.passage.interpretFallback : s.passage.interpretDone;
+    return s.passage.interpretOnDemand;
   };
 
   if (!passage || !session) {
     return (
       <ScreenContainer className="justify-center items-center">
-        <Text className="text-muted">Đang tải...</Text>
+        <Text className="text-muted">{s.passage.loading}</Text>
       </ScreenContainer>
     );
   }
@@ -129,49 +119,29 @@ export default function PassageScreen() {
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <RitualOrnament variant="line" />
-            <Text testID="reading-passage-symbol" style={[styles.symbolName, { color: colors.primary }]}>{selectedSymbol?.display_name || "Biểu tượng"}</Text>
+            <Text testID="reading-passage-symbol" style={[styles.symbolName, { color: colors.primary }]}>
+              {selectedSymbol?.display_name || "—"}
+            </Text>
             <Text style={[styles.sourceName, { color: colors.muted }]}>{session.source.name}</Text>
           </View>
 
-          <View
-            style={[
-              styles.stateBand,
-              {
-                backgroundColor: colors.surface + "B8",
-                borderColor: colors.primary + "22",
-              },
-            ]}
-          >
+          <View style={[styles.stateBand, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "22" }]}>
             <View style={styles.stateBandItem}>
-              <Text style={[styles.stateBandLabel, { color: colors.muted }]}>Ngôn ngữ</Text>
+              <Text style={[styles.stateBandLabel, { color: colors.muted }]}>{s.passage.languageLabel}</Text>
               <Text style={[styles.stateBandValue, { color: colors.foreground }]}>
-                {session.source.language === "vi" ? "Tiếng Việt" : "Nguồn dịch/tiếng Anh"}
+                {session.source.language === "vi" ? s.passage.languageVi : s.passage.languageEn}
               </Text>
             </View>
             <View style={styles.stateBandDivider} />
             <View style={styles.stateBandItem}>
-              <Text style={[styles.stateBandLabel, { color: colors.muted }]}>Diễn giải</Text>
-              <Text style={[styles.stateBandValue, { color: colors.foreground }]}>
-                {currentState === "ai_streaming" || isRequestingAI
-                  ? "Đang gọi"
-                  : aiResponse
-                    ? isAIFallback
-                      ? "Fallback"
-                      : "Đã xong"
-                    : "Theo yêu cầu"}
-              </Text>
+              <Text style={[styles.stateBandLabel, { color: colors.muted }]}>{s.passage.interpretLabel}</Text>
+              <Text style={[styles.stateBandValue, { color: colors.foreground }]}>{interpretStatus()}</Text>
             </View>
           </View>
 
           <View
             testID="reading-passage-card"
-            style={[
-              styles.passageCard,
-              {
-                backgroundColor: colors.surface + "C8",
-                borderColor: colors.primary + "42",
-              },
-            ]}
+            style={[styles.passageCard, { backgroundColor: colors.surface + "C8", borderColor: colors.primary + "42" }]}
           >
             <Text style={[styles.quoteMark, { color: colors.primary + "88", fontFamily: Fonts.display }]}>“</Text>
             <Text style={[styles.passageText, { color: colors.foreground, fontFamily: Fonts.bodyItalic }]}>
@@ -192,18 +162,12 @@ export default function PassageScreen() {
                 disabled={!passageActionsReady}
                 style={[
                   styles.aiButton,
-                  {
-                    backgroundColor: colors.primary + "16",
-                    borderColor: colors.primary + "64",
-                    opacity: passageActionsReady ? 1 : 0.45,
-                  },
+                  { backgroundColor: colors.primary + "16", borderColor: colors.primary + "64", opacity: passageActionsReady ? 1 : 0.45 },
                 ]}
               >
-                <Text style={[styles.aiButtonKicker, { color: colors.primary }]}>TÙY CHỌN</Text>
-                <Text style={[styles.aiButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>Xin diễn giải</Text>
-                <Text style={[styles.aiButtonHint, { color: colors.muted }]}>
-                  AI chỉ mở khi bạn chủ động yêu cầu.
-                </Text>
+                <Text style={[styles.aiButtonKicker, { color: colors.primary }]}>{s.passage.aiKicker}</Text>
+                <Text style={[styles.aiButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>{s.passage.aiButton}</Text>
+                <Text style={[styles.aiButtonHint, { color: colors.muted }]}>{s.passage.aiHint}</Text>
               </Pressable>
             ) : null}
 
@@ -212,10 +176,8 @@ export default function PassageScreen() {
                 testID="reading-passage-ai-loading"
                 style={[styles.aiCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "24" }]}
               >
-                <Text style={[styles.aiStatus, { color: colors.primary }]}>Đang xin diễn giải...</Text>
-                <Text style={[styles.aiStatusHint, { color: colors.muted }]}>
-                  Aletheia đang ghép tình huống, biểu tượng và ngữ cảnh của đoạn trích.
-                </Text>
+                <Text style={[styles.aiStatus, { color: colors.primary }]}>{s.passage.aiLoadingText}</Text>
+                <Text style={[styles.aiStatusHint, { color: colors.muted }]}>{s.passage.aiLoadingHint}</Text>
                 <RitualOrnament variant="dot" />
               </View>
             ) : null}
@@ -225,17 +187,14 @@ export default function PassageScreen() {
                 testID="reading-passage-ai-card"
                 style={[
                   styles.aiCard,
-                  {
-                    backgroundColor: colors.surface + "C4",
-                    borderColor: isAIFallback ? colors.border + "66" : colors.primary + "4A",
-                  },
+                  { backgroundColor: colors.surface + "C4", borderColor: isAIFallback ? colors.border + "66" : colors.primary + "4A" },
                 ]}
               >
                 <Text
                   testID="reading-passage-ai-label"
                   style={[styles.aiLabel, { color: isAIFallback ? colors.muted : colors.primary }]}
                 >
-                  {isAIFallback ? "DIỄN GIẢI NỘI TẠI" : "DIỄN GIẢI"}
+                  {isAIFallback ? s.passage.aiLabelFallback : s.passage.aiLabelOracle}
                 </Text>
                 <Text testID="reading-passage-ai-body" style={[styles.aiBody, { color: colors.foreground }]}>
                   {aiResponse}
@@ -261,7 +220,7 @@ export default function PassageScreen() {
                 },
               ]}
             >
-              <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>Chia sẻ</Text>
+              <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>{s.passage.shareButton}</Text>
             </Pressable>
 
             <Pressable
@@ -279,7 +238,7 @@ export default function PassageScreen() {
               ]}
             >
               <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>
-                {isCompleting ? "Đang khép nghi thức..." : "Hoàn thành"}
+                {isCompleting ? s.passage.completingButton : s.passage.completeButton}
               </Text>
             </Pressable>
           </View>
@@ -290,167 +249,37 @@ export default function PassageScreen() {
 }
 
 const styles = StyleSheet.create({
-  header: {
-    alignItems: "center",
-    gap: 10,
-    paddingTop: 28,
-    paddingBottom: 18,
-  },
-  symbolName: {
-    fontSize: 11,
-    letterSpacing: 3,
-    textTransform: "uppercase",
-  },
-  sourceName: {
-    fontSize: 12,
-    fontFamily: Fonts.bodyItalic,
-  },
+  header: { alignItems: "center", gap: 10, paddingTop: 28, paddingBottom: 18 },
+  symbolName: { fontSize: 11, letterSpacing: 3, textTransform: "uppercase" },
+  sourceName: { fontSize: 12, fontFamily: Fonts.bodyItalic },
   stateBand: {
-    borderRadius: 24,
-    borderWidth: 1,
-    marginBottom: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    borderRadius: 24, borderWidth: 1, marginBottom: 16, paddingHorizontal: 18, paddingVertical: 14,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
   },
-  stateBandItem: {
-    flex: 1,
-    gap: 4,
-  },
-  stateBandDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    marginHorizontal: 16,
-  },
-  stateBandLabel: {
-    fontSize: 10,
-    textTransform: "uppercase",
-    letterSpacing: 2.2,
-  },
-  stateBandValue: {
-    fontSize: 14,
-    fontFamily: Fonts.bodyMedium,
-  },
-  passageCard: {
-    borderRadius: 32,
-    borderWidth: 1.2,
-    paddingHorizontal: 24,
-    paddingVertical: 30,
-    marginBottom: 16,
-    gap: 8,
-  },
-  quoteMark: {
-    fontSize: 46,
-    lineHeight: 44,
-    textAlign: "center",
-  },
-  passageText: {
-    fontSize: 24,
-    lineHeight: 40,
-    textAlign: "center",
-    letterSpacing: 0.2,
-  },
-  referenceBlock: {
-    alignItems: "center",
-    gap: 12,
-    marginTop: 22,
-  },
-  referenceRule: {
-    width: 34,
-    height: 1,
-  },
-  referenceText: {
-    fontSize: 12,
-    letterSpacing: 1.2,
-    textTransform: "uppercase",
-    fontFamily: Fonts.bodyMedium,
-  },
-  aiSection: {
-    gap: 14,
-    marginBottom: 20,
-  },
-  aiButton: {
-    borderRadius: 24,
-    borderWidth: 1,
-    paddingHorizontal: 22,
-    paddingVertical: 18,
-    alignItems: "center",
-    gap: 6,
-  },
-  aiButtonKicker: {
-    fontSize: 10,
-    letterSpacing: 2,
-    textTransform: "uppercase",
-  },
-  aiButtonText: {
-    fontSize: 18,
-    letterSpacing: 1.1,
-    textTransform: "uppercase",
-  },
-  aiButtonHint: {
-    fontSize: 12,
-    textAlign: "center",
-    fontFamily: Fonts.bodyItalic,
-  },
-  aiCard: {
-    borderRadius: 24,
-    borderWidth: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 18,
-    gap: 10,
-    alignItems: "center",
-  },
-  aiStatus: {
-    fontSize: 14,
-    fontFamily: Fonts.bodyMedium,
-  },
-  aiStatusHint: {
-    fontSize: 12,
-    lineHeight: 18,
-    textAlign: "center",
-  },
-  aiLabel: {
-    fontSize: 11,
-    letterSpacing: 2.2,
-    textTransform: "uppercase",
-  },
-  aiBody: {
-    fontSize: 15,
-    lineHeight: 27,
-    width: "100%",
-    fontFamily: Fonts.bodyItalic,
-  },
-  spacer: {
-    flex: 1,
-    minHeight: 12,
-  },
-  actions: {
-    gap: 12,
-    paddingBottom: 8,
-  },
-  secondaryButton: {
-    borderRadius: 22,
-    borderWidth: 1,
-    paddingVertical: 16,
-    alignItems: "center",
-  },
-  secondaryButtonText: {
-    fontSize: 15,
-    letterSpacing: 0.5,
-    fontFamily: Fonts.display,
-  },
-  primaryButton: {
-    borderRadius: 22,
-    borderWidth: 1.2,
-    paddingVertical: 18,
-    alignItems: "center",
-  },
-  primaryButtonText: {
-    fontSize: 18,
-    letterSpacing: 1.1,
-    textTransform: "uppercase",
-  },
+  stateBandItem: { flex: 1, gap: 4 },
+  stateBandDivider: { width: 1, height: 28, backgroundColor: "rgba(255,255,255,0.08)", marginHorizontal: 16 },
+  stateBandLabel: { fontSize: 10, textTransform: "uppercase", letterSpacing: 2.2 },
+  stateBandValue: { fontSize: 14, fontFamily: Fonts.bodyMedium },
+  passageCard: { borderRadius: 32, borderWidth: 1.2, paddingHorizontal: 24, paddingVertical: 30, marginBottom: 16, gap: 8 },
+  quoteMark: { fontSize: 46, lineHeight: 44, textAlign: "center" },
+  passageText: { fontSize: 24, lineHeight: 40, textAlign: "center", letterSpacing: 0.2 },
+  referenceBlock: { alignItems: "center", gap: 12, marginTop: 22 },
+  referenceRule: { width: 34, height: 1 },
+  referenceText: { fontSize: 12, letterSpacing: 1.2, textTransform: "uppercase", fontFamily: Fonts.bodyMedium },
+  aiSection: { gap: 14, marginBottom: 20 },
+  aiButton: { borderRadius: 24, borderWidth: 1, paddingHorizontal: 22, paddingVertical: 18, alignItems: "center", gap: 6 },
+  aiButtonKicker: { fontSize: 10, letterSpacing: 2, textTransform: "uppercase" },
+  aiButtonText: { fontSize: 18, letterSpacing: 1.1, textTransform: "uppercase" },
+  aiButtonHint: { fontSize: 12, textAlign: "center", fontFamily: Fonts.bodyItalic },
+  aiCard: { borderRadius: 24, borderWidth: 1, paddingHorizontal: 20, paddingVertical: 18, gap: 10, alignItems: "center" },
+  aiStatus: { fontSize: 14, fontFamily: Fonts.bodyMedium },
+  aiStatusHint: { fontSize: 12, lineHeight: 18, textAlign: "center" },
+  aiLabel: { fontSize: 11, letterSpacing: 2.2, textTransform: "uppercase" },
+  aiBody: { fontSize: 15, lineHeight: 27, width: "100%", fontFamily: Fonts.bodyItalic },
+  spacer: { flex: 1, minHeight: 12 },
+  actions: { gap: 12, paddingBottom: 8 },
+  secondaryButton: { borderRadius: 22, borderWidth: 1, paddingVertical: 16, alignItems: "center" },
+  secondaryButtonText: { fontSize: 15, letterSpacing: 0.5, fontFamily: Fonts.display },
+  primaryButton: { borderRadius: 22, borderWidth: 1.2, paddingVertical: 18, alignItems: "center" },
+  primaryButtonText: { fontSize: 18, letterSpacing: 1.1, textTransform: "uppercase" },
 });

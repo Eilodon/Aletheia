@@ -51,13 +51,11 @@ export async function removeSessionToken(): Promise<void> {
 
 export async function getUserInfo(): Promise<User | null> {
   try {
-    let info: string | null = null;
     if (Platform.OS === "web") {
-      info = window.sessionStorage.getItem(USER_INFO_KEY);
-    } else {
-      info = await SecureStore.getItemAsync(USER_INFO_KEY);
+      return null;
     }
 
+    const info = await SecureStore.getItemAsync(USER_INFO_KEY);
     if (!info) {
       return null;
     }
@@ -71,10 +69,6 @@ export async function getUserInfo(): Promise<User | null> {
 export async function setUserInfo(user: User): Promise<void> {
   try {
     if (Platform.OS === "web") {
-      // R08 fix: sessionStorage is accessible to any JS running on the page (XSS risk).
-      // Strip sensitive PII fields before storing; re-fetch from server when email/name needed.
-      const safeUser: User = { ...user, email: null, name: null };
-      window.sessionStorage.setItem(USER_INFO_KEY, JSON.stringify(safeUser));
       return;
     }
 
@@ -87,7 +81,6 @@ export async function setUserInfo(user: User): Promise<void> {
 export async function clearUserInfo(): Promise<void> {
   try {
     if (Platform.OS === "web") {
-      window.sessionStorage.removeItem(USER_INFO_KEY);
       return;
     }
 

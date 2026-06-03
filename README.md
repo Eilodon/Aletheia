@@ -1,339 +1,253 @@
-# Aletheia
+# AletheiA
 
-**Aletheia** is a contemplative ritual app for daily spiritual readings — a cross-platform mobile and web application combining offline-first intelligence, multi-tradition sacred texts, and AI-powered reflection.
+> *Không phải lá số. Là chiếc gương.*
 
-The name draws from the ancient Greek *ἀλήθεια* — truth revealed through uncovering, not construction.
+AletheiA là ứng dụng đọc triết học cá nhân — mỗi lần mở ra, bạn mô tả điều đang đè nặng lên mình, chọn một biểu tượng, và để một đoạn trích từ Marcus Aurelius, Kinh Dịch, hay Rumi nói điều mà bạn chưa dám tự nói với chính mình. AI diễn giải chỉ khi bạn chủ động yêu cầu — không bao giờ tự động xuất hiện.
 
----
-
-## Features
-
-- **Daily ritual readings** drawn from 6 traditions: I Ching, Christian scripture, Islamic/Sufi texts, Stoic philosophy, and universal wisdom sources
-- **AI interpretation** via Anthropic Claude (Haiku primary, Sonnet for extended reflection) with streaming support and offline fallback prompts
-- **Reading history** — personal mirror of past reflections, searchable and shareable
-- **Gift readings** — send a reading session to another person via deep link
-- **Push notifications** — one daily contemplation prompt, time-of-day aware
-- **Streak tracking** — reading streak badge with animated flame
-- **Biometric lock** option for private practice
-- **Local inference** (dev-only) via Ollama for fully offline AI
-- **Web companion** built on the same design system for browser access
+Mọi thứ ở lại thiết bị của bạn. Không tài khoản. Không cloud sync. Không notification kiểu "Hôm nay bạn chưa thiền!".
 
 ---
 
-## Architecture
-
-```
-┌─────────────────────────────────────────────────┐
-│          Expo / React Native App                │
-│  (iOS · Android · Web via react-native-web)     │
-│                                                 │
-│  ┌─────────────┐   ┌────────────────────────┐  │
-│  │  React UI   │   │  tRPC client (auth,    │  │
-│  │  NativeWind │   │  system, gifts)        │  │
-│  │  Reanimated │   └──────────┬─────────────┘  │
-│  └──────┬──────┘              │                │
-│         │ UniFFI FFI          │ HTTP           │
-│  ┌──────▼──────┐   ┌──────────▼─────────────┐  │
-│  │  Rust Core  │   │  TypeScript Server     │  │
-│  │  (aletheia- │   │  Express + tRPC        │  │
-│  │  core-      │   │  Rate limiting         │  │
-│  │  module)    │   │  Session auth (JWT)    │  │
-│  │             │   │  Storage proxy         │  │
-│  │  SQLite DB  │   └────────────────────────┘  │
-│  │  AI client  │                               │
-│  │  Store      │                               │
-│  └─────────────┘                               │
-└─────────────────────────────────────────────────┘
-```
-
-### Rust Core (`core/`)
-
-The heart of Aletheia is a Rust library compiled to a native module via [UniFFI](https://mozilla.github.io/uniffi-rs/). It owns all stateful logic:
-
-| Module | Responsibility |
-|---|---|
-| `store.rs` | SQLite via rusqlite, WAL mode, `parking_lot::Mutex`, all reading/user-state persistence |
-| `ai_client.rs` | Multi-provider AI: Anthropic Claude (primary), OpenAI GPT-4, Gemini; streaming SSE |
-| `lib.rs` | Tokio async runtime (4 threads), job registry, UniFFI exports, stream lifecycle |
-| `contracts.rs` | Typed `AletheiaError`, `ErrorCode`, all shared data types |
-| `aletheia.udl` | UniFFI interface definition — the FFI contract between Rust and JS |
-
-The Rust module is packaged as a local Expo module (`modules/aletheia-core-module`) and ships as a compiled `.so` (Android) / `.xcframework` (iOS).
-
-### App (`app/`)
-
-Expo Router file-based navigation:
-
-```
-app/
-  _layout.tsx          Root layout (fonts, Sentry, GatewayReveal)
-  (tabs)/
-    index.tsx          Home — today's reading
-    mirror.tsx         Reading history
-    settings.tsx       Preferences, API keys
-  onboarding/          First-run tradition selection
-  reading/             Active reading session screens
-```
-
-### Server (`server/`)
-
-Minimal TypeScript Express server providing:
-- **tRPC** surface for `auth.logout`, `system.*`
-- Session validation (JWT/SecureStore)
-- Rate limiting (auth: 10/15min, AI: 20/min, general: 60/min)
-- Storage proxy for uploaded content
-
----
-
-## Prerequisites
-
-| Tool | Version |
-|---|---|
-| Node.js | 20+ |
-| pnpm | 9+ |
-| Rust toolchain | 1.80+ (via rustup) |
-| Expo CLI | Latest (`npm i -g expo-cli`) |
-| EAS CLI | Latest (`npm i -g eas-cli`) |
-| Xcode | 15+ (iOS builds) |
-| Android SDK | API 33+ |
-
-### Rust targets
+## Bắt đầu
 
 ```bash
-rustup target add aarch64-apple-ios aarch64-apple-ios-sim   # iOS
-rustup target add aarch64-linux-android                     # Android
-```
-
----
-
-## Setup
-
-### 1. Clone and install
-
-```bash
-git clone https://github.com/eilodon/aletheia.git
-cd aletheia
 pnpm install
-```
-
-### 2. Environment
-
-```bash
 cp .env.example .env
-# Edit .env and fill in required values (see Environment Variables below)
+pnpm dev
 ```
 
-### 3. Build the Rust core
+`pnpm dev` khởi động TypeScript server và Expo Metro cùng lúc.
 
-**iOS:**
+**Android native (path chính):**
 ```bash
-bash scripts/build-rust-ios.sh
+pnpm rust:android
+pnpm android
 ```
 
-**Android:**
+**Kiểm tra nhanh:**
 ```bash
-bash scripts/build-so-only.sh
-```
-
-The scripts compile the Rust library, run UniFFI binding generation, and place artifacts where Expo's prebuild can find them.
-
-### 4. Run in development
-
-```bash
-# iOS simulator
-pnpm expo run:ios
-
-# Android emulator
-pnpm expo run:android
-
-# Web (Metro + react-native-web)
-pnpm expo start --web
+pnpm verify:fast
 ```
 
 ---
 
-## Development Workflow
+## Kiến trúc tổng quan
 
-### Rust changes
-
-After editing `core/src/**`:
-
-```bash
-# iOS
-bash scripts/build-rust-ios.sh && pnpm expo run:ios
-
-# Android
-bash scripts/build-so-only.sh && pnpm expo run:android
+```
+Expo/React Native (UI)
+        │
+        ▼
+lib/services/core-store.ts  ← facade duy nhất mà UI gọi
+        │
+        ├─► Rust core (UniFFI)         ← reading logic, store, AI client, gift
+        │   core/src/contracts.rs      ← source of truth cho tất cả data types
+        │   core/src/aletheia.udl      ← UniFFI interface
+        │
+        ├─► TypeScript server          ← AI routing, rate limit, gift backend
+        │   server/_core/index.ts
+        │
+        └─► JS fallback store          ← web + dev fallback
+            lib/services/store.ts
 ```
 
-UniFFI bindings (`generated/`) regenerate automatically during prebuild when the UDL signature changes.
-
-### TypeScript / UI changes
-
-Metro hot-reload handles these automatically while the app is running.
-
-### Server changes
-
-```bash
-cd server
-pnpm dev   # if a dev script is configured, otherwise node dist/index.js
-```
-
-### Tests
-
-```bash
-pnpm test           # Vitest unit tests
-pnpm test:smoke     # Android real-device smoke (requires connected device)
-```
+**Nguyên tắc cứng:**
+- UI screens chỉ gọi `coreStore`, không gọi native client trực tiếp
+- `core/src/contracts.rs` là nguồn sự thật duy nhất cho data model — thay đổi ở đây, chạy `pnpm types:sync`
+- Secrets của AI provider ở server hoặc native runtime injection, không bao giờ ở client config
+- AI là opt-in hoàn toàn — không bao giờ tự push kết quả
 
 ---
 
-## Environment Variables
+## Tính năng thực tế hiện tại
 
-| Variable | Required | Description |
-|---|---|---|
-| `EXPO_PUBLIC_EAS_PROJECT_ID` | Release | EAS project identifier |
-| `EXPO_PUBLIC_OWNER_NAME` | Release | Expo account owner |
-| `JWT_SECRET` | Auth | Long random string for session token signing |
-| `AI_API_KEY` | AI | Primary AI provider key |
-| `OPENAI_API_KEY` / `ALETHEIA_OPENAI_API_KEY` | Optional | OpenAI GPT-4 fallback |
-| `GEMINI_API_KEY` / `ALETHEIA_GEMINI_API_KEY` | Optional | Google Gemini fallback |
-| `EXPO_PUBLIC_SENTRY_DSN` | Beta | Sentry error reporting DSN |
-| `EXPO_PUBLIC_POSTHOG_API_KEY` | Optional | PostHog analytics |
-| `EXPO_PUBLIC_GIFT_BACKEND_URL` | Gift feature | Backend endpoint for gift reading deep links |
-| `CORS_ALLOWED_ORIGINS` | Server | Comma-separated allowed origins for API |
-| `LOCAL_AI_URL` / `OLLAMA_BASE_URL` | Dev only | Local inference endpoint |
-
-**Note:** AI provider keys are stored server-side only and never exposed to the client bundle. User-supplied personal API keys travel through the Rust core's native keychain store.
-
----
-
-## Design System
-
-Aletheia uses **NativeWind** (Tailwind for React Native) with a custom theme defined in `theme.config.js`.
-
-### Color tokens
-
-| Token | Light | Dark | Semantic use |
-|---|---|---|---|
-| `primary` | `#B98B3C` | `#D8B86A` | Gold amber — primary actions, ornaments |
-| `background` | `#EFE7D9` | `#282533` | Parchment / void |
-| `surface` | `#F6F0E6` | `#35313F` | Cards, panels |
-| `foreground` | `#231B15` | `#F4EBD9` | Body text |
-| `muted` | `#766A5F` | `#B0A291` | Secondary text |
-| `void` | `#EFE7D9` | `#16141C` | Deepest background layer |
-| `ritual` | `#B98B3C` | `#D8B86A` | Motion glow alias |
-
-### Typography
-
-| Role | Font |
+| Tính năng | Trạng thái |
 |---|---|
-| Display / headings | Cinzel (AletheiaDisplay) |
-| Body / reading text | EB Garamond (AletheiaBody) |
-
-### UI Components
-
-| Component | Description |
-|---|---|
-| `RitualOrnament` | SVG decorative symbols: `line`, `dot`, `eye`, `sigil`, `compass`, `cross`, `diamond`, `star` |
-| `OrnateCorners` | Filigree SVG corners overlay for card frames |
-| `FilmGrain` | Absolute-positioned SVG noise texture (cinematic grain, opacity 0.04) |
-| `TypewriterText` | Character-by-character text reveal with blinking cursor |
-| `StreakBadge` | Animated flame + streak count badge |
-| `GatewayReveal` | First-launch ritual ceremony (3.5s) with returning-user fast path (800ms) |
-| `AmbientBackdrop` | Radial gradient orb atmosphere layer |
-| `PressableCard` | Haptic-feedback pressable container |
-| `ScreenContainer` | Safe-area scroll container with keyboard handling |
+| Reading ritual đầy đủ | ✅ situation → wildcard (3 symbols, 8 themes) → passage reveal → optional AI |
+| 6 nguồn triết học | ✅ I Ching, Đạo Đức Kinh, Marcus Aurelius, Rumi, Hafez, Bible KJV (120 passages) |
+| 8 symbol themes | ✅ Khoảnh khắc, Nguyên tố, Sinh linh, Thiên thể, Địa hình, Nghi thức, Hình học, Ngưỡng |
+| AI pipeline | ✅ Ollama → Claude → OpenAI → Gemini → fallback nội tại |
+| Local-first Rust core | ✅ SQLite, UniFFI bridge, no network required for reading |
+| RevenueCat (Pro) | ✅ Android + iOS, graceful degrade khi chưa config |
+| Thông báo hằng ngày | ✅ Local scheduling, gửi passage thật đến lock screen |
+| Gương nhìn lại cuối tuần | ✅ Local-only, device tự query SQLite và schedule Saturday notification |
+| i18n (VI + EN) | ✅ Full coverage tất cả screens |
+| Onboarding passage preview | ✅ Step 3 hiển thị passage thật khớp intent user chọn |
+| Gift flow | ⚠️ Client + Rust sẵn sàng, cần deploy backend (`EXPO_PUBLIC_GIFT_BACKEND_URL`) |
+| Local AI (Android) | ⚠️ Gemma 3-1B, cần real-device test trước khi claim |
+| iOS | ⚠️ Configured nhưng native runtime parity chưa verify |
 
 ---
 
-## Security
+## Content Pipeline
 
-Aletheia underwent a VHEATM v16.1.1 security audit. All critical and high findings are resolved:
+Passages được quản lý riêng theo source — dễ edit, dễ mở rộng:
 
-| Finding | Severity | Status | Fix |
-|---|---|---|---|
-| R01 — API key in URL query param (Gemini) | CRIT | ✅ Fixed | Key moved to `x-goog-api-key` header |
-| R01/NF-01 — Domain allowlist dead code | CRIT | ✅ Fixed | Pre-flight check before each HTTP send |
-| R02 — `SameSite=None` without `Secure` | HIGH | ✅ Fixed | Conditional `sameSite: secure ? "none" : "lax"` per RFC 6265bis |
-| R04/NF-05 — Prompt injection via situation_text | HIGH | ✅ Fixed | `sanitize_situation_text()`: 500-char cap + 12 injection prefix patterns |
-| R05 — Rate limit keyed on bare IP | HIGH | ✅ Fixed | Auth token → app+user hash → IP fallback key strategy |
-| R08 — PII in sessionStorage on web | MED | ✅ Fixed | Strip `email`/`name` before storing; re-fetch from server when needed |
-| R09 — ErrorCode map drift risk | MED | ✅ Fixed | Sync comment with variant count; CI diff suggested |
-| NF-02 — Date bypass via far-future year | MED | ✅ Fixed | `is_valid_local_date()`: year 2020–2035 cap, full ASCII parse |
-| NF-03 — Tokio thread starvation | LOW | ✅ Fixed | `worker_threads(2 → 4)` |
-| NF-04 — Gemini output tokens too large | LOW | ✅ Fixed | `maxOutputTokens: 200`, temperature 0.55 |
+```
+scripts/content/
+  i-ching.ts          ← 35 passages, mỗi cái có resonance_context cho AI
+  tao-te-ching.ts     ← 28 passages
+  marcus-aurelius.ts  ← 20 passages
+  rumi.ts             ← 12 passages
+  hafez.ts            ← 12 passages
+  bible-kjv.ts        ← 13 passages
+```
 
----
-
-## Building for Release
-
-### iOS
+Để thêm source mới: tạo file trong `scripts/content/`, export `RawPassage[]`, thêm vào `build-content-corpus.ts`.
 
 ```bash
-eas build --platform ios --profile production
+pnpm content:build    # rebuild bundled-content.json từ source files
+pnpm content:sync     # sync vào lib/data/seed-data.generated.ts
 ```
 
-### Android
+> **`resonance_context`** là trường quan trọng nhất — đây là "lớp ngầm" mà AI dùng để diễn giải sâu hơn mà user không nhìn thấy. Khi thêm passage mới, đây là công việc editorial không thể automate.
+
+---
+
+## Commands
 
 ```bash
-eas build --platform android --profile production
+# Dev
+pnpm dev              # server + metro cùng lúc
+pnpm dev:server       # chỉ server
+pnpm dev:metro        # chỉ expo
+
+# Mobile
+pnpm android
+pnpm ios
+pnpm rust:android     # build Rust cho Android
+pnpm rust:ios         # build Rust cho iOS
+pnpm uniffi:generate  # regenerate UniFFI bindings sau khi sửa .udl
+pnpm native:sync      # sync native staging
+
+# Content & Types
+pnpm content:build    # rebuild core/content/bundled-content.json
+pnpm content:sync     # sync bundled content → seed-data.generated.ts
+pnpm types:sync       # regenerate lib/types.ts từ contracts.rs
+
+# Tests & Checks
+pnpm check            # type check + lint
+pnpm test             # vitest
+pnpm verify:fast      # quick sanity pass
+pnpm verify:release   # full release readiness check
+
+# Release
+pnpm build
+pnpm release:report
+eas build --platform android --profile preview --local
 ```
 
-### Web
+---
+
+## Environment
+
+Sao chép `.env.example` → `.env`. Dev local chạy được với nhiều giá trị để trống, nhưng beta/release cần giá trị thật.
+
+**Core:**
+```
+EXPO_PUBLIC_EAS_PROJECT_ID
+EXPO_PUBLIC_OWNER_NAME
+APP_ID / EXPO_PUBLIC_APP_ID
+JWT_SECRET
+API_BASE_URL / EXPO_PUBLIC_API_BASE_URL
+EXPO_PUBLIC_SENTRY_DSN
+```
+
+**AI (server-side):**
+```
+ANTHROPIC_API_KEY        ← Claude (Sonnet cho Pro users)
+OPENAI_API_KEY           ← fallback
+GEMINI_API_KEY           ← fallback
+OLLAMA_BASE_URL          ← local inference endpoint
+INTERPRETATION_CLOUD_PROVIDER / MODEL
+```
+
+**Optional surfaces:**
+```
+EXPO_PUBLIC_GIFT_BACKEND_URL
+EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID
+EXPO_PUBLIC_REVENUECAT_API_KEY_IOS
+EXPO_PUBLIC_POSTHOG_API_KEY
+```
 
 ```bash
-pnpm expo export --platform web
-# Output in dist/
+bash scripts/validate-env.sh   # kiểm tra env trước khi release
 ```
 
 ---
 
-## Project Structure
+## Triết lý thiết kế (anti-patterns)
+
+Một số thứ sẽ không bao giờ có trong AletheiA:
+
+- **Social feed / community** — phá vỡ triết lý gương riêng tư
+- **Gamification (points, streaks, badges)** — depth score chỉ là filter, không phải reward
+- **AI chủ động** — AI chỉ xuất hiện khi user yêu cầu, không bao giờ tự push
+- **Account / social login** — local-first nghĩa là local-first
+- **Server push notification có chứa reading history** — vi phạm privacy. Weekly summary dùng local scheduling hoàn toàn
+- **Reset giới hạn Free tier** bằng cách track Device ID — lỗ hổng delete/reinstall là intentional. Người cần đọc thì để họ đọc.
+
+---
+
+## Cấu trúc project
 
 ```
-aletheia/
-├── app/                    Expo Router screens
-├── assets/                 Fonts, images, icons
-├── components/             Shared UI components
-│   ├── ritual-ornament.tsx SVG symbolic ornaments
-│   ├── ornate-corners.tsx  Card frame corner overlays
-│   ├── film-grain.tsx      Cinematic grain texture
-│   ├── typewriter-text.tsx Character-reveal text
-│   ├── streak-badge.tsx    Reading streak indicator
-│   ├── gateway-reveal.tsx  First-launch ceremony
-│   └── ambient-backdrop.tsx Atmospheric gradient
-├── constants/              Theme, colors, animation tokens
-├── core/                   Rust library source
-│   └── src/
-│       ├── lib.rs          UniFFI exports, async runtime
-│       ├── store.rs        SQLite persistence
-│       ├── ai_client.rs    Multi-provider AI client
-│       └── contracts.rs    Shared types, errors
-├── docs/                   ADRs, architecture docs
-├── hooks/                  React hooks (useColors, useReadings, …)
-├── lib/                    Shared utilities, auth, tRPC client
-├── modules/                Expo native modules (aletheia-core-module)
-├── scripts/                Build scripts (Rust, EAS, smoke tests)
-├── server/                 TypeScript Express server
-│   ├── _core/              Middleware: auth, cookies, rate limiting
-│   └── routers.ts          tRPC router definitions
-└── tests/                  Vitest + Playwright test suites
+app/                          Expo Router screens
+  (tabs)/                     Home, Mirror, Settings
+  reading/                    Situation → Wildcard → Passage flow
+  onboarding/                 3-step onboarding với passage preview
+  .paywall/                   RevenueCat paywall
+
+components/                   Shared UI components
+lib/
+  services/core-store.ts      Facade chính — UI chỉ gọi đây
+  services/reading-engine.ts  Reading logic (JS fallback path)
+  services/notification-service.ts  Daily + weekly local notifications
+  services/purchases.ts       RevenueCat wrapper
+  context/reading-context.tsx Reading session state
+  i18n/                       VI + EN strings
+  data/
+    seed-data.generated.ts    AUTO-GENERATED — không edit tay
+    onboarding-content.ts     Preview passages cho onboarding
+
+core/src/                     Rust domain logic
+  contracts.rs                Data types — source of truth
+  lib.rs                      UniFFI exported functions
+  reading.rs                  Reading flow
+  store.rs                    SQLite store + migrations (hiện tại: v9)
+  gift_client.rs              Gift HTTP client
+
+scripts/
+  content/                    Passage source files — edit ở đây
+  build-content-corpus.ts     Assembles bundled-content.json
+  sync-bundled-content.ts     JSON → seed-data.generated.ts
+  sync-types.ts               contracts.rs → lib/types.ts
+
+server/_core/
+  index.ts                    Express server
+  interpretationService.ts    AI routing + prompt + safety
+  rateLimit.ts                Server-side rate limiting
 ```
 
 ---
 
-## Contributing
+## Local AI (Android)
 
-1. Branch from `main` with a descriptive prefix: `feat/`, `fix/`, `refactor/`
-2. Rust changes must compile cleanly: `cargo build --release` in `core/`
-3. TypeScript changes must pass lint: `pnpm lint`
-4. Keep the `ERROR_CODE_MAP` in `lib/native/bridge.ts` in sync with `ErrorCode` variants in `core/src/contracts.rs`
-5. Do not add `unwrap()` calls in Rust — use `?` and typed `AletheiaError`
-6. UI components must support both light and dark color schemes via `useColors()`
+```
+Model:  gemma-3-1b-it-qat-q4_0
+File:   gemma-3-1b-it-q4_0.gguf  (~529 MB)
+Source: HuggingFace google/gemma-3-1b-it-qat-q4_0-gguf
+```
+
+Không claim local AI parity trên iOS hoặc "fully offline AI" cho đến khi real-device test xong.
 
 ---
 
-## License
+## Docs
 
-Private — all rights reserved. Contact the maintainer for licensing inquiries.
+- [docs/BETA_IMPLEMENTATION_ROADMAP.md](docs/BETA_IMPLEMENTATION_ROADMAP.md)
+- [docs/BETA_RELEASE_CHECKLIST.md](docs/BETA_RELEASE_CHECKLIST.md)
+- [docs/CORE/](docs/CORE/) — ADR, Blueprint, Contracts
+
+---
+
+*Private. All rights reserved.*

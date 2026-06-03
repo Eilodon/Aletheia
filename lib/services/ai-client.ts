@@ -5,6 +5,7 @@
 
 import { Passage, Symbol } from "@/lib/types";
 import { aiRuntime } from "./ai-runtime";
+import { secureRandomIndex } from "@/lib/utils/random";
 import { AI_STREAM_TIMEOUT_MS } from "@/lib/constants";
 
 export interface AIRequest {
@@ -225,7 +226,7 @@ class AIClientService {
   private getFallbackInterpretation(request: AIRequest): string[] {
     // Prefer source-specific fallback prompts (CONTENT-03)
     if (request.sourceFallbackPrompts && request.sourceFallbackPrompts.length > 0) {
-      const idx = Math.floor(Math.random() * request.sourceFallbackPrompts.length);
+      const idx = secureRandomIndex(request.sourceFallbackPrompts.length);
       return [request.sourceFallbackPrompts[idx]];
     }
 

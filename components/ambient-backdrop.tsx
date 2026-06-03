@@ -1,7 +1,11 @@
 import { memo } from "react";
-import { Platform, StyleSheet, View, useWindowDimensions } from "react-native";
+import { Platform, StyleSheet, View, useWindowDimensions, type ViewStyle } from "react-native";
 
 import { useColors } from "@/hooks/use-colors";
+
+type WebGradientStyle = ViewStyle & {
+  backgroundImage: string;
+};
 
 export const AmbientBackdrop = memo(function AmbientBackdrop() {
   const colors = useColors();
@@ -10,6 +14,10 @@ export const AmbientBackdrop = memo(function AmbientBackdrop() {
   const orbSize = Math.max(width * 0.84, 300);
   const lowerOrbSize = Math.max(width * 1.08, 360);
   const centerHalo = Math.max(width * 0.56, 220);
+  const webGradientStyle: WebGradientStyle = {
+    backgroundImage:
+      "radial-gradient(circle at 20% 20%, rgba(216,184,106,0.08) 0%, transparent 32%), radial-gradient(circle at 80% 10%, rgba(135,96,189,0.07) 0%, transparent 26%), radial-gradient(circle at 50% 100%, rgba(0,0,0,0.24) 0%, transparent 42%), radial-gradient(circle at 50% 40%, rgba(255,230,182,0.05) 0%, transparent 24%)",
+  };
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
@@ -77,10 +85,7 @@ export const AmbientBackdrop = memo(function AmbientBackdrop() {
         <View
           style={[
             StyleSheet.absoluteFill,
-            {
-              backgroundImage:
-                "radial-gradient(circle at 20% 20%, rgba(216,184,106,0.08) 0%, transparent 32%), radial-gradient(circle at 80% 10%, rgba(135,96,189,0.07) 0%, transparent 26%), radial-gradient(circle at 50% 100%, rgba(0,0,0,0.24) 0%, transparent 42%), radial-gradient(circle at 50% 40%, rgba(255,230,182,0.05) 0%, transparent 24%)",
-            } as any,
+            webGradientStyle,
           ]}
         />
       ) : null}

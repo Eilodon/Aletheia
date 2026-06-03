@@ -1,8 +1,7 @@
-import { timingSafeEqual } from "crypto";
 import { COOKIE_NAME } from "../lib/constants.js";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { ENV } from "./_core/env";
 
 export const appRouter = router({
@@ -20,45 +19,16 @@ export const appRouter = router({
   }),
 
   aiConfig: router({
-    getProviderConfig: publicProcedure.query(({ ctx }) => {
-      const appSecret = ENV.aletheiaAppSecret;
-      if (appSecret) {
-        const incoming = ctx.req.headers["x-aletheia-app-secret"];
-        const incomingBuf = Buffer.from(typeof incoming === "string" ? incoming : "", "utf8");
-        const expectedBuf = Buffer.from(appSecret, "utf8");
-        const maxLen = Math.max(incomingBuf.length, expectedBuf.length);
-        const a = Buffer.alloc(maxLen);
-        const b = Buffer.alloc(maxLen);
-        incomingBuf.copy(a);
-        expectedBuf.copy(b);
-        if (!timingSafeEqual(a, b)) {
-          return {
-            claude: ENV.claudeApiKey ? "configured" : "missing",
-            gpt4: ENV.openAiApiKey ? "configured" : "missing",
-            gemini: ENV.geminiApiKey ? "configured" : "missing",
-            keys: { claude: null, gpt4: null, gemini: null },
-          };
-        }
-      }
+    getProviderConfig: protectedProcedure.query(() => {
       return {
         claude: ENV.claudeApiKey ? "configured" : "missing",
         gpt4: ENV.openAiApiKey ? "configured" : "missing",
         gemini: ENV.geminiApiKey ? "configured" : "missing",
-        keys: {
-          claude: ENV.claudeApiKey || null,
-          gpt4: ENV.openAiApiKey || null,
-          gemini: ENV.geminiApiKey || null,
-        },
       };
     }),
   }),
 
-  // TODO: add feature routers here, e.g.
-  // todo: router({
-  //   list: protectedProcedure.query(({ ctx }) =>
-  //     db.getUserTodos(ctx.user.id)
-  //   ),
-  // }),
+  // Register future feature routers here.
 });
 
 export type AppRouter = typeof appRouter;

@@ -141,230 +141,180 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
     modelDownloadManager = ModelDownloadManager(context)
   }
 
-  override fun setApiKey(provider: String, key: String): Map<String, Any?> {
-    return serializeSetApiKeyResponse(requireCore().setAiApiKey(provider, key))
-  }
+  override fun setApiKey(provider: String, key: String): Map<String, Any?> =
+    safeCall { serializeSetApiKeyResponse(requireCore().setAiApiKey(provider, key)) }
 
-  override fun bootstrapBundledContent(): Map<String, Any?> {
-    return serializeSeedBundledDataResponse(requireCore().bootstrapBundledContent())
-  }
+  override fun bootstrapBundledContent(): Map<String, Any?> =
+    safeCall { serializeSeedBundledDataResponse(requireCore().bootstrapBundledContent()) }
 
   override fun performReading(
     userId: String,
     sourceId: String?,
     situationText: String?
-  ): Map<String, Any?> {
-    return serializePerformReadingResponse(
-      requireCore().performReading(userId, sourceId, situationText)
-    )
-  }
+  ): Map<String, Any?> =
+    safeCall { serializePerformReadingResponse(requireCore().performReading(userId, sourceId, situationText)) }
 
   override fun seedBundledData(
     sourcesJson: String,
     passagesJson: String,
     themesJson: String
-  ): Map<String, Any?> {
-    return serializeSeedBundledDataResponse(
-      requireCore().seedBundledData(sourcesJson, passagesJson, themesJson)
-    )
-  }
+  ): Map<String, Any?> =
+    safeCall { serializeSeedBundledDataResponse(requireCore().seedBundledData(sourcesJson, passagesJson, themesJson)) }
 
   override fun chooseSymbol(
     session: Map<String, Any?>,
     symbolId: String,
     method: String
-  ): Map<String, Any?> {
-    return serializeChooseSymbolResponse(
-      requireCore().chooseSymbol(
-        deserializeReadingSession(session),
-        symbolId,
-        deserializeSymbolMethod(method)
+  ): Map<String, Any?> =
+    safeCall {
+      serializeChooseSymbolResponse(
+        requireCore().chooseSymbol(deserializeReadingSession(session), symbolId, deserializeSymbolMethod(method))
       )
-    )
-  }
+    }
 
   override fun completeReading(
     userId: String,
     reading: Map<String, Any?>
-  ): Map<String, Any?> {
-    return serializeCompleteReadingResponse(
-      requireCore().completeReading(
-        userId,
-        deserializeReading(reading)
-      )
-    )
-  }
+  ): Map<String, Any?> =
+    safeCall { serializeCompleteReadingResponse(requireCore().completeReading(userId, deserializeReading(reading))) }
 
   override fun requestInterpretation(
     passage: Map<String, Any?>,
     symbol: Map<String, Any?>,
     situationText: String?
-  ): Map<String, Any?> {
-    return serializeRequestInterpretationResponse(
-      requireCore().requestInterpretation(
-        deserializePassage(passage),
-        deserializeSymbol(symbol),
-        situationText
+  ): Map<String, Any?> =
+    safeCall {
+      serializeRequestInterpretationResponse(
+        requireCore().requestInterpretation(deserializePassage(passage), deserializeSymbol(symbol), situationText)
       )
-    )
-  }
+    }
 
   override fun startInterpretationStream(
     passage: Map<String, Any?>,
     symbol: Map<String, Any?>,
     situationText: String?,
     userIntent: String?
-  ): Map<String, Any?> {
-    return serializeStartInterpretationStreamResponse(
-      requireCore().startInterpretationStream(
-        deserializePassage(passage),
-        deserializeSymbol(symbol),
-        situationText,
-        userIntent
+  ): Map<String, Any?> =
+    safeCall {
+      serializeStartInterpretationStreamResponse(
+        requireCore().startInterpretationStream(
+          deserializePassage(passage), deserializeSymbol(symbol), situationText, userIntent
+        )
       )
-    )
-  }
+    }
 
-  override fun pollInterpretationStream(requestId: String): Map<String, Any?> {
-    return serializeInterpretationStreamState(
-      requireCore().pollInterpretationStream(requestId)
-    )
-  }
+  override fun pollInterpretationStream(requestId: String): Map<String, Any?> =
+    safeCall { serializeInterpretationStreamState(requireCore().pollInterpretationStream(requestId)) }
 
-  override fun cancelInterpretationStream(requestId: String): Map<String, Any?> {
-    return serializeCancelInterpretationResponse(
-      requireCore().cancelInterpretationStream(requestId)
-    )
-  }
+  override fun cancelInterpretationStream(requestId: String): Map<String, Any?> =
+    safeCall { serializeCancelInterpretationResponse(requireCore().cancelInterpretationStream(requestId)) }
 
-  override fun getFallbackPrompts(sourceId: String): Map<String, Any?> {
-    val response = requireCore().getFallbackPrompts(sourceId)
-    return mapOf(
-      "prompts" to response.prompts,
-      "error" to serializeBridgeError(response.error)
-    )
-  }
+  override fun getFallbackPrompts(sourceId: String): Map<String, Any?> =
+    safeCall {
+      val response = requireCore().getFallbackPrompts(sourceId)
+      mapOf("prompts" to response.prompts, "error" to serializeBridgeError(response.error))
+    }
 
-  override fun getUserState(userId: String): Map<String, Any?> {
-    return serializeUserStateResponse(requireCore().getUserState(userId))
-  }
+  override fun getUserState(userId: String): Map<String, Any?> =
+    safeCall { serializeUserStateResponse(requireCore().getUserState(userId)) }
 
-  override fun updateUserState(state: Map<String, Any?>): Map<String, Any?> {
-    return serializeUpdateUserStateResponse(
-      requireCore().updateUserState(deserializeUserState(state))
-    )
-  }
+  override fun updateUserState(state: Map<String, Any?>): Map<String, Any?> =
+    safeCall { serializeUpdateUserStateResponse(requireCore().updateUserState(deserializeUserState(state))) }
 
-  override fun getSources(premiumAllowed: Boolean): Map<String, Any?> {
-    return serializeSourcesResponse(requireCore().getSources(premiumAllowed))
-  }
+  override fun getSources(premiumAllowed: Boolean): Map<String, Any?> =
+    safeCall { serializeSourcesResponse(requireCore().getSources(premiumAllowed)) }
 
-  override fun getReadings(limit: Int, offset: Int): Map<String, Any?> {
-    return serializePaginatedReadingsResponse(
-      requireCore().getReadings(limit.toUInt(), offset.toUInt())
-    )
-  }
+  override fun getReadings(limit: Int, offset: Int): Map<String, Any?> =
+    safeCall { serializePaginatedReadingsResponse(requireCore().getReadings(limit.toUInt(), offset.toUInt())) }
 
-  override fun getReadingById(id: String): Map<String, Any?> {
-    return serializeReadingResponse(requireCore().getReadingById(id))
-  }
+  override fun getReadingById(id: String): Map<String, Any?> =
+    safeCall { serializeReadingResponse(requireCore().getReadingById(id)) }
 
-  override fun updateReadingFlags(id: String, flags: Map<String, Any?>): Map<String, Any?> {
-    return serializeReadingResponse(
-      requireCore().updateReadingFlags(
-        id,
-        flags.optionalBoolean("isFavorite"),
-        flags.optionalBoolean("shared")
+  override fun updateReadingFlags(id: String, flags: Map<String, Any?>): Map<String, Any?> =
+    safeCall {
+      serializeReadingResponse(
+        requireCore().updateReadingFlags(id, flags.optionalBoolean("isFavorite"), flags.optionalBoolean("shared"))
       )
-    )
-  }
+    }
 
-  override fun getDailyNotificationMessage(userId: String, date: String): Map<String, Any?> {
-    return serializeNotificationMessageResponse(
-      requireCore().getDailyNotificationMessage(userId, date)
-    )
-  }
+  override fun getDailyNotificationMessage(userId: String, date: String): Map<String, Any?> =
+    safeCall { serializeNotificationMessageResponse(requireCore().getDailyNotificationMessage(userId, date)) }
 
   override fun setLocalDate(localDate: String) {
-    requireCore().setLocalDate(localDate)
+    try { requireCore().setLocalDate(localDate) }
+    catch (e: Throwable) { Log.e("AletheiaCore", "setLocalDate error: ${e.message}", e) }
   }
 
-  override fun redeemGift(token: String): Map<String, Any?> {
-    return serializeRedeemGiftResponse(requireCore().redeemGift(token))
-  }
+  override fun redeemGift(token: String): Map<String, Any?> =
+    safeCall { serializeRedeemGiftResponse(requireCore().redeemGift(token)) }
 
-  override fun createGift(sourceId: String?, buyerNote: String?): Map<String, Any?> {
-    return serializeCreateGiftResponse(requireCore().createGift(sourceId, buyerNote))
-  }
+  override fun createGift(sourceId: String?, buyerNote: String?): Map<String, Any?> =
+    safeCall { serializeCreateGiftResponse(requireCore().createGift(sourceId, buyerNote)) }
 
   // LOCAL MODEL OPERATIONS (CYCLE 2)
-  override fun checkDeviceCapability(context: Context): Map<String, Any?> {
-    // Use native device detection instead of Rust stub
-    val detected = DeviceCapabilityDetector.detect(context)
-    return mapOf(
-      "capability" to mapOf(
-        "supported" to detected["supported"] as Boolean,
-        "available_ram_mb" to detected["available_ram_mb"] as Int,
-        "cpu_cores" to detected["cpu_cores"] as Int,
-        "has_simd" to detected["has_simd"] as Boolean,
-        "estimated_tps" to detected["estimated_tps"] as Float,
-        "unsupported_reason" to detected["unsupported_reason"]
-      ),
-      "error" to null
-    )
-  }
-
-  override fun getLocalModelStatus(): Map<String, Any?> {
-    // Use native model status instead of Rust stub
-    val engine = localInferenceEngine
-    val downloadManager = modelDownloadManager
-    
-    val modelReady = engine?.isModelReady() ?: false
-    val modelSize = downloadManager?.getModelSize() ?: 0L
-    
-    val status = when {
-      downloadCancelToken != null -> "downloading"
-      modelReady -> "ready"
-      else -> "not_downloaded"
+  override fun checkDeviceCapability(context: Context): Map<String, Any?> =
+    safeCall {
+      val detected = DeviceCapabilityDetector.detect(context)
+      mapOf(
+        "capability" to mapOf(
+          "supported" to detected["supported"] as Boolean,
+          "available_ram_mb" to detected["available_ram_mb"] as Int,
+          "cpu_cores" to detected["cpu_cores"] as Int,
+          "has_simd" to detected["has_simd"] as Boolean,
+          "estimated_tps" to detected["estimated_tps"] as Float,
+          "unsupported_reason" to detected["unsupported_reason"]
+        ),
+        "error" to null
+      )
     }
-    
-    return mapOf(
-      "model_info" to mapOf(
-        "model_id" to "gemma-3n-e2b",
-        "status" to status,
-        "download_progress" to downloadProgress,
-        "model_size_bytes" to modelSize,
-        "downloaded_bytes" to if (modelReady) modelSize else 0L,
-        "version" to "1.0.0",
-        "error_message" to null,
-        "eta_seconds" to null,
-        "device_capable" to true,
-        "required_ram_mb" to 2048,
-        "available_ram_mb" to 0
-      ),
-      "error" to null
-    )
-  }
 
-  override fun prepareLocalModel(forceDownload: Boolean): Map<String, Any?> {
-    val downloadManager = modelDownloadManager ?: return mapOf(
+  override fun getLocalModelStatus(): Map<String, Any?> =
+    safeCall {
+      val engine = localInferenceEngine
+      val downloadManager = modelDownloadManager
+      val modelReady = engine?.isModelReady() ?: false
+      val modelSize = downloadManager?.getModelSize() ?: 0L
+      val status = when {
+        downloadCancelToken != null -> "downloading"
+        modelReady -> "ready"
+        else -> "not_downloaded"
+      }
+      mapOf(
+        "model_info" to mapOf(
+          "model_id" to "gemma-3n-e2b",
+          "status" to status,
+          "download_progress" to downloadProgress,
+          "model_size_bytes" to modelSize,
+          "downloaded_bytes" to if (modelReady) modelSize else 0L,
+          "version" to "1.0.0",
+          "error_message" to null,
+          "eta_seconds" to null,
+          "device_capable" to true,
+          "required_ram_mb" to 2048,
+          "available_ram_mb" to 0
+        ),
+        "error" to null
+      )
+    }
+
+  override fun prepareLocalModel(forceDownload: Boolean): Map<String, Any?> =
+    safeCall {
+    val downloadManager = modelDownloadManager ?: return@safeCall mapOf(
       "started" to false,
       "model_info" to null,
       "error" to mapOf("code" to "not_initialized", "message" to "Local inference not initialized")
     )
-    
-    // Check if already downloading
+
     if (downloadCancelToken != null) {
-      return mapOf(
+      return@safeCall mapOf(
         "started" to false,
         "model_info" to getLocalModelStatus()["model_info"],
         "error" to mapOf("code" to "download_in_progress", "message" to "Download already in progress")
       )
     }
-    
-    // Check if already downloaded
+
     if (!forceDownload && downloadManager.getModelSize() > 0) {
-      return mapOf(
+      return@safeCall mapOf(
         "started" to false,
         "model_info" to getLocalModelStatus()["model_info"],
         "error" to null
@@ -389,29 +339,30 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
       }
     }
     
-    return mapOf(
+    mapOf(
       "started" to true,
       "model_info" to getLocalModelStatus()["model_info"],
       "error" to null
     )
   }
 
-  override fun cancelLocalModelDownload(): Map<String, Any?> {
-    val token = downloadCancelToken
-    if (token != null) {
-      token.set(true)
-      downloadCancelToken = null
-      downloadProgress = 0
+  override fun cancelLocalModelDownload(): Map<String, Any?> =
+    safeCall {
+      downloadCancelToken?.let { it.set(true); downloadCancelToken = null; downloadProgress = 0 }
+      getLocalModelStatus()
     }
-    return getLocalModelStatus()
-  }
 
   override fun deleteLocalModel(): Boolean {
-    val downloadManager = modelDownloadManager ?: return false
-    downloadCancelToken?.set(true)
-    downloadCancelToken = null
-    downloadProgress = 0
-    return downloadManager.deleteModel()
+    return try {
+      val downloadManager = modelDownloadManager ?: return false
+      downloadCancelToken?.set(true)
+      downloadCancelToken = null
+      downloadProgress = 0
+      downloadManager.deleteModel()
+    } catch (e: Throwable) {
+      Log.e("AletheiaCore", "deleteLocalModel error: ${e.message}", e)
+      false
+    }
   }
 
   // LOCAL INFERENCE STREAM METHODS (CYCLE 2)
@@ -568,6 +519,15 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
     }
 
     return parts.joinToString("\n\n")
+  }
+
+  private fun safeCall(block: () -> Map<String, Any?>): Map<String, Any?> {
+    return try {
+      block()
+    } catch (e: Throwable) {
+      Log.e("AletheiaCore", "Native bridge error: ${e.message}", e)
+      mapOf("error" to mapOf("code" to "NATIVE_BRIDGE_ERROR", "message" to (e.message ?: "Unexpected native error")))
+    }
   }
 
   private fun requireCore(): AletheiaCore {
@@ -862,7 +822,8 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
         "preferred_language" to it.preferredLanguage,
         "dark_mode" to it.darkMode,
         "onboarding_complete" to it.onboardingComplete,
-        "user_intent" to it.userIntent?.name?.lowercase()
+        "user_intent" to it.userIntent?.name?.lowercase(),
+        "weekly_summary_enabled" to it.weeklySummaryEnabled
       )
     }
   }
@@ -996,7 +957,8 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
       preferredLanguage = payload.requireString("preferred_language"),
       darkMode = payload.requireBoolean("dark_mode"),
       onboardingComplete = payload.requireBoolean("onboarding_complete"),
-      userIntent = payload.optionalString("user_intent")?.let(::deserializeUserIntent)
+      userIntent = payload.optionalString("user_intent")?.let(::deserializeUserIntent),
+      weeklySummaryEnabled = payload.optionalBoolean("weekly_summary_enabled") ?: false
     )
   }
 

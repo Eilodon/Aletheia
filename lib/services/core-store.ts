@@ -9,6 +9,7 @@ import type {
   Reading,
   ReadingSession,
   Source,
+  SubscriptionTier,
   SymbolMethod,
   UserState,
 } from "@/lib/types";
@@ -112,6 +113,12 @@ class CoreStoreService {
     return unwrapNativeUserStateResponse(
       await aletheiaNativeClient.getUserState(userId),
     ) as UserState;
+  }
+
+  async updateSubscriptionTier(tier: SubscriptionTier): Promise<void> {
+    const userId = await getCurrentUserId();
+    const state = await this.getUserState(userId);
+    await this.updateUserState({ ...state, subscription_tier: tier });
   }
 
   async updateUserState(state: UserState): Promise<void> {
