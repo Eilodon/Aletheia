@@ -8,7 +8,7 @@
  *   import { DURATION, EASING, STYLES } from '@/lib/constants/animation';
  */
 
-import { Easing } from 'react-native';
+import { Easing } from 'react-native-reanimated';
 
 // ─── Durations (ms) ──────────────────────────────────────────────────────────
 

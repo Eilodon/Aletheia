@@ -39,12 +39,9 @@ describe("web storage regressions", () => {
     const { clearUserInfo, getUserInfo, setUserInfo } = await import("../lib/auth");
 
     await setUserInfo({
-      id: 7,
-      openId: "user-open-id",
+      id: "user-open-id-7",
       name: "Sensitive Name",
       email: "sensitive@example.com",
-      loginMethod: "oauth",
-      lastSignedIn: new Date("2026-06-02T00:00:00.000Z"),
     });
     const user = await getUserInfo();
     await clearUserInfo();

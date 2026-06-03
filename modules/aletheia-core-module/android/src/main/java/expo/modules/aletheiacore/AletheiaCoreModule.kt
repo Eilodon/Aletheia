@@ -27,6 +27,7 @@ import uniffi.aletheia.ReadingResponse
 import uniffi.aletheia.SourcesResponse
 import uniffi.aletheia.StartInterpretationStreamResponse
 import uniffi.aletheia.Source
+import uniffi.aletheia.SourceType
 import uniffi.aletheia.SubscriptionTier
 import uniffi.aletheia.Symbol
 import uniffi.aletheia.SymbolMethod
@@ -86,7 +87,8 @@ private interface AletheiaCoreClient {
     passage: Map<String, Any?>,
     symbol: Map<String, Any?>,
     situationText: String?,
-    userIntent: String?
+    userIntent: String?,
+    useSonnet: Boolean
   ): Map<String, Any?>
   fun pollInterpretationStream(requestId: String): Map<String, Any?>
   fun cancelInterpretationStream(requestId: String): Map<String, Any?>
@@ -193,12 +195,13 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
     passage: Map<String, Any?>,
     symbol: Map<String, Any?>,
     situationText: String?,
-    userIntent: String?
+    userIntent: String?,
+    useSonnet: Boolean
   ): Map<String, Any?> =
     safeCall {
       serializeStartInterpretationStreamResponse(
         requireCore().startInterpretationStream(
-          deserializePassage(passage), deserializeSymbol(symbol), situationText, userIntent
+          deserializePassage(passage), deserializeSymbol(symbol), situationText, userIntent, useSonnet
         )
       )
     }
@@ -743,7 +746,8 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
       "passage_count" to source.passageCount.toInt(),
       "is_bundled" to source.isBundled,
       "is_premium" to source.isPremium,
-      "fallback_prompts" to source.fallbackPrompts
+      "fallback_prompts" to source.fallbackPrompts,
+      "source_type" to serializeSourceType(source.sourceType)
     )
   }
 
@@ -886,7 +890,8 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
       passageCount = payload.requireInt("passage_count").toUInt(),
       isBundled = payload.requireBoolean("is_bundled"),
       isPremium = payload.requireBoolean("is_premium"),
-      fallbackPrompts = payload.requireStringList("fallback_prompts")
+      fallbackPrompts = payload.requireStringList("fallback_prompts"),
+      sourceType = payload.optionalString("source_type")?.let(::deserializeSourceType) ?: SourceType.BIBLIOMANCY
     )
   }
 
@@ -960,6 +965,23 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
       userIntent = payload.optionalString("user_intent")?.let(::deserializeUserIntent),
       weeklySummaryEnabled = payload.optionalBoolean("weekly_summary_enabled") ?: false
     )
+  }
+
+  private fun serializeSourceType(value: SourceType): String {
+    return when (value) {
+      SourceType.HEXAGRAM -> "hexagram"
+      SourceType.BIBLIOMANCY -> "bibliomancy"
+      SourceType.MEDITATION -> "meditation"
+    }
+  }
+
+  private fun deserializeSourceType(value: String): SourceType {
+    return when (value.lowercase()) {
+      "hexagram" -> SourceType.HEXAGRAM
+      "bibliomancy" -> SourceType.BIBLIOMANCY
+      "meditation" -> SourceType.MEDITATION
+      else -> throw IllegalArgumentException("Unsupported source_type: $value")
+    }
   }
 
   private fun serializeTradition(value: Tradition): String {
@@ -1170,8 +1192,9 @@ class AletheiaCoreModule : Module() {
       passage: Map<String, Any?>,
       symbol: Map<String, Any?>,
       situationText: String?,
-      userIntent: String? ->
-      client.startInterpretationStream(passage, symbol, situationText, userIntent)
+      userIntent: String?,
+      useSonnet: Boolean ->
+      client.startInterpretationStream(passage, symbol, situationText, userIntent, useSonnet)
     }
 
     AsyncFunction("pollInterpretationStream") { requestId: String ->

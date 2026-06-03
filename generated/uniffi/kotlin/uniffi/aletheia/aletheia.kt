@@ -383,69 +383,69 @@ internal interface _UniFFILib : Library {
         }
     }
 
-    fun uniffi_aletheia_core_fn_free_aletheiacore(`ptr`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_free_aletheiacore(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
-    fun uniffi_aletheia_core_fn_constructor_aletheiacore_new(`dbPath`: RustBuffer.ByValue,`giftBackendUrl`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_constructor_aletheiacore_new(`dbPath`: RustBuffer.ByValue,`giftBackendUrl`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Pointer
-    fun uniffi_aletheia_core_fn_method_aletheiacore_bootstrap_bundled_content(`ptr`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_bootstrap_bundled_content(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_cancel_interpretation_stream(`ptr`: Pointer,`requestId`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_cancel_interpretation_stream(`ptr`: Pointer,`requestId`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_cancel_local_model_download(`ptr`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_cancel_local_model_download(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_check_device_capability(`ptr`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_check_device_capability(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_choose_symbol(`ptr`: Pointer,`session`: RustBuffer.ByValue,`symbolId`: RustBuffer.ByValue,`method`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_choose_symbol(`ptr`: Pointer,`session`: RustBuffer.ByValue,`symbolId`: RustBuffer.ByValue,`method`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_complete_reading(`ptr`: Pointer,`userId`: RustBuffer.ByValue,`reading`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_complete_reading(`ptr`: Pointer,`userId`: RustBuffer.ByValue,`reading`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_create_gift(`ptr`: Pointer,`sourceId`: RustBuffer.ByValue,`buyerNote`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_create_gift(`ptr`: Pointer,`sourceId`: RustBuffer.ByValue,`buyerNote`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_delete_local_model(`ptr`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_delete_local_model(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Byte
-    fun uniffi_aletheia_core_fn_method_aletheiacore_get_daily_notification_message(`ptr`: Pointer,`userId`: RustBuffer.ByValue,`date`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_get_daily_notification_message(`ptr`: Pointer,`userId`: RustBuffer.ByValue,`date`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_get_fallback_prompts(`ptr`: Pointer,`sourceId`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_get_fallback_prompts(`ptr`: Pointer,`sourceId`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_get_local_model_status(`ptr`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_get_local_model_status(`ptr`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_get_reading_by_id(`ptr`: Pointer,`id`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_get_reading_by_id(`ptr`: Pointer,`id`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_get_readings(`ptr`: Pointer,`limit`: Int,`offset`: Int,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_get_readings(`ptr`: Pointer,`limit`: Int,`offset`: Int,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_get_sources(`ptr`: Pointer,`premiumAllowed`: Byte,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_get_sources(`ptr`: Pointer,`premiumAllowed`: Byte,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_get_user_state(`ptr`: Pointer,`userId`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_get_user_state(`ptr`: Pointer,`userId`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_perform_reading(`ptr`: Pointer,`userId`: RustBuffer.ByValue,`sourceId`: RustBuffer.ByValue,`situationText`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_perform_reading(`ptr`: Pointer,`userId`: RustBuffer.ByValue,`sourceId`: RustBuffer.ByValue,`situationText`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_poll_interpretation_stream(`ptr`: Pointer,`requestId`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_poll_interpretation_stream(`ptr`: Pointer,`requestId`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_prepare_local_model(`ptr`: Pointer,`forceDownload`: Byte,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_prepare_local_model(`ptr`: Pointer,`forceDownload`: Byte,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_redeem_gift(`ptr`: Pointer,`token`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_redeem_gift(`ptr`: Pointer,`token`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_request_interpretation(`ptr`: Pointer,`passage`: RustBuffer.ByValue,`symbol`: RustBuffer.ByValue,`situationText`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_request_interpretation(`ptr`: Pointer,`passage`: RustBuffer.ByValue,`symbol`: RustBuffer.ByValue,`situationText`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_seed_bundled_data(`ptr`: Pointer,`sourcesJson`: RustBuffer.ByValue,`passagesJson`: RustBuffer.ByValue,`themesJson`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_seed_bundled_data(`ptr`: Pointer,`sourcesJson`: RustBuffer.ByValue,`passagesJson`: RustBuffer.ByValue,`themesJson`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_set_ai_api_key(`ptr`: Pointer,`provider`: RustBuffer.ByValue,`key`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_set_ai_api_key(`ptr`: Pointer,`provider`: RustBuffer.ByValue,`key`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_set_local_date(`ptr`: Pointer,`localDate`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_set_local_date(`ptr`: Pointer,`localDate`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Unit
-    fun uniffi_aletheia_core_fn_method_aletheiacore_start_interpretation_stream(`ptr`: Pointer,`passage`: RustBuffer.ByValue,`symbol`: RustBuffer.ByValue,`situationText`: RustBuffer.ByValue,`userIntent`: RustBuffer.ByValue,`useSonnet`: Byte,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_start_interpretation_stream(`ptr`: Pointer,`passage`: RustBuffer.ByValue,`symbol`: RustBuffer.ByValue,`situationText`: RustBuffer.ByValue,`userIntent`: RustBuffer.ByValue,`useSonnet`: Byte,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_update_reading_flags(`ptr`: Pointer,`id`: RustBuffer.ByValue,`isFavorite`: RustBuffer.ByValue,`shared`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_update_reading_flags(`ptr`: Pointer,`id`: RustBuffer.ByValue,`isFavorite`: RustBuffer.ByValue,`shared`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun uniffi_aletheia_core_fn_method_aletheiacore_update_user_state(`ptr`: Pointer,`state`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun uniffi_aletheia_core_fn_method_aletheiacore_update_user_state(`ptr`: Pointer,`state`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun ffi_aletheia_core_rustbuffer_alloc(`size`: Int,_uniffi_out_err: RustCallStatus,
+    fun ffi_aletheia_core_rustbuffer_alloc(`size`: Int,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun ffi_aletheia_core_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,_uniffi_out_err: RustCallStatus,
+    fun ffi_aletheia_core_rustbuffer_from_bytes(`bytes`: ForeignBytes.ByValue,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
-    fun ffi_aletheia_core_rustbuffer_free(`buf`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus,
+    fun ffi_aletheia_core_rustbuffer_free(`buf`: RustBuffer.ByValue,_uniffi_out_err: RustCallStatus, 
     ): Unit
-    fun ffi_aletheia_core_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Int,_uniffi_out_err: RustCallStatus,
+    fun ffi_aletheia_core_rustbuffer_reserve(`buf`: RustBuffer.ByValue,`additional`: Int,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
     fun ffi_aletheia_core_rust_future_continuation_callback_set(`callback`: UniFffiRustFutureContinuationCallbackType,
     ): Unit
@@ -455,7 +455,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_aletheia_core_rust_future_free_u8(`handle`: Pointer,
     ): Unit
-    fun ffi_aletheia_core_rust_future_complete_u8(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_aletheia_core_rust_future_complete_u8(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Byte
     fun ffi_aletheia_core_rust_future_poll_i8(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -463,7 +463,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_aletheia_core_rust_future_free_i8(`handle`: Pointer,
     ): Unit
-    fun ffi_aletheia_core_rust_future_complete_i8(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_aletheia_core_rust_future_complete_i8(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Byte
     fun ffi_aletheia_core_rust_future_poll_u16(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -471,7 +471,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_aletheia_core_rust_future_free_u16(`handle`: Pointer,
     ): Unit
-    fun ffi_aletheia_core_rust_future_complete_u16(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_aletheia_core_rust_future_complete_u16(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Short
     fun ffi_aletheia_core_rust_future_poll_i16(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -479,7 +479,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_aletheia_core_rust_future_free_i16(`handle`: Pointer,
     ): Unit
-    fun ffi_aletheia_core_rust_future_complete_i16(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_aletheia_core_rust_future_complete_i16(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Short
     fun ffi_aletheia_core_rust_future_poll_u32(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -487,7 +487,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_aletheia_core_rust_future_free_u32(`handle`: Pointer,
     ): Unit
-    fun ffi_aletheia_core_rust_future_complete_u32(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_aletheia_core_rust_future_complete_u32(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Int
     fun ffi_aletheia_core_rust_future_poll_i32(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -495,7 +495,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_aletheia_core_rust_future_free_i32(`handle`: Pointer,
     ): Unit
-    fun ffi_aletheia_core_rust_future_complete_i32(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_aletheia_core_rust_future_complete_i32(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Int
     fun ffi_aletheia_core_rust_future_poll_u64(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -503,7 +503,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_aletheia_core_rust_future_free_u64(`handle`: Pointer,
     ): Unit
-    fun ffi_aletheia_core_rust_future_complete_u64(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_aletheia_core_rust_future_complete_u64(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Long
     fun ffi_aletheia_core_rust_future_poll_i64(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -511,7 +511,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_aletheia_core_rust_future_free_i64(`handle`: Pointer,
     ): Unit
-    fun ffi_aletheia_core_rust_future_complete_i64(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_aletheia_core_rust_future_complete_i64(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Long
     fun ffi_aletheia_core_rust_future_poll_f32(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -519,7 +519,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_aletheia_core_rust_future_free_f32(`handle`: Pointer,
     ): Unit
-    fun ffi_aletheia_core_rust_future_complete_f32(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_aletheia_core_rust_future_complete_f32(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Float
     fun ffi_aletheia_core_rust_future_poll_f64(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -527,7 +527,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_aletheia_core_rust_future_free_f64(`handle`: Pointer,
     ): Unit
-    fun ffi_aletheia_core_rust_future_complete_f64(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_aletheia_core_rust_future_complete_f64(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Double
     fun ffi_aletheia_core_rust_future_poll_pointer(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -535,7 +535,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_aletheia_core_rust_future_free_pointer(`handle`: Pointer,
     ): Unit
-    fun ffi_aletheia_core_rust_future_complete_pointer(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_aletheia_core_rust_future_complete_pointer(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Pointer
     fun ffi_aletheia_core_rust_future_poll_rust_buffer(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -543,7 +543,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_aletheia_core_rust_future_free_rust_buffer(`handle`: Pointer,
     ): Unit
-    fun ffi_aletheia_core_rust_future_complete_rust_buffer(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_aletheia_core_rust_future_complete_rust_buffer(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): RustBuffer.ByValue
     fun ffi_aletheia_core_rust_future_poll_void(`handle`: Pointer,`uniffiCallback`: USize,
     ): Unit
@@ -551,7 +551,7 @@ internal interface _UniFFILib : Library {
     ): Unit
     fun ffi_aletheia_core_rust_future_free_void(`handle`: Pointer,
     ): Unit
-    fun ffi_aletheia_core_rust_future_complete_void(`handle`: Pointer,_uniffi_out_err: RustCallStatus,
+    fun ffi_aletheia_core_rust_future_complete_void(`handle`: Pointer,_uniffi_out_err: RustCallStatus, 
     ): Unit
     fun uniffi_aletheia_core_checksum_method_aletheiacore_bootstrap_bundled_content(
     ): Short
@@ -609,7 +609,7 @@ internal interface _UniFFILib : Library {
     ): Short
     fun ffi_aletheia_core_uniffi_contract_version(
     ): Int
-
+    
 }
 
 private fun uniffiCheckContractApiVersion(lib: _UniFFILib) {
@@ -1050,7 +1050,7 @@ abstract class FFIObject(
 }
 
 public interface AletheiaCoreInterface {
-
+    
     fun `bootstrapBundledContent`(): SeedBundledDataResponse
     fun `cancelInterpretationStream`(`requestId`: String): CancelInterpretationResponse
     fun `cancelLocalModelDownload`(): LocalModelStatusResponse
@@ -1107,13 +1107,13 @@ class AletheiaCore(
         callWithPointer {
     rustCall() { _status ->
     _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_bootstrap_bundled_content(it,
-
+        
         _status)
 }
         }.let {
             FfiConverterTypeSeedBundledDataResponse.lift(it)
         }
-
+    
     override fun `cancelInterpretationStream`(`requestId`: String): CancelInterpretationResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1124,29 +1124,29 @@ class AletheiaCore(
         }.let {
             FfiConverterTypeCancelInterpretationResponse.lift(it)
         }
-
+    
     override fun `cancelLocalModelDownload`(): LocalModelStatusResponse =
         callWithPointer {
     rustCall() { _status ->
     _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_cancel_local_model_download(it,
-
+        
         _status)
 }
         }.let {
             FfiConverterTypeLocalModelStatusResponse.lift(it)
         }
-
+    
     override fun `checkDeviceCapability`(): DeviceCapabilityResponse =
         callWithPointer {
     rustCall() { _status ->
     _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_check_device_capability(it,
-
+        
         _status)
 }
         }.let {
             FfiConverterTypeDeviceCapabilityResponse.lift(it)
         }
-
+    
     override fun `chooseSymbol`(`session`: ReadingSession, `symbolId`: String, `method`: SymbolMethod): ChooseSymbolResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1157,7 +1157,7 @@ class AletheiaCore(
         }.let {
             FfiConverterTypeChooseSymbolResponse.lift(it)
         }
-
+    
     override fun `completeReading`(`userId`: String, `reading`: Reading): CompleteReadingResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1168,7 +1168,7 @@ class AletheiaCore(
         }.let {
             FfiConverterTypeCompleteReadingResponse.lift(it)
         }
-
+    
     override fun `createGift`(`sourceId`: String?, `buyerNote`: String?): CreateGiftResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1179,18 +1179,18 @@ class AletheiaCore(
         }.let {
             FfiConverterTypeCreateGiftResponse.lift(it)
         }
-
+    
     override fun `deleteLocalModel`(): Boolean =
         callWithPointer {
     rustCall() { _status ->
     _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_delete_local_model(it,
-
+        
         _status)
 }
         }.let {
             FfiConverterBoolean.lift(it)
         }
-
+    
     override fun `getDailyNotificationMessage`(`userId`: String, `date`: String): NotificationMessageResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1201,7 +1201,7 @@ class AletheiaCore(
         }.let {
             FfiConverterTypeNotificationMessageResponse.lift(it)
         }
-
+    
     override fun `getFallbackPrompts`(`sourceId`: String): FallbackPromptsResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1212,18 +1212,18 @@ class AletheiaCore(
         }.let {
             FfiConverterTypeFallbackPromptsResponse.lift(it)
         }
-
+    
     override fun `getLocalModelStatus`(): LocalModelStatusResponse =
         callWithPointer {
     rustCall() { _status ->
     _UniFFILib.INSTANCE.uniffi_aletheia_core_fn_method_aletheiacore_get_local_model_status(it,
-
+        
         _status)
 }
         }.let {
             FfiConverterTypeLocalModelStatusResponse.lift(it)
         }
-
+    
     override fun `getReadingById`(`id`: String): ReadingResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1234,7 +1234,7 @@ class AletheiaCore(
         }.let {
             FfiConverterTypeReadingResponse.lift(it)
         }
-
+    
     override fun `getReadings`(`limit`: UInt, `offset`: UInt): PaginatedReadingsResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1245,7 +1245,7 @@ class AletheiaCore(
         }.let {
             FfiConverterTypePaginatedReadingsResponse.lift(it)
         }
-
+    
     override fun `getSources`(`premiumAllowed`: Boolean): SourcesResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1256,7 +1256,7 @@ class AletheiaCore(
         }.let {
             FfiConverterTypeSourcesResponse.lift(it)
         }
-
+    
     override fun `getUserState`(`userId`: String): UserStateResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1267,7 +1267,7 @@ class AletheiaCore(
         }.let {
             FfiConverterTypeUserStateResponse.lift(it)
         }
-
+    
     override fun `performReading`(`userId`: String, `sourceId`: String?, `situationText`: String?): PerformReadingResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1278,7 +1278,7 @@ class AletheiaCore(
         }.let {
             FfiConverterTypePerformReadingResponse.lift(it)
         }
-
+    
     override fun `pollInterpretationStream`(`requestId`: String): InterpretationStreamState =
         callWithPointer {
     rustCall() { _status ->
@@ -1289,7 +1289,7 @@ class AletheiaCore(
         }.let {
             FfiConverterTypeInterpretationStreamState.lift(it)
         }
-
+    
     override fun `prepareLocalModel`(`forceDownload`: Boolean): PrepareLocalModelResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1300,7 +1300,7 @@ class AletheiaCore(
         }.let {
             FfiConverterTypePrepareLocalModelResponse.lift(it)
         }
-
+    
     override fun `redeemGift`(`token`: String): RedeemGiftResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1311,7 +1311,7 @@ class AletheiaCore(
         }.let {
             FfiConverterTypeRedeemGiftResponse.lift(it)
         }
-
+    
     override fun `requestInterpretation`(`passage`: Passage, `symbol`: Symbol, `situationText`: String?): RequestInterpretationResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1322,7 +1322,7 @@ class AletheiaCore(
         }.let {
             FfiConverterTypeRequestInterpretationResponse.lift(it)
         }
-
+    
     override fun `seedBundledData`(`sourcesJson`: String, `passagesJson`: String, `themesJson`: String): SeedBundledDataResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1333,7 +1333,7 @@ class AletheiaCore(
         }.let {
             FfiConverterTypeSeedBundledDataResponse.lift(it)
         }
-
+    
     override fun `setAiApiKey`(`provider`: String, `key`: String): SetApiKeyResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1344,7 +1344,7 @@ class AletheiaCore(
         }.let {
             FfiConverterTypeSetApiKeyResponse.lift(it)
         }
-
+    
     override fun `setLocalDate`(`localDate`: String) =
         callWithPointer {
     rustCall() { _status ->
@@ -1353,8 +1353,8 @@ class AletheiaCore(
         _status)
 }
         }
-
-
+    
+    
     override fun `startInterpretationStream`(`passage`: Passage, `symbol`: Symbol, `situationText`: String?, `userIntent`: String?, `useSonnet`: Boolean): StartInterpretationStreamResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1365,7 +1365,7 @@ class AletheiaCore(
         }.let {
             FfiConverterTypeStartInterpretationStreamResponse.lift(it)
         }
-
+    
     override fun `updateReadingFlags`(`id`: String, `isFavorite`: Boolean?, `shared`: Boolean?): ReadingResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1376,7 +1376,7 @@ class AletheiaCore(
         }.let {
             FfiConverterTypeReadingResponse.lift(it)
         }
-
+    
     override fun `updateUserState`(`state`: UserState): UpdateUserStateResponse =
         callWithPointer {
     rustCall() { _status ->
@@ -1387,12 +1387,12 @@ class AletheiaCore(
         }.let {
             FfiConverterTypeUpdateUserStateResponse.lift(it)
         }
+    
+    
 
-
-
-
+    
     companion object
-
+    
 }
 
 public object FfiConverterTypeAletheiaCore: FfiConverter<AletheiaCore, Pointer> {
@@ -1421,10 +1421,10 @@ public object FfiConverterTypeAletheiaCore: FfiConverter<AletheiaCore, Pointer> 
 
 
 data class AiInterpretation (
-    var `chunks`: List<String>,
+    var `chunks`: List<String>, 
     var `usedFallback`: Boolean
 ) {
-
+    
     companion object
 }
 
@@ -1451,10 +1451,10 @@ public object FfiConverterTypeAIInterpretation: FfiConverterRustBuffer<AiInterpr
 
 
 data class BridgeError (
-    var `code`: String,
+    var `code`: String, 
     var `message`: String
 ) {
-
+    
     companion object
 }
 
@@ -1481,10 +1481,10 @@ public object FfiConverterTypeBridgeError: FfiConverterRustBuffer<BridgeError> {
 
 
 data class CancelInterpretationResponse (
-    var `cancelled`: Boolean,
+    var `cancelled`: Boolean, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -1511,10 +1511,10 @@ public object FfiConverterTypeCancelInterpretationResponse: FfiConverterRustBuff
 
 
 data class ChooseSymbolResponse (
-    var `chosen`: ChosenPassage?,
+    var `chosen`: ChosenPassage?, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -1541,10 +1541,10 @@ public object FfiConverterTypeChooseSymbolResponse: FfiConverterRustBuffer<Choos
 
 
 data class ChosenPassage (
-    var `passage`: Passage,
+    var `passage`: Passage, 
     var `readingId`: String
 ) {
-
+    
     companion object
 }
 
@@ -1571,10 +1571,10 @@ public object FfiConverterTypeChosenPassage: FfiConverterRustBuffer<ChosenPassag
 
 
 data class CompleteReadingResponse (
-    var `completed`: CompletedReading?,
+    var `completed`: CompletedReading?, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -1601,10 +1601,10 @@ public object FfiConverterTypeCompleteReadingResponse: FfiConverterRustBuffer<Co
 
 
 data class CompletedReading (
-    var `readingId`: String,
+    var `readingId`: String, 
     var `savedAt`: Long
 ) {
-
+    
     companion object
 }
 
@@ -1631,11 +1631,11 @@ public object FfiConverterTypeCompletedReading: FfiConverterRustBuffer<Completed
 
 
 data class CreateGiftResponse (
-    var `token`: String?,
-    var `deepLink`: String?,
+    var `token`: String?, 
+    var `deepLink`: String?, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -1665,14 +1665,14 @@ public object FfiConverterTypeCreateGiftResponse: FfiConverterRustBuffer<CreateG
 
 
 data class DeviceCapability (
-    var `supported`: Boolean,
-    var `availableRamMb`: UInt,
-    var `cpuCores`: UInt,
-    var `hasSimd`: Boolean,
-    var `estimatedTps`: Float,
+    var `supported`: Boolean, 
+    var `availableRamMb`: UInt, 
+    var `cpuCores`: UInt, 
+    var `hasSimd`: Boolean, 
+    var `estimatedTps`: Float, 
     var `unsupportedReason`: String?
 ) {
-
+    
     companion object
 }
 
@@ -1711,10 +1711,10 @@ public object FfiConverterTypeDeviceCapability: FfiConverterRustBuffer<DeviceCap
 
 
 data class DeviceCapabilityResponse (
-    var `capability`: DeviceCapability?,
+    var `capability`: DeviceCapability?, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -1741,10 +1741,10 @@ public object FfiConverterTypeDeviceCapabilityResponse: FfiConverterRustBuffer<D
 
 
 data class FallbackPromptsResponse (
-    var `prompts`: List<String>,
+    var `prompts`: List<String>, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -1771,14 +1771,14 @@ public object FfiConverterTypeFallbackPromptsResponse: FfiConverterRustBuffer<Fa
 
 
 data class GiftReadingData (
-    var `token`: String,
-    var `buyerNote`: String?,
-    var `sourceId`: String?,
-    var `createdAt`: Long,
-    var `expiresAt`: Long,
+    var `token`: String, 
+    var `buyerNote`: String?, 
+    var `sourceId`: String?, 
+    var `createdAt`: Long, 
+    var `expiresAt`: Long, 
     var `redeemed`: Boolean
 ) {
-
+    
     companion object
 }
 
@@ -1817,15 +1817,15 @@ public object FfiConverterTypeGiftReadingData: FfiConverterRustBuffer<GiftReadin
 
 
 data class InterpretationStreamState (
-    var `requestId`: String,
-    var `newChunks`: List<String>,
-    var `fullText`: String,
-    var `done`: Boolean,
-    var `usedFallback`: Boolean,
-    var `cancelled`: Boolean,
+    var `requestId`: String, 
+    var `newChunks`: List<String>, 
+    var `fullText`: String, 
+    var `done`: Boolean, 
+    var `usedFallback`: Boolean, 
+    var `cancelled`: Boolean, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -1867,19 +1867,19 @@ public object FfiConverterTypeInterpretationStreamState: FfiConverterRustBuffer<
 
 
 data class LocalModelInfo (
-    var `modelId`: String,
-    var `status`: LocalModelStatus,
-    var `downloadProgress`: UByte,
-    var `modelSizeBytes`: ULong,
-    var `downloadedBytes`: ULong,
-    var `version`: String,
-    var `errorMessage`: String?,
-    var `etaSeconds`: UInt?,
-    var `deviceCapable`: Boolean,
-    var `requiredRamMb`: UInt,
+    var `modelId`: String, 
+    var `status`: LocalModelStatus, 
+    var `downloadProgress`: UByte, 
+    var `modelSizeBytes`: ULong, 
+    var `downloadedBytes`: ULong, 
+    var `version`: String, 
+    var `errorMessage`: String?, 
+    var `etaSeconds`: UInt?, 
+    var `deviceCapable`: Boolean, 
+    var `requiredRamMb`: UInt, 
     var `availableRamMb`: UInt
 ) {
-
+    
     companion object
 }
 
@@ -1933,10 +1933,10 @@ public object FfiConverterTypeLocalModelInfo: FfiConverterRustBuffer<LocalModelI
 
 
 data class LocalModelStatusResponse (
-    var `modelInfo`: LocalModelInfo?,
+    var `modelInfo`: LocalModelInfo?, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -1963,10 +1963,10 @@ public object FfiConverterTypeLocalModelStatusResponse: FfiConverterRustBuffer<L
 
 
 data class NotificationEntry (
-    var `symbolId`: String,
+    var `symbolId`: String, 
     var `question`: String
 ) {
-
+    
     companion object
 }
 
@@ -1993,12 +1993,12 @@ public object FfiConverterTypeNotificationEntry: FfiConverterRustBuffer<Notifica
 
 
 data class NotificationMessage (
-    var `symbolId`: String,
-    var `question`: String,
-    var `title`: String,
+    var `symbolId`: String, 
+    var `question`: String, 
+    var `title`: String, 
     var `body`: String
 ) {
-
+    
     companion object
 }
 
@@ -2031,10 +2031,10 @@ public object FfiConverterTypeNotificationMessage: FfiConverterRustBuffer<Notifi
 
 
 data class NotificationMessageResponse (
-    var `message`: NotificationMessage?,
+    var `message`: NotificationMessage?, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -2061,11 +2061,11 @@ public object FfiConverterTypeNotificationMessageResponse: FfiConverterRustBuffe
 
 
 data class PaginatedReadings (
-    var `items`: List<Reading>,
-    var `totalCount`: UInt,
+    var `items`: List<Reading>, 
+    var `totalCount`: UInt, 
     var `hasMore`: Boolean
 ) {
-
+    
     companion object
 }
 
@@ -2095,10 +2095,10 @@ public object FfiConverterTypePaginatedReadings: FfiConverterRustBuffer<Paginate
 
 
 data class PaginatedReadingsResponse (
-    var `readings`: PaginatedReadings?,
+    var `readings`: PaginatedReadings?, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -2125,14 +2125,14 @@ public object FfiConverterTypePaginatedReadingsResponse: FfiConverterRustBuffer<
 
 
 data class Passage (
-    var `id`: String,
-    var `sourceId`: String,
-    var `reference`: String,
-    var `text`: String,
-    var `context`: String?,
+    var `id`: String, 
+    var `sourceId`: String, 
+    var `reference`: String, 
+    var `text`: String, 
+    var `context`: String?, 
     var `resonanceContext`: String?
 ) {
-
+    
     companion object
 }
 
@@ -2171,10 +2171,10 @@ public object FfiConverterTypePassage: FfiConverterRustBuffer<Passage> {
 
 
 data class PerformReadingResponse (
-    var `session`: ReadingSession?,
+    var `session`: ReadingSession?, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -2201,11 +2201,11 @@ public object FfiConverterTypePerformReadingResponse: FfiConverterRustBuffer<Per
 
 
 data class PrepareLocalModelResponse (
-    var `started`: Boolean,
-    var `modelInfo`: LocalModelInfo?,
+    var `started`: Boolean, 
+    var `modelInfo`: LocalModelInfo?, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -2235,25 +2235,25 @@ public object FfiConverterTypePrepareLocalModelResponse: FfiConverterRustBuffer<
 
 
 data class Reading (
-    var `id`: String,
-    var `createdAt`: Long,
-    var `sourceId`: String,
-    var `passageId`: String,
-    var `themeId`: String,
-    var `symbolChosen`: String,
-    var `symbolMethod`: SymbolMethod,
-    var `situationText`: String?,
-    var `aiInterpreted`: Boolean,
-    var `aiUsedFallback`: Boolean,
-    var `readDurationS`: UInt?,
-    var `timeToAiRequestS`: UInt?,
-    var `notificationOpened`: Boolean,
-    var `moodTag`: MoodTag?,
-    var `isFavorite`: Boolean,
-    var `shared`: Boolean,
+    var `id`: String, 
+    var `createdAt`: Long, 
+    var `sourceId`: String, 
+    var `passageId`: String, 
+    var `themeId`: String, 
+    var `symbolChosen`: String, 
+    var `symbolMethod`: SymbolMethod, 
+    var `situationText`: String?, 
+    var `aiInterpreted`: Boolean, 
+    var `aiUsedFallback`: Boolean, 
+    var `readDurationS`: UInt?, 
+    var `timeToAiRequestS`: UInt?, 
+    var `notificationOpened`: Boolean, 
+    var `moodTag`: MoodTag?, 
+    var `isFavorite`: Boolean, 
+    var `shared`: Boolean, 
     var `userIntent`: UserIntent?
 ) {
-
+    
     companion object
 }
 
@@ -2325,10 +2325,10 @@ public object FfiConverterTypeReading: FfiConverterRustBuffer<Reading> {
 
 
 data class ReadingResponse (
-    var `reading`: Reading?,
+    var `reading`: Reading?, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -2355,15 +2355,15 @@ public object FfiConverterTypeReadingResponse: FfiConverterRustBuffer<ReadingRes
 
 
 data class ReadingSession (
-    var `tempId`: String,
-    var `source`: Source,
-    var `theme`: Theme,
-    var `symbols`: List<Symbol>,
-    var `situationText`: String?,
-    var `userIntent`: UserIntent?,
+    var `tempId`: String, 
+    var `source`: Source, 
+    var `theme`: Theme, 
+    var `symbols`: List<Symbol>, 
+    var `situationText`: String?, 
+    var `userIntent`: UserIntent?, 
     var `startedAt`: Long
 ) {
-
+    
     companion object
 }
 
@@ -2405,10 +2405,10 @@ public object FfiConverterTypeReadingSession: FfiConverterRustBuffer<ReadingSess
 
 
 data class RedeemGiftResponse (
-    var `gift`: GiftReadingData?,
+    var `gift`: GiftReadingData?, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -2435,10 +2435,10 @@ public object FfiConverterTypeRedeemGiftResponse: FfiConverterRustBuffer<RedeemG
 
 
 data class RequestInterpretationResponse (
-    var `interpretation`: AiInterpretation?,
+    var `interpretation`: AiInterpretation?, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -2465,10 +2465,10 @@ public object FfiConverterTypeRequestInterpretationResponse: FfiConverterRustBuf
 
 
 data class SeedBundledDataResponse (
-    var `seeded`: Boolean,
+    var `seeded`: Boolean, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -2495,10 +2495,10 @@ public object FfiConverterTypeSeedBundledDataResponse: FfiConverterRustBuffer<Se
 
 
 data class SetApiKeyResponse (
-    var `applied`: Boolean,
+    var `applied`: Boolean, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -2525,17 +2525,17 @@ public object FfiConverterTypeSetApiKeyResponse: FfiConverterRustBuffer<SetApiKe
 
 
 data class Source (
-    var `id`: String,
-    var `name`: String,
-    var `tradition`: Tradition,
-    var `language`: String,
-    var `passageCount`: UInt,
-    var `isBundled`: Boolean,
-    var `isPremium`: Boolean,
-    var `fallbackPrompts`: List<String>,
+    var `id`: String, 
+    var `name`: String, 
+    var `tradition`: Tradition, 
+    var `language`: String, 
+    var `passageCount`: UInt, 
+    var `isBundled`: Boolean, 
+    var `isPremium`: Boolean, 
+    var `fallbackPrompts`: List<String>, 
     var `sourceType`: SourceType
 ) {
-
+    
     companion object
 }
 
@@ -2583,10 +2583,10 @@ public object FfiConverterTypeSource: FfiConverterRustBuffer<Source> {
 
 
 data class SourcesResponse (
-    var `sources`: List<Source>,
+    var `sources`: List<Source>, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -2613,10 +2613,10 @@ public object FfiConverterTypeSourcesResponse: FfiConverterRustBuffer<SourcesRes
 
 
 data class StartInterpretationStreamResponse (
-    var `requestId`: String?,
+    var `requestId`: String?, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -2643,11 +2643,11 @@ public object FfiConverterTypeStartInterpretationStreamResponse: FfiConverterRus
 
 
 data class Symbol (
-    var `id`: String,
-    var `displayName`: String,
+    var `id`: String, 
+    var `displayName`: String, 
     var `flavorText`: String?
 ) {
-
+    
     companion object
 }
 
@@ -2677,14 +2677,14 @@ public object FfiConverterTypeSymbol: FfiConverterRustBuffer<Symbol> {
 
 
 data class Theme (
-    var `id`: String,
-    var `name`: String,
-    var `symbols`: List<Symbol>,
-    var `isPremium`: Boolean,
-    var `packId`: String?,
+    var `id`: String, 
+    var `name`: String, 
+    var `symbols`: List<Symbol>, 
+    var `isPremium`: Boolean, 
+    var `packId`: String?, 
     var `priceUsd`: Float?
 ) {
-
+    
     companion object
 }
 
@@ -2723,10 +2723,10 @@ public object FfiConverterTypeTheme: FfiConverterRustBuffer<Theme> {
 
 
 data class UpdateUserStateResponse (
-    var `updated`: Boolean,
+    var `updated`: Boolean, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 
@@ -2753,21 +2753,21 @@ public object FfiConverterTypeUpdateUserStateResponse: FfiConverterRustBuffer<Up
 
 
 data class UserState (
-    var `userId`: String,
-    var `subscriptionTier`: SubscriptionTier,
-    var `readingsToday`: UByte,
-    var `aiCallsToday`: UByte,
-    var `sessionCount`: UInt,
-    var `lastReadingDate`: String?,
-    var `notificationEnabled`: Boolean,
-    var `notificationTime`: String?,
-    var `preferredLanguage`: String,
-    var `darkMode`: Boolean,
-    var `onboardingComplete`: Boolean,
-    var `userIntent`: UserIntent?,
+    var `userId`: String, 
+    var `subscriptionTier`: SubscriptionTier, 
+    var `readingsToday`: UByte, 
+    var `aiCallsToday`: UByte, 
+    var `sessionCount`: UInt, 
+    var `lastReadingDate`: String?, 
+    var `notificationEnabled`: Boolean, 
+    var `notificationTime`: String?, 
+    var `preferredLanguage`: String, 
+    var `darkMode`: Boolean, 
+    var `onboardingComplete`: Boolean, 
+    var `userIntent`: UserIntent?, 
     var `weeklySummaryEnabled`: Boolean
 ) {
-
+    
     companion object
 }
 
@@ -2827,10 +2827,10 @@ public object FfiConverterTypeUserState: FfiConverterRustBuffer<UserState> {
 
 
 data class UserStateResponse (
-    var `state`: UserState?,
+    var `state`: UserState?, 
     var `error`: BridgeError?
 ) {
-
+    
     companion object
 }
 

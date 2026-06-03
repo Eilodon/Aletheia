@@ -256,7 +256,8 @@ export default function SettingsScreen() {
                 </View>
                 <View style={[styles.divider, { backgroundColor: colors.primary + "18" }]} />
                 <Pressable
-                  onPress={() => router.push("/(auth)/sign-in")}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  onPress={() => router.push("/(auth)/sign-in" as any)}
                   style={styles.row}
                 >
                   <Text style={[styles.rowLabel, { color: colors.primary }]}>

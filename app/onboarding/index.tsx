@@ -224,7 +224,8 @@ export default function OnboardingScreen() {
               {s.onboarding.stepOf(step + 1, STEPS.length)}
             </Text>
             {currentStep === "welcome" && (
-              <Pressable onPress={() => router.push("/(auth)/sign-in")} hitSlop={8}>
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              <Pressable onPress={() => router.push("/(auth)/sign-in" as any)} hitSlop={8}>
                 <Text style={[styles.authLink, { color: colors.muted }]}>
                   {s.auth.alreadyHaveAccount}{" "}
                   <Text style={{ color: colors.primary }}>{s.auth.signIn}</Text>

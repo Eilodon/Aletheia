@@ -1,6 +1,7 @@
 import { memo, useEffect } from "react";
-import { AppState, Easing, Platform, StyleSheet, View, useWindowDimensions, type ViewStyle } from "react-native";
+import { AppState, Platform, StyleSheet, View, useWindowDimensions, type ViewStyle } from "react-native";
 import Animated, {
+  Easing,
   cancelAnimation,
   useAnimatedStyle,
   useReducedMotion,
