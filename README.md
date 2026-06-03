@@ -2,13 +2,64 @@
 
 > *Không phải lá số. Là chiếc gương.*
 
-AletheiA là ứng dụng đọc triết học cá nhân — mỗi lần mở ra, bạn mô tả điều đang đè nặng lên mình, chọn một biểu tượng, và để một đoạn trích từ Marcus Aurelius, Kinh Dịch, hay Rumi nói điều mà bạn chưa dám tự nói với chính mình. AI diễn giải chỉ khi bạn chủ động yêu cầu — không bao giờ tự động xuất hiện.
+AletheiA không đoán tương lai. Nó tạo ra một không gian tối, chậm và đủ yên để bạn nhìn lại chính mình — qua những đoạn trích triết học từ Marcus Aurelius, Kinh Dịch, Rumi, và các truyền thống minh triết khác.
 
-Mọi thứ ở lại thiết bị của bạn. Không tài khoản. Không cloud sync. Không notification kiểu "Hôm nay bạn chưa thiền!".
+Mỗi lần mở ra là một nghi thức nhỏ: bạn gọi tên điều đang đè nặng, chọn một biểu tượng, và để một đoạn trích nói điều mà bạn chưa dám tự nói với chính mình. AI diễn giải chỉ khi bạn chủ động mời — không bao giờ tự động xuất hiện.
 
 ---
 
-## Bắt đầu
+### Những gì AletheiA sẽ không bao giờ làm
+
+- **Social feed hay community** — một chiếc gương không cần khán giả
+- **Gamification** — không điểm, không streak, không badge
+- **AI chủ động** — AI chỉ xuất hiện khi bạn mời, không bao giờ tự push
+- **Server push notification có chứa nội dung đọc của bạn** — lịch sử đọc ở lại trên thiết bị
+
+---
+
+### Dữ liệu & quyền riêng tư
+
+Lịch sử đọc của bạn được lưu hoàn toàn local trên thiết bị. Bạn có thể dùng AletheiA không cần tài khoản. Nếu đăng nhập, đó là để đồng bộ lịch sử giữa nhiều thiết bị — không có dữ liệu nào được dùng cho quảng cáo hay phân tích cá nhân.
+
+Khi bạn dùng AI: đoạn trích, biểu tượng, và tình huống bạn đã viết được gửi để tạo phản chiếu. Không có gì khác rời khỏi thiết bị.
+
+---
+
+---
+
+## Developer Guide
+
+### Architecture
+
+```
+Expo / React Native (UI)
+        │
+        ▼
+lib/services/core-store.ts      ← single facade — UI only calls this
+        │
+        ├─► Rust core (UniFFI)           ← reading logic, SQLite store, AI client
+        │   core/src/contracts.rs        ← source of truth for all data types
+        │   core/src/aletheia.udl        ← UniFFI interface definition
+        │
+        ├─► InsForge backend             ← auth, optional cloud sync
+        │   lib/services/insforge-client.ts
+        │
+        ├─► TypeScript server            ← AI routing, rate limiting, gift backend
+        │   server/_core/index.ts
+        │
+        └─► JS fallback store            ← web + dev environment fallback
+            lib/services/store.ts
+```
+
+**Hard rules:**
+- UI screens only call `coreStore` — never the native client directly
+- `core/src/contracts.rs` is the single source of truth for data types — change here, then run `pnpm types:sync`
+- AI provider secrets live server-side or in native runtime injection — never in client config
+- AI is fully opt-in — never auto-triggered
+
+---
+
+### Getting Started
 
 ```bash
 pnpm install
@@ -16,237 +67,208 @@ cp .env.example .env
 pnpm dev
 ```
 
-`pnpm dev` khởi động TypeScript server và Expo Metro cùng lúc.
+`pnpm dev` starts the TypeScript server and Expo Metro concurrently.
 
-**Android native (path chính):**
+**Android native (primary path):**
 ```bash
 pnpm rust:android
 pnpm android
 ```
 
-**Kiểm tra nhanh:**
+**Quick sanity check:**
 ```bash
 pnpm verify:fast
 ```
 
 ---
 
-## Kiến trúc tổng quan
-
-```
-Expo/React Native (UI)
-        │
-        ▼
-lib/services/core-store.ts  ← facade duy nhất mà UI gọi
-        │
-        ├─► Rust core (UniFFI)         ← reading logic, store, AI client, gift
-        │   core/src/contracts.rs      ← source of truth cho tất cả data types
-        │   core/src/aletheia.udl      ← UniFFI interface
-        │
-        ├─► TypeScript server          ← AI routing, rate limit, gift backend
-        │   server/_core/index.ts
-        │
-        └─► JS fallback store          ← web + dev fallback
-            lib/services/store.ts
-```
-
-**Nguyên tắc cứng:**
-- UI screens chỉ gọi `coreStore`, không gọi native client trực tiếp
-- `core/src/contracts.rs` là nguồn sự thật duy nhất cho data model — thay đổi ở đây, chạy `pnpm types:sync`
-- Secrets của AI provider ở server hoặc native runtime injection, không bao giờ ở client config
-- AI là opt-in hoàn toàn — không bao giờ tự push kết quả
-
----
-
-## Tính năng thực tế hiện tại
-
-| Tính năng | Trạng thái |
-|---|---|
-| Reading ritual đầy đủ | ✅ situation → wildcard (3 symbols, 8 themes) → passage reveal → optional AI |
-| 6 nguồn triết học | ✅ I Ching, Đạo Đức Kinh, Marcus Aurelius, Rumi, Hafez, Bible KJV (120 passages) |
-| 8 symbol themes | ✅ Khoảnh khắc, Nguyên tố, Sinh linh, Thiên thể, Địa hình, Nghi thức, Hình học, Ngưỡng |
-| AI pipeline | ✅ Ollama → Claude → OpenAI → Gemini → fallback nội tại |
-| Local-first Rust core | ✅ SQLite, UniFFI bridge, no network required for reading |
-| RevenueCat (Pro) | ✅ Android + iOS, graceful degrade khi chưa config |
-| Thông báo hằng ngày | ✅ Local scheduling, gửi passage thật đến lock screen |
-| Gương nhìn lại cuối tuần | ✅ Local-only, device tự query SQLite và schedule Saturday notification |
-| i18n (VI + EN) | ✅ Full coverage tất cả screens |
-| Onboarding passage preview | ✅ Step 3 hiển thị passage thật khớp intent user chọn |
-| Gift flow | ⚠️ Client + Rust sẵn sàng, cần deploy backend (`EXPO_PUBLIC_GIFT_BACKEND_URL`) |
-| Local AI (Android) | ⚠️ Gemma 3-1B, cần real-device test trước khi claim |
-| iOS | ⚠️ Configured nhưng native runtime parity chưa verify |
-
----
-
-## Content Pipeline
-
-Passages được quản lý riêng theo source — dễ edit, dễ mở rộng:
-
-```
-scripts/content/
-  i-ching.ts          ← 35 passages, mỗi cái có resonance_context cho AI
-  tao-te-ching.ts     ← 28 passages
-  marcus-aurelius.ts  ← 20 passages
-  rumi.ts             ← 12 passages
-  hafez.ts            ← 12 passages
-  bible-kjv.ts        ← 13 passages
-```
-
-Để thêm source mới: tạo file trong `scripts/content/`, export `RawPassage[]`, thêm vào `build-content-corpus.ts`.
+### Commands
 
 ```bash
-pnpm content:build    # rebuild bundled-content.json từ source files
-pnpm content:sync     # sync vào lib/data/seed-data.generated.ts
-```
-
-> **`resonance_context`** là trường quan trọng nhất — đây là "lớp ngầm" mà AI dùng để diễn giải sâu hơn mà user không nhìn thấy. Khi thêm passage mới, đây là công việc editorial không thể automate.
-
----
-
-## Commands
-
-```bash
-# Dev
-pnpm dev              # server + metro cùng lúc
-pnpm dev:server       # chỉ server
-pnpm dev:metro        # chỉ expo
+# Development
+pnpm dev              # server + metro concurrently
+pnpm dev:server       # server only
+pnpm dev:metro        # expo only
 
 # Mobile
-pnpm android
-pnpm ios
-pnpm rust:android     # build Rust cho Android
-pnpm rust:ios         # build Rust cho iOS
-pnpm uniffi:generate  # regenerate UniFFI bindings sau khi sửa .udl
+pnpm android          # run on Android
+pnpm ios              # run on iOS
+pnpm rust:android     # build Rust for Android
+pnpm rust:ios         # build Rust for iOS
+pnpm rust:mobile      # build Rust for both platforms
+pnpm uniffi:generate  # regenerate UniFFI bindings after editing .udl
 pnpm native:sync      # sync native staging
 
 # Content & Types
-pnpm content:build    # rebuild core/content/bundled-content.json
 pnpm content:sync     # sync bundled content → seed-data.generated.ts
-pnpm types:sync       # regenerate lib/types.ts từ contracts.rs
+pnpm types:sync       # regenerate lib/types.ts from contracts.rs
 
-# Tests & Checks
-pnpm check            # type check + lint
-pnpm test             # vitest
-pnpm verify:fast      # quick sanity pass
-pnpm verify:release   # full release readiness check
+# Checks & Tests
+pnpm check            # TypeScript type check
+pnpm lint             # ESLint
+pnpm test             # vitest (all tests)
+pnpm verify:fast      # type check + key unit tests
+pnpm verify:medium    # verify:fast + content sync check + integration tests
+pnpm verify:release   # full release readiness (includes Rust build)
 
 # Release
-pnpm build
-pnpm release:report
-eas build --platform android --profile preview --local
+pnpm build                                              # bundle server
+pnpm release:report                                     # release readiness report
+eas build --platform android --profile preview --local  # EAS local build
+
+# Utilities
+pnpm qr               # generate QR for device testing
+pnpm sentry:sourcemaps  # upload source maps to Sentry
 ```
 
 ---
 
-## Environment
+### Environment Variables
 
-Sao chép `.env.example` → `.env`. Dev local chạy được với nhiều giá trị để trống, nhưng beta/release cần giá trị thật.
+Copy `.env.example` → `.env`. Local dev works with many values empty; beta/production builds require real values.
 
-**Core:**
+**Expo / Release identity**
 ```
 EXPO_PUBLIC_EAS_PROJECT_ID
 EXPO_PUBLIC_OWNER_NAME
 APP_ID / EXPO_PUBLIC_APP_ID
-JWT_SECRET
+```
+
+**Backend & API routing**
+```
 API_BASE_URL / EXPO_PUBLIC_API_BASE_URL
-EXPO_PUBLIC_SENTRY_DSN
+JWT_SECRET                    # min 32 chars — generate: openssl rand -hex 32
+CORS_ALLOWED_ORIGINS          # required in production
 ```
 
-**AI (server-side):**
+**InsForge (auth + cloud sync)**
 ```
-ANTHROPIC_API_KEY        ← Claude (Sonnet cho Pro users)
-OPENAI_API_KEY           ← fallback
-GEMINI_API_KEY           ← fallback
-OLLAMA_BASE_URL          ← local inference endpoint
-INTERPRETATION_CLOUD_PROVIDER / MODEL
+EXPO_PUBLIC_INSFORGE_URL
+EXPO_PUBLIC_INSFORGE_ANON_KEY
 ```
 
-**Optional surfaces:**
+**AI (server-side only — no EXPO_PUBLIC_ prefix)**
 ```
-EXPO_PUBLIC_GIFT_BACKEND_URL
+ANTHROPIC_API_KEY
+OPENAI_API_KEY                # fallback
+GEMINI_API_KEY                # fallback
+OLLAMA_BASE_URL               # local inference endpoint
+INTERPRETATION_CLOUD_PROVIDER / INTERPRETATION_CLOUD_MODEL
+```
+
+**Telemetry**
+```
+EXPO_PUBLIC_SENTRY_DSN        # required for beta release readiness
+EXPO_PUBLIC_POSTHOG_API_KEY   # recommended, non-blocking
+```
+
+**Optional product surfaces**
+```
 EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID
 EXPO_PUBLIC_REVENUECAT_API_KEY_IOS
-EXPO_PUBLIC_POSTHOG_API_KEY
-```
-
-```bash
-bash scripts/validate-env.sh   # kiểm tra env trước khi release
+EXPO_PUBLIC_GIFT_BACKEND_URL
+LOCAL_AI_URL / LOCAL_AI_MODEL
 ```
 
 ---
 
-## Triết lý thiết kế (anti-patterns)
+### Feature Status
 
-Một số thứ sẽ không bao giờ có trong AletheiA:
-
-- **Social feed / community** — phá vỡ triết lý gương riêng tư
-- **Gamification (points, streaks, badges)** — depth score chỉ là filter, không phải reward
-- **AI chủ động** — AI chỉ xuất hiện khi user yêu cầu, không bao giờ tự push
-- **Account / social login** — local-first nghĩa là local-first
-- **Server push notification có chứa reading history** — vi phạm privacy. Weekly summary dùng local scheduling hoàn toàn
-- **Reset giới hạn Free tier** bằng cách track Device ID — lỗ hổng delete/reinstall là intentional. Người cần đọc thì để họ đọc.
+| Feature | Status |
+|---|---|
+| Full reading ritual | ✅ situation → wildcard → passage → optional AI |
+| 6 philosophical sources | ✅ I Ching, Tao Te Ching, Marcus Aurelius, Rumi, Hafez, Bible KJV |
+| 8 symbol themes | ✅ Moment, Elements, Creatures, Celestial, Terrain, Ritual, Geometric, Threshold |
+| AI interpretation (opt-in) | ✅ multi-provider with internal fallback |
+| Local-first Rust core | ✅ SQLite via UniFFI, no network required for reading |
+| Aftertaste / mood tag | ✅ post-reading emotional reflection chips |
+| Daily passage notification | ✅ local scheduling, real passage to lock screen |
+| Weekly mirror summary | ✅ local-only, device queries SQLite and schedules Saturday notification |
+| i18n (VI + EN) | ✅ full coverage across all screens |
+| Onboarding passage preview | ✅ step 3 shows a real passage matched to chosen intent |
+| Account & cross-device sync | ✅ InsForge auth — optional, guest mode always available |
+| RevenueCat (Pro tier) | ✅ Android + iOS, graceful degrade when unconfigured |
+| Gift flow | ⚠️ client + Rust ready, requires `EXPO_PUBLIC_GIFT_BACKEND_URL` deployed |
+| Local AI (Android) | ⚠️ integrated, pending real-device validation |
+| iOS native parity | ⚠️ configured, parity with Android not yet verified |
 
 ---
 
-## Cấu trúc project
+### Project Structure
 
 ```
-app/                          Expo Router screens
-  (tabs)/                     Home, Mirror, Settings
-  reading/                    Situation → Wildcard → Passage flow
-  onboarding/                 3-step onboarding với passage preview
-  .paywall/                   RevenueCat paywall
+app/
+  (tabs)/           Home, Mirror, Settings
+  (auth)/           Sign-in / sign-up screens
+  reading/          Situation → Wildcard → Passage flow
+  onboarding/       3-step onboarding with passage preview
+  .paywall/         RevenueCat paywall
+  .gift/            Gift creation and redemption
 
-components/                   Shared UI components
+components/         Shared UI components
 lib/
-  services/core-store.ts      Facade chính — UI chỉ gọi đây
-  services/reading-engine.ts  Reading logic (JS fallback path)
-  services/notification-service.ts  Daily + weekly local notifications
-  services/purchases.ts       RevenueCat wrapper
-  context/reading-context.tsx Reading session state
-  i18n/                       VI + EN strings
+  services/
+    core-store.ts           Primary facade — UI only calls this
+    insforge-client.ts      InsForge SDK instance
+    reading-engine.ts       Reading logic (JS fallback path)
+    notification-service.ts Daily + weekly local notifications
+    purchases.ts            RevenueCat wrapper
+  context/
+    reading-context.tsx     Reading session state
+  auth.ts                   Auth helpers (wraps InsForge auth)
+  i18n/                     VI + EN strings
+  utils/
+    haptics.ts              Haptic feedback utilities
+    crisis-guard.ts         Crisis detection
   data/
-    seed-data.generated.ts    AUTO-GENERATED — không edit tay
-    onboarding-content.ts     Preview passages cho onboarding
+    seed-data.generated.ts  AUTO-GENERATED — do not edit directly
+    onboarding-content.ts   Preview passages for onboarding
 
-core/src/                     Rust domain logic
-  contracts.rs                Data types — source of truth
-  lib.rs                      UniFFI exported functions
-  reading.rs                  Reading flow
-  store.rs                    SQLite store + migrations (hiện tại: v9)
-  gift_client.rs              Gift HTTP client
+core/src/                   Rust domain logic (UniFFI)
+  contracts.rs              Data types — source of truth
+  lib.rs                    UniFFI exported functions
+  reading.rs                Reading flow
+  store.rs                  SQLite store + migrations
+  gift_client.rs            Gift HTTP client
 
 scripts/
-  content/                    Passage source files — edit ở đây
-  build-content-corpus.ts     Assembles bundled-content.json
-  sync-bundled-content.ts     JSON → seed-data.generated.ts
-  sync-types.ts               contracts.rs → lib/types.ts
+  content/                  Passage source files — edit here to add content
+  build-content-corpus.ts   Assembles bundled-content.json
+  sync-bundled-content.ts   JSON → seed-data.generated.ts
+  sync-types.ts             contracts.rs → lib/types.ts
+  validate-env.sh           Pre-release environment check
 
 server/_core/
-  index.ts                    Express server
-  interpretationService.ts    AI routing + prompt + safety
-  rateLimit.ts                Server-side rate limiting
+  index.ts                  Express server
+  interpretationService.ts  AI routing, prompting, safety
+  rateLimit.ts              Server-side rate limiting
+
+tests/                      Vitest unit + integration tests
 ```
 
 ---
 
-## Local AI (Android)
+### Content Pipeline
+
+Passages are managed per source — easy to edit and extend:
 
 ```
-Model:  gemma-3-1b-it-qat-q4_0
-File:   gemma-3-1b-it-q4_0.gguf  (~529 MB)
-Source: HuggingFace google/gemma-3-1b-it-qat-q4_0-gguf
+scripts/content/
+  i-ching.ts
+  tao-te-ching.ts
+  marcus-aurelius.ts
+  rumi.ts
+  hafez.ts
+  bible-kjv.ts
 ```
 
-Không claim local AI parity trên iOS hoặc "fully offline AI" cho đến khi real-device test xong.
+To add a new source: create a file in `scripts/content/`, export `RawPassage[]`, add it to `build-content-corpus.ts`, then run:
 
----
+```bash
+pnpm content:sync
+```
 
-## Docs
-
-- [docs/BETA_IMPLEMENTATION_ROADMAP.md](docs/BETA_IMPLEMENTATION_ROADMAP.md)
-- [docs/BETA_RELEASE_CHECKLIST.md](docs/BETA_RELEASE_CHECKLIST.md)
-- [docs/CORE/](docs/CORE/) — ADR, Blueprint, Contracts
+Each passage should include a `resonance_context` field — a short editorial note that helps the AI interpretation layer connect the passage to the reader's situation more precisely. This is the part that cannot be automated.
 
 ---
 
