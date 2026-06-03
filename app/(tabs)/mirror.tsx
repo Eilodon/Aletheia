@@ -243,7 +243,7 @@ export default function HistoryScreen() {
             onChangeText={setSearchQuery}
             placeholder={s.mirror.searchPlaceholder}
             placeholderTextColor={colors.muted}
-            style={{ color: colors.foreground, paddingVertical: 12, fontSize: 14 }}
+            style={{ color: colors.foreground, paddingVertical: 12, fontSize: 14, fontFamily: Fonts.body }}
           />
         </View>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>

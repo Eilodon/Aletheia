@@ -6,6 +6,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { coreStore } from "@/lib/services/core-store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
 import * as Haptics from "expo-haptics";
+import { Fonts } from "@/constants/theme";
 
 interface GiftSource {
   id: string;
@@ -280,6 +281,7 @@ export default function GiftCreateScreen() {
               multiline
               numberOfLines={3}
               className="bg-muted/20 rounded-xl p-4 text-base text-foreground"
+              style={{ fontFamily: Fonts.body }}
               maxLength={200}
             />
             <Text className="text-xs text-muted text-right mt-2">
