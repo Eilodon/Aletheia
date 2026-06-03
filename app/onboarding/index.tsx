@@ -223,6 +223,14 @@ export default function OnboardingScreen() {
             <Text style={[styles.stepText, { color: colors.muted }]}>
               {s.onboarding.stepOf(step + 1, STEPS.length)}
             </Text>
+            {currentStep === "welcome" && (
+              <Pressable onPress={() => router.push("/(auth)/sign-in")} hitSlop={8}>
+                <Text style={[styles.authLink, { color: colors.muted }]}>
+                  {s.auth.alreadyHaveAccount}{" "}
+                  <Text style={{ color: colors.primary }}>{s.auth.signIn}</Text>
+                </Text>
+              </Pressable>
+            )}
           </View>
         </Animated.View>
       </View>
@@ -253,4 +261,5 @@ const styles = StyleSheet.create({
   primaryButton: { borderRadius: 22, borderWidth: 1.2, paddingHorizontal: 24, paddingVertical: 18, alignItems: "center" },
   primaryButtonText: { fontSize: 18, letterSpacing: 1.2, textAlign: "center", textTransform: "uppercase" },
   stepText: { textAlign: "center", fontSize: 12 },
+  authLink: { fontSize: 13, textAlign: "center" },
 });

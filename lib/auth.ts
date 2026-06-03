@@ -1,91 +1,64 @@
-import * as SecureStore from "expo-secure-store";
-import { Platform } from "react-native";
-import { SESSION_TOKEN_KEY, USER_INFO_KEY } from "@/constants/oauth";
+import { insforge } from "@/lib/services/insforge-client";
 
 export type User = {
-  id: number;
-  openId: string;
-  name: string | null;
+  id: string;
   email: string | null;
-  loginMethod: string | null;
-  lastSignedIn: Date;
+  name: string | null;
 };
-
-export async function getSessionToken(): Promise<string | null> {
-  try {
-    if (Platform.OS === "web") {
-      return null;
-    }
-
-    return await SecureStore.getItemAsync(SESSION_TOKEN_KEY);
-  } catch (error) {
-    console.error("[Auth] Failed to get session token:", error);
-    return null;
-  }
-}
-
-export async function setSessionToken(token: string): Promise<void> {
-  try {
-    if (Platform.OS === "web") {
-      return;
-    }
-
-    await SecureStore.setItemAsync(SESSION_TOKEN_KEY, token);
-  } catch (error) {
-    console.error("[Auth] Failed to set session token:", error);
-    throw error;
-  }
-}
-
-export async function removeSessionToken(): Promise<void> {
-  try {
-    if (Platform.OS === "web") {
-      return;
-    }
-
-    await SecureStore.deleteItemAsync(SESSION_TOKEN_KEY);
-  } catch (error) {
-    console.error("[Auth] Failed to remove session token:", error);
-  }
-}
 
 export async function getUserInfo(): Promise<User | null> {
   try {
-    if (Platform.OS === "web") {
-      return null;
-    }
-
-    const info = await SecureStore.getItemAsync(USER_INFO_KEY);
-    if (!info) {
-      return null;
-    }
-    return JSON.parse(info);
-  } catch (error) {
-    console.error("[Auth] Failed to get user info:", error);
+    const { data, error } = await insforge.auth.getCurrentUser();
+    if (error || !data?.user) return null;
+    return {
+      id: data.user.id,
+      email: (data.user as { email?: string }).email ?? null,
+      name: (data.user as { name?: string }).name ?? null,
+    };
+  } catch {
     return null;
   }
 }
 
-export async function setUserInfo(user: User): Promise<void> {
-  try {
-    if (Platform.OS === "web") {
-      return;
-    }
-
-    await SecureStore.setItemAsync(USER_INFO_KEY, JSON.stringify(user));
-  } catch (error) {
-    console.error("[Auth] Failed to set user info:", error);
-  }
+export async function signIn(email: string, password: string): Promise<User> {
+  const { data, error } = await insforge.auth.signInWithPassword({ email, password });
+  if (error) throw new Error((error as { message?: string }).message ?? "Sign in failed");
+  if (!data?.user) throw new Error("Sign in failed");
+  return {
+    id: data.user.id,
+    email: (data.user as { email?: string }).email ?? null,
+    name: (data.user as { name?: string }).name ?? null,
+  };
 }
 
-export async function clearUserInfo(): Promise<void> {
-  try {
-    if (Platform.OS === "web") {
-      return;
-    }
-
-    await SecureStore.deleteItemAsync(USER_INFO_KEY);
-  } catch (error) {
-    console.error("[Auth] Failed to clear user info:", error);
-  }
+export async function signUp(
+  email: string,
+  password: string,
+  name?: string,
+): Promise<{ requireEmailVerification: boolean }> {
+  const { data, error } = await insforge.auth.signUp({ email, password, name });
+  if (error) throw new Error((error as { message?: string }).message ?? "Sign up failed");
+  return {
+    requireEmailVerification:
+      (data as { requireEmailVerification?: boolean })?.requireEmailVerification ?? false,
+  };
 }
+
+export async function verifyEmail(email: string, otp: string): Promise<User> {
+  const { data, error } = await insforge.auth.verifyEmail({ email, otp });
+  if (error) throw new Error((error as { message?: string }).message ?? "Verification failed");
+  const user = (data as { user?: { id: string; email?: string; name?: string } }).user;
+  if (!user) throw new Error("Verification failed");
+  return { id: user.id, email: user.email ?? null, name: user.name ?? null };
+}
+
+export async function signOut(): Promise<void> {
+  await insforge.auth.signOut();
+}
+
+// Legacy stubs — InsForge manages sessions internally
+export async function getSessionToken(): Promise<string | null> { return null; }
+export async function setSessionToken(_token: string): Promise<void> {}
+export async function removeSessionToken(): Promise<void> {}
+export async function setUserInfo(_user: User): Promise<void> {}
+export async function clearUserInfo(): Promise<void> { await signOut(); }

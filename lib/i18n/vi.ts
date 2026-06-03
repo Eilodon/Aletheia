@@ -235,6 +235,30 @@ export const vi = {
     deleteAllConfirmYes: "Xóa tất cả",
     deleteAllSuccess: "Đã xóa toàn bộ",
   },
+
+  auth: {
+    signIn: "Đăng nhập",
+    signUp: "Tạo tài khoản",
+    signOut: "Đăng xuất",
+    continueAsGuest: "Tiếp tục không cần tài khoản",
+    email: "Email",
+    password: "Mật khẩu",
+    name: "Tên của bạn (tùy chọn)",
+    alreadyHaveAccount: "Đã có tài khoản?",
+    noAccount: "Chưa có tài khoản?",
+    verifyEmailTitle: "Xác thực email",
+    verifyEmailBody: "Chúng tôi đã gửi mã 6 chữ số đến email của bạn.",
+    verifyCode: "Nhập mã xác thực",
+    verify: "Xác thực",
+    resendCode: "Gửi lại mã",
+    signedInAs: "Đã đăng nhập",
+    guestMode: "Chế độ khách",
+    accountBenefits: "Đăng nhập để đồng bộ lịch sử đọc trên nhiều thiết bị.",
+    errorInvalid: "Email hoặc mật khẩu không đúng.",
+    errorGeneric: "Đã có lỗi xảy ra. Vui lòng thử lại.",
+    orContinueWith: "hoặc",
+    backToSignIn: "Quay lại đăng nhập",
+  },
 };
 
 export type Strings = typeof vi;

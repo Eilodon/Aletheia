@@ -213,7 +213,13 @@ export function createApp() {
 
     if (hasBearer) {
       try {
-        await sdk.authenticateRequest(req);
+        const token = (authHeader as string).slice(7);
+        const insforgeUrl = process.env.INSFORGE_URL;
+        if (!insforgeUrl) throw new Error("InsForge not configured");
+        const resp = await fetch(`${insforgeUrl}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!resp.ok) throw new Error(`InsForge rejected token: ${resp.status}`);
         next();
         return;
       } catch (error) {

@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback } from "react";
 import { View, ScrollView, StyleSheet, Text, Switch, Pressable, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import Constants from "expo-constants";
 import { useColors } from "@/hooks/use-colors";
 import { Fonts } from "@/constants/theme";
 import { coreStore } from "@/lib/services/core-store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
 import { setLocale, useStrings } from "@/lib/i18n";
+import { getUserInfo, signOut, type User } from "@/lib/auth";
 import {
   requestNotificationPermission,
   scheduleDailyPassage,
@@ -33,7 +35,10 @@ export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const s = useStrings();
+  const router = useRouter();
 
+  const [currentUser, setCurrentUser] = useState<User | null | undefined>(undefined);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [userState, setUserState] = useState<UserState | null>(null);
   const [isTogglingNotification, setIsTogglingNotification] = useState(false);
   const [notificationError, setNotificationError] = useState<string | null>(null);
@@ -54,6 +59,20 @@ export default function SettingsScreen() {
   }, []);
 
   useEffect(() => { loadUserState(); }, [loadUserState]);
+
+  useEffect(() => { getUserInfo().then(setCurrentUser); }, []);
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    try {
+      await signOut();
+      setCurrentUser(null);
+    } catch (e) {
+      console.error("[settings] sign out failed:", e);
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
 
   useEffect(() => {
     checkAnalyticsConsent().then(setAnalyticsEnabled);
@@ -202,6 +221,54 @@ export default function SettingsScreen() {
       <Text style={[styles.subtitle, { color: colors.muted }]}>
         {s.settings.subtitle}
       </Text>
+
+      {/* Account */}
+      {currentUser !== undefined && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.muted }]}>
+            {currentUser ? s.auth.signedInAs : s.auth.guestMode}
+          </Text>
+          <View style={[styles.card, { backgroundColor: colors.surface + "C8", borderColor: colors.primary + "22" }]}>
+            {currentUser ? (
+              <>
+                <View style={styles.row}>
+                  <Text style={[styles.rowLabel, { color: colors.foreground }]} numberOfLines={1}>
+                    {currentUser.email ?? currentUser.name ?? currentUser.id}
+                  </Text>
+                </View>
+                <View style={[styles.divider, { backgroundColor: colors.primary + "18" }]} />
+                <Pressable
+                  onPress={handleSignOut}
+                  disabled={isSigningOut}
+                  style={[styles.row, { opacity: isSigningOut ? 0.5 : 1 }]}
+                >
+                  <Text style={[styles.rowLabel, { color: "#E07070" }]}>
+                    {s.auth.signOut}
+                  </Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <View style={styles.row}>
+                  <Text style={[styles.rowSubLabel, { color: colors.muted }]}>
+                    {s.auth.accountBenefits}
+                  </Text>
+                </View>
+                <View style={[styles.divider, { backgroundColor: colors.primary + "18" }]} />
+                <Pressable
+                  onPress={() => router.push("/(auth)/sign-in")}
+                  style={styles.row}
+                >
+                  <Text style={[styles.rowLabel, { color: colors.primary }]}>
+                    {s.auth.signIn}
+                  </Text>
+                  <Text style={{ color: colors.primary, fontSize: 14 }}>→</Text>
+                </Pressable>
+              </>
+            )}
+          </View>
+        </View>
+      )}
 
       {/* Language */}
       <View style={styles.section}>
