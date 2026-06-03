@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
-import * as Haptics from "expo-haptics";
+import { haptic } from "@/lib/utils/haptics";
 
 import { Fonts } from "@/constants/theme";
 import { RitualOrnament } from "@/components/ritual-ornament";
@@ -100,7 +100,7 @@ export default function ReadingDetailScreen() {
   const handleToggleFavorite = async () => {
     if (!reading || isSavingFavorite) return;
     setIsSavingFavorite(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic("navigation");
 
     try {
       await syncFlags({ is_favorite: !reading.is_favorite });
@@ -119,7 +119,7 @@ export default function ReadingDetailScreen() {
 
   const handleShareAgain = async () => {
     if (!reading || isSharing) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic("confirm");
     setIsSharing(true);
 
     try {
@@ -145,7 +145,7 @@ export default function ReadingDetailScreen() {
 
   const handleDelete = () => {
     if (!reading || isDeleting) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic("confirm");
     Alert.alert(
       "Xóa lần đọc?",
       "Lần đọc này sẽ bị xóa khỏi Gương. Không thể hoàn tác.",
@@ -159,7 +159,7 @@ export default function ReadingDetailScreen() {
             try {
               await coreStore.deleteReading(reading.id);
               trackArchiveEvent("reading_deleted", { reading_id: reading.id, source_id: reading.source_id });
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              haptic("success");
               router.back();
             } catch (error) {
               console.error("Failed to delete reading:", error);
@@ -175,7 +175,7 @@ export default function ReadingDetailScreen() {
   const handleToggleHideSituation = async () => {
     if (!reading || isHidingSituation) return;
     setIsHidingSituation(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic("navigation");
     try {
       const updated = await coreStore.updateReadingFlags(reading.id, {
         hide_situation: !reading.hide_situation,
@@ -191,7 +191,7 @@ export default function ReadingDetailScreen() {
   const handleReopen = async () => {
     if (!reading || isReopening) return;
     setIsReopening(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic("confirm");
 
     try {
       await startReading(reading.source_id, reading.situation_text);
@@ -210,7 +210,7 @@ export default function ReadingDetailScreen() {
   const handleGift = async () => {
     if (!reading || isGifting) return;
     setIsGifting(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic("confirm");
     trackGiftEvent("create_attempted", {
       reading_id: reading.id,
       source_id: reading.source_id,

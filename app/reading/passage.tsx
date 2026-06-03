@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import * as Haptics from "expo-haptics";
+import { haptic } from "@/lib/utils/haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
@@ -75,7 +75,7 @@ export default function PassageScreen() {
       console.error("AI request failed:", error);
       setShowAI(false);
       showToast("warn", s.passage.aiError);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptic("error");
     } finally {
       setIsRequestingAI(false);
     }
@@ -83,7 +83,7 @@ export default function PassageScreen() {
 
   const handleRequestAI = async () => {
     if (isRequestingAI || isCompleting || aiResponse) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic("confirm");
     const seen = await AsyncStorage.getItem(AI_TRUST_KEY).catch(() => "1");
     if (!seen) {
       setShowTrustSheet(true);
@@ -104,7 +104,7 @@ export default function PassageScreen() {
 
   const handleComplete = async () => {
     if (isCompleting) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic("navigation");
     setIsCompleting(true);
     try {
       await saveReading();
@@ -115,14 +115,14 @@ export default function PassageScreen() {
     } catch (error) {
       console.error("Failed to save:", error);
       showToast("warn", s.passage.saveError);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptic("error");
       setIsCompleting(false);
     }
   };
 
   const handleShare = () => {
     if (isCompleting || isRequestingAI) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic("confirm");
     if (!session) return;
     trackShareEvent("entry", { source_id: session.source.id, symbol_id: selectedSymbol?.id, from: "passage" });
     router.push("/reading/share-card");
@@ -252,7 +252,7 @@ export default function PassageScreen() {
                     <Pressable
                       key={tag}
                       onPress={() => {
-                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        haptic("selection");
                         selectAftertaste(active ? null : tag);
                       }}
                       style={[

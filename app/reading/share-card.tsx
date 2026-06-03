@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Animated, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { captureRef } from "react-native-view-shot";
-import * as Haptics from "expo-haptics";
+import { haptic } from "@/lib/utils/haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
@@ -107,7 +107,7 @@ export default function ShareCardScreen() {
 
   const handleShare = async () => {
     if (!passage || !selectedSymbol) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic("confirm");
     setIsSharing(true);
 
     try {
@@ -148,7 +148,7 @@ export default function ShareCardScreen() {
 
   const handleCopyText = async () => {
     if (!passage || !selectedSymbol) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic("navigation");
 
     try {
       await Share.share({
@@ -212,7 +212,7 @@ export default function ShareCardScreen() {
                 <Pressable
                   key={theme.key}
                   onPress={() => {
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    haptic("selection");
                     setSelectedTheme(theme.key);
                     trackShareEvent("theme_changed", { theme: theme.key });
                   }}

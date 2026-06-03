@@ -178,6 +178,7 @@ export const vi = {
     hideSituationOn: "Ẩn tình huống",
     hideSituationOff: "Hiện tình huống",
     situationHidden: "· · ·",
+    a11yOpenReading: "Mở lần đọc",
   },
 
   preview: {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import * as Haptics from "expo-haptics";
+import { haptic } from "@/lib/utils/haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
@@ -51,7 +51,7 @@ function SymbolCard({
       accessibilityLabel={`symbol-card-${symbol.id}`}
       onPress={() => {
         if (!isRevealed || isSelected) return;
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        haptic("emphasis");
         onSelect();
       }}
       disabled={!isRevealed || isSelected}
@@ -112,7 +112,7 @@ export default function WildcardScreen() {
   useEffect(() => {
     const timeout = setTimeout(() => {
       setIsRevealed(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      haptic("success");
     }, 1100);
     return () => clearTimeout(timeout);
   }, []);
@@ -120,14 +120,14 @@ export default function WildcardScreen() {
   const handleAutoChoose = useCallback(async () => {
     if (!session || isAutoSelecting || selectedSymbolId) return;
     setIsAutoSelecting(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    haptic("heavy");
     try {
       const randomIndex = secureRandomIndex(session.symbols.length);
       await chooseSymbol(session.symbols[randomIndex].id, SymbolMethod.Auto);
       router.push("/reading/ritual");
     } catch (error) {
       console.error("Failed to auto choose:", error);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptic("error");
       showToast("error", s.wildcard.error);
       setIsAutoSelecting(false);
     }
@@ -143,7 +143,7 @@ export default function WildcardScreen() {
         router.push("/reading/ritual");
       } catch (error) {
         console.error("Failed to choose symbol:", error);
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        haptic("error");
         showToast("error", s.wildcard.error);
         setIsAutoSelecting(false);
       }

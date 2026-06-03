@@ -176,6 +176,7 @@ export const en: Strings = {
     hideSituationOn: "Hide situation",
     hideSituationOff: "Show situation",
     situationHidden: "· · ·",
+    a11yOpenReading: "Open reading",
   },
 
   preview: {

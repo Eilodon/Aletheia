@@ -11,7 +11,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { Animated, Pressable, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Haptics from 'expo-haptics';
+import { haptic } from '@/lib/utils/haptics';
 import { RitualOrnament } from './ritual-ornament';
 import { useColors } from '@/hooks/use-colors';
 import { Fonts } from '@/constants/theme';
@@ -51,7 +51,7 @@ export function GatewayReveal({ onComplete }: Props) {
   }, [onComplete, rootOpacity]);
 
   const handleSkip = useCallback(async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic("navigation");
     complete();
   }, [complete]);
 
