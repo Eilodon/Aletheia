@@ -967,7 +967,17 @@ export async function streamInterpretation(
 
   try {
     if (mode !== "quality") {
-      return withOutputSafety(await runOllamaInterpretation(request, onEvent), request);
+      const ollamaBuffer: InterpretationStreamEvent[] = [];
+      const bufferOllama = (evt: InterpretationStreamEvent) => { ollamaBuffer.push(evt); };
+      const rawOllama = await runOllamaInterpretation(request, bufferOllama);
+      const safeOllama = withOutputSafety(rawOllama, request);
+      if (safeOllama.text === rawOllama.text) {
+        for (const evt of ollamaBuffer) onEvent(evt);
+      } else {
+        onEvent({ type: "chunk", chunk: safeOllama.text });
+        onEvent({ type: "done", text: safeOllama.text, usedFallback: safeOllama.usedFallback, mode: safeOllama.mode, provider: safeOllama.provider, model: safeOllama.model });
+      }
+      return safeOllama;
     }
   } catch (primaryError) {
     logger.warn("[interpretation] local stream failed", {
@@ -978,16 +988,26 @@ export async function streamInterpretation(
 
   try {
     const config = getCloudProviderConfig();
-    // Native streaming: Anthropic SSE, Gemini SSE. OpenAI: batch + chunked emit.
+    // Buffer streaming events; apply withOutputSafety before emitting to client.
+    // This ensures no unsafe text reaches the UI before the safety gate runs.
+    const cloudBuffer: InterpretationStreamEvent[] = [];
+    const bufferCloud = (evt: InterpretationStreamEvent) => { cloudBuffer.push(evt); };
     const rawCloud = config?.kind === "anthropic"
-      ? await runAnthropicInterpretation(request, onEvent)
+      ? await runAnthropicInterpretation(request, bufferCloud)
       : config?.kind === "gemini"
-        ? await runGeminiStreamInterpretation(request, onEvent)
+        ? await runGeminiStreamInterpretation(request, bufferCloud)
         : await runCloudInterpretation(request);
 
     const cloudResult = withOutputSafety(rawCloud, request);
 
-    if (config?.kind !== "gemini" && config?.kind !== "anthropic") {
+    if (config?.kind === "anthropic" || config?.kind === "gemini") {
+      if (cloudResult.text === rawCloud.text) {
+        for (const evt of cloudBuffer) onEvent(evt);
+      } else {
+        onEvent({ type: "chunk", chunk: cloudResult.text });
+        onEvent({ type: "done", text: cloudResult.text, usedFallback: cloudResult.usedFallback, mode: cloudResult.mode, provider: cloudResult.provider, model: cloudResult.model });
+      }
+    } else {
       for (const chunk of cloudResult.chunks) {
         onEvent({ type: "chunk", chunk });
       }

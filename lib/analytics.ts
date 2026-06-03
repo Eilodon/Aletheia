@@ -80,6 +80,10 @@ class Analytics {
     this.queue = [];
   }
 
+  get consentGranted(): boolean {
+    return this.enabled;
+  }
+
   /**
    * Track an analytics event
    */
@@ -274,6 +278,8 @@ export const flushAnalytics = () => analytics.flush();
 export const initAnalytics = () => analytics.init();
 export const grantAnalyticsConsent = () => analytics.grantConsent();
 export const revokeAnalyticsConsent = () => analytics.revokeConsent();
+export const getAnalyticsConsent = () => analytics.consentGranted;
+export const checkAnalyticsConsent = () => loadStoredConsent();
 
 export const trackRitualEvent = (
   step:
@@ -296,7 +302,8 @@ export const trackArchiveEvent = (
     | "sort_changed"
     | "reading_opened"
     | "favorite_toggled"
-    | "reopened",
+    | "reopened"
+    | "reading_deleted",
   properties?: Record<string, unknown>,
 ) => track(`archive_${action}`, properties);
 

@@ -77,6 +77,14 @@ export const vi = {
     ctaLoading: "Đang chuẩn bị...",
     skipText: "Tôi chưa biết mình đang nghĩ gì",
     error: "Không thể bắt đầu đọc. Vui lòng thử lại.",
+    crisisTitle: "Aletheia đang ở đây với bạn.",
+    crisisBody: "Điều bạn đang viết cho thấy bạn đang trong một khoảng rất khó. Đây không phải lúc dùng gương — đây là lúc cần người thật.",
+    crisisHotlineLabel: "Hỗ trợ ngay:",
+    crisisContinue: "Tôi vẫn muốn tiếp tục",
+    crisisReturn: "Quay lại",
+
+    ephemeralToggle: "Không lưu lần này",
+    ephemeralHint: "Lần đọc này sẽ không xuất hiện trong Gương.",
   },
 
   wildcard: {
@@ -85,7 +93,7 @@ export const vi = {
     metaSuffix: "dấu hiệu đang chờ bạn",
     cardTapHint: "Chạm để lật",
     autoCountdown: (s: number) => `Tự động chọn sau ${s}s`,
-    autoButton: "Để vũ trụ chọn",
+    autoButton: "Để AletheiA chọn giúp",
     autoButtonLoading: "Đang chọn...",
     selectedText: "Đang mở lá bài...",
     error: "Không thể chọn biểu tượng. Vui lòng thử lại.",
@@ -96,31 +104,57 @@ export const vi = {
     languageLabel: "Ngôn ngữ",
     languageVi: "Tiếng Việt",
     languageEn: "Nguồn dịch/tiếng Anh",
-    interpretLabel: "Diễn giải",
-    interpretStreaming: "Đang gọi",
-    interpretFallback: "Fallback",
-    interpretDone: "Đã xong",
-    interpretOnDemand: "Theo yêu cầu",
+    interpretLabel: "Lớp soi thêm",
+    interpretStreaming: "Đang lắng",
+    interpretFallback: "Dự phòng",
+    interpretDone: "Đã soi",
+    interpretOnDemand: "Khi bạn mời",
 
     aiKicker: "TÙY CHỌN",
-    aiButton: "Xin diễn giải",
-    aiHint: "AI chỉ mở khi bạn chủ động yêu cầu.",
-    aiLoadingText: "Đang xin diễn giải...",
+    aiButton: "Soi thêm một lớp",
+    aiHint: "Một lớp phản chiếu thứ hai — chỉ khi bạn muốn.",
+    aiLoadingText: "Đang lắng nghe cùng đoạn trích...",
     aiLoadingHint: "Aletheia đang ghép tình huống, biểu tượng và ngữ cảnh của đoạn trích.",
-    aiLabelOracle: "DIỄN GIẢI",
-    aiLabelFallback: "DIỄN GIẢI NỘI TẠI",
-    oracleLabel: "oracle reflection",
-    fallbackLabel: "fallback reflection",
+    aiLabelOracle: "MỘT LỚP SOI THÊM",
+    aiLabelFallback: "PHẢN CHIẾU DỰ PHÒNG",
+    oracleLabel: "lớp soi thêm",
+    fallbackLabel: "phản chiếu dự phòng",
 
     shareButton: "Chia sẻ",
     completeButton: "Hoàn thành",
     completingButton: "Đang khép nghi thức...",
+
+    aiTrustTitle: "Aletheia + AI",
+    aiTrustPoints: [
+      "AI chỉ được gọi khi bạn nhấn.",
+      "Aletheia sẽ gửi đoạn trích, biểu tượng và điều bạn đã viết để tạo phản chiếu.",
+      "Lịch sử đọc vẫn ở trên thiết bị.",
+      "Bạn có thể dùng AletheiA mà không cần AI.",
+    ] as string[],
+    aiTrustConfirm: "Soi thêm một lớp",
+    aiTrustCancel: "Ở lại với đoạn trích",
+
+    aiError: "Gương đang im lặng lúc này. Hãy để đoạn trích tự nói.",
+    saveError: "Không thể lưu lần đọc. Khoảnh khắc này vẫn thuộc về bạn.",
+
+    aftertastePrompt: "Lần đọc này để lại gì trong bạn?",
+    aftertasteLighter: "Nhẹ hơn",
+    aftertasteClearer: "Rõ hơn",
+    aftertasteStillHeavy: "Vẫn nặng",
+    aftertasteTouched: "Bị chạm",
+    aftertasteNotRight: "Chưa đúng",
   },
 
   mirror: {
     title: "Gương",
     countLabel: (visible: number, total: number) => `${visible} / ${total} lần đọc đang hiện`,
     searchPlaceholder: "Tìm theo tình huống, nguồn hoặc biểu tượng",
+
+    deleteReading: "Xóa lần đọc này",
+    deleteConfirmTitle: "Xóa lần đọc?",
+    deleteConfirmBody: "Lần đọc này sẽ bị xóa khỏi Gương. Không thể hoàn tác.",
+    deleteConfirmYes: "Xóa",
+    deleteConfirmNo: "Giữ lại",
 
     emptyTitle: "Chưa có lần đọc nào",
     emptyBody: "Bắt đầu lần đọc đầu tiên của bạn. Mỗi lần đọc sẽ được lưu lại ở đây.",
@@ -130,16 +164,20 @@ export const vi = {
     noSituation: "Không có tình huống",
 
     filterAll: "Tất cả",
-    filterFavorites: "Yêu thích",
-    filterAI: "Có AI",
-    filterShared: "Đã chia sẻ",
+    filterFavorites: "Giữ lại",
+    filterAI: "Đã soi thêm",
+    filterShared: "Đã gửi đi",
     sortLatest: "Mới nhất",
     sortOldest: "Cũ nhất",
-    sortDepth: "Có chiều sâu",
+    sortDepth: "Có dư âm",
 
     dateToday: "Hôm nay",
     dateYesterday: "Hôm qua",
     daysAgo: (n: number) => `${n} ngày trước`,
+
+    hideSituationOn: "Ẩn tình huống",
+    hideSituationOff: "Hiện tình huống",
+    situationHidden: "· · ·",
   },
 
   preview: {
@@ -169,6 +207,32 @@ export const vi = {
     aboutSection: "Về Aletheia",
     aboutPrivacy: "Dữ liệu lưu local, không gửi đi đâu.",
     aboutVersion: "Phiên bản",
+
+    privacySection: "Quyền riêng tư & Dữ liệu",
+    analyticsSection: "Phân tích ẩn danh",
+    analyticsToggleOn: "Bật",
+    analyticsToggleOff: "Tắt",
+    analyticsBody: "Đếm sự kiện ẩn danh — không có nội dung cá nhân, không có định danh.",
+
+    privacyLedgerSection: "Hồ sơ dữ liệu",
+    privacyLedgerStaysTitle: "Ở lại trên thiết bị",
+    privacyLedgerStaysItems: [
+      "Toàn bộ lần đọc và tình huống",
+      "Lịch sử biểu tượng và tâm trạng",
+      "Cài đặt và ý định người dùng",
+    ] as string[],
+    privacyLedgerLeavesTitle: "Rời thiết bị khi bạn dùng AI",
+    privacyLedgerLeavesItems: [
+      "Đoạn trích được chọn",
+      "Biểu tượng đã chọn",
+      "Tình huống bạn đã viết (nếu có)",
+    ] as string[],
+
+    deleteAllReadingsLabel: "Xóa toàn bộ lần đọc",
+    deleteAllConfirmTitle: "Xóa tất cả?",
+    deleteAllConfirmBody: "Mọi lần đọc sẽ bị xóa vĩnh viễn. Không thể hoàn tác.",
+    deleteAllConfirmYes: "Xóa tất cả",
+    deleteAllSuccess: "Đã xóa toàn bộ",
   },
 };
 

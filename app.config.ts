@@ -126,6 +126,14 @@ const config: ExpoConfig = {
     "expo-router",
     "expo-sqlite",
     [
+      "expo-notifications",
+      {
+        icon: "./assets/images/icon.png",
+        color: "#D8B86A",
+        defaultChannel: "default",
+      },
+    ],
+    [
       "expo-splash-screen",
       {
         image: "./assets/images/splash-icon.png",
