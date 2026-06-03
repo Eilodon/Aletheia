@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Animated, Easing, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import * as Haptics from "expo-haptics";
+import { haptic } from "@/lib/utils/haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
@@ -19,7 +19,7 @@ export default function RitualScreen() {
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    haptic("warning");
 
     Animated.parallel([
       Animated.timing(fadeAnim, {

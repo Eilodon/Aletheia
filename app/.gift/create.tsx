@@ -5,7 +5,7 @@ import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { coreStore } from "@/lib/services/core-store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
-import * as Haptics from "expo-haptics";
+import { haptic } from "@/lib/utils/haptics";
 import { Fonts } from "@/constants/theme";
 
 interface GiftSource {
@@ -74,7 +74,7 @@ export default function GiftCreateScreen() {
   }
 
   const toggleSource = (id: string) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic("navigation");
     setSources((prev) =>
       prev.map((s) => ({
         ...s,
@@ -88,11 +88,11 @@ export default function GiftCreateScreen() {
   const handleCreateGift = async () => {
     if (!selectedSourceId) {
       setErrorMessage("Chọn một nguồn trước khi tạo quà.");
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptic("error");
       return;
     }
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic("confirm");
     setIsCreating(true);
     setErrorMessage(null);
 
@@ -113,7 +113,7 @@ export default function GiftCreateScreen() {
         deepLink: gift.deep_link,
       });
 
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      haptic("success");
     } catch (error) {
       console.error("Failed to create gift:", error);
       const raw = error instanceof Error ? error.message : "";
@@ -124,7 +124,7 @@ export default function GiftCreateScreen() {
           ? raw
           : raw || "Không thể tạo quà lúc này. Vui lòng thử lại."
       );
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptic("error");
     } finally {
       setIsCreating(false);
     }
@@ -132,7 +132,7 @@ export default function GiftCreateScreen() {
 
   const handleShareGift = async () => {
     if (!giftResult) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic("navigation");
     
     try {
       await Share.share({

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import * as Haptics from "expo-haptics";
+import { haptic } from "@/lib/utils/haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
@@ -62,7 +62,7 @@ export default function OnboardingScreen() {
         onboarding_complete: true,
         user_intent: selectedIntent ?? userState.user_intent ?? UserIntent.Clarity,
       });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      haptic("success");
       router.replace("/");
     } catch (error) {
       console.error("Failed to complete onboarding:", error);
@@ -72,7 +72,7 @@ export default function OnboardingScreen() {
 
   const handleNext = () => {
     if (!canContinue || isCompleting) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic("navigation");
     if (isLastStep) {
       completeOnboarding();
       return;
@@ -82,7 +82,7 @@ export default function OnboardingScreen() {
 
   const handleSkip = () => {
     if (isCompleting) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic("navigation");
     setSelectedIntent((value) => value ?? UserIntent.Clarity);
     completeOnboarding();
   };
@@ -156,7 +156,7 @@ export default function OnboardingScreen() {
                         testID={`intent-card-${item.intent}`}
                         accessibilityLabel={`intent-card-${item.intent}`}
                         onPress={() => {
-                          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                          haptic("confirm");
                           setSelectedIntent(item.intent);
                         }}
                         style={[

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import * as Haptics from "expo-haptics";
+import { haptic } from "@/lib/utils/haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
@@ -60,7 +60,7 @@ export default function PassageScreen() {
 
   const handleRequestAI = async () => {
     if (isRequestingAI || isCompleting || aiResponse) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic("confirm");
     setShowAI(true);
     setIsRequestingAI(true);
     try {
@@ -68,7 +68,7 @@ export default function PassageScreen() {
     } catch (error) {
       console.error("AI request failed:", error);
       setShowAI(false);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptic("error");
     } finally {
       setIsRequestingAI(false);
     }
@@ -76,7 +76,7 @@ export default function PassageScreen() {
 
   const handleComplete = async () => {
     if (isCompleting) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic("navigation");
     setIsCompleting(true);
     try {
       await saveReading();
@@ -86,14 +86,14 @@ export default function PassageScreen() {
       await new Promise((resolve) => setTimeout(resolve, COMPLETE_SILENCE_BEAT_MS));
     } catch (error) {
       console.error("Failed to save:", error);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptic("error");
       setIsCompleting(false);
     }
   };
 
   const handleShare = () => {
     if (isCompleting || isRequestingAI) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic("confirm");
     if (!session) return;
     trackShareEvent("entry", { source_id: session.source.id, symbol_id: selectedSymbol?.id, from: "passage" });
     router.push("/reading/share-card");

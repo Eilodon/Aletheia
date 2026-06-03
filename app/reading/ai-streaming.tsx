@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
-import * as Haptics from "expo-haptics";
+import { haptic } from "@/lib/utils/haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
@@ -41,13 +41,13 @@ export default function AIStreamingScreen() {
   }, [fadeAnim, pulseAnim]);
 
   const handleCancel = async () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic("confirm");
     await cancelAIInterpretation();
     router.back();
   };
 
   const handleBackToPassage = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic("navigation");
     router.replace("/reading/passage");
   };
 

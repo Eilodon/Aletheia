@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
-import * as Haptics from "expo-haptics";
+import { haptic } from "@/lib/utils/haptics";
 
 import { Fonts } from "@/constants/theme";
 import { RitualOrnament } from "@/components/ritual-ornament";
@@ -97,7 +97,7 @@ export default function ReadingDetailScreen() {
   const handleToggleFavorite = async () => {
     if (!reading || isSavingFavorite) return;
     setIsSavingFavorite(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic("navigation");
 
     try {
       await syncFlags({ is_favorite: !reading.is_favorite });
@@ -116,7 +116,7 @@ export default function ReadingDetailScreen() {
 
   const handleShareAgain = async () => {
     if (!reading || isSharing) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic("confirm");
     setIsSharing(true);
 
     try {
@@ -143,7 +143,7 @@ export default function ReadingDetailScreen() {
   const handleReopen = async () => {
     if (!reading || isReopening) return;
     setIsReopening(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic("confirm");
 
     try {
       await startReading(reading.source_id, reading.situation_text);
@@ -162,7 +162,7 @@ export default function ReadingDetailScreen() {
   const handleGift = async () => {
     if (!reading || isGifting) return;
     setIsGifting(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic("confirm");
     trackGiftEvent("create_attempted", {
       reading_id: reading.id,
       source_id: reading.source_id,

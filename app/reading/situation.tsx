@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, StyleSheet } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import * as Haptics from "expo-haptics";
+import { haptic } from "@/lib/utils/haptics";
 
 import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
@@ -22,14 +22,14 @@ export default function SituationScreen() {
 
   const handleContinue = async () => {
     if (isLoading) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic("confirm");
     setIsLoading(true);
     try {
       await startReading(sourceId, situationText.trim() || undefined);
       router.push("/reading/wildcard");
     } catch (error) {
       console.error("Failed to start reading:", error);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptic("error");
       showToast("error", s.situation.error);
     } finally {
       setIsLoading(false);
@@ -38,14 +38,14 @@ export default function SituationScreen() {
 
   const handleSkip = async () => {
     if (isLoading) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic("selection");
     setIsLoading(true);
     try {
       await startReading(sourceId);
       router.push("/reading/wildcard");
     } catch (error) {
       console.error("Failed to start reading:", error);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptic("error");
       showToast("error", s.situation.error);
     } finally {
       setIsLoading(false);

@@ -11,7 +11,7 @@ import { coreStore } from "@/lib/services/core-store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
 import { Reading, MoodTag } from "@/lib/types";
 import { Fonts } from "@/constants/theme";
-import * as Haptics from "expo-haptics";
+import { haptic } from "@/lib/utils/haptics";
 import { screen, trackArchiveEvent } from "@/lib/analytics";
 import { useStrings } from "@/lib/i18n";
 
@@ -74,7 +74,7 @@ export default function HistoryScreen() {
   const handleLoadMore = () => { if (!isLoading && hasMore) loadReadings(page + 1); };
 
   const handleReadingPress = (reading: ReadingWithDetails) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic("navigation");
     trackArchiveEvent("reading_opened", {
       reading_id: reading.id,
       source_id: reading.source_id,
@@ -252,7 +252,7 @@ export default function HistoryScreen() {
             return (
               <Pressable
                 key={option.key}
-                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveFilter(option.key); }}
+                onPress={() => { haptic("selection"); setActiveFilter(option.key); }}
                 style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, backgroundColor: active ? colors.primary + "18" : colors.surface + "DA", borderWidth: 1, borderColor: active ? colors.primary + "72" : colors.primary + "22" }}
               >
                 <Text style={{ color: active ? colors.foreground : colors.muted, fontSize: 12, letterSpacing: 0.5, textTransform: "uppercase" }}>
@@ -268,7 +268,7 @@ export default function HistoryScreen() {
             return (
               <Pressable
                 key={option.key}
-                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setActiveSort(option.key); }}
+                onPress={() => { haptic("selection"); setActiveSort(option.key); }}
                 style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, backgroundColor: active ? colors.primary + "18" : "transparent" }}
               >
                 <Text style={{ color: active ? colors.primary : colors.muted, fontSize: 12, letterSpacing: 0.8, textTransform: "uppercase" }}>

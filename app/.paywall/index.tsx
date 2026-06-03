@@ -11,7 +11,7 @@ import {
   restorePurchases,
 } from "@/lib/services/purchases";
 import type { PurchasesPackage } from "react-native-purchases";
-import * as Haptics from "expo-haptics";
+import { haptic } from "@/lib/utils/haptics";
 import { track } from "@/lib/analytics";
 import { SubscriptionTier } from "@/lib/types";
 
@@ -72,7 +72,7 @@ export default function PaywallScreen() {
     if (!selectedPlan || isPurchasing) return;
 
     track("paywall_upgrade_tapped", { selected_plan: selectedPlan, current_tier: currentTier, screen: "paywall" });
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic("confirm");
     setIsPurchasing(true);
     setPurchaseError(null);
 
@@ -81,7 +81,7 @@ export default function PaywallScreen() {
       if (!pkg) {
         // RC not configured yet — inform honestly
         setPurchaseError("Thanh toán chưa được kích hoạt trong build này. API key RevenueCat chưa được cấu hình.");
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        haptic("warning");
         return;
       }
 
@@ -89,14 +89,14 @@ export default function PaywallScreen() {
       if (success) {
         await coreStore.updateSubscriptionTier(SubscriptionTier.Pro);
         track("paywall_purchase_success", { plan: selectedPlan });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        haptic("success");
         router.back();
       }
       // false = user cancelled, no error needed
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Thanh toán thất bại. Vui lòng thử lại.";
       setPurchaseError(msg);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptic("error");
       track("paywall_purchase_error", { plan: selectedPlan, error: msg });
     } finally {
       setIsPurchasing(false);
@@ -105,7 +105,7 @@ export default function PaywallScreen() {
 
   const handleRestore = async () => {
     if (isRestoring) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic("navigation");
     setIsRestoring(true);
     setPurchaseError(null);
 
@@ -114,15 +114,15 @@ export default function PaywallScreen() {
       if (hasPro) {
         await coreStore.updateSubscriptionTier(SubscriptionTier.Pro);
         track("paywall_restore_success");
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        haptic("success");
         router.back();
       } else {
         setPurchaseError("Không tìm thấy giao dịch Pro trước đó để khôi phục.");
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+        haptic("warning");
       }
     } catch {
       setPurchaseError("Khôi phục thất bại. Vui lòng thử lại.");
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptic("error");
     } finally {
       setIsRestoring(false);
     }
@@ -255,7 +255,7 @@ export default function PaywallScreen() {
               {/* Yearly - Recommended */}
               <Pressable
                 onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  haptic("selection");
                   setSelectedPlan("yearly");
                   track("paywall_plan_selected", { plan: "yearly" });
                 }}
@@ -319,7 +319,7 @@ export default function PaywallScreen() {
               {/* Lifetime — one-time, no renewal anxiety */}
               <Pressable
                 onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  haptic("selection");
                   setSelectedPlan("lifetime");
                   track("paywall_plan_selected", { plan: "lifetime" });
                 }}
@@ -364,7 +364,7 @@ export default function PaywallScreen() {
               {/* Monthly */}
               <Pressable
                 onPress={() => {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  haptic("selection");
                   setSelectedPlan("monthly");
                   track("paywall_plan_selected", { plan: "monthly" });
                 }}

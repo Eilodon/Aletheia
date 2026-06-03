@@ -3,7 +3,7 @@ import { View, Text, Pressable, TextInput, Animated, KeyboardAvoidingView, Platf
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
-import * as Haptics from "expo-haptics";
+import { haptic } from "@/lib/utils/haptics";
 
 import { coreStore } from "@/lib/services/core-store";
 
@@ -33,11 +33,11 @@ export default function GiftRedeemScreen() {
 
   const handleRedeem = useCallback(async (tokenToRedeem: string = token) => {
     if (!tokenToRedeem.trim()) {
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptic("error");
       return;
     }
 
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic("confirm");
     setIsRedeeming(true);
 
     try {
@@ -50,7 +50,7 @@ export default function GiftRedeemScreen() {
           sourceId: gift.source_id ?? undefined,
           buyerNote: gift.buyer_note ?? undefined,
         });
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        haptic("success");
       }
     } catch (error) {
       console.error("Redeem failed:", error);
@@ -72,7 +72,7 @@ export default function GiftRedeemScreen() {
         success: false,
         error: errorMsg,
       });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      haptic("error");
     } finally {
       setIsRedeeming(false);
     }
@@ -88,7 +88,7 @@ export default function GiftRedeemScreen() {
   }, [handleRedeem, redeemResult, tokenParam]);
 
   const handleStartReading = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic("confirm");
     router.replace({
       pathname: "/reading/situation",
       params: redeemResult?.sourceId ? { sourceId: redeemResult.sourceId } : {},

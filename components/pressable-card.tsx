@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Pressable, Animated, ViewProps } from "react-native";
-import * as Haptics from "expo-haptics";
+import { haptic } from "@/lib/utils/haptics";
 import { Fonts } from "@/constants/theme";
 import { useColors } from "@/hooks/use-colors";
 
@@ -42,7 +42,7 @@ export function PressableCard({
 
   const handlePress = () => {
     if (disabled) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    haptic("navigation");
     onPress?.();
   };
 
@@ -123,7 +123,7 @@ export function AnimatedButton({
 
   const handlePress = () => {
     if (disabled) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    haptic("confirm");
     onPress();
   };
 
