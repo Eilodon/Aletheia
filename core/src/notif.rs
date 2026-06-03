@@ -80,7 +80,7 @@ impl NotificationScheduler {
             .map(|s| s.display_name.as_str())
             .unwrap_or(&entry.symbol_id);
 
-        let title = "✦ Vũ trụ hôm nay lật".to_string();
+        let title = "✦ Một mảnh gương nhỏ".to_string();
         let body = format!("{}. {}?", symbol_name, entry.question);
 
         (title, body)

@@ -163,9 +163,9 @@ impl ReadingEngine {
 
         if source.fallback_prompts.len() != 3 {
             return Ok(vec![
-                "Vũ trụ đang im lặng. Hãy tự hỏi: Điều gì đang chờ đợi bạn?".to_string(),
+                "Đặt trước bạn một hình ảnh và một đoạn văn. Hãy xem điều gì trong bạn tự vang lên.".to_string(),
                 "Trong sự tĩnh lặng, câu trả lời đến từ bên trong.".to_string(),
-                "Mỗi khoảnh khắc là một cơ hội để nhìn sâu hơn.".to_string(),
+                "Mỗi khoảnh khắc là một cơ hội để dừng lại và nhìn thật.".to_string(),
             ]);
         }
 
