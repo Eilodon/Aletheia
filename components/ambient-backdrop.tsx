@@ -1,11 +1,63 @@
-import { memo } from "react";
-import { Platform, StyleSheet, View, useWindowDimensions, type ViewStyle } from "react-native";
+import { memo, useEffect } from "react";
+import { AppState, Easing, Platform, StyleSheet, View, useWindowDimensions, type ViewStyle } from "react-native";
+import Animated, {
+  cancelAnimation,
+  useAnimatedStyle,
+  useReducedMotion,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 
 import { useColors } from "@/hooks/use-colors";
 
-type WebGradientStyle = ViewStyle & {
-  backgroundImage: string;
-};
+type WebGradientStyle = ViewStyle & { backgroundImage: string };
+
+const BREATH_IN = 2500;
+const BREATH_OUT = 2500;
+const BREATH_MIN = 0.6;
+
+function useBreathStyle(delayMs: number) {
+  const isReducedMotion = useReducedMotion();
+  const opacity = useSharedValue(1);
+
+  function startBreath() {
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(BREATH_MIN, { duration: BREATH_IN, easing: Easing.inOut(Easing.sin) }),
+        withTiming(1, { duration: BREATH_OUT, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      false,
+    );
+  }
+
+  useEffect(() => {
+    if (isReducedMotion || Platform.OS === "web") return;
+
+    const startTimer = setTimeout(startBreath, delayMs);
+
+    const appStateSub = AppState.addEventListener("change", (state) => {
+      if (state === "background" || state === "inactive") {
+        cancelAnimation(opacity);
+        opacity.value = 1;
+      } else if (state === "active") {
+        setTimeout(startBreath, delayMs);
+      }
+    });
+
+    return () => {
+      clearTimeout(startTimer);
+      cancelAnimation(opacity);
+      opacity.value = 1;
+      appStateSub.remove();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isReducedMotion]);
+
+  return useAnimatedStyle(() => ({ opacity: opacity.value }));
+}
 
 export const AmbientBackdrop = memo(function AmbientBackdrop() {
   const colors = useColors();
@@ -14,19 +66,26 @@ export const AmbientBackdrop = memo(function AmbientBackdrop() {
   const orbSize = Math.max(width * 0.84, 300);
   const lowerOrbSize = Math.max(width * 1.08, 360);
   const centerHalo = Math.max(width * 0.56, 220);
+
   const webGradientStyle: WebGradientStyle = {
     backgroundImage:
       "radial-gradient(circle at 20% 20%, rgba(216,184,106,0.08) 0%, transparent 32%), radial-gradient(circle at 80% 10%, rgba(135,96,189,0.07) 0%, transparent 26%), radial-gradient(circle at 50% 100%, rgba(0,0,0,0.24) 0%, transparent 42%), radial-gradient(circle at 50% 40%, rgba(255,230,182,0.05) 0%, transparent 24%)",
   };
+
+  const breath1 = useBreathStyle(0);
+  const breath2 = useBreathStyle(700);
+  const breath3 = useBreathStyle(1400);
+  const breath4 = useBreathStyle(2100);
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.background }]} />
       <View style={[StyleSheet.absoluteFill, { backgroundColor: "#07060A", opacity: 0.18 }]} />
 
-      <View
+      <Animated.View
         style={[
           styles.orb,
+          breath1,
           {
             width: orbSize,
             height: orbSize,
@@ -37,9 +96,10 @@ export const AmbientBackdrop = memo(function AmbientBackdrop() {
           },
         ]}
       />
-      <View
+      <Animated.View
         style={[
           styles.orb,
+          breath2,
           {
             width: orbSize * 0.9,
             height: orbSize * 0.9,
@@ -50,9 +110,10 @@ export const AmbientBackdrop = memo(function AmbientBackdrop() {
           },
         ]}
       />
-      <View
+      <Animated.View
         style={[
           styles.orb,
+          breath3,
           {
             width: centerHalo,
             height: centerHalo,
@@ -63,9 +124,10 @@ export const AmbientBackdrop = memo(function AmbientBackdrop() {
           },
         ]}
       />
-      <View
+      <Animated.View
         style={[
           styles.orb,
+          breath4,
           {
             width: lowerOrbSize,
             height: lowerOrbSize,
@@ -82,12 +144,7 @@ export const AmbientBackdrop = memo(function AmbientBackdrop() {
       <View style={[styles.veil, { borderColor: colors.border + "14" }]} />
 
       {Platform.OS === "web" ? (
-        <View
-          style={[
-            StyleSheet.absoluteFill,
-            webGradientStyle,
-          ]}
-        />
+        <View style={[StyleSheet.absoluteFill, webGradientStyle]} />
       ) : null}
     </View>
   );
@@ -96,7 +153,6 @@ export const AmbientBackdrop = memo(function AmbientBackdrop() {
 const styles = StyleSheet.create({
   orb: {
     position: "absolute",
-    opacity: 1,
   },
   veil: {
     ...StyleSheet.absoluteFillObject,
