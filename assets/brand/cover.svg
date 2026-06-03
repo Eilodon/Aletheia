@@ -1,0 +1,216 @@
+<svg width="1440" height="520" viewBox="0 0 1440 520" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Backgrounds -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"   stop-color="#141020"/>
+      <stop offset="50%"  stop-color="#0E0B1A"/>
+      <stop offset="100%" stop-color="#07060F"/>
+    </linearGradient>
+    <radialGradient id="leftGlow" cx="22%" cy="50%" r="35%">
+      <stop offset="0%"   stop-color="#C4A455" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#C4A455" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="rightGlow" cx="75%" cy="50%" r="40%">
+      <stop offset="0%"   stop-color="#C4A455" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#C4A455" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Filters -->
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="bloom" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="ambBlur" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="36"/>
+    </filter>
+    <filter id="titleGlow" x="-10%" y="-40%" width="120%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Constellation dot pattern -->
+    <pattern id="stars" x="0" y="0" width="120" height="120" patternUnits="userSpaceOnUse">
+      <circle cx="18"  cy="14"  r="0.9" fill="#C4A455" opacity="0.18"/>
+      <circle cx="74"  cy="42"  r="0.7" fill="#C4A455" opacity="0.12"/>
+      <circle cx="103" cy="8"   r="1.0" fill="#C4A455" opacity="0.15"/>
+      <circle cx="37"  cy="88"  r="0.8" fill="#C4A455" opacity="0.14"/>
+      <circle cx="91"  cy="97"  r="0.7" fill="#C4A455" opacity="0.10"/>
+      <circle cx="55"  cy="61"  r="0.6" fill="#C4A455" opacity="0.08"/>
+      <circle cx="7"   cy="55"  r="0.9" fill="#C4A455" opacity="0.13"/>
+      <circle cx="118" cy="74"  r="0.7" fill="#C4A455" opacity="0.10"/>
+    </pattern>
+  </defs>
+
+  <!-- ── Background layers ── -->
+  <rect width="1440" height="520" fill="url(#bgGrad)"/>
+  <rect width="1440" height="520" fill="url(#stars)" opacity="0.9"/>
+  <rect width="1440" height="520" fill="url(#leftGlow)"/>
+  <rect width="1440" height="520" fill="url(#rightGlow)"/>
+
+  <!-- ── Ambient glow behind symbol ── -->
+  <ellipse cx="225" cy="262" rx="200" ry="180"
+           fill="#C4A455" opacity="0.10" filter="url(#ambBlur)"/>
+
+
+  <!-- ════════════════════════════════════════════════════════
+       SIGIL — scaled from icon (scale ≈ 0.43, centred at 225,262)
+       Icon coords × 0.43 then offset:
+         tx = 225 − 512×0.43 = 225 − 220.2 = 4.8
+         ty = 262 − 512×0.43 = 262 − 220.2 = 41.8
+       Key mapped points:
+         Triangle top: (225,     110)
+         Triangle bl:  ( 86,     351)   br: (364, 351)
+         Eye centre:   (225,     245)
+         Inner tri top:(225,     190)   bl:(155,  311)  br:(295,311)
+  ════════════════════════════════════════════════════════ -->
+
+  <!-- Outer ring -->
+  <circle cx="225" cy="262" r="198"
+          fill="none" stroke="#C4A455" stroke-width="0.5" stroke-opacity="0.10"/>
+  <circle cx="225" cy="262" r="188"
+          fill="none" stroke="#C4A455" stroke-width="0.3" stroke-opacity="0.07"/>
+
+  <!-- Inner echo triangle -->
+  <path d="M225 190 L295 311 L155 311 Z"
+        fill="none"
+        stroke="#C4A455"
+        stroke-width="0.7"
+        stroke-linejoin="round"
+        opacity="0.18"/>
+
+  <!-- Main triangle -->
+  <path d="M225 110 L364 351 L86 351 Z"
+        fill="none"
+        stroke="#C4A455"
+        stroke-width="2.0"
+        stroke-linejoin="round"
+        stroke-linecap="round"
+        opacity="0.88"
+        filter="url(#glow)"/>
+
+  <!-- Mirror axis -->
+  <line x1="225" y1="110" x2="225" y2="351"
+        stroke="#C4A455" stroke-width="0.7" stroke-opacity="0.22"/>
+
+  <!-- Crossbar (at 56% from top, y≈245) -->
+  <!-- Width at 56%: 278×0.56=155.7, half=77.8 → from 147 to 303 -->
+  <line x1="147" y1="245" x2="303" y2="245"
+        stroke="#C4A455" stroke-width="0.9" stroke-opacity="0.28"/>
+
+  <!-- Eye -->
+  <ellipse cx="225" cy="245" rx="32" ry="13"
+           fill="none"
+           stroke="#C4A455"
+           stroke-width="1.6"
+           opacity="0.90"
+           filter="url(#glow)"/>
+  <ellipse cx="225" cy="245" rx="32" ry="13"
+           fill="#C4A455" opacity="0.04"/>
+  <circle cx="225" cy="245" r="7"
+          fill="none"
+          stroke="#C4A455"
+          stroke-width="0.9"
+          opacity="0.45"/>
+  <circle cx="225" cy="245" r="4.5"
+          fill="#C4A455" opacity="0.94"
+          filter="url(#bloom)"/>
+  <circle cx="225" cy="245" r="1.8"
+          fill="#0C0912"/>
+
+  <!-- Vertex ornaments -->
+  <!-- Top -->
+  <circle cx="225" cy="110" r="6"
+          fill="none" stroke="#C4A455" stroke-width="0.7" opacity="0.28"/>
+  <circle cx="225" cy="110" r="3.2"
+          fill="#C4A455" opacity="0.90" filter="url(#bloom)"/>
+  <!-- Bottom-left -->
+  <circle cx="86" cy="351" r="6"
+          fill="none" stroke="#C4A455" stroke-width="0.7" opacity="0.28"/>
+  <circle cx="86" cy="351" r="3.2"
+          fill="#C4A455" opacity="0.90" filter="url(#bloom)"/>
+  <!-- Bottom-right -->
+  <circle cx="364" cy="351" r="6"
+          fill="none" stroke="#C4A455" stroke-width="0.7" opacity="0.28"/>
+  <circle cx="364" cy="351" r="3.2"
+          fill="#C4A455" opacity="0.90" filter="url(#bloom)"/>
+  <!-- Base midpoint -->
+  <circle cx="225" cy="351" r="1.8"
+          fill="#C4A455" opacity="0.38"/>
+
+
+  <!-- ── Vertical divider ── -->
+  <line x1="466" y1="130" x2="466" y2="390"
+        stroke="#C4A455" stroke-width="0.6" stroke-opacity="0.18"/>
+
+
+  <!-- ════════════════════════════════════════════════════════
+       TEXT SECTION  —  centred in the region x: 466 → 1440
+       centre x = 466 + (1440−466)/2 = 466 + 487 = 953
+  ════════════════════════════════════════════════════════ -->
+
+  <!-- Kicker label -->
+  <text x="953" y="188"
+        text-anchor="middle"
+        font-family="'Cinzel', 'Palatino Linotype', Georgia, serif"
+        font-size="11"
+        font-weight="400"
+        fill="#C4A455"
+        opacity="0.55"
+        letter-spacing="5.5">NOT A FORTUNE · A MIRROR</text>
+
+  <!-- Ambient glow behind title -->
+  <text x="953" y="310"
+        text-anchor="middle"
+        font-family="'Cinzel', 'Palatino Linotype', Georgia, serif"
+        font-size="96"
+        font-weight="600"
+        fill="#C4A455"
+        opacity="0.08"
+        letter-spacing="18"
+        filter="url(#ambBlur)">ALETHEIA</text>
+
+  <!-- Main title -->
+  <text x="953" y="310"
+        text-anchor="middle"
+        font-family="'Cinzel', 'Palatino Linotype', Georgia, serif"
+        font-size="96"
+        font-weight="600"
+        fill="#E2CA84"
+        opacity="0.94"
+        letter-spacing="18"
+        filter="url(#titleGlow)">ALETHEIA</text>
+
+  <!-- Decorative rule — three segments with a centre diamond -->
+  <line x1="640" y1="344" x2="870" y2="344"
+        stroke="#C4A455" stroke-width="0.7" stroke-opacity="0.38"/>
+  <!-- Diamond -->
+  <path d="M953 338 L960 344 L953 350 L946 344 Z"
+        fill="#C4A455" opacity="0.52"/>
+  <line x1="1036" y1="344" x2="1266" y2="344"
+        stroke="#C4A455" stroke-width="0.7" stroke-opacity="0.38"/>
+
+  <!-- Tagline -->
+  <text x="953" y="390"
+        text-anchor="middle"
+        font-family="'EB Garamond', 'Palatino Linotype', Georgia, serif"
+        font-size="19"
+        font-weight="400"
+        font-style="italic"
+        fill="#C4A455"
+        opacity="0.58"
+        letter-spacing="0.8">Không phải lá số. Là chiếc gương.</text>
+
+</svg>
