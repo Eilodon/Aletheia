@@ -16,6 +16,7 @@ import {
   SubscriptionTier,
   SymbolMethod,
   SourceType,
+  UserIntent,
 } from "@/lib/types";
 import { BUNDLED_SOURCES, BUNDLED_PASSAGES, BUNDLED_THEMES } from "@/lib/data/content";
 
@@ -90,6 +91,7 @@ type ReadingRow = {
   is_favorite: number;
   shared: number;
   user_intent: Reading["user_intent"] | null;
+  hide_situation: number;
 };
 
 function isDuplicateColumnError(error: unknown): boolean {
@@ -109,11 +111,18 @@ function parseFallbackPrompts(raw: string | null | undefined): string[] {
   }
 }
 
+const INTENT_TRADITION_WEIGHTS: Record<string, Record<string, number>> = {
+  clarity:   { stoic: 3, chinese: 2, universal: 1.5, christian: 1, sufi: 1, islamic: 1 },
+  comfort:   { sufi: 3, christian: 2.5, islamic: 2, universal: 1.5, stoic: 1, chinese: 1 },
+  challenge: { stoic: 3, chinese: 2.5, universal: 1.5, christian: 1, sufi: 1, islamic: 1 },
+  guidance:  {},
+};
+
 class StoreService {
   private db: SQLite.SQLiteDatabase | null = null;
   private initialized = false;
   private initPromise: Promise<void> | null = null;
-  private static readonly SCHEMA_VERSION = 8;
+  private static readonly SCHEMA_VERSION = 10;
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
@@ -311,6 +320,26 @@ class StoreService {
       if (!sourceCols.some((c) => c.name === "source_type")) {
         await this.db.execAsync(
           `ALTER TABLE sources ADD COLUMN source_type TEXT NOT NULL DEFAULT 'bibliomancy';`
+        );
+      }
+    }
+
+    // Migration v9: Add weekly_summary_enabled to user_state — mirrors Rust migration v9
+    if (currentVersion < 9) {
+      const userStateCols = await this.db.getAllAsync<SqliteColumnInfo>(`PRAGMA table_info(user_state)`);
+      if (!userStateCols.some((c) => c.name === "weekly_summary_enabled")) {
+        await this.db.execAsync(
+          `ALTER TABLE user_state ADD COLUMN weekly_summary_enabled INTEGER NOT NULL DEFAULT 0;`
+        );
+      }
+    }
+
+    // Migration v10: Add hide_situation to readings — TS-only UI privacy flag
+    if (currentVersion < 10) {
+      const readingsCols = await this.db.getAllAsync<SqliteColumnInfo>(`PRAGMA table_info(readings)`);
+      if (!readingsCols.some((c) => c.name === "hide_situation")) {
+        await this.db.execAsync(
+          `ALTER TABLE readings ADD COLUMN hide_situation INTEGER NOT NULL DEFAULT 0;`
         );
       }
     }
@@ -622,6 +651,105 @@ class StoreService {
     };
   }
 
+  async getRandomPassageExcluding(sourceId: string, excludeIds: string[]): Promise<Passage | null> {
+    await this.initialize();
+    if (!this.db) throw new Error("Database not initialized");
+
+    if (excludeIds.length === 0) return this.getRandomPassage(sourceId);
+
+    const placeholders = excludeIds.map(() => "?").join(", ");
+    const row = await this.db.getFirstAsync<PassageRow>(
+      `SELECT * FROM passages WHERE source_id = ? AND id NOT IN (${placeholders}) ORDER BY RANDOM() LIMIT 1`,
+      [sourceId, ...excludeIds]
+    );
+
+    // Fall back to fully random if all passages are exhausted
+    if (!row) return this.getRandomPassage(sourceId);
+
+    return {
+      id: row.id,
+      source_id: row.source_id,
+      reference: row.reference,
+      text: row.text,
+      context: row.context || undefined,
+      resonance_context: row.resonance_context || undefined,
+    };
+  }
+
+  async getRandomSourceWeighted(
+    premiumAllowed: boolean,
+    preferredLanguage?: string,
+    intent?: UserIntent,
+  ): Promise<Source | null> {
+    await this.initialize();
+    if (!this.db) throw new Error("Database not initialized");
+
+    if (!intent || intent === UserIntent.Guidance) {
+      return this.getRandomSource(premiumAllowed, preferredLanguage);
+    }
+
+    const filters: string[] = [];
+    const params: (string | number)[] = [];
+
+    if (!premiumAllowed) {
+      filters.push("is_premium = 0");
+    }
+
+    const normalizedLanguage = preferredLanguage?.trim().toLowerCase();
+    if (normalizedLanguage) {
+      filters.push("language = ?");
+      params.push(normalizedLanguage);
+    }
+
+    const whereClause = filters.length > 0 ? `WHERE ${filters.join(" AND ")}` : "";
+    const rows = await this.db.getAllAsync<SourceRow>(`SELECT * FROM sources ${whereClause}`, params);
+
+    if (rows.length === 0) {
+      if (normalizedLanguage) return this.getRandomSource(premiumAllowed);
+      return null;
+    }
+
+    const weights = INTENT_TRADITION_WEIGHTS[intent] ?? {};
+    const weighted = rows.map((row) => ({
+      row,
+      weight: (weights as Record<string, number>)[row.tradition] ?? 1,
+    }));
+
+    const totalWeight = weighted.reduce((sum, { weight }) => sum + weight, 0);
+    let cursor = Math.random() * totalWeight;
+
+    for (const { row, weight } of weighted) {
+      cursor -= weight;
+      if (cursor <= 0) {
+        return {
+          id: row.id,
+          name: row.name,
+          tradition: row.tradition,
+          language: row.language,
+          passage_count: row.passage_count,
+          is_bundled: row.is_bundled === 1,
+          is_premium: row.is_premium === 1,
+          fallback_prompts: parseFallbackPrompts(row.fallback_prompts),
+          source_type: row.source_type || SourceType.Bibliomancy,
+        };
+      }
+    }
+
+    // Floating-point rounding safety — return last
+    const last = weighted[weighted.length - 1]!.row;
+    return {
+      id: last.id,
+      name: last.name,
+      tradition: last.tradition,
+      language: last.language,
+      passage_count: last.passage_count,
+      is_bundled: last.is_bundled === 1,
+      is_premium: last.is_premium === 1,
+      fallback_prompts: parseFallbackPrompts(last.fallback_prompts),
+      source_type: last.source_type || SourceType.Bibliomancy,
+    };
+  }
+
   // Themes
   async getRandomTheme(premiumAllowed: boolean): Promise<Theme | null> {
     await this.initialize();
@@ -737,7 +865,7 @@ class StoreService {
     if (!this.db) throw new Error("Database not initialized");
 
     await this.db.runAsync(
-      `INSERT INTO readings (id, created_at, source_id, passage_id, theme_id, symbol_chosen, symbol_method, situation_text, ai_interpreted, ai_used_fallback, read_duration_s, time_to_ai_request_s, notification_opened, mood_tag, is_favorite, shared, user_intent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO readings (id, created_at, source_id, passage_id, theme_id, symbol_chosen, symbol_method, situation_text, ai_interpreted, ai_used_fallback, read_duration_s, time_to_ai_request_s, notification_opened, mood_tag, is_favorite, shared, user_intent, hide_situation) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         reading.id,
         reading.created_at,
@@ -756,8 +884,21 @@ class StoreService {
         reading.is_favorite ? 1 : 0,
         reading.shared ? 1 : 0,
         reading.user_intent ?? null,
+        reading.hide_situation ? 1 : 0,
       ]
     );
+  }
+
+  async deleteReading(id: string): Promise<void> {
+    await this.initialize();
+    if (!this.db) throw new Error("Database not initialized");
+    await this.db.runAsync("DELETE FROM readings WHERE id = ?", [id]);
+  }
+
+  async deleteAllReadings(): Promise<void> {
+    await this.initialize();
+    if (!this.db) throw new Error("Database not initialized");
+    await this.db.runAsync("DELETE FROM readings");
   }
 
   async getReadings(limit: number, offset: number): Promise<Reading[]> {
@@ -799,6 +940,7 @@ class StoreService {
     flags: {
       is_favorite?: boolean;
       shared?: boolean;
+      hide_situation?: boolean;
     },
   ): Promise<Reading | null> {
     await this.initialize();
@@ -815,6 +957,11 @@ class StoreService {
     if (typeof flags.shared === "boolean") {
       updates.push("shared = ?");
       params.push(flags.shared ? 1 : 0);
+    }
+
+    if (typeof flags.hide_situation === "boolean") {
+      updates.push("hide_situation = ?");
+      params.push(flags.hide_situation ? 1 : 0);
     }
 
     if (updates.length === 0) {
@@ -878,7 +1025,7 @@ class StoreService {
     return {
       symbol_id: entry.symbol_id,
       question: entry.question,
-      title: "✦ Vũ trụ hôm nay lật",
+      title: "✦ Một mảnh gương nhỏ",
       body: `${symbolName}. ${entry.question}?`,
     };
   }
@@ -902,6 +1049,7 @@ class StoreService {
       is_favorite: row.is_favorite === 1,
       shared: row.shared === 1,
       user_intent: row.user_intent || undefined,
+      hide_situation: row.hide_situation === 1,
     };
   }
 

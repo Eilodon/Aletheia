@@ -210,19 +210,47 @@ class CoreStoreService {
     flags: {
       is_favorite?: boolean;
       shared?: boolean;
+      hide_situation?: boolean;
     },
   ): Promise<Reading | null> {
+    const { hide_situation, ...nativeFlags } = flags;
+
+    // hide_situation is TS-store-only — persist it first, then handle native flags separately
+    if (hide_situation !== undefined) {
+      await store.updateReadingFlags(id, { hide_situation });
+    }
+
+    const hasNativeFlags = nativeFlags.is_favorite !== undefined || nativeFlags.shared !== undefined;
+    if (!hasNativeFlags) {
+      return store.getReadingById(id);
+    }
+
     if (!shouldUseAletheiaNative()) {
-      return store.updateReadingFlags(id, flags);
+      return store.updateReadingFlags(id, nativeFlags);
     }
 
     await this.ensureNativeReady();
     return unwrapNativeReadingResponse(
       await aletheiaNativeClient.updateReadingFlags(id, {
-        isFavorite: flags.is_favorite,
-        shared: flags.shared,
+        isFavorite: nativeFlags.is_favorite,
+        shared: nativeFlags.shared,
       }),
     ) as Reading | null;
+  }
+
+  async deleteReading(id: string): Promise<void> {
+    if (!shouldUseAletheiaNative()) {
+      return store.deleteReading(id);
+    }
+    // Native path: not yet exposed via UniFFI — fall back to TS store.
+    return store.deleteReading(id);
+  }
+
+  async deleteAllReadings(): Promise<void> {
+    if (!shouldUseAletheiaNative()) {
+      return store.deleteAllReadings();
+    }
+    return store.deleteAllReadings();
   }
 
   async getGiftableSources(): Promise<Source[]> {

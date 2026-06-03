@@ -46,41 +46,64 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 /**
- * Schedule a recurring daily passage notification at the given hour:minute.
- * Cancels any previously scheduled daily notification first.
+ * Schedule 7 unique one-shot daily passage notifications, one per upcoming day.
+ * Each day gets its own deterministic message so content rotates even when the
+ * app is not opened. Call on every app open to refresh the rolling window.
+ * Cancels all previously scheduled daily notifications first.
  */
 export async function scheduleDailyPassage(hour: number, minute: number): Promise<void> {
   if (Platform.OS === "web") return;
   try {
-    await Notifications.cancelScheduledNotificationAsync(DAILY_NOTIFICATION_ID).catch(() => {});
+    const existing = await Notifications.getAllScheduledNotificationsAsync();
+    await Promise.all(
+      existing
+        .filter((n) => n.identifier.startsWith(DAILY_NOTIFICATION_ID))
+        .map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {}))
+    );
 
     const userId = await getCurrentUserId();
-    const today = new Date().toLocaleDateString("en-CA");
-    const message = await coreStore.getDailyNotificationMessage(userId, today);
+    const now = new Date();
 
-    await Notifications.scheduleNotificationAsync({
-      identifier: DAILY_NOTIFICATION_ID,
-      content: {
-        title: message.title,
-        body: message.body,
-        data: { symbol_id: message.symbol_id },
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour,
-        minute,
-      },
-    });
+    for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+      const targetDate = new Date(now);
+      targetDate.setDate(now.getDate() + dayOffset);
+      const dateKey = targetDate.toLocaleDateString("en-CA");
+
+      const triggerDate = new Date(targetDate);
+      triggerDate.setHours(hour, minute, 0, 0);
+
+      if (triggerDate <= now) continue;
+
+      const message = await coreStore.getDailyNotificationMessage(userId, dateKey);
+
+      await Notifications.scheduleNotificationAsync({
+        identifier: `${DAILY_NOTIFICATION_ID}-${dateKey}`,
+        content: {
+          title: message.title,
+          body: message.body,
+          data: { symbol_id: message.symbol_id },
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.DATE,
+          date: triggerDate,
+        },
+      });
+    }
   } catch (e) {
     console.warn("[notifications] failed to schedule daily passage:", e);
   }
 }
 
-/** Cancel the daily passage notification. */
+/** Cancel all scheduled daily passage notifications (rolling window). */
 export async function cancelDailyPassage(): Promise<void> {
   if (Platform.OS === "web") return;
   try {
-    await Notifications.cancelScheduledNotificationAsync(DAILY_NOTIFICATION_ID);
+    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+    await Promise.all(
+      scheduled
+        .filter((n) => n.identifier.startsWith(DAILY_NOTIFICATION_ID))
+        .map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {}))
+    );
   } catch {
     // Already cancelled or never scheduled
   }
@@ -112,9 +135,9 @@ export async function scheduleWeeklySummary(hour: number, minute: number): Promi
   try {
     await Notifications.cancelScheduledNotificationAsync(WEEKLY_NOTIFICATION_ID).catch(() => {});
 
-    const sevenDaysAgoSec = Math.floor((Date.now() - 7 * 24 * 60 * 60 * 1000) / 1000);
+    const sevenDaysAgoMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
     const page = await coreStore.getReadingsPage(50, 0);
-    const weekReadings = page.items.filter((r) => r.created_at >= sevenDaysAgoSec);
+    const weekReadings = page.items.filter((r) => r.created_at >= sevenDaysAgoMs);
 
     if (weekReadings.length === 0) return;
 

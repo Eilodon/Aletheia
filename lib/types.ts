@@ -155,6 +155,7 @@ export interface Reading {
   is_favorite: boolean;
   shared: boolean;
   user_intent: UserIntent | undefined;
+  hide_situation?: boolean;
 }
 
 export interface NotificationEntry {

@@ -21,6 +21,7 @@ import { store } from "./store";
 import { themeEngine } from "./theme-engine";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
 import { generateId } from "@/lib/utils/id";
+import { getRecentPassageIds, recordPassageId } from "@/lib/utils/novelty-guard";
 
 
 class ReadingEngineService {
@@ -53,9 +54,10 @@ class ReadingEngineService {
         }
       } else {
         const premiumAllowed = userState.subscription_tier === SubscriptionTier.Pro;
-        source = await store.getRandomSource(
+        source = await store.getRandomSourceWeighted(
           premiumAllowed,
           userState.preferred_language,
+          userState.user_intent,
         );
         if (!source) {
           throw this.createError(ErrorCode.SourceNotFound, "No sources available");
@@ -116,14 +118,16 @@ class ReadingEngineService {
         );
       }
 
-      // Get random passage
-      const passage = await store.getRandomPassage(session.source.id);
+      // Get random passage — exclude recently seen ones (novelty guard)
+      const recentIds = await getRecentPassageIds(session.source.id);
+      const passage = await store.getRandomPassageExcluding(session.source.id, recentIds);
       if (!passage) {
         throw this.createError(
           ErrorCode.PassageEmpty,
           `No passages available for source: ${session.source.id}`
         );
       }
+      void recordPassageId(session.source.id, passage.id).catch(() => {});
 
       return {
         passage,

@@ -1,6 +1,21 @@
 export const PASSAGE_REVEAL_CHARS_PER_SECOND = 45;
-export const PASSAGE_ACTION_DELAY_MS = 3_000;
+export const PASSAGE_ACTION_DELAY_MS = 4_000; // base breathing room after reveal
 export const AUTO_SAVE_DELAY_MS = 30_000;
+
+/**
+ * Compute how long to wait after passage reveal before enabling AI button.
+ * Scales with passage length so longer passages get proportionally more
+ * settling time. The reveal animation already paces the reading — this adds
+ * the tail breathing room for content the user just finished seeing.
+ *
+ * Formula: 4s base + 500ms per extra 100 chars over 100, capped at 8s.
+ * MAX_PASSAGE_CHARS is 500, so range is [4000, 6000]ms.
+ */
+export function computePassageActionDelay(passageText: string): number {
+  const chars = passageText.trim().length;
+  const extra = Math.floor(Math.max(chars - 100, 0) / 100) * 500;
+  return Math.min(PASSAGE_ACTION_DELAY_MS + extra, 8_000);
+}
 export const COMPLETE_SILENCE_BEAT_MS = 4_000; // UX-04: silence beat before home screen
 
 // UX-05: Skip button reframe - user acknowledges uncertainty instead of dismissing

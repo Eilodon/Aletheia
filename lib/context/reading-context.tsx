@@ -19,7 +19,7 @@ import {
 import { dbInit } from "@/lib/services/db-init";
 import {
   AUTO_SAVE_DELAY_MS,
-  PASSAGE_ACTION_DELAY_MS,
+  computePassageActionDelay,
   buildPassageRevealSteps,
 } from "@/lib/reading/ritual";
 
@@ -45,9 +45,12 @@ interface ReadingContextType {
   isAIFallback: boolean;
   readingStartTime: number | null;
   error: AletheiaError | null;
+  selectedMoodTag: MoodTag | null;
+  isEphemeral: boolean;
 
   // Actions
-  startReading: (sourceId?: string, situationText?: string) => Promise<void>;
+  startReading: (sourceId?: string, situationText?: string, ephemeral?: boolean) => Promise<void>;
+  selectAftertaste: (tag: MoodTag | null) => void;
   chooseSymbol: (symbolId: string, method: SymbolMethod) => Promise<void>;
   requestAIInterpretation: () => Promise<void>;
   cancelAIInterpretation: () => Promise<void>;
@@ -77,6 +80,8 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
   const [hasSavedReading, setHasSavedReading] = useState(false);
   const [userTier, setUserTier] = useState<SubscriptionTier>(SubscriptionTier.Free);
   const [error, setError] = useState<AletheiaError | null>(null);
+  const [selectedMoodTag, setSelectedMoodTag] = useState<MoodTag | null>(null);
+  const [isEphemeral, setIsEphemeral] = useState(false);
   const activeAIStreamCancelRef = useRef<(() => Promise<boolean>) | null>(null);
   const passageRevealTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const passageActionsDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -85,9 +90,15 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
     [session, selectedSymbolId],
   );
 
-  const startReading = useCallback(async (sourceId?: string, situationText?: string) => {
+  const selectAftertaste = useCallback((tag: MoodTag | null) => {
+    setSelectedMoodTag(tag);
+  }, []);
+
+  const startReading = useCallback(async (sourceId?: string, situationText?: string, ephemeral = false) => {
     try {
       setError(null);
+      setIsEphemeral(ephemeral);
+      setSelectedMoodTag(null);
       setCurrentState(ReadingState.SituationInput);
       await dbInit.initialize();
       await coreStore.syncLocalDate().catch(() => {});
@@ -114,13 +125,14 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       const aletheiaError = err as AletheiaError;
       
-      // Trigger paywall when daily limit reached
+      // Trigger paywall when daily limit reached — pass context so paywall
+      // can show the contemplative "sacred limit" header instead of generic upsell.
       if (aletheiaError.code === ErrorCode.DailyLimitReached) {
         trackRitualEvent("daily_limit_hit", {
           source_id: sourceId,
           has_situation: Boolean(situationText?.trim()),
         });
-        router.push(PAYWALL_ROUTE);
+        router.push("/paywall?from=daily_limit" as Href);
         return;
       }
 
@@ -277,6 +289,10 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
   }, [selectedSymbol?.id, session?.source.id]);
 
   const saveReading = useCallback(async (moodTag?: MoodTag) => {
+    if (isEphemeral) {
+      setHasSavedReading(true);
+      return;
+    }
     try {
       if (!session || !passage) throw new Error("No active reading");
 
@@ -310,7 +326,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
         read_duration_s: readDuration,
         time_to_ai_request_s: timeToAIRequest,
         notification_opened: false,
-        mood_tag: moodTag,
+        mood_tag: moodTag ?? selectedMoodTag ?? undefined,
         is_favorite: false,
         shared: false,
         user_intent: session.user_intent,
@@ -374,7 +390,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
 
     passageActionsDelayRef.current = setTimeout(() => {
       setPassageActionsReady(true);
-    }, elapsed + PASSAGE_ACTION_DELAY_MS);
+    }, elapsed + computePassageActionDelay(passage.text));
 
     return () => {
       passageRevealTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
@@ -425,6 +441,8 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
     setAIRequestedAt(null);
     setHasSavedReading(false);
     setError(null);
+    setSelectedMoodTag(null);
+    setIsEphemeral(false);
   }, []);
 
   const clearError = useCallback(() => {
@@ -444,7 +462,10 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
     isAIFallback,
     readingStartTime,
     error,
+    selectedMoodTag,
+    isEphemeral,
     startReading,
+    selectAftertaste,
     chooseSymbol,
     requestAIInterpretation,
     cancelAIInterpretation,
