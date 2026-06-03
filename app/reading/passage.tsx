@@ -12,7 +12,10 @@ import { DURATION } from "@/lib/constants/animation";
 import { Fonts } from "@/constants/theme";
 import { screen, trackShareEvent } from "@/lib/analytics";
 import { useStrings } from "@/lib/i18n";
-import { ReadingState } from "@/lib/types";
+import { ReadingState, MoodTag } from "@/lib/types";
+import { showToast } from "@/components/toast";
+import { AITrustSheet } from "@/components/ai-trust-sheet";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function PassageScreen() {
   const {
@@ -28,6 +31,8 @@ export default function PassageScreen() {
     saveReading,
     completeReading,
     resetReading,
+    selectAftertaste,
+    selectedMoodTag,
   } = useReading();
   const colors = useColors();
   const router = useRouter();
@@ -35,7 +40,10 @@ export default function PassageScreen() {
   const [showAI, setShowAI] = useState(false);
   const [isRequestingAI, setIsRequestingAI] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [showTrustSheet, setShowTrustSheet] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  const AI_TRUST_KEY = "aletheia_ai_trust_seen";
 
   useEffect(() => {
     const animation = Animated.timing(fadeAnim, {
@@ -58,9 +66,7 @@ export default function PassageScreen() {
     }
   }, [aiResponse]);
 
-  const handleRequestAI = async () => {
-    if (isRequestingAI || isCompleting || aiResponse) return;
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  const proceedWithAI = async () => {
     setShowAI(true);
     setIsRequestingAI(true);
     try {
@@ -68,10 +74,32 @@ export default function PassageScreen() {
     } catch (error) {
       console.error("AI request failed:", error);
       setShowAI(false);
+      showToast("warn", s.passage.aiError);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     } finally {
       setIsRequestingAI(false);
     }
+  };
+
+  const handleRequestAI = async () => {
+    if (isRequestingAI || isCompleting || aiResponse) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    const seen = await AsyncStorage.getItem(AI_TRUST_KEY).catch(() => "1");
+    if (!seen) {
+      setShowTrustSheet(true);
+      return;
+    }
+    await proceedWithAI();
+  };
+
+  const handleTrustConfirm = async () => {
+    setShowTrustSheet(false);
+    await AsyncStorage.setItem(AI_TRUST_KEY, "1").catch(() => {});
+    await proceedWithAI();
+  };
+
+  const handleTrustCancel = () => {
+    setShowTrustSheet(false);
   };
 
   const handleComplete = async () => {
@@ -81,11 +109,12 @@ export default function PassageScreen() {
     try {
       await saveReading();
       completeReading();
+      await new Promise((resolve) => setTimeout(resolve, COMPLETE_SILENCE_BEAT_MS));
       router.replace("/");
       setTimeout(() => { resetReading(); }, 64);
-      await new Promise((resolve) => setTimeout(resolve, COMPLETE_SILENCE_BEAT_MS));
     } catch (error) {
       console.error("Failed to save:", error);
+      showToast("warn", s.passage.saveError);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       setIsCompleting(false);
     }
@@ -145,7 +174,7 @@ export default function PassageScreen() {
           >
             <Text style={[styles.quoteMark, { color: colors.primary + "88", fontFamily: Fonts.display }]}>“</Text>
             <Text style={[styles.passageText, { color: colors.foreground, fontFamily: Fonts.bodyItalic }]}>
-              {visiblePassageText || passage.text}
+              {visiblePassageText}
             </Text>
             <View style={styles.referenceBlock}>
               <View style={[styles.referenceRule, { backgroundColor: colors.primary + "50" }]} />
@@ -205,6 +234,45 @@ export default function PassageScreen() {
 
           <View style={styles.spacer} />
 
+          {passageActionsReady ? (
+            <View style={styles.aftertasteSection}>
+              <Text style={[styles.aftertastePrompt, { color: colors.muted }]}>
+                {s.passage.aftertastePrompt}
+              </Text>
+              <View style={styles.aftertasteChips}>
+                {([
+                  { label: s.passage.aftertasteLighter,    tag: MoodTag.Hopeful  },
+                  { label: s.passage.aftertasteClearer,    tag: MoodTag.Curious  },
+                  { label: s.passage.aftertasteStillHeavy, tag: MoodTag.Grief    },
+                  { label: s.passage.aftertasteTouched,    tag: MoodTag.Grateful },
+                  { label: s.passage.aftertasteNotRight,   tag: MoodTag.Confused },
+                ] as const).map(({ label, tag }) => {
+                  const active = selectedMoodTag === tag;
+                  return (
+                    <Pressable
+                      key={tag}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        selectAftertaste(active ? null : tag);
+                      }}
+                      style={[
+                        styles.aftertasteChip,
+                        {
+                          backgroundColor: active ? colors.primary + "22" : colors.surface + "C8",
+                          borderColor: active ? colors.primary + "88" : colors.primary + "22",
+                        },
+                      ]}
+                    >
+                      <Text style={[styles.aftertasteChipText, { color: active ? colors.foreground : colors.muted }]}>
+                        {label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          ) : null}
+
           <View style={styles.actions}>
             <Pressable
               testID="reading-passage-share"
@@ -244,6 +312,11 @@ export default function PassageScreen() {
           </View>
         </ScrollView>
       </Animated.View>
+      <AITrustSheet
+        visible={showTrustSheet}
+        onConfirm={handleTrustConfirm}
+        onCancel={handleTrustCancel}
+      />
     </ScreenContainer>
   );
 }
@@ -276,7 +349,12 @@ const styles = StyleSheet.create({
   aiStatusHint: { fontSize: 12, lineHeight: 18, textAlign: "center" },
   aiLabel: { fontSize: 11, letterSpacing: 2.2, textTransform: "uppercase" },
   aiBody: { fontSize: 15, lineHeight: 27, width: "100%", fontFamily: Fonts.bodyItalic },
-  spacer: { flex: 1, minHeight: 12 },
+  spacer: { flex: 1, minHeight: 8 },
+  aftertasteSection: { gap: 10, marginBottom: 16 },
+  aftertastePrompt: { fontSize: 12, textAlign: "center", fontFamily: Fonts.bodyItalic, letterSpacing: 0.3 },
+  aftertasteChips: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" },
+  aftertasteChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
+  aftertasteChipText: { fontSize: 13, fontFamily: Fonts.bodyMedium },
   actions: { gap: 12, paddingBottom: 8 },
   secondaryButton: { borderRadius: 22, borderWidth: 1, paddingVertical: 16, alignItems: "center" },
   secondaryButtonText: { fontSize: 15, letterSpacing: 0.5, fontFamily: Fonts.display },

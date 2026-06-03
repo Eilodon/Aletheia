@@ -108,7 +108,6 @@ export default function WildcardScreen() {
   const s = useStrings();
   const [isRevealed, setIsRevealed] = useState(false);
   const [isAutoSelecting, setIsAutoSelecting] = useState(false);
-  const [countdown, setCountdown] = useState(5);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -134,19 +133,6 @@ export default function WildcardScreen() {
     }
   }, [chooseSymbol, isAutoSelecting, router, s, selectedSymbolId, session]);
 
-  useEffect(() => {
-    if (!isRevealed || isAutoSelecting || selectedSymbolId) return;
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          handleAutoChoose();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [handleAutoChoose, isAutoSelecting, isRevealed, selectedSymbolId]);
 
   const handleSelect = useCallback(
     async (symbolId: string) => {
@@ -204,28 +190,20 @@ export default function WildcardScreen() {
 
         <View style={styles.footer}>
           {isRevealed && !selectedSymbolId ? (
-            <>
-              <Text style={[styles.autoText, { color: colors.muted }]}>
-                {s.wildcard.autoCountdown(countdown)}
+            <Pressable
+              testID="reading-wildcard-auto"
+              accessibilityLabel="reading-wildcard-auto"
+              onPress={handleAutoChoose}
+              disabled={isAutoSelecting}
+              style={[
+                styles.secondaryButton,
+                { backgroundColor: colors.primary + "15", borderColor: colors.primary + "60", opacity: isAutoSelecting ? 0.6 : 1 },
+              ]}
+            >
+              <Text style={[styles.secondaryButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>
+                {isAutoSelecting ? s.wildcard.autoButtonLoading : s.wildcard.autoButton}
               </Text>
-              <View style={[styles.progressTrack, { backgroundColor: colors.border + "44" }]}>
-                <View style={[styles.progressFill, { backgroundColor: colors.primary, width: `${(countdown / 5) * 100}%` }]} />
-              </View>
-              <Pressable
-                testID="reading-wildcard-auto"
-                accessibilityLabel="reading-wildcard-auto"
-                onPress={handleAutoChoose}
-                disabled={isAutoSelecting}
-                style={[
-                  styles.secondaryButton,
-                  { backgroundColor: colors.primary + "15", borderColor: colors.primary + "60", opacity: isAutoSelecting ? 0.6 : 1 },
-                ]}
-              >
-                <Text style={[styles.secondaryButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>
-                  {isAutoSelecting ? s.wildcard.autoButtonLoading : s.wildcard.autoButton}
-                </Text>
-              </Pressable>
-            </>
+            </Pressable>
           ) : null}
 
           {selectedSymbolId ? (
@@ -260,8 +238,6 @@ const styles = StyleSheet.create({
   symbolGlyph: { fontSize: 16 },
   footer: { alignItems: "center", gap: 12, paddingTop: 20, paddingBottom: 10 },
   autoText: { fontSize: 13, fontFamily: Fonts.bodyItalic },
-  progressTrack: { width: 140, height: 6, borderRadius: 999, overflow: "hidden" },
-  progressFill: { height: "100%", borderRadius: 999 },
   secondaryButton: { borderRadius: 22, borderWidth: 1, paddingHorizontal: 18, paddingVertical: 14 },
   secondaryButtonText: { fontSize: 15, letterSpacing: 1.1, textTransform: "uppercase" },
 });

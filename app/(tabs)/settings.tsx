@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { View, ScrollView, StyleSheet, Text, Switch, Pressable } from "react-native";
+import { View, ScrollView, StyleSheet, Text, Switch, Pressable, Alert } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Constants from "expo-constants";
 import { useColors } from "@/hooks/use-colors";
@@ -17,7 +17,8 @@ import {
   formatNotificationTime,
 } from "@/lib/services/notification-service";
 import { UserState } from "@/lib/types";
-import { track } from "@/lib/analytics";
+import { track, checkAnalyticsConsent, grantAnalyticsConsent, revokeAnalyticsConsent } from "@/lib/analytics";
+import { showToast } from "@/components/toast";
 
 const PRESET_TIMES = [
   { label: "06:00", hour: 6,  minute: 0 },
@@ -37,6 +38,10 @@ export default function SettingsScreen() {
   const [isTogglingNotification, setIsTogglingNotification] = useState(false);
   const [notificationError, setNotificationError] = useState<string | null>(null);
   const [isTogglingWeeklySummary, setIsTogglingWeeklySummary] = useState(false);
+  const [analyticsEnabled, setAnalyticsEnabled] = useState<boolean | null>(null);
+  const [isTogglingAnalytics, setIsTogglingAnalytics] = useState(false);
+  const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [privacyExpanded, setPrivacyExpanded] = useState(false);
 
   const loadUserState = useCallback(async () => {
     try {
@@ -49,6 +54,54 @@ export default function SettingsScreen() {
   }, []);
 
   useEffect(() => { loadUserState(); }, [loadUserState]);
+
+  useEffect(() => {
+    checkAnalyticsConsent().then(setAnalyticsEnabled);
+  }, []);
+
+  const handleAnalyticsToggle = async (enabled: boolean) => {
+    if (isTogglingAnalytics) return;
+    setIsTogglingAnalytics(true);
+    try {
+      if (enabled) {
+        await grantAnalyticsConsent();
+        track("settings_analytics_enabled");
+      } else {
+        await revokeAnalyticsConsent();
+      }
+      setAnalyticsEnabled(enabled);
+    } catch (e) {
+      console.error("[settings] analytics toggle failed:", e);
+    } finally {
+      setIsTogglingAnalytics(false);
+    }
+  };
+
+  const handleDeleteAllReadings = () => {
+    Alert.alert(
+      s.settings.deleteAllConfirmTitle,
+      s.settings.deleteAllConfirmBody,
+      [
+        { text: s.common.cancel, style: "cancel" },
+        {
+          text: s.settings.deleteAllConfirmYes,
+          style: "destructive",
+          onPress: async () => {
+            setIsDeletingAll(true);
+            try {
+              await coreStore.deleteAllReadings();
+              track("settings_delete_all_readings");
+              showToast("success", s.settings.deleteAllSuccess);
+            } catch (e) {
+              console.error("[settings] delete all failed:", e);
+            } finally {
+              setIsDeletingAll(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const saveUserState = async (updates: Partial<UserState>) => {
     if (!userState) return;
@@ -263,6 +316,80 @@ export default function SettingsScreen() {
         <Text style={[styles.sectionNote, { color: colors.muted }]}>
           {s.settings.weeklySummaryBody}
         </Text>
+      </View>
+
+      {/* Privacy & Data */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.muted }]}>
+          {s.settings.privacySection}
+        </Text>
+
+        {/* Analytics toggle */}
+        <Text style={[styles.sectionTitle, { color: colors.muted, marginBottom: 8, textTransform: "none", letterSpacing: 0.5, fontSize: 12 }]}>
+          {s.settings.analyticsSection}
+        </Text>
+        <View style={[styles.card, { backgroundColor: colors.surface + "C8", borderColor: colors.primary + "22" }]}>
+          <View style={styles.row}>
+            <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+              {analyticsEnabled ? s.settings.analyticsToggleOn : s.settings.analyticsToggleOff}
+            </Text>
+            <Switch
+              value={analyticsEnabled ?? false}
+              onValueChange={handleAnalyticsToggle}
+              disabled={isTogglingAnalytics || analyticsEnabled === null}
+              trackColor={{ false: colors.border + "88", true: colors.primary + "AA" }}
+              thumbColor={analyticsEnabled ? colors.primary : colors.muted}
+            />
+          </View>
+        </View>
+        <Text style={[styles.sectionNote, { color: colors.muted }]}>
+          {s.settings.analyticsBody}
+        </Text>
+
+        {/* Privacy ledger */}
+        <Pressable
+          onPress={() => setPrivacyExpanded((v) => !v)}
+          style={[styles.card, { backgroundColor: colors.surface + "C8", borderColor: colors.primary + "22", marginTop: 14 }]}
+        >
+          <View style={styles.row}>
+            <Text style={[styles.rowLabel, { color: colors.foreground }]}>{s.settings.privacyLedgerSection}</Text>
+            <Text style={{ color: colors.muted, fontSize: 16 }}>{privacyExpanded ? "−" : "+"}</Text>
+          </View>
+          {privacyExpanded && (
+            <>
+              <View style={[styles.divider, { backgroundColor: colors.primary + "18" }]} />
+              <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4, gap: 10 }}>
+                <Text style={[styles.rowSubLabel, { color: colors.primary }]}>{s.settings.privacyLedgerStaysTitle}</Text>
+                {s.settings.privacyLedgerStaysItems.map((item, i) => (
+                  <Text key={i} style={[styles.rowSubLabel, { color: colors.muted }]}>◦  {item}</Text>
+                ))}
+              </View>
+              <View style={[styles.divider, { backgroundColor: colors.primary + "18", marginTop: 10 }]} />
+              <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16, gap: 10 }}>
+                <Text style={[styles.rowSubLabel, { color: colors.primary }]}>{s.settings.privacyLedgerLeavesTitle}</Text>
+                {s.settings.privacyLedgerLeavesItems.map((item, i) => (
+                  <Text key={i} style={[styles.rowSubLabel, { color: colors.muted }]}>◦  {item}</Text>
+                ))}
+              </View>
+            </>
+          )}
+        </Pressable>
+
+        {/* Delete all readings */}
+        <Pressable
+          onPress={handleDeleteAllReadings}
+          disabled={isDeletingAll}
+          style={[styles.card, {
+            backgroundColor: "transparent",
+            borderColor: "#ff453a44",
+            marginTop: 14,
+            opacity: isDeletingAll ? 0.5 : 1,
+          }]}
+        >
+          <View style={styles.row}>
+            <Text style={[styles.rowLabel, { color: "#ff453a" }]}>{s.settings.deleteAllReadingsLabel}</Text>
+          </View>
+        </Pressable>
       </View>
 
       {/* About */}

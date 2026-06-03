@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { View, Text, Pressable, ScrollView, Animated } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { coreStore } from "@/lib/services/core-store";
@@ -27,6 +27,8 @@ const PLAN_PACKAGE_TYPE: Record<string, string> = {
 export default function PaywallScreen() {
   const colors = useColors();
   const router = useRouter();
+  const { from } = useLocalSearchParams<{ from?: string }>();
+  const isFromDailyLimit = from === "daily_limit";
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [currentTier, setCurrentTier] = useState<SubscriptionTier>(SubscriptionTier.Free);
   const [isPurchasing, setIsPurchasing] = useState(false);
@@ -133,11 +135,11 @@ export default function PaywallScreen() {
   };
 
   const benefits = [
-    { icon: "∞", text: "Không giới hạn lần đọc" },
-    { icon: "✨", text: "Không giới hạn AI diễn giải" },
-    { icon: "🎁", text: "Tạo và tặng quà cho người thân" },
-    { icon: "🔓", text: "Truy cập tất cả nguồn triết lý" },
-    { icon: "💾", text: "Lưu trữ không giới hạn" },
+    { icon: "✦", text: "Thư viện nguồn triết lý sâu hơn — thêm truyền thống, thêm ngôn ngữ" },
+    { icon: "◎", text: "Soi thêm bằng AI nhiều hơn mỗi ngày" },
+    { icon: "🎁", text: "Tặng một chiếc gương nhỏ cho người thân" },
+    { icon: "◌", text: "Xuất archive cá nhân — hoàn toàn offline" },
+    { icon: "◉", text: "Giúp giữ AletheiA yên, riêng tư, không quảng cáo, không bán dữ liệu" },
   ];
 
   return (
@@ -155,29 +157,45 @@ export default function PaywallScreen() {
             <Text className="text-2xl text-muted">×</Text>
           </Pressable>
 
-          {/* Header - Ritual threshold */}
-          <View className="items-center gap-3 pt-10 pb-8">
-            <View
-              style={{
-                width: 72,
-                height: 72,
-                borderRadius: 36,
-                backgroundColor: colors.surface + "15",
-                borderWidth: 1,
-                borderColor: colors.primary + "30",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <Text style={{ color: colors.primary, fontSize: 28 }}>✦</Text>
+          {/* Header — contemplative when reaching daily limit, standard otherwise */}
+          {isFromDailyLimit ? (
+            <View className="items-center gap-4 pt-12 pb-8">
+              <Text style={{ color: colors.primary, fontSize: 28, letterSpacing: 2 }}>✦</Text>
+              <Text style={{ fontSize: 20, fontWeight: "300", color: colors.foreground, textAlign: "center", letterSpacing: 0.5, lineHeight: 30, maxWidth: 280 }}>
+                Bạn đã đối thoại đủ cho hôm nay.
+              </Text>
+              <Text style={{ fontSize: 14, color: colors.muted, textAlign: "center", maxWidth: 260, lineHeight: 22, fontStyle: "italic" }}>
+                Phần còn lại, hãy để cuộc sống trả lời.
+              </Text>
+              <View style={{ width: 40, height: 1, backgroundColor: colors.primary + "40", marginVertical: 8 }} />
+              <Text style={{ fontSize: 12, color: colors.muted, textAlign: "center", maxWidth: 240, lineHeight: 18, letterSpacing: 0.5 }}>
+                Nếu bạn muốn tiếp tục khám phá sâu hơn, Aletheia Pro mở thêm không gian.
+              </Text>
             </View>
-            <Text style={{ fontSize: 24, fontWeight: "300", color: colors.foreground, letterSpacing: 1 }}>
-              Aletheia Pro
-            </Text>
-            <Text style={{ fontSize: 14, color: colors.muted, textAlign: "center", maxWidth: 260, lineHeight: 22 }}>
-              Mở khóa chiều sâu của phản chiếu
-            </Text>
-          </View>
+          ) : (
+            <View className="items-center gap-3 pt-10 pb-8">
+              <View
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: 36,
+                  backgroundColor: colors.surface + "15",
+                  borderWidth: 1,
+                  borderColor: colors.primary + "30",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ color: colors.primary, fontSize: 28 }}>✦</Text>
+              </View>
+              <Text style={{ fontSize: 24, fontWeight: "300", color: colors.foreground, letterSpacing: 1 }}>
+                Aletheia Pro
+              </Text>
+              <Text style={{ fontSize: 14, color: colors.muted, textAlign: "center", maxWidth: 260, lineHeight: 22 }}>
+                Ủng hộ một chiếc gương yên, riêng tư, không quảng cáo
+              </Text>
+            </View>
+          )}
 
           {/* Current tier badge */}
           {currentTier === SubscriptionTier.Pro && (
@@ -438,7 +456,7 @@ export default function PaywallScreen() {
                   })}
                 >
                   <Text style={{ fontSize: 17, fontWeight: "600", color: "#FFFFFF", textAlign: "center" }}>
-                    {isPurchasing ? "Đang xử lý..." : selectedPlan ? "Nâng lên Pro" : "Chọn gói để tiếp tục"}
+                    {isPurchasing ? "Đang xử lý..." : selectedPlan ? "Ủng hộ AletheiA" : "Chọn gói để tiếp tục"}
                   </Text>
                 </Pressable>
 

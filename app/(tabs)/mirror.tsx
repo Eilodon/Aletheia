@@ -146,7 +146,12 @@ export default function HistoryScreen() {
   useEffect(() => {
     if (searchQuery.trim().length === 0) return;
     const id = setTimeout(() => {
-      trackArchiveEvent("search", { query: searchQuery.trim(), result_count: visibleReadings.length });
+      const q = searchQuery.trim();
+      trackArchiveEvent("search", {
+        query_length_bucket: q.length < 5 ? "short" : q.length < 20 ? "medium" : "long",
+        has_results: visibleReadings.length > 0,
+        result_count_bucket: visibleReadings.length === 0 ? "none" : visibleReadings.length < 5 ? "few" : "many",
+      });
     }, 300);
     return () => clearTimeout(id);
   }, [searchQuery, visibleReadings.length]);
@@ -186,8 +191,8 @@ export default function HistoryScreen() {
         )}
       </View>
 
-      <Text style={{ fontSize: 17, color: colors.foreground, marginBottom: 12, lineHeight: 26, fontFamily: Fonts.bodyItalic }} numberOfLines={2}>
-        {item.situation_text || s.mirror.noSituation}
+      <Text style={{ fontSize: 17, color: item.hide_situation ? colors.muted : colors.foreground, marginBottom: 12, lineHeight: 26, fontFamily: Fonts.bodyItalic }} numberOfLines={2}>
+        {item.hide_situation ? s.mirror.situationHidden : (item.situation_text || s.mirror.noSituation)}
       </Text>
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>

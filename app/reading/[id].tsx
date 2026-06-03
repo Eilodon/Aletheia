@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import * as Haptics from "expo-haptics";
 
 import { Fonts } from "@/constants/theme";
@@ -11,6 +11,7 @@ import { showToast } from "@/components/toast";
 import { useColors } from "@/hooks/use-colors";
 import { useReading } from "@/lib/context/reading-context";
 import { coreStore } from "@/lib/services/core-store";
+import { shouldUseAletheiaNative } from "@/lib/native/runtime";
 import type { MoodTag, Reading } from "@/lib/types";
 import { screen, trackArchiveEvent, trackGiftEvent, trackShareEvent } from "@/lib/analytics";
 
@@ -46,6 +47,8 @@ export default function ReadingDetailScreen() {
   const [isReopening, setIsReopening] = useState(false);
   const [isSavingFavorite, setIsSavingFavorite] = useState(false);
   const [isGifting, setIsGifting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isHidingSituation, setIsHidingSituation] = useState(false);
 
   useEffect(() => {
     const loadReading = async () => {
@@ -140,6 +143,51 @@ export default function ReadingDetailScreen() {
     }
   };
 
+  const handleDelete = () => {
+    if (!reading || isDeleting) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    Alert.alert(
+      "Xóa lần đọc?",
+      "Lần đọc này sẽ bị xóa khỏi Gương. Không thể hoàn tác.",
+      [
+        { text: "Giữ lại", style: "cancel" },
+        {
+          text: "Xóa",
+          style: "destructive",
+          onPress: async () => {
+            setIsDeleting(true);
+            try {
+              await coreStore.deleteReading(reading.id);
+              trackArchiveEvent("reading_deleted", { reading_id: reading.id, source_id: reading.source_id });
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              router.back();
+            } catch (error) {
+              console.error("Failed to delete reading:", error);
+              showToast("error", "Không thể xóa lần đọc này.");
+              setIsDeleting(false);
+            }
+          },
+        },
+      ],
+    );
+  };
+
+  const handleToggleHideSituation = async () => {
+    if (!reading || isHidingSituation) return;
+    setIsHidingSituation(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    try {
+      const updated = await coreStore.updateReadingFlags(reading.id, {
+        hide_situation: !reading.hide_situation,
+      });
+      if (updated) setReading(updated);
+    } catch (error) {
+      console.error("Failed to toggle hide_situation:", error);
+    } finally {
+      setIsHidingSituation(false);
+    }
+  };
+
   const handleReopen = async () => {
     if (!reading || isReopening) return;
     setIsReopening(true);
@@ -174,8 +222,16 @@ export default function ReadingDetailScreen() {
         reading_id: reading.id,
         source_id: reading.source_id,
       });
+      const sourceTitle = sourceName || reading.source_id;
       await Share.share({
-        message: `Mình gửi bạn một lần đọc từ ${sourceName || reading.source_id} trên Aletheia.\n\n${gift.deep_link}`,
+        message: [
+          `Gần đây mình đang đọc ${sourceTitle} trên Aletheia — và muốn gửi cho bạn một lần đọc từ cùng nguồn này.`,
+          ``,
+          `Lật một lá và để nó phản chiếu điều gì đó:`,
+          gift.deep_link,
+          ``,
+          `(Link dùng được trong 7 ngày, không cần cài app)`,
+        ].join("\n"),
       });
       trackGiftEvent("shared", {
         reading_id: reading.id,
@@ -264,7 +320,12 @@ export default function ReadingDetailScreen() {
 
         {reading.situation_text ? (
           <View style={[styles.sectionCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "22" }]}>
-            <Text style={[styles.sectionLabel, { color: colors.primary }]}>Tình huống lúc đó</Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <Text style={[styles.sectionLabel, { color: colors.primary }]}>Tình huống lúc đó</Text>
+              {reading.hide_situation && (
+                <Text style={{ fontSize: 10, color: colors.muted, letterSpacing: 1.5, textTransform: "uppercase" }}>Ẩn trong Gương</Text>
+              )}
+            </View>
             <Text style={[styles.sectionBody, { color: colors.foreground }]}>{reading.situation_text}</Text>
           </View>
         ) : null}
@@ -334,15 +395,28 @@ export default function ReadingDetailScreen() {
               </Text>
             </Pressable>
           </View>
-          <Pressable
-            onPress={handleGift}
-            disabled={isGifting}
-            style={[styles.secondaryButton, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "22", opacity: isGifting ? 0.6 : 1 }]}
-          >
-            <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>
-              {isGifting ? "Đang tạo quà..." : "Tặng lần đọc này"}
-            </Text>
-          </Pressable>
+          {reading.situation_text ? (
+            <Pressable
+              onPress={handleToggleHideSituation}
+              disabled={isHidingSituation}
+              style={[styles.secondaryButton, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "22", opacity: isHidingSituation ? 0.6 : 1 }]}
+            >
+              <Text style={[styles.secondaryButtonText, { color: colors.muted }]}>
+                {reading.hide_situation ? "Hiện tình huống trong Gương" : "Ẩn tình huống trong Gương"}
+              </Text>
+            </Pressable>
+          ) : null}
+          {shouldUseAletheiaNative() && (
+            <Pressable
+              onPress={handleGift}
+              disabled={isGifting}
+              style={[styles.secondaryButton, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "22", opacity: isGifting ? 0.6 : 1 }]}
+            >
+              <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>
+                {isGifting ? "Đang tạo quà..." : "Tặng lần đọc này"}
+              </Text>
+            </Pressable>
+          )}
           <Pressable
             onPress={handleReopen}
             disabled={isReopening}
