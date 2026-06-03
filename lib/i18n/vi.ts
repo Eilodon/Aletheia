@@ -140,6 +140,9 @@ export const vi = {
     dateToday: "Hôm nay",
     dateYesterday: "Hôm qua",
     daysAgo: (n: number) => `${n} ngày trước`,
+
+    a11yOpenReading: "Mở lần đọc",
+    situationHidden: "Đã ẩn tình huống",
   },
 
   preview: {

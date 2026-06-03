@@ -138,6 +138,9 @@ export const en: Strings = {
     dateToday: "Today",
     dateYesterday: "Yesterday",
     daysAgo: (n) => `${n} days ago`,
+
+    a11yOpenReading: "Open reading",
+    situationHidden: "Situation hidden",
   },
 
   preview: {

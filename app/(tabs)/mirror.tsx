@@ -167,6 +167,8 @@ export default function HistoryScreen() {
   const renderReadingItem = ({ item }: { item: ReadingWithDetails }) => (
     <PressableCard
       onPress={() => handleReadingPress(item)}
+      accessibilityRole="button"
+      accessibilityLabel={s.mirror.a11yOpenReading}
       style={{
         padding: 20, borderRadius: 24, backgroundColor: colors.surface + "C8",
         borderWidth: 1, borderColor: colors.primary + "22", marginBottom: 14,
@@ -218,6 +220,8 @@ export default function HistoryScreen() {
       {readings.length === 0 ? (
         <Pressable
           onPress={() => router.push("/reading/situation")}
+          accessibilityRole="button"
+          accessibilityLabel={s.mirror.startReading}
           className="mt-6 px-6 py-3 rounded-xl"
           style={{ backgroundColor: colors.primary + "18", borderWidth: 1, borderColor: colors.primary + "72" }}
         >
@@ -243,6 +247,7 @@ export default function HistoryScreen() {
             onChangeText={setSearchQuery}
             placeholder={s.mirror.searchPlaceholder}
             placeholderTextColor={colors.muted}
+            accessibilityLabel={s.mirror.searchPlaceholder}
             style={{ color: colors.foreground, paddingVertical: 12, fontSize: 14, fontFamily: Fonts.body }}
           />
         </View>
@@ -253,6 +258,8 @@ export default function HistoryScreen() {
               <Pressable
                 key={option.key}
                 onPress={() => { haptic("selection"); setActiveFilter(option.key); }}
+                accessibilityRole="button"
+                accessibilityLabel={option.label}
                 style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, backgroundColor: active ? colors.primary + "18" : colors.surface + "DA", borderWidth: 1, borderColor: active ? colors.primary + "72" : colors.primary + "22" }}
               >
                 <Text style={{ color: active ? colors.foreground : colors.muted, fontSize: 12, letterSpacing: 0.5, textTransform: "uppercase" }}>
@@ -269,6 +276,8 @@ export default function HistoryScreen() {
               <Pressable
                 key={option.key}
                 onPress={() => { haptic("selection"); setActiveSort(option.key); }}
+                accessibilityRole="button"
+                accessibilityLabel={option.label}
                 style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, backgroundColor: active ? colors.primary + "18" : "transparent" }}
               >
                 <Text style={{ color: active ? colors.primary : colors.muted, fontSize: 12, letterSpacing: 0.8, textTransform: "uppercase" }}>

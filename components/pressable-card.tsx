@@ -17,6 +17,9 @@ export function PressableCard({
   scaleValue = 0.96,
   disabled = false,
   style,
+  accessibilityRole,
+  accessibilityLabel,
+  accessibilityHint,
   ...props
 }: PressableCardProps) {
   const colors = useColors();
@@ -65,6 +68,9 @@ export function PressableCard({
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       disabled={disabled}
+      accessibilityRole={accessibilityRole ?? "button"}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityHint={accessibilityHint}
     >
       <Animated.View
         style={[
