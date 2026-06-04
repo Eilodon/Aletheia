@@ -7,6 +7,7 @@ import { haptic } from "@/lib/utils/haptics";
 import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
 import { useColors } from "@/hooks/use-colors";
+import { useLayout } from "@/hooks/use-layout";
 import { Fonts } from "@/constants/theme";
 import { screen, trackRitualEvent } from "@/lib/analytics";
 import { useStrings } from "@/lib/i18n";
@@ -16,6 +17,10 @@ export default function HomeScreen() {
   const router = useRouter();
   const s = useStrings();
   const insets = useSafeAreaInsets();
+  const { ornamentScale, contentMaxWidth, isCompact, typeScale } = useLayout();
+  const haloSize = Math.round(300 * ornamentScale);
+  const ringSize = Math.round(248 * ornamentScale);
+  const ringInnerSize = Math.round(208 * ornamentScale);
 
   useEffect(() => {
     screen("home", { surface: "tabs_index" });
@@ -29,12 +34,12 @@ export default function HomeScreen() {
 
   return (
     <ScreenContainer className="px-6 pb-6">
-      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 100 }} showsVerticalScrollIndicator={false}>
-        <View style={styles.root}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: isCompact ? insets.bottom + 100 : insets.bottom + 24 }} showsVerticalScrollIndicator={false}>
+        <View style={[styles.root, !isCompact && { maxWidth: contentMaxWidth, width: "100%", alignSelf: "center" }]}>
           <View style={styles.hero}>
-            <View style={[styles.heroHalo, { backgroundColor: colors.primary + "0E" }]} />
-            <View style={[styles.heroRing, { borderColor: colors.primary + "16" }]} />
-            <View style={[styles.heroRingInner, { borderColor: colors.primary + "12" }]} />
+            <View style={[styles.heroHalo, { width: haloSize, height: haloSize, borderRadius: haloSize / 2, backgroundColor: colors.primary + "0E" }]} />
+            <View style={[styles.heroRing, { width: ringSize, height: ringSize, borderRadius: ringSize / 2, borderColor: colors.primary + "16" }]} />
+            <View style={[styles.heroRingInner, { width: ringInnerSize, height: ringInnerSize, borderRadius: ringInnerSize / 2, borderColor: colors.primary + "12" }]} />
             <View style={styles.brandMark}>
               <RitualOrnament variant="diamond" size="lg" />
             </View>
@@ -44,9 +49,9 @@ export default function HomeScreen() {
               <View style={[styles.ruleLine, { backgroundColor: colors.primary + "30" }]} />
             </View>
             <Text style={[styles.kicker, { color: colors.primary }]}>{s.home.kicker}</Text>
-            <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.displayStrong }]}>{s.home.title}</Text>
+            <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.brand }]}>{s.home.title}</Text>
             <Text style={[styles.tagline, { color: colors.foreground }]}>{s.home.tagline}</Text>
-            <Text style={[styles.subtitle, { color: colors.muted }]}>{s.home.subtitle}</Text>
+            <Text style={[styles.subtitle, { maxWidth: Math.min(320, contentMaxWidth * 0.82), color: colors.muted }]}>{s.home.subtitle}</Text>
           </View>
 
           <View style={styles.ctaGroup}>
@@ -67,7 +72,7 @@ export default function HomeScreen() {
               <Text style={[styles.ctaText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{s.home.cta}</Text>
               <Text style={[styles.ctaGlyph, { color: colors.primary }]}>✦</Text>
             </Pressable>
-            <Text style={[styles.ctaHint, { color: colors.muted }]}>{s.home.ctaHint}</Text>
+            <Text style={[styles.ctaHint, { maxWidth: Math.min(300, contentMaxWidth * 0.78), color: colors.muted }]}>{s.home.ctaHint}</Text>
           </View>
 
           <View
@@ -78,7 +83,7 @@ export default function HomeScreen() {
           >
             <Text style={[styles.featureLabel, { color: colors.primary }]}>{s.home.passageLabel}</Text>
             <Text style={[styles.featureQuote, { color: colors.foreground, fontFamily: Fonts.bodyItalic }]}>
-              “Đừng đi tìm câu trả lời hoàn hảo. Hãy đi tìm câu hỏi đang thật sự sống trong bạn.”
+              “{s.home.quote}”
             </Text>
             <View style={styles.featureFooter}>
               <View style={[styles.featureRule, { backgroundColor: colors.primary + "44" }]} />
@@ -105,9 +110,9 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   root: { flexGrow: 1, justifyContent: "space-between", gap: 28, paddingTop: 28 },
   hero: { alignItems: "center", gap: 12, paddingTop: 36, paddingBottom: 8 },
-  heroHalo: { position: "absolute", width: 300, height: 300, borderRadius: 150, top: -26 },
-  heroRing: { position: "absolute", width: 248, height: 248, borderRadius: 124, top: 2, borderWidth: 1 },
-  heroRingInner: { position: "absolute", width: 208, height: 208, borderRadius: 104, top: 22, borderWidth: 1 },
+  heroHalo: { position: "absolute", top: -26 },
+  heroRing: { position: "absolute", top: 2, borderWidth: 1 },
+  heroRingInner: { position: "absolute", top: 22, borderWidth: 1 },
   brandMark: { marginBottom: 6 },
   brandRule: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 2 },
   ruleLine: { width: 44, height: 1 },
@@ -115,7 +120,7 @@ const styles = StyleSheet.create({
   kicker: { fontSize: 10, letterSpacing: 3.2, textTransform: "uppercase" },
   title: { fontSize: 44, letterSpacing: 9 },
   tagline: { fontSize: 13, letterSpacing: 4, textTransform: "uppercase", textAlign: "center" },
-  subtitle: { maxWidth: 320, textAlign: "center", fontSize: 15, lineHeight: 25, fontFamily: Fonts.bodyItalic },
+  subtitle: { textAlign: "center", fontSize: 15, lineHeight: 25, fontFamily: Fonts.bodyItalic },
   ctaGroup: { alignItems: "center", gap: 12 },
   ctaButton: {
     minWidth: 270, flexDirection: "row", justifyContent: "center", alignItems: "center",
@@ -124,7 +129,7 @@ const styles = StyleSheet.create({
   },
   ctaGlyph: { fontSize: 16 },
   ctaText: { fontSize: 18, letterSpacing: 1.9, textTransform: "uppercase" },
-  ctaHint: { maxWidth: 300, textAlign: "center", fontSize: 13, lineHeight: 20, fontFamily: Fonts.bodyItalic },
+  ctaHint: { textAlign: "center", fontSize: 13, lineHeight: 20, fontFamily: Fonts.bodyItalic },
   featureCard: { borderRadius: 28, paddingHorizontal: 22, paddingVertical: 22, borderWidth: 1, gap: 12 },
   featureLabel: { fontSize: 10, letterSpacing: 3, textTransform: "uppercase" },
   featureQuote: { fontSize: 21, lineHeight: 31 },
