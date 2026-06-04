@@ -34,7 +34,7 @@ export default function HomeScreen() {
 
   return (
     <ScreenContainer className="px-6 pb-6">
-      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: isCompact ? insets.bottom + 100 : insets.bottom + 24 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 100 }} showsVerticalScrollIndicator={false}>
         <View style={[styles.root, !isCompact && { maxWidth: contentMaxWidth, width: "100%", alignSelf: "center" }]}>
           <View style={styles.hero}>
             <View style={[styles.heroHalo, { width: haloSize, height: haloSize, borderRadius: haloSize / 2, backgroundColor: colors.primary + "0E" }]} />
