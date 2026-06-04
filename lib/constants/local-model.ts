@@ -1,90 +1,45 @@
 /**
- * Local AI Model Configuration
- * 
- * CDN hosting configuration for Gemma 3n E2B model files.
- * Models are hosted on Google Cloud Storage with versioning support.
+ * Local AI Model Configuration — Qwen3.5-2B (LiteRT-LM format)
+ * CDN: GCS storage.googleapis.com/aletheia-models/qwen3.5-2b/
+ * Source model: paulsp94/Qwen3.5-2B-LiteRT-LM (HuggingFace)
+ * MODEL_SIZE_BYTES: verify against HF model card before beta release.
  */
-
 export const LOCAL_MODEL_CONFIG = {
-  /** Model identifier */
-  MODEL_ID: 'gemma-3n-e2b',
-  
-  /** Current supported model version */
+  MODEL_ID: 'qwen3.5-2b-instruct',
   MODEL_VERSION: '1.0.0',
-  
-  /** CDN base URL for model files */
-  CDN_BASE_URL: 'https://storage.googleapis.com/aletheia-models/gemma-3n-e2b',
-  
-  /** Model file paths */
+  CDN_BASE_URL: 'https://storage.googleapis.com/aletheia-models/qwen3.5-2b',
   FILES: {
-    /** Main model file (MediaPipe .task format) */
-    MODEL: 'gemma-3n-e2b.task',
-    
-    /** Version info JSON */
+    MODEL: 'Qwen3.5-2B-IT.litertlm',
     VERSION: 'version.json',
-    
-    /** Model checksum for verification */
     CHECKSUM: 'checksum.sha256',
   },
-  
-  /** Model requirements */
   REQUIREMENTS: {
-    /** Minimum RAM in MB */
-    MIN_RAM_MB: 2048,
-    
-    /** Minimum CPU cores */
+    MIN_RAM_MB: 3072,
     MIN_CPU_CORES: 4,
-    
-    /** Estimated model size in bytes (~2GB) */
-    MODEL_SIZE_BYTES: 2_000_000_000,
-    
-    /** Estimated tokens per second on low-end device */
-    ESTIMATED_TPS_LOW: 2.0,
-    
-    /** Estimated tokens per second on high-end device */
-    ESTIMATED_TPS_HIGH: 10.0,
+    MODEL_SIZE_BYTES: 1_500_000_000,   // ~1.5GB — VERIFY from paulsp94/Qwen3.5-2B-LiteRT-LM HF card
+    ESTIMATED_TPS_LOW: 5.0,
+    ESTIMATED_TPS_HIGH: 20.0,
   },
-  
-  /** Inference parameters */
   INFERENCE: {
-    /** Maximum tokens to generate */
-    MAX_TOKENS: 1024,
-    
-    /** Top-K sampling */
+    MAX_TOKENS: 512,
     TOP_K: 40,
-    
-    /** Temperature for sampling */
     TEMPERATURE: 0.7,
-    
-    /** Random seed for reproducibility */
-    RANDOM_SEED: 42,
+    THINKING_ENABLED: true,
   },
 } as const;
 
-/**
- * Get full URL for a model file
- */
 export function getModelFileUrl(filename: string): string {
   return `${LOCAL_MODEL_CONFIG.CDN_BASE_URL}/${filename}`;
 }
 
-/**
- * Get model download URL
- */
 export function getModelDownloadUrl(): string {
   return getModelFileUrl(LOCAL_MODEL_CONFIG.FILES.MODEL);
 }
 
-/**
- * Get version check URL
- */
 export function getVersionCheckUrl(): string {
   return getModelFileUrl(LOCAL_MODEL_CONFIG.FILES.VERSION);
 }
 
-/**
- * Model version info returned from CDN
- */
 export interface ModelVersionInfo {
   version: string;
   releaseDate: string;
@@ -94,9 +49,6 @@ export interface ModelVersionInfo {
   changelog?: string;
 }
 
-/**
- * Parse version info from CDN response
- */
 export function parseVersionInfo(json: string): ModelVersionInfo | null {
   try {
     const data = JSON.parse(json);
