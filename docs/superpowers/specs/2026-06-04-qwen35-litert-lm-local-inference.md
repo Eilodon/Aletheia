@@ -443,3 +443,52 @@ return { chunks: [finalText], usedFallback: false };
 - `isSafeLocalOutput` must check real patterns, not return `true` always
 - `finalizeLocalInterpretation` must always produce a closing `*question*` line  
 - `stripThinkBlock` must return `""` on truncated block, NOT partial text
+
+---
+
+## Risk Assessment (audit-design)
+<!-- audit-design: DO NOT DUPLICATE — update this section, do not append a second one -->
+<!-- last-run: 2026-06-04 | trigger: NORMAL -->
+
+**Tier:** 2 (Production, user-facing) | **Date:** 2026-06-04
+
+### Failure Modes
+
+1. **Empty string bypasses safety check** — `isSafeLocalOutput("")` returns `true` (no regex matches empty string) → `finalizeLocalInterpretation("")` produces only the fallback closing question with no body → user sees just `*Lúc này điều gì cần được nhìn rõ hơn?*` with no reflection — **HIGH** — mitigation in plan: NO → writing-plans MUST add explicit empty-string guard before `isSafeLocalOutput`
+
+2. **Partial download → corrupt LiteRT-LM load** — interrupted download leaves partial `.litertlm` file on disk → `isModelReady()` checks only `length() > 0` → passes → `Engine.initialize()` attempts to load corrupt file → unspecified crash/exception with no user-facing message — **HIGH** — mitigation in plan: NO → writing-plans MUST add size threshold validation in `isModelReady()` (e.g., `>= EXPECTED_MODEL_SIZE * 0.95`)
+
+3. **Community model `/think` silent non-activation** — `paulsp94/Qwen3.5-2B-LiteRT-LM` is not official. If chat template is not properly preserved, `/think` soft switch may not activate thinking mode → output quality silently degrades to non-thinking baseline — **MEDIUM** — mitigation: log model metadata at init time; add integration test checking `<think>` tag presence in raw output
+
+### Layer Signals
+
+**L1 Logic:** `isSafeLocalOutput("")` returns `true` — empty string guard missing. Add `if (!text.trim()) return false` at start of function (or route to fallback before safety check).
+
+**L2 Concurrency:** `private var engine: Engine?` in `LocalInferenceEngine` — `initialize()` and `shutdown()` can race during app lifecycle. Wrap with `@Synchronized` or `Mutex` on `engine` access.
+
+**L4 Integration:** GCS CDN not validated at startup. If bucket not populated, `downloadModel()` fails with generic OkHttp error. Add startup-time URL reachability hint in error message: "Model server unavailable — check connection."
+
+**L6 Observability:** No analytics event when local inference falls back to cloud silently. Add `trackLocalModelEvent("inference_fallback", { reason })` at each fallback branch in orchestrator.
+
+### Assumptions to Verify
+
+- **ASSUMED**: `MODEL_SIZE_BYTES: 1_500_000_000` — unconfirmed. Verify against `paulsp94/Qwen3.5-2B-LiteRT-LM` HuggingFace model card before release. Wrong value causes premature "already downloaded" state on partial file.
+- **ASSUMED**: Community model `paulsp94/Qwen3.5-2B-LiteRT-LM` correctly preserved Qwen3.5 chat template for `/think` activation. Verify with integration test.
+- **ASSUMED**: `Backend.CPU()` is sufficient. Devices with GPU (Snapdragon 8-series, Dimensity 9xxx) could use `Backend.GPU()` for 3-5x speedup. Out of scope for beta but flag as known performance gap.
+- **ASSUMED**: GCS bucket will be populated before beta. No startup validator — if bucket is empty, users who tap "Download model" get silent failure.
+
+### Abductive Hypotheses
+
+**Abductive 1:** `Engine.createConversation().sendMessageAsync("/think\n\n" + prompt)` — LiteRT-LM may apply Qwen's chat template internally, treating the entire string as user content. The `/think` directive works when placed at the start of the USER TURN in the template, not as raw prepended text. If LiteRT-LM's template wraps the prompt in `<|im_start|>user\n...<|im_end|>`, the `/think` instruction IS in user turn and should activate. But if the model was packaged with a different template, behavior is undefined.
+
+**Abductive 2:** `Backend.CPU()` on Android 12+ with `NNAPI` delegates — LiteRT-LM CPU backend may automatically use NNAPI acceleration on some devices (behavior depends on build flags). On other devices it falls back to pure CPU. This creates unpredictable variance in TPS (5x range) that affects whether inference completes before `AI_STREAM_TIMEOUT_MS` fires. A device that PASSES `DeviceCapabilityDetector.detect()` (supported=true) may still time out in practice.
+
+### Gate Result
+
+**PASS WITH FLAGS** — proceed to `writing-plans`.
+
+`writing-plans` MUST include mitigation tasks for:
+- FM1: Add `!text.trim()` guard in `isSafeLocalOutput` (routes empty to fallback, not display)
+- FM2: Add size threshold validation in `isModelReady()` — `>= EXPECTED_MODEL_SIZE * 0.95`
+- L2: `@Synchronized` or `Mutex` on `engine` field access in `LocalInferenceEngine`
+- L6: Add `trackLocalModelEvent("inference_fallback", { reason })` at each fallback branch
