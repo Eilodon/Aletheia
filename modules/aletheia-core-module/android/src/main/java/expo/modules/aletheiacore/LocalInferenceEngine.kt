@@ -2,429 +2,265 @@ package expo.modules.aletheiacore
 
 import android.content.Context
 import android.util.Log
-import com.google.mediapipe.tasks.genai.llminference.LlmInference
+import com.google.ai.edge.litertlm.Backend
+import com.google.ai.edge.litertlm.Engine
+import com.google.ai.edge.litertlm.EngineConfig
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.ResponseBody
-import okio.buffer
-import okio.sink
 import java.io.File
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
-/// Local Inference Engine for on-device LLM inference
-/// Uses MediaPipe Tasks or llama.cpp for model execution
+/// Local Inference Engine — Qwen3.5-2B via LiteRT-LM
+/// Replaces deprecated MediaPipe LlmInference (March 2026).
 ///
 /// Architecture:
-/// - Model files stored in app-private storage
-/// - Inference runs on background thread
-/// - Results streamed via Kotlin Flow
-/// - Cancellation supported via AtomicBoolean
+/// - Engine initialized once, held in memory for lifetime of module
+/// - runInference() collects FULL response, strips <think> block, returns clean String
+/// - JS polling architecture preserved — no streaming through JNI boundary
+/// - L2 mitigation: double-checked locking on engine field
 class LocalInferenceEngine(private val context: Context) {
     companion object {
         private const val TAG = "LocalInferenceEngine"
         private const val MODEL_DIR = "local_models"
-        private const val MODEL_FILENAME = "gemma-3-1b-it-q4_0.gguf" // llama.cpp GGUF format
+        private const val MODEL_FILENAME = "Qwen3.5-2B-IT.litertlm"
 
-        const val MODEL_ID = "gemma-3-1b-it-qat-q4_0"
-        const val REQUIRED_RAM_MB = 1024                 // 1GB device RAM minimum
+        const val MODEL_ID = "qwen3.5-2b-instruct"
+        const val REQUIRED_RAM_MB = 3072
         const val ESTIMATED_TPS_LOW = 5.0f
-        const val ESTIMATED_TPS_HIGH = 30.0f
-        private const val EXPECTED_MODEL_SIZE = 529_000_000L // 529MB
-        private const val MODEL_DOWNLOAD_URL =
-            "https://huggingface.co/google/gemma-3-1b-it-qat-q4_0-gguf/resolve/main/gemma-3-1b-it-q4_0.gguf"
+        const val ESTIMATED_TPS_HIGH = 20.0f
+        // FM2 mitigation: ~1.5GB expected — verify against paulsp94/Qwen3.5-2B-LiteRT-LM HF card
+        private const val EXPECTED_MODEL_SIZE = 1_500_000_000L
     }
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
-    
-    // Inference state
-    private var isInitialized = false
-    private var currentSession: InferenceSession? = null
-    
-    /// Check if model is ready (either downloaded or bundled)
+
+    // L2 mitigation: double-checked locking for engine lifecycle safety
+    @Volatile private var engine: Engine? = null
+    private val engineLock = Any()
+
+    // ── Model readiness ────────────────────────────────────────────────────────
+
+    /**
+     * FM2 mitigation: checks size threshold (95% of expected), not just existence.
+     * Prevents loading a partially-downloaded file into LiteRT-LM.
+     */
     fun isModelReady(): Boolean {
         val modelFile = getModelFile()
-        if (modelFile.exists() && modelFile.length() > 0) {
-            return true
-        }
-        // Check if bundled in assets
-        return hasBundledModel()
+        return modelFile.exists() && modelFile.length() >= EXPECTED_MODEL_SIZE * 95 / 100
     }
-    
-    /// Check if model is bundled in assets
-    private fun hasBundledModel(): Boolean {
-        return try {
-            context.assets.list("models")?.contains(MODEL_FILENAME) == true
-        } catch (e: Exception) {
-            false
-        }
-    }
-    
-    /// Get model file path (may need to extract from assets first)
-    fun getModelPath(): String {
-        val modelFile = getModelFile()
-        
-        // If model exists in internal storage, use it
-        if (modelFile.exists() && modelFile.length() > 0) {
-            return modelFile.absolutePath
-        }
-        
-        // If bundled in assets, extract it first
-        if (hasBundledModel()) {
-            extractBundledModel()
-            return modelFile.absolutePath
-        }
-        
-        return modelFile.absolutePath
-    }
-    
-    /// Extract bundled model from assets to internal storage
-    private fun extractBundledModel(): Boolean {
-        return try {
-            val dir = File(context.filesDir, MODEL_DIR)
-            if (!dir.exists()) {
-                dir.mkdirs()
-            }
-            
-            val modelFile = File(dir, MODEL_FILENAME)
-            if (modelFile.exists() && modelFile.length() > 0) {
-                return true // Already extracted
-            }
-            
-            Log.i(TAG, "Extracting bundled model from assets...")
-            
-            context.assets.open("models/$MODEL_FILENAME").use { input ->
-                modelFile.outputStream().use { output ->
-                    input.copyTo(output)
-                }
-            }
-            
-            // Copy version file if exists
-            try {
-                val versionFile = File(dir, "version.txt")
-                context.assets.open("models/version.txt").use { input ->
-                    versionFile.writeText(input.bufferedReader().readText())
-                }
-            } catch (e: Exception) {
-                // Version file optional
-            }
-            
-            Log.i(TAG, "Bundled model extracted: ${modelFile.absolutePath} (${modelFile.length()} bytes)")
-            true
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to extract bundled model", e)
-            false
-        }
-    }
-    
-    /// Get model file
+
     private fun getModelFile(): File {
         val dir = File(context.filesDir, MODEL_DIR)
-        if (!dir.exists()) {
-            dir.mkdirs()
-        }
+        if (!dir.exists()) dir.mkdirs()
         return File(dir, MODEL_FILENAME)
     }
-    
-    // MediaPipe LLM Inference engine
-    private var llmInference: LlmInference? = null
-    
-    /// Initialize the inference engine with MediaPipe
-    /// Returns true if successful, false otherwise
+
+    // ── Engine lifecycle ───────────────────────────────────────────────────────
+
     suspend fun initialize(): Result<Boolean> = withContext(Dispatchers.IO) {
+        if (engine != null) return@withContext Result.success(true)
+
         try {
-            if (isInitialized && llmInference != null) {
-                return@withContext Result.success(true)
-            }
-            
             val modelFile = getModelFile()
-            if (!modelFile.exists() || modelFile.length() == 0L) {
+            if (!modelFile.exists() || modelFile.length() < EXPECTED_MODEL_SIZE * 95 / 100) {
                 return@withContext Result.failure(
-                    Exception("Model not downloaded. Call downloadModel first.")
+                    Exception("Model not ready. File: ${modelFile.length()} bytes, expected ~$EXPECTED_MODEL_SIZE")
                 )
             }
-            
-            Log.i(TAG, "Initializing MediaPipe LLM Inference with model: ${modelFile.absolutePath}")
-            
-            // Initialize MediaPipe LLM Inference
-            val options = LlmInference.LlmInferenceOptions.builder()
-                .setModelPath(modelFile.absolutePath)
-                .setMaxTopK(40)
-                .build()
-            
-            llmInference = LlmInference.createFromOptions(context, options)
-            isInitialized = true
-            
-            Log.i(TAG, "MediaPipe LLM Inference initialized successfully")
+
+            Log.i(TAG, "Initializing LiteRT-LM Engine: ${modelFile.absolutePath}")
+            val engineConfig = EngineConfig(
+                modelPath = modelFile.absolutePath,
+                backend = Backend.CPU(),
+                cacheDir = context.cacheDir.path,
+            )
+            val newEngine = Engine(engineConfig)
+            newEngine.initialize()
+
+            synchronized(engineLock) {
+                if (engine == null) {
+                    engine = newEngine
+                } else {
+                    newEngine.close()
+                }
+            }
+
+            Log.i(TAG, "LiteRT-LM Engine initialized successfully")
             Result.success(true)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to initialize inference engine", e)
+            Log.e(TAG, "Failed to initialize LiteRT-LM engine", e)
             Result.failure(e)
         }
     }
-    
-    /// Run inference with streaming output using MediaPipe
-    /// Returns a Flow of text chunks
-    fun runInference(
-        prompt: String,
-        cancelToken: AtomicBoolean
-    ): Flow<String> = flow {
-        if (!isInitialized || llmInference == null) {
-            throw Exception("Engine not initialized")
-        }
-        
-        val session = InferenceSession(prompt, cancelToken)
-        currentSession = session
-        
-        try {
-            // Use MediaPipe inference and stream manually
-            val inference = llmInference!!
-            
-            // Generate full response synchronously
-            val response = inference.generateResponse(prompt)
-            
-            // Stream the response in chunks for better UX
-            if (response.isNotEmpty()) {
-                val chunkSize = 4
-                for (i in response.indices step chunkSize) {
-                    if (cancelToken.get()) {
-                        Log.i(TAG, "Inference cancelled")
-                        break
-                    }
-                    val end = minOf(i + chunkSize, response.length)
-                    emit(response.substring(i, end))
-                    delay(30) // Simulate streaming effect
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Inference error", e)
-            throw e  // propagate — orchestrator handles fallback to cloud
-        } finally {
-            currentSession = null
-        }
-    }
-        .flowOn(Dispatchers.Default)
-        .catch { e ->
-            Log.e(TAG, "Flow error", e)
-            emit("Error: ${e.message}")
-        }
-    
-    /// Cancel ongoing inference
-    fun cancelInference() {
-        currentSession?.cancelToken?.set(true)
-        currentSession = null
-    }
-    
-    /// Release resources
+
     fun shutdown() {
-        cancelInference()
+        synchronized(engineLock) {
+            engine?.close()
+            engine = null
+        }
         scope.cancel()
-        llmInference?.close()
-        llmInference = null
-        isInitialized = false
     }
-    
-    /// Inference session state
-    private data class InferenceSession(
-        val prompt: String,
-        val cancelToken: AtomicBoolean,
-        val startTime: Long = System.currentTimeMillis()
-    )
+
+    // ── Inference ──────────────────────────────────────────────────────────────
+
+    /**
+     * Run inference and return the complete clean response with <think> block stripped.
+     * Returns empty string if <think> block is truncated (max_tokens hit mid-thinking)
+     * — caller should treat empty return as signal to use source fallback prompts.
+     *
+     * "/think" soft switch activates Qwen3.5-2B's thinking mode.
+     */
+    suspend fun runInference(prompt: String, cancelToken: AtomicBoolean): String =
+        withContext(Dispatchers.IO) {
+            val e = synchronized(engineLock) { engine }
+                ?: throw Exception("Engine not initialized. Call initialize() first.")
+
+            val buffer = StringBuilder()
+            val thinkPrompt = "/think\n\n$prompt"
+
+            e.createConversation().use { conversation ->
+                conversation.sendMessageAsync(thinkPrompt)
+                    .catch { ex -> throw ex }
+                    .collect { chunk ->
+                        if (cancelToken.get()) return@collect
+                        buffer.append(chunk)
+                    }
+            }
+
+            stripThinkBlock(buffer.toString())
+        }
+
+    private fun stripThinkBlock(text: String): String {
+        val hasOpen = text.contains("<think>")
+        val hasClose = text.contains("</think>")
+        if (hasOpen && !hasClose) {
+            Log.w(TAG, "Truncated <think> block — signaling fallback via empty return")
+            return ""
+        }
+        return text.replace(Regex("<think>[\\s\\S]*?</think>"), "").trim()
+    }
 }
 
-/// Model download manager with OkHttp
+// ── Model download manager ─────────────────────────────────────────────────────
+
+/// OkHttp-based downloader for the Qwen3.5-2B LiteRT-LM model file from GCS.
 class ModelDownloadManager(private val context: Context) {
     companion object {
         private const val TAG = "ModelDownloadManager"
-        private const val MODEL_FILENAME = "gemma-3-1b-it-q4_0.gguf"
+        private const val MODEL_FILENAME = "Qwen3.5-2B-IT.litertlm"
         private const val MODEL_DOWNLOAD_URL =
-            "https://huggingface.co/google/gemma-3-1b-it-qat-q4_0-gguf/resolve/main/gemma-3-1b-it-q4_0.gguf"
-        private const val EXPECTED_MODEL_SIZE = 529_000_000L   // ~529MB
+            "https://storage.googleapis.com/aletheia-models/qwen3.5-2b/Qwen3.5-2B-IT.litertlm"
+        private const val VERSION_CHECK_URL =
+            "https://storage.googleapis.com/aletheia-models/qwen3.5-2b/version.json"
+        private const val EXPECTED_MODEL_SIZE = 1_500_000_000L
     }
-    
+
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(0, TimeUnit.SECONDS)   // no read timeout — model is 529MB
+        .readTimeout(0, TimeUnit.SECONDS)   // no read timeout — model is ~1.5GB
         .writeTimeout(0, TimeUnit.SECONDS)
         .build()
-    
-    /// Check if model is bundled in assets
-    fun hasBundledModel(): Boolean {
-        return try {
-            context.assets.list("models")?.contains(MODEL_FILENAME) == true
-        } catch (e: Exception) {
-            false
-        }
-    }
-    
-    /// Get bundled model size from assets
-    fun getBundledModelSize(): Long {
-        return try {
-            context.assets.open("models/$MODEL_FILENAME").use { it.available().toLong() }
-        } catch (e: Exception) {
-            0L
-        }
-    }
-    
-    /// Check for model updates
+
+    /** Check GCS version.json for an available update. Returns new version string or null. */
     suspend fun checkForUpdate(): Result<String?> = withContext(Dispatchers.IO) {
         try {
-            val request = Request.Builder().url(MODEL_DOWNLOAD_URL).build()
+            val request = Request.Builder().url(VERSION_CHECK_URL).build()
             val response = client.newCall(request).execute()
-            
-            if (!response.isSuccessful) {
-                return@withContext Result.failure(Exception("Failed to check version: ${response.code}"))
-            }
-            
-            val versionJson = response.body?.string() ?: return@withContext Result.success(null)
+            if (!response.isSuccessful) return@withContext Result.success(null)
+
+            val json = response.body?.string() ?: return@withContext Result.success(null)
             val currentVersion = getCurrentModelVersion()
-            
-            // Parse version from JSON (simple string comparison)
-            val latestVersion = versionJson.trim().replace("\"", "")
-            
-            if (latestVersion != currentVersion) {
-                Result.success(latestVersion)
-            } else {
-                Result.success(null)
+            val latestVersion = try {
+                org.json.JSONObject(json).getString("version")
+            } catch (e: Exception) {
+                return@withContext Result.success(null)
             }
+
+            Result.success(if (latestVersion != currentVersion) latestVersion else null)
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
-    
-    /// Get current downloaded model version
+
     private fun getCurrentModelVersion(): String {
         val versionFile = File(context.filesDir, "local_models/version.txt")
         return if (versionFile.exists()) versionFile.readText().trim() else "0.0.0"
     }
-    
-    /// Download model with progress callback using OkHttp
+
+    fun getModelSize(): Long {
+        val modelFile = File(File(context.filesDir, "local_models"), MODEL_FILENAME)
+        return if (modelFile.exists()) modelFile.length() else 0L
+    }
+
+    fun deleteModel(): Boolean {
+        val modelFile = File(File(context.filesDir, "local_models"), MODEL_FILENAME)
+        return if (modelFile.exists()) modelFile.delete() else true
+    }
+
     suspend fun downloadModel(
         progressCallback: (Int) -> Unit,
         cancelToken: AtomicBoolean,
         version: String = "1.0.0"
     ): Result<File> = withContext(Dispatchers.IO) {
         var downloadedBytes = 0L
-        
         try {
             val dir = File(context.filesDir, "local_models")
-            if (!dir.exists()) {
-                dir.mkdirs()
-            }
+            if (!dir.exists()) dir.mkdirs()
             val modelFile = File(dir, MODEL_FILENAME)
             val tempFile = File(dir, "$MODEL_FILENAME.tmp")
-            
-            // Check if already downloaded
-            if (modelFile.exists() && modelFile.length() >= EXPECTED_MODEL_SIZE * 0.9) {
+
+            if (modelFile.exists() && modelFile.length() >= EXPECTED_MODEL_SIZE * 90 / 100) {
                 Log.i(TAG, "Model already downloaded: ${modelFile.absolutePath}")
                 return@withContext Result.success(modelFile)
             }
-            
-            // Check if bundled in assets - extract instead of download
-            if (hasBundledModel()) {
-                Log.i(TAG, "Bundled model found in assets, extracting...")
-                progressCallback(0)
-                
-                context.assets.open("models/$MODEL_FILENAME").use { input ->
-                    modelFile.outputStream().use { output ->
-                        input.copyTo(output)
-                    }
-                }
-                
-                progressCallback(100)
-                File(dir, "version.txt").writeText("bundled-$version")
-                
-                Log.i(TAG, "Bundled model extracted: ${modelFile.absolutePath}")
-                return@withContext Result.success(modelFile)
-            }
-            
+
             Log.i(TAG, "Starting model download from $MODEL_DOWNLOAD_URL")
-            
-            val request = Request.Builder()
-                .url(MODEL_DOWNLOAD_URL)
-                .build()
-            
+            val request = Request.Builder().url(MODEL_DOWNLOAD_URL).build()
             val response = client.newCall(request).execute()
-            
+
             if (!response.isSuccessful) {
                 return@withContext Result.failure(Exception("Download failed: HTTP ${response.code}"))
             }
-            
-            val body: ResponseBody = response.body ?: return@withContext Result.failure(Exception("Empty response body"))
+
+            val body: ResponseBody = response.body
+                ?: return@withContext Result.failure(Exception("Empty response body"))
             val contentLength = body.contentLength()
-            
-            // Download to temp file first
-            tempFile.sink().buffer().use { sink ->
-                body.source().use { source ->
-                    val buffer = okio.Buffer()
+
+            tempFile.outputStream().use { out ->
+                body.byteStream().use { input ->
+                    val buffer = ByteArray(8192)
                     var totalRead = 0L
-                    
-                    while (!source.exhausted()) {
+                    while (true) {
                         if (cancelToken.get()) {
-                            Log.i(TAG, "Download cancelled")
                             tempFile.delete()
                             return@withContext Result.failure(Exception("Download cancelled"))
                         }
-                        
-                        val read = source.read(buffer, 8192)
-                        if (read == -1L) break
-                        
-                        sink.write(buffer, read)
+                        val read = input.read(buffer)
+                        if (read == -1) break
+                        out.write(buffer, 0, read)
                         totalRead += read
                         downloadedBytes = totalRead
-                        
-                        // Calculate progress
                         val progress = if (contentLength > 0) {
                             ((totalRead * 100) / contentLength).toInt()
                         } else {
                             ((totalRead * 100) / EXPECTED_MODEL_SIZE).toInt().coerceAtMost(99)
                         }
-                        
-                        withContext(Dispatchers.Main) {
-                            progressCallback(progress)
-                        }
+                        withContext(Dispatchers.Main) { progressCallback(progress) }
                     }
                 }
             }
-            
-            // Move temp file to final location
-            if (tempFile.exists()) {
-                tempFile.renameTo(modelFile)
-            }
-            
-            // Save version
+
+            if (tempFile.exists()) tempFile.renameTo(modelFile)
             File(dir, "version.txt").writeText(version)
-            
-            Log.i(TAG, "Model downloaded successfully: ${modelFile.absolutePath} (${modelFile.length()} bytes)")
+            Log.i(TAG, "Model downloaded: ${modelFile.absolutePath} (${modelFile.length()} bytes)")
             Result.success(modelFile)
         } catch (e: Exception) {
-            Log.e(TAG, "Download failed after downloading $downloadedBytes bytes", e)
+            Log.e(TAG, "Download failed after $downloadedBytes bytes", e)
             Result.failure(e)
         }
-    }
-    
-    /// Delete downloaded model
-    fun deleteModel(): Boolean {
-        val dir = File(context.filesDir, "local_models")
-        val modelFile = File(dir, MODEL_FILENAME)
-        
-        return if (modelFile.exists()) {
-            val deleted = modelFile.delete()
-            if (deleted) {
-                Log.i(TAG, "Model deleted successfully")
-            }
-            deleted
-        } else {
-            true // Already doesn't exist
-        }
-    }
-    
-    /// Get model size in bytes
-    fun getModelSize(): Long {
-        val dir = File(context.filesDir, "local_models")
-        val modelFile = File(dir, MODEL_FILENAME)
-        return if (modelFile.exists()) modelFile.length() else 0L
     }
 }
