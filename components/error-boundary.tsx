@@ -5,10 +5,12 @@ import { Fonts } from "@/constants/theme";
 import { RitualOrnament } from "@/components/ritual-ornament";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
+import { useStrings } from "@/lib/i18n";
 import { captureException } from "@/lib/sentry";
 
 export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   const colors = useColors();
+  const s = useStrings();
 
   return (
     <ScreenContainer className="px-6 pb-6">
@@ -16,9 +18,9 @@ export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
       <View style={styles.container}>
         <RitualOrnament variant="eye" size="lg" />
         <Text style={[styles.kicker, { color: colors.primary }]}>ritual interrupted</Text>
-        <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>Đã xảy ra lỗi</Text>
+        <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{s.errorBoundary.title}</Text>
         <Text style={[styles.message, { color: colors.muted }]}>
-          Có điều gì đó đã đứt nhịp trong luồng hiện tại. Bạn có thể thử lại để quay về trạng thái ổn định.
+          {s.errorBoundary.body}
         </Text>
         {error?.message ? (
           <Text style={[styles.detail, { color: colors.muted }]} numberOfLines={3}>
@@ -29,7 +31,7 @@ export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
           onPress={resetErrorBoundary}
           style={[styles.button, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}
         >
-          <Text style={[styles.buttonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>Thử lại</Text>
+          <Text style={[styles.buttonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{s.errorBoundary.retry}</Text>
         </Pressable>
       </View>
     </ScreenContainer>

@@ -141,12 +141,12 @@ export default function ReadingDetailScreen() {
     if (!reading || isDeleting) return;
     haptic("confirm");
     Alert.alert(
-      "Xóa lần đọc?",
-      "Lần đọc này sẽ bị xóa khỏi Gương. Không thể hoàn tác.",
+      s.readingDetail.deleteTitle,
+      s.readingDetail.deleteBody,
       [
-        { text: "Giữ lại", style: "cancel" },
+        { text: s.readingDetail.deleteCancel, style: "cancel" },
         {
-          text: "Xóa",
+          text: s.readingDetail.deleteConfirm,
           style: "destructive",
           onPress: async () => {
             setIsDeleting(true);
@@ -157,7 +157,7 @@ export default function ReadingDetailScreen() {
               router.back();
             } catch (error) {
               console.error("Failed to delete reading:", error);
-              showToast("error", "Không thể xóa lần đọc này.");
+              showToast("error", s.readingDetail.deleteError);
               setIsDeleting(false);
             }
           },
@@ -196,7 +196,7 @@ export default function ReadingDetailScreen() {
       router.replace("/reading/wildcard");
     } catch (error) {
       console.error("Failed to reopen reading:", error);
-      showToast("error", "Không thể mở lại flow từ lần đọc này");
+      showToast("error", s.readingDetail.reopenError);
       setIsReopening(false);
     }
   };
@@ -219,19 +219,16 @@ export default function ReadingDetailScreen() {
       const sourceTitle = sourceName || reading.source_id;
       await Share.share({
         message: [
-          `Gần đây mình đang đọc ${sourceTitle} trên Aletheia — và muốn gửi cho bạn một lần đọc từ cùng nguồn này.`,
+          `${sourceTitle} — ${gift.deep_link}`,
           ``,
-          `Chọn một biểu tượng và để nó phản chiếu điều gì đó:`,
-          gift.deep_link,
-          ``,
-          `(Link dùng được trong 7 ngày, không cần cài app)`,
+          `${s.shareCard.shareAttributionShort}`,
         ].join("\n"),
       });
       trackGiftEvent("shared", {
         reading_id: reading.id,
         source_id: reading.source_id,
       });
-      showToast("success", "Đã tạo và mở quà để chia sẻ");
+      showToast("success", s.readingDetail.giftCreated);
     } catch (error) {
       console.error("Failed to create gift:", error);
       trackGiftEvent("create_failed", {
@@ -239,7 +236,7 @@ export default function ReadingDetailScreen() {
         source_id: reading.source_id,
         message: error instanceof Error ? error.message : "unknown",
       });
-      showToast("error", error instanceof Error ? error.message : "Không thể tạo quà");
+      showToast("error", error instanceof Error ? error.message : s.readingDetail.giftError);
     } finally {
       setIsGifting(false);
     }
@@ -251,7 +248,7 @@ export default function ReadingDetailScreen() {
         <View style={styles.loadingWrap}>
           <RitualOrnament variant="sigil" />
           <Text style={[styles.loadingTitle, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
-            Đang mở lại phản chiếu
+            {s.readingDetail.reopeningLabel}
           </Text>
           <View style={styles.loadingCards}>
             <SkeletonCard lines={3} />
@@ -268,16 +265,16 @@ export default function ReadingDetailScreen() {
         <View style={styles.emptyWrap}>
           <RitualOrnament variant="eye" size="lg" />
           <Text style={[styles.emptyTitle, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
-            Không tìm thấy lần đọc
+            {s.readingDetail.notFoundTitle}
           </Text>
           <Text style={[styles.emptyText, { color: colors.muted }]}>
-            Có thể bản ghi này đã không còn trên thiết bị, hoặc deep-link bạn mở không còn hợp lệ.
+            {s.readingDetail.notFoundBody}
           </Text>
           <Pressable
             onPress={() => router.back()}
             style={[styles.primaryButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}
           >
-            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>Quay lại</Text>
+            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{s.readingDetail.backButton}</Text>
           </Pressable>
         </View>
       </ScreenContainer>
@@ -315,9 +312,9 @@ export default function ReadingDetailScreen() {
         {reading.situation_text ? (
           <View style={[styles.sectionCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "22" }]}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Text style={[styles.sectionLabel, { color: colors.primary }]}>Tình huống lúc đó</Text>
+              <Text style={[styles.sectionLabel, { color: colors.primary }]}>{s.readingDetail.sectionSituation}</Text>
               {reading.hide_situation && (
-                <Text style={{ fontSize: 10, color: colors.muted, letterSpacing: 1.5, textTransform: "uppercase" }}>Ẩn trong Gương</Text>
+                <Text style={{ fontSize: 10, color: colors.muted, letterSpacing: 1.5, textTransform: "uppercase" }}>{s.readingDetail.hiddenInMirror}</Text>
               )}
             </View>
             <Text style={[styles.sectionBody, { color: colors.foreground }]}>{reading.situation_text}</Text>
@@ -326,16 +323,16 @@ export default function ReadingDetailScreen() {
 
         <View style={styles.rowGrid}>
           <View style={[styles.infoCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "22" }]}>
-            <Text style={[styles.sectionLabel, { color: colors.primary }]}>Biểu tượng đã chọn</Text>
+            <Text style={[styles.sectionLabel, { color: colors.primary }]}>{s.readingDetail.sectionSymbol}</Text>
             <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{reading.symbol_chosen}</Text>
             <Text style={[styles.infoHint, { color: colors.muted }]}>
-              {reading.symbol_method === "auto" ? "Được chọn bởi hệ thống" : "Được chọn thủ công"}
+              {reading.symbol_method === "auto" ? s.readingDetail.symbolMethodAuto : s.readingDetail.symbolMethodManual}
             </Text>
           </View>
 
           {reading.mood_tag ? (
             <View style={[styles.infoCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "22" }]}>
-              <Text style={[styles.sectionLabel, { color: colors.primary }]}>Cảm xúc ghi nhận</Text>
+              <Text style={[styles.sectionLabel, { color: colors.primary }]}>{s.readingDetail.sectionMood}</Text>
               <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
                 {MOOD_EMOJIS[reading.mood_tag]} {s.readingDetail.moodLabels[reading.mood_tag] ?? reading.mood_tag}
               </Text>
@@ -345,26 +342,26 @@ export default function ReadingDetailScreen() {
         </View>
 
         <View style={[styles.sectionCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "22" }]}>
-          <Text style={[styles.sectionLabel, { color: colors.primary }]}>Dấu vết của phiên đọc</Text>
+          <Text style={[styles.sectionLabel, { color: colors.primary }]}>{s.readingDetail.sectionTrace}</Text>
           <View style={styles.traceRow}>
-            <Text style={[styles.traceKey, { color: colors.muted }]}>AI diễn giải</Text>
+            <Text style={[styles.traceKey, { color: colors.muted }]}>{s.readingDetail.traceAI}</Text>
             <Text style={[styles.traceValue, { color: colors.foreground }]}>
-              {reading.ai_interpreted ? (reading.ai_used_fallback ? "Có, dùng fallback" : "Có") : "Không"}
+              {reading.ai_interpreted ? (reading.ai_used_fallback ? s.readingDetail.traceAIFallback : s.readingDetail.traceAIYes) : s.readingDetail.traceAINo}
             </Text>
           </View>
           <View style={styles.traceRow}>
-            <Text style={[styles.traceKey, { color: colors.muted }]}>Thời gian đọc</Text>
+            <Text style={[styles.traceKey, { color: colors.muted }]}>{s.readingDetail.traceDuration}</Text>
             <Text style={[styles.traceValue, { color: colors.foreground }]}>
-              {reading.read_duration_s ? `${Math.floor(reading.read_duration_s / 60)}p ${reading.read_duration_s % 60}s` : "Không rõ"}
+              {reading.read_duration_s ? `${Math.floor(reading.read_duration_s / 60)}p ${reading.read_duration_s % 60}s` : s.readingDetail.traceDurationUnknown}
             </Text>
           </View>
           <View style={styles.traceRow}>
-            <Text style={[styles.traceKey, { color: colors.muted }]}>Đã chia sẻ</Text>
-            <Text style={[styles.traceValue, { color: colors.foreground }]}>{reading.shared ? "Có" : "Chưa"}</Text>
+            <Text style={[styles.traceKey, { color: colors.muted }]}>{s.readingDetail.traceShared}</Text>
+            <Text style={[styles.traceValue, { color: colors.foreground }]}>{reading.shared ? s.readingDetail.traceYes : s.readingDetail.traceNo}</Text>
           </View>
           <View style={styles.traceRow}>
-            <Text style={[styles.traceKey, { color: colors.muted }]}>Yêu thích</Text>
-            <Text style={[styles.traceValue, { color: colors.foreground }]}>{reading.is_favorite ? "Có" : "Chưa"}</Text>
+            <Text style={[styles.traceKey, { color: colors.muted }]}>{s.readingDetail.traceFavorite}</Text>
+            <Text style={[styles.traceValue, { color: colors.foreground }]}>{reading.is_favorite ? s.readingDetail.traceYes : s.readingDetail.traceNo}</Text>
           </View>
         </View>
 
@@ -376,7 +373,7 @@ export default function ReadingDetailScreen() {
               style={[styles.secondaryButton, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "22", opacity: isSavingFavorite ? 0.6 : 1 }]}
             >
               <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>
-                {reading.is_favorite ? "Bỏ yêu thích" : "Yêu thích"}
+                {reading.is_favorite ? s.readingDetail.actionFavoriteRemove : s.readingDetail.actionFavoriteAdd}
               </Text>
             </Pressable>
             <Pressable
@@ -385,7 +382,7 @@ export default function ReadingDetailScreen() {
               style={[styles.secondaryButton, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "22", opacity: isSharing ? 0.6 : 1 }]}
             >
               <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>
-                {isSharing ? "Đang chia sẻ..." : "Chia sẻ lại"}
+                {isSharing ? s.readingDetail.actionSharing : s.readingDetail.actionShareAgain}
               </Text>
             </Pressable>
           </View>
@@ -396,7 +393,7 @@ export default function ReadingDetailScreen() {
               style={[styles.secondaryButton, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "22", opacity: isHidingSituation ? 0.6 : 1 }]}
             >
               <Text style={[styles.secondaryButtonText, { color: colors.muted }]}>
-                {reading.hide_situation ? "Hiện tình huống trong Gương" : "Ẩn tình huống trong Gương"}
+                {reading.hide_situation ? s.readingDetail.actionShowSituation : s.readingDetail.actionHideSituation}
               </Text>
             </Pressable>
           ) : null}
@@ -407,7 +404,7 @@ export default function ReadingDetailScreen() {
               style={[styles.secondaryButton, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "22", opacity: isGifting ? 0.6 : 1 }]}
             >
               <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>
-                {isGifting ? "Đang tạo quà..." : "Tặng lần đọc này"}
+                {isGifting ? s.readingDetail.actionGifting : s.readingDetail.actionGift}
               </Text>
             </Pressable>
           )}
@@ -417,7 +414,7 @@ export default function ReadingDetailScreen() {
             style={[styles.primaryButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72", opacity: isReopening ? 0.65 : 1 }]}
           >
             <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
-              {isReopening ? "Đang mở lại..." : "Đọc lại từ nguồn này"}
+              {isReopening ? s.readingDetail.actionReopening : s.readingDetail.actionReopen}
             </Text>
           </Pressable>
           <Pressable
@@ -425,7 +422,7 @@ export default function ReadingDetailScreen() {
             style={[styles.primaryButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}
           >
             <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
-              Quay lại lịch sử
+              {s.readingDetail.backToHistory}
             </Text>
           </Pressable>
         </View>
