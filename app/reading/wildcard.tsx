@@ -22,12 +22,14 @@ function SymbolCard({
   isRevealed,
   isSelected,
   onSelect,
+  cardMaxWidth,
 }: {
   symbol: { id: string; display_name: string; flavor_text?: string };
   index: number;
   isRevealed: boolean;
   isSelected: boolean;
   onSelect: () => void;
+  cardMaxWidth: number;
 }) {
   const colors = useColors();
   const s = useStrings();
@@ -60,7 +62,7 @@ function SymbolCard({
       disabled={!isRevealed || isSelected}
       style={({ pressed }) => [
         styles.cardShell,
-        { opacity: isSelected ? 1 : pressed ? 0.88 : 1, transform: [{ scale: isSelected ? 1.025 : pressed ? 0.97 : 1 }] },
+        { maxWidth: cardMaxWidth, opacity: isSelected ? 1 : pressed ? 0.88 : 1, transform: [{ scale: isSelected ? 1.025 : pressed ? 0.97 : 1 }] },
       ]}
     >
       <View style={styles.cardFrame}>
@@ -89,24 +91,37 @@ function SymbolCard({
             },
           ]}
         >
-          {getSymbolAsset(symbol.id) ? (
-            <Image
-              source={getSymbolAsset(symbol.id)!}
-              style={{ width: 64, height: 64, opacity: 0.9 }}
-              resizeMode="contain"
-            />
-          ) : (
-            <Text style={[styles.symbolGlyph, { color: colors.primary }]}>✦</Text>
-          )}
+          <View style={styles.cardImageArea}>
+            {getSymbolAsset(symbol.id) ? (
+              <Image
+                source={getSymbolAsset(symbol.id)!}
+                style={{ width: Math.floor(cardMaxWidth * 0.56), height: Math.floor(cardMaxWidth * 0.56), opacity: 0.9 }}
+                resizeMode="contain"
+              />
+            ) : (
+              <Text style={[styles.symbolGlyph, { color: colors.primary }]}>✦</Text>
+            )}
+          </View>
 
-          <Text style={[styles.symbolTitle, { color: colors.foreground, fontFamily: Fonts.viDisplay, textTransform: "uppercase" }]}>
-            {symbol.display_name}
-          </Text>
-          {symbol.flavor_text ? (
-            <Text style={[styles.symbolFlavor, { color: isSelected ? colors.foreground : colors.muted }]}>
-              {symbol.flavor_text}
+          <View style={styles.cardTextArea}>
+            <Text
+              style={[styles.symbolTitle, { color: colors.foreground, fontFamily: Fonts.viDisplay, textTransform: "uppercase" }]}
+              numberOfLines={2}
+              adjustsFontSizeToFit
+              minimumFontScale={0.55}
+            >
+              {symbol.display_name}
             </Text>
-          ) : null}
+            {symbol.flavor_text ? (
+              <Text
+                style={[styles.symbolFlavor, { color: isSelected ? colors.foreground : colors.muted }]}
+                numberOfLines={2}
+                ellipsizeMode="tail"
+              >
+                {symbol.flavor_text}
+              </Text>
+            ) : null}
+          </View>
         </Animated.View>
       </View>
     </Pressable>
@@ -118,8 +133,10 @@ export default function WildcardScreen() {
   const router = useRouter();
   const colors = useColors();
   const s = useStrings();
-  const { ornamentScale } = useLayout();
+  const { ornamentScale, width: screenWidth } = useLayout();
   const deckHaloSize = Math.round(320 * ornamentScale);
+  // px-5 on ScreenContainer = 20px each side; gap: 10 between 3 cards = 20px total
+  const cardMaxWidth = Math.min(180, Math.floor((screenWidth - 60) / 3));
   const [isRevealed, setIsRevealed] = useState(false);
   const [isAutoSelecting, setIsAutoSelecting] = useState(false);
 
@@ -200,6 +217,7 @@ export default function WildcardScreen() {
                 isRevealed={isRevealed}
                 isSelected={selectedSymbolId === symbol.id}
                 onSelect={() => handleSelect(symbol.id)}
+                cardMaxWidth={cardMaxWidth}
               />
             );
           })}
@@ -240,15 +258,17 @@ const styles = StyleSheet.create({
   headerMeta: { fontSize: 13, textAlign: "center", fontFamily: Fonts.bodyItalic },
   headerHint: { fontSize: 10, letterSpacing: 2.6, textTransform: "uppercase" },
   cardsRow: { flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10 },
-  cardShell: { flex: 1, maxWidth: 124 },
+  cardShell: { flex: 1 },
   cardFrame: { aspectRatio: 0.66, position: "relative" },
   cardFace: {
     position: "absolute", inset: 0, borderRadius: 24, borderWidth: 1.2,
     alignItems: "center", justifyContent: "center", backfaceVisibility: "hidden",
-    paddingHorizontal: 12, paddingVertical: 18, gap: 12,
+    paddingHorizontal: 10, paddingVertical: 14, gap: 8,
     shadowColor: "#000000", shadowOffset: { width: 0, height: 14 }, shadowOpacity: 0.22, shadowRadius: 24, elevation: 7,
   },
-  cardBack: { justifyContent: "space-between" },
+  cardBack: { justifyContent: "flex-start" },
+  cardImageArea: { flex: 1, width: "100%", alignItems: "center", justifyContent: "center" },
+  cardTextArea: { flexShrink: 0, width: "100%", alignItems: "center", gap: 5, paddingTop: 6 },
   faceHint: { fontSize: 11, letterSpacing: 2.2, textTransform: "uppercase" },
   symbolTitle: { fontSize: 21, textAlign: "center" },
   symbolFlavor: { fontSize: 12, lineHeight: 18, textAlign: "center", fontFamily: Fonts.bodyItalic },
