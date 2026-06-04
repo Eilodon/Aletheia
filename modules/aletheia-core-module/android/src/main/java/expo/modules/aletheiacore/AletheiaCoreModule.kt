@@ -1287,37 +1287,39 @@ class AletheiaCoreModule : Module() {
   }
 
   private fun parseJsonMap(jsonString: String): Map<String, Any?> {
-    return jsonObjectToMap(org.json.JSONObject(jsonString))
+    return jsonObjectToMap(org.json.JSONObject(jsonString), 0)
   }
 
-  private fun jsonObjectToMap(json: org.json.JSONObject): Map<String, Any?> {
+  private fun jsonObjectToMap(json: org.json.JSONObject, depth: Int): Map<String, Any?> {
+    if (depth > 20) throw IllegalArgumentException("JSON nesting exceeds maximum depth (20)")
     val map = mutableMapOf<String, Any?>()
     val keys = json.keys()
     while (keys.hasNext()) {
       val key = keys.next()
-      var value = json.get(key)
+      var value: Any? = json.get(key)
       if (value === org.json.JSONObject.NULL) {
         value = null
       } else if (value is org.json.JSONObject) {
-        value = jsonObjectToMap(value)
+        value = jsonObjectToMap(value, depth + 1)
       } else if (value is org.json.JSONArray) {
-        value = jsonArrayToList(value)
+        value = jsonArrayToList(value, depth + 1)
       }
       map[key] = value
     }
     return map
   }
 
-  private fun jsonArrayToList(array: org.json.JSONArray): List<Any?> {
+  private fun jsonArrayToList(array: org.json.JSONArray, depth: Int): List<Any?> {
+    if (depth > 20) throw IllegalArgumentException("JSON nesting exceeds maximum depth (20)")
     val list = mutableListOf<Any?>()
     for (i in 0 until array.length()) {
-      var value = array.get(i)
+      var value: Any? = array.get(i)
       if (value === org.json.JSONObject.NULL) {
         value = null
       } else if (value is org.json.JSONObject) {
-        value = jsonObjectToMap(value)
+        value = jsonObjectToMap(value, depth + 1)
       } else if (value is org.json.JSONArray) {
-        value = jsonArrayToList(value)
+        value = jsonArrayToList(value, depth + 1)
       }
       list.add(value)
     }
