@@ -21,7 +21,7 @@ export default function OnboardingScreen() {
   const colors = useColors();
   const router = useRouter();
   const s = useStrings();
-  const { ornamentScale, contentMaxWidth } = useLayout();
+  const { ornamentScale, contentMaxWidth, typeScale } = useLayout();
   const heroHaloSize = Math.round(240 * ornamentScale);
   const bodyMaxWidth = Math.min(320, contentMaxWidth * 0.82);
   const [step, setStep] = useState(0);
@@ -127,7 +127,7 @@ export default function OnboardingScreen() {
               <>
                 <View style={[styles.heroHalo, { width: heroHaloSize, height: heroHaloSize, borderRadius: heroHaloSize / 2, backgroundColor: colors.primary + "10" }]} />
                 <RitualOrnament variant="eye" size="lg" />
-                <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.brand }]}>
+                <Text style={[styles.title, { fontSize: Math.round(40 * typeScale), color: colors.foreground, fontFamily: Fonts.brand }]}>
                   {s.onboarding.welcome.title}
                 </Text>
                 <Text style={[styles.kicker, { color: colors.primary }]}>
@@ -145,7 +145,7 @@ export default function OnboardingScreen() {
             {currentStep === "intent" ? (
               <>
                 <RitualOrnament variant="sigil" />
-                <Text style={[styles.sectionTitle, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+                <Text style={[styles.sectionTitle, { fontSize: Math.round(28 * typeScale), color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
                   {s.onboarding.intent.title}
                 </Text>
                 <Text style={[styles.body, { maxWidth: bodyMaxWidth, color: colors.muted }]}>
@@ -251,10 +251,10 @@ const styles = StyleSheet.create({
   skip: { fontSize: 11, textTransform: "uppercase", letterSpacing: 2 },
   main: { flex: 1, justifyContent: "center", alignItems: "center", gap: 16, position: "relative" },
   heroHalo: { position: "absolute", top: -24 },
-  title: { fontSize: 40, letterSpacing: 8 },
+  title: { letterSpacing: 8 },
   kicker: { fontSize: 10, letterSpacing: 3.2, textTransform: "uppercase" },
   tagline: { fontSize: 13, letterSpacing: 3.2, textTransform: "uppercase", textAlign: "center" },
-  sectionTitle: { fontSize: 28, lineHeight: 34, textAlign: "center" },
+  sectionTitle: { lineHeight: 34, textAlign: "center" },
   previewLabel: { fontSize: 11, letterSpacing: 2.2, textTransform: "uppercase", textAlign: "center", fontFamily: Fonts.bodyItalic },
   body: { textAlign: "center", fontSize: 15, lineHeight: 24, fontFamily: Fonts.bodyItalic },
   intentGrid: { width: "100%", gap: 12, marginTop: 8 },

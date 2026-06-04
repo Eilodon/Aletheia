@@ -49,7 +49,7 @@ export default function HomeScreen() {
               <View style={[styles.ruleLine, { backgroundColor: colors.primary + "30" }]} />
             </View>
             <Text style={[styles.kicker, { color: colors.primary }]}>{s.home.kicker}</Text>
-            <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.brand }]}>{s.home.title}</Text>
+            <Text style={[styles.title, { fontSize: Math.round(44 * typeScale), color: colors.foreground, fontFamily: Fonts.brand }]}>{s.home.title}</Text>
             <Text style={[styles.tagline, { color: colors.foreground }]}>{s.home.tagline}</Text>
             <Text style={[styles.subtitle, { maxWidth: Math.min(320, contentMaxWidth * 0.82), color: colors.muted }]}>{s.home.subtitle}</Text>
           </View>
@@ -118,7 +118,7 @@ const styles = StyleSheet.create({
   ruleLine: { width: 44, height: 1 },
   ruleDiamond: { width: 8, height: 8, transform: [{ rotate: "45deg" }], borderWidth: 1 },
   kicker: { fontSize: 10, letterSpacing: 3.2, textTransform: "uppercase" },
-  title: { fontSize: 44, letterSpacing: 9 },
+  title: { letterSpacing: 9 },
   tagline: { fontSize: 13, letterSpacing: 4, textTransform: "uppercase", textAlign: "center" },
   subtitle: { textAlign: "center", fontSize: 15, lineHeight: 25, fontFamily: Fonts.bodyItalic },
   ctaGroup: { alignItems: "center", gap: 12 },

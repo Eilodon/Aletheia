@@ -14,7 +14,7 @@ export default function RitualScreen() {
   const { passage, selectedSymbol } = useReading();
   const router = useRouter();
   const colors = useColors();
-  const { ornamentScale } = useLayout();
+  const { ornamentScale, typeScale } = useLayout();
   const shellSize = Math.round(270 * ornamentScale);
   const outerSize = Math.round(shellSize * 0.874);
   const middleSize = Math.round(shellSize * 0.689);
@@ -134,7 +134,7 @@ export default function RitualScreen() {
 
         <View style={styles.textGroup}>
           <Text style={[styles.kicker, { color: colors.primary }]}>{selectedSymbol?.display_name?.toUpperCase() || "NGHI THỨC"}</Text>
-          <Text testID="reading-ritual-title" style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+          <Text testID="reading-ritual-title" style={[styles.title, { fontSize: Math.round(30 * typeScale), color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
             Đang mở passage
           </Text>
           <Text style={[styles.subtitle, { color: colors.muted }]}>
@@ -184,7 +184,6 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   title: {
-    fontSize: 30,
     letterSpacing: 1.2,
     textAlign: "center",
   },
