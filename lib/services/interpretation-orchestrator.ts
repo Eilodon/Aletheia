@@ -4,6 +4,11 @@ import { aiClient, type AIInterpretationResult, type AIRequest, type AIStreamSes
 import { aletheiaNativeClient } from "@/lib/native/aletheia-core";
 import { determineInferenceMode } from "@/hooks/use-local-model";
 import { trackInferenceMode, trackLocalModelEvent } from "@/lib/analytics";
+import {
+  isSafeLocalOutput,
+  finalizeLocalInterpretation,
+  splitIntoSentences,
+} from "./local-inference-postprocess";
 import { Platform } from "react-native";
 import { getCurrentUserId } from "./current-user-id";
 import { getSessionToken } from "@/lib/auth";
@@ -308,7 +313,7 @@ class InterpretationOrchestratorService {
       // If local mode is selected and ready, use native local inference
       if (selection.mode === "local" && selection.localReady) {
         trackLocalModelEvent("inference_started", {
-          model_id: "gemma-3-1b-it-qat-q4_0",
+          model_id: "qwen3.5-2b-instruct",
         });
 
         // Start local inference stream
@@ -332,16 +337,37 @@ class InterpretationOrchestratorService {
 
             const state = await aletheiaNativeClient.pollLocalInterpretationStream(localRequestId);
             
-            for (const chunk of state.new_chunks) {
-              chunks.push(chunk);
-              handlers.onChunk?.(chunks.join(""), chunk);
-            }
-            
             if (state.done || state.cancelled) {
-              return {
-                chunks: state.full_text ? [state.full_text] : chunks,
-                usedFallback: false,
-              };
+              const rawText = state.full_text ?? "";
+
+              // FM1 guard + harm check — empty (truncated <think>) or harmful → fallback
+              if (!isSafeLocalOutput(rawText)) {
+                const reason = !rawText.trim() ? "empty_response" : "harm_detected";
+                trackLocalModelEvent("inference_failed", { reason });  // L6 observability
+                const fallback =
+                  request.sourceFallbackPrompts?.[0] ??
+                  (request.sourceLanguage === "en"
+                    ? "Take a moment to sit with these words. What do they stir in you?"
+                    : "Hãy ngồi với những từ này một lúc. Điều gì đang rung lên trong bạn?");
+                handlers.onChunk?.(fallback, fallback);
+                return { chunks: [fallback], usedFallback: true };
+              }
+
+              // Format normalization (port of server finalizeInterpretationText)
+              const finalText = finalizeLocalInterpretation(rawText, request.sourceLanguage);
+
+              // Sentence-by-sentence reveal at ~600ms — "sealed letter" pattern
+              const sentences = splitIntoSentences(finalText);
+              let accumulated = "";
+              for (let i = 0; i < sentences.length; i++) {
+                accumulated += (accumulated ? " " : "") + sentences[i];
+                handlers.onChunk?.(accumulated, sentences[i]!);
+                if (i < sentences.length - 1) {
+                  await new Promise((resolve) => setTimeout(resolve, 600));
+                }
+              }
+
+              return { chunks: [finalText], usedFallback: false };
             }
             
             await new Promise((resolve) => setTimeout(resolve, 50));
