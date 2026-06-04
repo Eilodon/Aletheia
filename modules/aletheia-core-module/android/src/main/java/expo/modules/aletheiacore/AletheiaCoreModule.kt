@@ -421,14 +421,16 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
         return@launch
       }
       try {
-        engine.runInference(prompt, session.cancelToken)
-          .collect { chunk ->
-            synchronized(session) {
-              session.chunks.add(chunk)
-              session.fullText.append(chunk)
-            }
+        // runInference returns complete String (think block already stripped).
+        // Empty return = truncated <think> block — session.done with no text signals fallback.
+        val cleanText = engine.runInference(prompt, session.cancelToken)
+        synchronized(session) {
+          if (cleanText.isNotEmpty()) {
+            session.chunks.add(cleanText)
+            session.fullText.append(cleanText)
           }
-        session.done = true
+          session.done = true
+        }
       } catch (e: Exception) {
         Log.e("AletheiaCore", "Local inference error", e)
         session.done = true
