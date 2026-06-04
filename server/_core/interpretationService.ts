@@ -313,11 +313,11 @@ function finalizeInterpretationText(text: string, sourceLanguage?: string): stri
 // The system prompt heavily constrains output, but distress injection could trigger harmful mirroring.
 // This regex set covers the highest-risk patterns; extend if new patterns emerge in production.
 const OUTPUT_HARM_PATTERNS: RegExp[] = [
-  /\btự\s*tử\b/i,
+  /tự\s*tử/i,
   /\bsuicide\b/i,
   /\bkill\s+yourself\b/i,
   /\bself[- ]?harm\b/i,
-  /\btự\s*làm\s*đau\b/i,
+  /tự\s*làm\s*đau/i,
   /\bno\s+way\s+out\b/i,
   /\bkhông\s+có\s+lối\s+thoát\b/i,
   /\bchết\s+thôi\b/i,
