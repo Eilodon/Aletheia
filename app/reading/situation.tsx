@@ -101,7 +101,7 @@ export default function SituationScreen() {
 
           <View style={styles.header}>
             <RitualOrnament variant="line" />
-            <Text testID="reading-situation-title" style={[styles.title, { color: colors.foreground, fontFamily: Fonts.display }]}>
+            <Text testID="reading-situation-title" style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
               {s.situation.title}
             </Text>
             <Text style={[styles.subtitle, { color: colors.muted }]}>
@@ -149,7 +149,7 @@ export default function SituationScreen() {
                 transform: [{ scale: pressed ? 0.98 : 1 }],
               })}
             >
-              <Text style={[styles.primaryText, { color: colors.foreground, fontFamily: Fonts.display }]}>
+              <Text style={[styles.primaryText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
                 {isLoading ? s.situation.ctaLoading : s.situation.cta}
               </Text>
             </Pressable>

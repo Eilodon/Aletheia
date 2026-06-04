@@ -31,7 +31,7 @@ export function CrisisResponseModal({ visible, onContinue, onReturn }: Props) {
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onReturn}>
       <View style={styles.overlay}>
         <View style={[styles.card, { backgroundColor: colors.surface + "FA", borderColor: colors.primary + "22" }]}>
-          <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.display }]}>
+          <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
             {s.situation.crisisTitle}
           </Text>
 
@@ -56,7 +56,7 @@ export function CrisisResponseModal({ visible, onContinue, onReturn }: Props) {
             onPress={onReturn}
             style={[styles.returnButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}
           >
-            <Text style={[styles.returnText, { color: colors.foreground, fontFamily: Fonts.display }]}>
+            <Text style={[styles.returnText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
               {s.situation.crisisReturn}
             </Text>
           </Pressable>

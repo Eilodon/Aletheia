@@ -215,7 +215,7 @@ export default function SettingsScreen() {
       }}
     >
       {/* Header */}
-      <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.display }]}>
+      <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
         {s.settings.title}
       </Text>
       <Text style={[styles.subtitle, { color: colors.muted }]}>
@@ -415,7 +415,7 @@ export default function SettingsScreen() {
       {currentUser !== undefined && (
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.muted }]}>
-            Tùy chọn đồng bộ
+            {s.settings.syncSectionTitle}
           </Text>
           <View style={[styles.card, { backgroundColor: colors.surface + "C8", borderColor: colors.primary + "22" }]}>
             {currentUser ? (
@@ -440,7 +440,7 @@ export default function SettingsScreen() {
               <>
                 <View style={styles.row}>
                   <Text style={[styles.rowSubLabel, { color: colors.muted }]}>
-                    AletheiA hoạt động đầy đủ không cần tài khoản. Đăng nhập chỉ dùng nếu bạn muốn đồng bộ giữa các thiết bị.
+                    {s.settings.syncNoAccountInfo}
                   </Text>
                 </View>
                 <View style={[styles.divider, { backgroundColor: colors.primary + "18" }]} />

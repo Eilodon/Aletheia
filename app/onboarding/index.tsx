@@ -141,7 +141,7 @@ export default function OnboardingScreen() {
             {currentStep === "intent" ? (
               <>
                 <RitualOrnament variant="sigil" />
-                <Text style={[styles.sectionTitle, { color: colors.foreground, fontFamily: Fonts.display }]}>
+                <Text style={[styles.sectionTitle, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
                   {s.onboarding.intent.title}
                 </Text>
                 <Text style={[styles.body, { color: colors.muted }]}>
@@ -168,7 +168,7 @@ export default function OnboardingScreen() {
                         ]}
                       >
                         <Text style={[styles.intentIcon, { color: colors.primary }]}>{item.icon}</Text>
-                        <Text style={[styles.intentTitle, { color: colors.foreground, fontFamily: Fonts.display }]}>
+                        <Text style={[styles.intentTitle, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
                           {item.title}
                         </Text>
                         <Text style={[styles.intentDesc, { color: colors.muted }]}>
@@ -212,7 +212,7 @@ export default function OnboardingScreen() {
                 },
               ]}
             >
-              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>
+              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
                 {isLastStep
                   ? isCompleting
                     ? s.onboarding.enteringLabel

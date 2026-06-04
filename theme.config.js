@@ -1,7 +1,7 @@
 /** @type {const} */
 const themeColors = {
   // ── Core palette ──────────────────────────────────────────────────────────
-  primary:    { light: '#B98B3C', dark: '#D8B86A' },   // gold amber
+  primary:    { light: '#B98B3C', dark: '#C1A661' },   // muted gold for general use
   background: { light: '#EFE7D9', dark: '#282533' },   // parchment / void
   surface:    { light: '#F6F0E6', dark: '#35313F' },   // panel
   foreground: { light: '#231B15', dark: '#F4EBD9' },   // text

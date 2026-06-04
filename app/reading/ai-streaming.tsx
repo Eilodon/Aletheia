@@ -58,7 +58,7 @@ export default function AIStreamingScreen() {
           <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
             <View style={styles.header}>
               <RitualOrnament variant="line" />
-              <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.display }]}>
+              <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
                 {isAIFallback ? "Diễn giải nội tại" : "Diễn giải"}
               </Text>
               <Text style={[styles.subtitle, { color: colors.muted }]}>{selectedSymbol?.display_name || "Biểu tượng"}</Text>
@@ -74,7 +74,7 @@ export default function AIStreamingScreen() {
             <View style={styles.spacer} />
 
             <Pressable onPress={handleBackToPassage} style={[styles.primaryButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}>
-              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>Quay lại đoạn trích</Text>
+              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>Quay lại đoạn trích</Text>
             </Pressable>
           </ScrollView>
         </Animated.View>
@@ -88,7 +88,7 @@ export default function AIStreamingScreen() {
         <View style={styles.header}>
           <View style={[styles.waitHalo, { backgroundColor: colors.primary + "12" }]} />
           <RitualOrnament variant="sigil" />
-          <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.display }]}>Đang diễn giải</Text>
+          <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>Đang diễn giải</Text>
           <Text style={[styles.subtitle, { color: colors.muted }]}>{selectedSymbol?.display_name}</Text>
         </View>
 
@@ -177,6 +177,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     letterSpacing: 0.8,
     textTransform: "uppercase",
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.viDisplay,
   },
 });

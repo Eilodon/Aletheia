@@ -115,7 +115,7 @@ export default function SignInScreen() {
           {/* Header */}
           <View style={styles.header}>
             <RitualOrnament variant="eye" size="sm" />
-            <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.display }]}>
+            <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
               {mode === "verify" ? s.auth.verifyEmailTitle : mode === "sign-in" ? s.auth.signIn : s.auth.signUp}
             </Text>
             {mode !== "verify" && (
@@ -198,7 +198,7 @@ export default function SignInScreen() {
               {loading ? (
                 <ActivityIndicator color={colors.primary} size="small" />
               ) : (
-                <Text style={[styles.primaryBtnText, { color: colors.foreground, fontFamily: Fonts.display }]}>
+                <Text style={[styles.primaryBtnText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
                   {mode === "verify"
                     ? s.auth.verify
                     : mode === "sign-in"

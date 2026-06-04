@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { haptic } from "@/lib/utils/haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -14,6 +15,7 @@ export default function HomeScreen() {
   const colors = useColors();
   const router = useRouter();
   const s = useStrings();
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     screen("home", { surface: "tabs_index" });
@@ -27,14 +29,14 @@ export default function HomeScreen() {
 
   return (
     <ScreenContainer className="px-6 pb-6">
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 100 }} showsVerticalScrollIndicator={false}>
         <View style={styles.root}>
           <View style={styles.hero}>
             <View style={[styles.heroHalo, { backgroundColor: colors.primary + "0E" }]} />
             <View style={[styles.heroRing, { borderColor: colors.primary + "16" }]} />
             <View style={[styles.heroRingInner, { borderColor: colors.primary + "12" }]} />
             <View style={styles.brandMark}>
-              <RitualOrnament variant="eye" size="lg" />
+              <RitualOrnament variant="diamond" size="lg" />
             </View>
             <View style={styles.brandRule}>
               <View style={[styles.ruleLine, { backgroundColor: colors.primary + "30" }]} />
@@ -62,7 +64,7 @@ export default function HomeScreen() {
               ]}
             >
               <Text style={[styles.ctaGlyph, { color: colors.primary }]}>✦</Text>
-              <Text style={[styles.ctaText, { color: colors.foreground, fontFamily: Fonts.display }]}>{s.home.cta}</Text>
+              <Text style={[styles.ctaText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{s.home.cta}</Text>
               <Text style={[styles.ctaGlyph, { color: colors.primary }]}>✦</Text>
             </Pressable>
             <Text style={[styles.ctaHint, { color: colors.muted }]}>{s.home.ctaHint}</Text>
@@ -85,11 +87,9 @@ export default function HomeScreen() {
           </View>
 
           <View style={styles.pillars}>
-            {s.home.pillars.map((item) => (
-              <View key={item} style={[styles.pillar, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "1E" }]}>
-                <Text style={[styles.pillarText, { color: colors.foreground }]}>{item}</Text>
-              </View>
-            ))}
+            <View style={[styles.pillar, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "1E" }]}>
+              <Text style={[styles.pillarText, { color: colors.foreground, textAlign: "center" }]}>{s.home.pillarSummary}</Text>
+            </View>
           </View>
 
           <View style={styles.footer}>

@@ -70,7 +70,7 @@ function RootGate({
     <ScreenContainer className="px-6 pb-6">
       <View style={styles.gateWrap}>
         <RitualOrnament variant="eye" size="lg" />
-        <Text style={[styles.gateTitle, { color: colors.foreground, fontFamily: Fonts.display }]}>{title}</Text>
+        <Text style={[styles.gateTitle, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{title}</Text>
         <Text style={[styles.gateBody, { color: colors.muted }]}>{body}</Text>
         {detail ? <Text style={[styles.gateDetail, { color: colors.muted }]}>{detail}</Text> : null}
         {actionLabel && onAction ? (
@@ -78,7 +78,7 @@ function RootGate({
             onPress={onAction}
             style={[styles.gateButton, { backgroundColor: colors.surface + "F4", borderColor: colors.primary + "88" }]}
           >
-            <Text style={[styles.gateButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>{actionLabel}</Text>
+            <Text style={[styles.gateButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{actionLabel}</Text>
           </Pressable>
         ) : null}
       </View>

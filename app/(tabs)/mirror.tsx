@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { View, Text, Pressable, FlatList, Animated, RefreshControl, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
 import { SkeletonList } from "@/components/skeleton";
@@ -29,6 +30,7 @@ export default function HistoryScreen() {
   const colors = useColors();
   const router = useRouter();
   const s = useStrings();
+  const insets = useSafeAreaInsets();
   const [readings, setReadings] = useState<ReadingWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -188,7 +190,7 @@ export default function HistoryScreen() {
         </View>
         {item.ai_interpreted && (
           <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, backgroundColor: colors.primary + "1E", borderWidth: 1, borderColor: colors.primary + "44" }}>
-            <Text style={{ fontSize: 10, color: colors.primary, letterSpacing: 1, textTransform: "uppercase", fontFamily: Fonts.display }}>AI</Text>
+            <Text style={{ fontSize: 10, color: colors.primary, letterSpacing: 1, textTransform: "uppercase", fontFamily: Fonts.viDisplay }}>AI</Text>
           </View>
         )}
       </View>
@@ -216,7 +218,7 @@ export default function HistoryScreen() {
   const renderEmpty = () => (
     <View className="flex-1 justify-center items-center py-20">
       <RitualOrnament variant="sigil" />
-      <Text className="text-lg text-foreground mb-2 mt-4" style={{ fontFamily: Fonts.display }}>
+      <Text className="text-lg text-foreground mb-2 mt-4" style={{ fontFamily: Fonts.viDisplay }}>
         {readings.length === 0 ? s.mirror.emptyTitle : s.mirror.emptyFilteredTitle}
       </Text>
       <Text className="text-sm text-muted text-center max-w-xs">
@@ -230,7 +232,7 @@ export default function HistoryScreen() {
           className="mt-6 px-6 py-3 rounded-xl"
           style={{ backgroundColor: colors.primary + "18", borderWidth: 1, borderColor: colors.primary + "72" }}
         >
-          <Text className="text-base text-foreground" style={{ fontFamily: Fonts.display }}>
+          <Text className="text-base text-foreground" style={{ fontFamily: Fonts.viDisplay }}>
             {s.mirror.startReading}
           </Text>
         </Pressable>
@@ -241,7 +243,7 @@ export default function HistoryScreen() {
   const renderHeader = () => (
     <View className="pb-6 pt-2 items-center gap-3">
       <RitualOrnament variant="line" />
-      <Text className="text-3xl text-foreground" style={{ fontFamily: Fonts.display }}>{s.mirror.title}</Text>
+      <Text className="text-3xl text-foreground" style={{ fontFamily: Fonts.viDisplay }}>{s.mirror.title}</Text>
       <Text className="text-sm text-muted text-center">
         {s.mirror.countLabel(visibleReadings.length, readings.length)}
       </Text>
@@ -311,7 +313,7 @@ export default function HistoryScreen() {
           updateCellsBatchingPeriod={50}
           removeClippedSubviews={true}
           initialNumToRender={10}
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 100 }}
           ListHeaderComponent={renderHeader}
           ListEmptyComponent={isLoading ? <SkeletonList count={3} /> : renderEmpty}
           onEndReached={handleLoadMore}

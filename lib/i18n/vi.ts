@@ -20,7 +20,7 @@ export const vi = {
     enteringLabel: "Đang mở cổng...",
 
     welcome: {
-      kicker: "not a fortune • a mirror",
+      kicker: "Không phải lá số. Chỉ là một chiếc gương.",
       title: "ALETHEIA",
       tagline: "Dừng lại. Phản chiếu. Hiểu.",
       body: "Aletheia không nói trước tương lai. Nó tạo ra một không gian tối, chậm và đủ yên để bạn nhìn lại chính mình qua các đoạn trích triết học.",
@@ -50,20 +50,22 @@ export const vi = {
     },
   },
 
+  tabs: {
+    home: "Mở",
+    mirror: "Gương",
+    settings: "Cài đặt",
+  },
+
   home: {
-    kicker: "not a fortune • a mirror",
+    kicker: "Không phải lá số. Chỉ là một chiếc gương.",
     title: "ALETHEIA",
     tagline: "Dừng lại. Phản chiếu. Hiểu.",
     subtitle: "Dừng lại trong vài phút. Gọi tên điều bạn đang mang. Rồi để một đoạn trích phản chiếu lại nó.",
     cta: "Chọn một biểu tượng",
-    ctaHint: "Bạn sẽ mô tả tình huống, chọn một biểu tượng, rồi nhận đoạn trích phù hợp nhất với khoảnh khắc này.",
+    ctaHint: "Viết vài dòng. Chọn một biểu tượng. Để một đoạn trích soi lại điều ấy.",
     passageLabel: "PASSAGE OF THE PRACTICE",
     passageRef: "Nghi thức mở đầu của Aletheia",
-    pillars: [
-      "Lưu local, không cần tài khoản",
-      "AI chỉ xuất hiện khi bạn yêu cầu",
-      "Thiết kế chậm, tối, tập trung vào phản chiếu",
-    ],
+    pillarSummary: "Lưu trên máy • Không tài khoản • AI chỉ khi bạn mời",
     footerText: "Không cần nhanh. Chỉ cần thành thật.",
   },
 
@@ -91,11 +93,11 @@ export const vi = {
     title: "Chọn một biểu tượng",
     hint: "Đừng chọn bằng lý trí quá nhanh.",
     metaSuffix: "dấu hiệu đang chờ bạn",
-    cardTapHint: "Chạm để lật",
+    cardTapHint: "Chạm để soi",
     autoCountdown: (s: number) => `Tự động chọn sau ${s}s`,
     autoButton: "Để AletheiA chọn giúp",
     autoButtonLoading: "Đang chọn...",
-    selectedText: "Đang mở lá bài...",
+    selectedText: "Đang phản chiếu khoảnh khắc...",
     error: "Không thể chọn biểu tượng. Vui lòng thử lại.",
   },
 
@@ -147,7 +149,7 @@ export const vi = {
 
   mirror: {
     title: "Gương",
-    countLabel: (visible: number, total: number) => `${visible} / ${total} lần đọc đang hiện`,
+    countLabel: (visible: number, total: number) => total === 0 ? "Chưa có lần đọc nào" : `${visible} / ${total} lần đọc đang hiện`,
     searchPlaceholder: "Tìm theo tình huống, nguồn hoặc biểu tượng",
 
     deleteReading: "Xóa lần đọc này",
@@ -156,8 +158,8 @@ export const vi = {
     deleteConfirmYes: "Xóa",
     deleteConfirmNo: "Giữ lại",
 
-    emptyTitle: "Chưa có lần đọc nào",
-    emptyBody: "Bắt đầu lần đọc đầu tiên của bạn. Mỗi lần đọc sẽ được lưu lại ở đây.",
+    emptyTitle: "Gương đang trống",
+    emptyBody: "Gương còn trống. Khi bạn khép lại một lần đọc, nó có thể được giữ lại ở đây.",
     emptyFilteredTitle: "Không có kết quả phù hợp",
     emptyFilteredBody: "Thử đổi từ khóa, bộ lọc hoặc cách sắp xếp để nhìn archive theo một góc khác.",
     startReading: "Bắt đầu đọc",
@@ -187,7 +189,7 @@ export const vi = {
 
   settings: {
     title: "Cài đặt",
-    subtitle: "Ngôn ngữ, thông báo và tùy chọn cá nhân.",
+    subtitle: "Ngôn ngữ, thông báo và những gì bạn muốn giữ lại.",
 
     languageSection: "Ngôn ngữ",
     languageVi: "Tiếng Việt",
@@ -197,7 +199,7 @@ export const vi = {
     notificationToggleOn: "Bật",
     notificationToggleOff: "Tắt",
     notificationTimeLabel: "Giờ gửi",
-    notificationBody: "Mỗi sáng, Aletheia gửi một đoạn trích đến màn hình khóa — không cần mở app để đọc.",
+    notificationBody: "Mỗi sáng, nếu bạn muốn, AletheiA để lại một đoạn nhỏ trên màn hình khóa. Không cần mở app.",
     notificationPermissionDenied: "Quyền thông báo bị từ chối. Vào Cài đặt hệ thống để bật lại.",
 
     weeklySummarySection: "Gương nhìn lại cuối tuần",
@@ -234,6 +236,9 @@ export const vi = {
     deleteAllConfirmBody: "Mọi lần đọc sẽ bị xóa vĩnh viễn. Không thể hoàn tác.",
     deleteAllConfirmYes: "Xóa tất cả",
     deleteAllSuccess: "Đã xóa toàn bộ",
+    
+    syncSectionTitle: "Tùy chọn đồng bộ",
+    syncNoAccountInfo: "AletheiA hoạt động đầy đủ không cần tài khoản. Đăng nhập chỉ dùng nếu bạn muốn đồng bộ giữa các thiết bị.",
   },
 
   auth: {

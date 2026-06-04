@@ -195,7 +195,7 @@ export default function ShareCardScreen() {
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <RitualOrnament variant="line" />
-            <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.display }]}>Chia sẻ lá bài</Text>
+            <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>Chia sẻ lá bài</Text>
             <Text style={[styles.subtitle, { color: colors.muted }]}>{selectedSymbol.display_name}</Text>
           </View>
 
@@ -245,7 +245,7 @@ export default function ShareCardScreen() {
                 },
               ]}
             >
-              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>
+              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
                 {isSharing ? "Đang chuẩn bị..." : "Chia sẻ"}
               </Text>
             </Pressable>
@@ -334,7 +334,7 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 14,
     letterSpacing: 0.4,
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.viDisplay,
   },
   closeText: {
     textAlign: "center",

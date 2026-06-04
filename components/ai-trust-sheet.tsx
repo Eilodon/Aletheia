@@ -40,7 +40,7 @@ export function AITrustSheet({ visible, onConfirm, onCancel }: Props) {
             onPress={onConfirm}
             style={[styles.confirmButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}
           >
-            <Text style={[styles.confirmText, { color: colors.foreground, fontFamily: Fonts.display }]}>
+            <Text style={[styles.confirmText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
               {s.passage.aiTrustConfirm}
             </Text>
           </Pressable>

@@ -181,7 +181,7 @@ export default function PassageScreen() {
             testID="reading-passage-card"
             style={[styles.passageCard, { backgroundColor: colors.surface + "C8", borderColor: colors.primary + "42" }]}
           >
-            <Text style={[styles.quoteMark, { color: colors.primary + "88", fontFamily: Fonts.display }]}>“</Text>
+            <Text style={[styles.quoteMark, { color: colors.primary + "88", fontFamily: Fonts.viDisplay }]}>“</Text>
             <Text style={[styles.passageText, { color: colors.foreground, fontFamily: Fonts.bodyItalic }]}>
               {visiblePassageText}
             </Text>
@@ -204,7 +204,7 @@ export default function PassageScreen() {
                 ]}
               >
                 <Text style={[styles.aiButtonKicker, { color: colors.primary }]}>{s.passage.aiKicker}</Text>
-                <Text style={[styles.aiButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>{s.passage.aiButton}</Text>
+                <Text style={[styles.aiButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{s.passage.aiButton}</Text>
                 <Text style={[styles.aiButtonHint, { color: colors.muted }]}>{s.passage.aiHint}</Text>
               </Pressable>
             ) : null}
@@ -314,7 +314,7 @@ export default function PassageScreen() {
                 },
               ]}
             >
-              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>
+              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
                 {isCompleting ? s.passage.completingButton : s.passage.completeButton}
               </Text>
             </Pressable>
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
   aftertasteChipText: { fontSize: 13, fontFamily: Fonts.bodyMedium },
   actions: { gap: 12, paddingBottom: 8 },
   secondaryButton: { borderRadius: 22, borderWidth: 1, paddingVertical: 16, alignItems: "center" },
-  secondaryButtonText: { fontSize: 15, letterSpacing: 0.5, fontFamily: Fonts.display },
+  secondaryButtonText: { fontSize: 15, letterSpacing: 0.5, fontFamily: Fonts.viDisplay },
   primaryButton: { borderRadius: 22, borderWidth: 1.2, paddingVertical: 18, alignItems: "center" },
   primaryButtonText: { fontSize: 18, letterSpacing: 1.1, textTransform: "uppercase" },
 });

@@ -121,7 +121,7 @@ export default function RitualScreen() {
 
         <View style={styles.textGroup}>
           <Text style={[styles.kicker, { color: colors.primary }]}>{selectedSymbol?.display_name?.toUpperCase() || "NGHI THỨC"}</Text>
-          <Text testID="reading-ritual-title" style={[styles.title, { color: colors.foreground, fontFamily: Fonts.display }]}>
+          <Text testID="reading-ritual-title" style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
             Đang mở passage
           </Text>
           <Text style={[styles.subtitle, { color: colors.muted }]}>

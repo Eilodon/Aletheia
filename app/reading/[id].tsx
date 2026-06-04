@@ -256,7 +256,7 @@ export default function ReadingDetailScreen() {
       <ScreenContainer className="px-6 pb-6">
         <View style={styles.loadingWrap}>
           <RitualOrnament variant="sigil" />
-          <Text style={[styles.loadingTitle, { color: colors.foreground, fontFamily: Fonts.display }]}>
+          <Text style={[styles.loadingTitle, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
             Đang mở lại phản chiếu
           </Text>
           <View style={styles.loadingCards}>
@@ -273,7 +273,7 @@ export default function ReadingDetailScreen() {
       <ScreenContainer className="px-6 pb-6">
         <View style={styles.emptyWrap}>
           <RitualOrnament variant="eye" size="lg" />
-          <Text style={[styles.emptyTitle, { color: colors.foreground, fontFamily: Fonts.display }]}>
+          <Text style={[styles.emptyTitle, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
             Không tìm thấy lần đọc
           </Text>
           <Text style={[styles.emptyText, { color: colors.muted }]}>
@@ -283,7 +283,7 @@ export default function ReadingDetailScreen() {
             onPress={() => router.back()}
             style={[styles.primaryButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}
           >
-            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>Quay lại</Text>
+            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>Quay lại</Text>
           </Pressable>
         </View>
       </ScreenContainer>
@@ -302,7 +302,7 @@ export default function ReadingDetailScreen() {
           </Pressable>
           <RitualOrnament variant="line" />
           <Text style={[styles.kicker, { color: colors.primary }]}>Reflection Archive</Text>
-          <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.display }]}>
+          <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
             {sourceName || reading.source_id}
           </Text>
           <Text style={[styles.metaText, { color: colors.muted }]}>{formattedDate}</Text>
@@ -333,7 +333,7 @@ export default function ReadingDetailScreen() {
         <View style={styles.rowGrid}>
           <View style={[styles.infoCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "22" }]}>
             <Text style={[styles.sectionLabel, { color: colors.primary }]}>Biểu tượng đã chọn</Text>
-            <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: Fonts.display }]}>{reading.symbol_chosen}</Text>
+            <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{reading.symbol_chosen}</Text>
             <Text style={[styles.infoHint, { color: colors.muted }]}>
               {reading.symbol_method === "auto" ? "Được chọn bởi hệ thống" : "Được chọn thủ công"}
             </Text>
@@ -342,7 +342,7 @@ export default function ReadingDetailScreen() {
           {reading.mood_tag ? (
             <View style={[styles.infoCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "22" }]}>
               <Text style={[styles.sectionLabel, { color: colors.primary }]}>Cảm xúc ghi nhận</Text>
-              <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: Fonts.display }]}>
+              <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
                 {MOOD_EMOJIS[reading.mood_tag]} {MOOD_LABELS[reading.mood_tag]}
               </Text>
               <Text style={[styles.infoHint, { color: colors.muted }]}>#{reading.mood_tag}</Text>
@@ -422,7 +422,7 @@ export default function ReadingDetailScreen() {
             disabled={isReopening}
             style={[styles.primaryButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72", opacity: isReopening ? 0.65 : 1 }]}
           >
-            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>
+            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
               {isReopening ? "Đang mở lại..." : "Đọc lại từ nguồn này"}
             </Text>
           </Pressable>
@@ -430,7 +430,7 @@ export default function ReadingDetailScreen() {
             onPress={() => router.back()}
             style={[styles.primaryButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}
           >
-            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>
+            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
               Quay lại lịch sử
             </Text>
           </Pressable>

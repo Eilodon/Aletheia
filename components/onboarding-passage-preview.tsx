@@ -89,7 +89,7 @@ export function OnboardingPassagePreview({
     Animated.timing(containerFade, {
       toValue: 1,
       duration: DURATION.slower,
-      easing: EASING.spring,
+      easing: Easing.bezier(0.22, 1, 0.36, 1),
       useNativeDriver: true,
     }).start();
 
@@ -154,7 +154,7 @@ export function OnboardingPassagePreview({
           <Text
             style={[
               styles.quoteMark,
-              { color: colors.primary + "88", fontFamily: Fonts.display },
+              { color: colors.primary + "88", fontFamily: Fonts.viDisplay },
             ]}
           >
             “

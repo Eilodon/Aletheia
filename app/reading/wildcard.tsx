@@ -97,7 +97,7 @@ function SymbolCard({
             <Text style={[styles.symbolGlyph, { color: colors.primary }]}>✦</Text>
           )}
 
-          <Text style={[styles.symbolTitle, { color: colors.foreground, fontFamily: Fonts.display, textTransform: "uppercase" }]}>
+          <Text style={[styles.symbolTitle, { color: colors.foreground, fontFamily: Fonts.viDisplay, textTransform: "uppercase" }]}>
             {symbol.display_name}
           </Text>
           {symbol.flavor_text ? (
@@ -176,7 +176,7 @@ export default function WildcardScreen() {
 
         <View style={styles.header}>
           <RitualOrnament variant="line" />
-          <Text testID="reading-wildcard-title" style={[styles.headerTitle, { color: colors.foreground, fontFamily: Fonts.display }]}>
+          <Text testID="reading-wildcard-title" style={[styles.headerTitle, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
             {s.wildcard.title}
           </Text>
           <Text style={[styles.headerMeta, { color: colors.muted }]}>
@@ -210,7 +210,7 @@ export default function WildcardScreen() {
                 { backgroundColor: colors.primary + "15", borderColor: colors.primary + "60", opacity: isAutoSelecting ? 0.6 : 1 },
               ]}
             >
-              <Text style={[styles.secondaryButtonText, { color: colors.foreground, fontFamily: Fonts.display }]}>
+              <Text style={[styles.secondaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
                 {isAutoSelecting ? s.wildcard.autoButtonLoading : s.wildcard.autoButton}
               </Text>
             </Pressable>

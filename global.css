@@ -26,3 +26,18 @@
   font-family: "AletheiaBody-Italic";
   src: url("./assets/fonts/EBGaramond-Italic.ttf");
 }
+
+/* Force Mobile Layout on Web */
+@media (min-width: 430px) {
+  body {
+    background-color: #000 !important;
+  }
+  #root {
+    max-width: 430px;
+    margin: 0 auto;
+    position: relative;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+    height: 100vh;
+    overflow: hidden;
+  }
+}

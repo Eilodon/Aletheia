@@ -48,20 +48,22 @@ export const en: Strings = {
     },
   },
 
+  tabs: {
+    home: "Open",
+    mirror: "Mirror",
+    settings: "Settings",
+  },
+
   home: {
     kicker: "not a fortune • a mirror",
     title: "ALETHEIA",
     tagline: "Pause. Reflect. Understand.",
     subtitle: "Take a few minutes. Name what you're carrying. Then let a passage reflect it back.",
-    cta: "Draw a card",
-    ctaHint: "You'll describe your situation, choose a symbol, then receive the passage that fits this moment.",
+    cta: "Choose a symbol",
+    ctaHint: "Write a few lines. Choose a symbol. Let a passage reflect it back.",
     passageLabel: "PASSAGE OF THE PRACTICE",
     passageRef: "Aletheia opening ritual",
-    pillars: [
-      "Stored locally, no account needed",
-      "AI only appears when you ask",
-      "Slow, dark design built for reflection",
-    ],
+    pillarSummary: "Stored locally • No account • Optional AI",
     footerText: "No need to hurry. Just be honest.",
   },
 
@@ -89,11 +91,11 @@ export const en: Strings = {
     title: "Choose a symbol",
     hint: "Don't overthink it.",
     metaSuffix: "signs are waiting for you",
-    cardTapHint: "Tap to reveal",
+    cardTapHint: "Tap to reflect",
     autoCountdown: (s) => `Auto-selecting in ${s}s`,
     autoButton: "Let AletheiA choose for you",
     autoButtonLoading: "Choosing...",
-    selectedText: "Opening the card...",
+    selectedText: "Reflecting on the moment...",
     error: "Unable to choose symbol. Please try again.",
   },
 
@@ -145,7 +147,7 @@ export const en: Strings = {
 
   mirror: {
     title: "Mirror",
-    countLabel: (visible, total) => `${visible} of ${total} readings shown`,
+    countLabel: (visible: number, total: number) => total === 0 ? "Mirror is empty" : `${visible} of ${total} readings shown`,
     searchPlaceholder: "Search by situation, source, or symbol",
 
     deleteReading: "Delete this reading",
@@ -154,7 +156,7 @@ export const en: Strings = {
     deleteConfirmYes: "Delete",
     deleteConfirmNo: "Keep it",
 
-    emptyTitle: "No readings yet",
+    emptyTitle: "Mirror is empty",
     emptyBody: "Start your first reading. Every reading will be saved here.",
     emptyFilteredTitle: "No results found",
     emptyFilteredBody: "Try changing the search, filter, or sort to see your archive from a different angle.",
@@ -185,7 +187,7 @@ export const en: Strings = {
 
   settings: {
     title: "Settings",
-    subtitle: "Language, notifications, and personal preferences.",
+    subtitle: "Language, notifications, and what you want to keep.",
 
     languageSection: "Language",
     languageVi: "Tiếng Việt",
@@ -195,7 +197,7 @@ export const en: Strings = {
     notificationToggleOn: "On",
     notificationToggleOff: "Off",
     notificationTimeLabel: "Send at",
-    notificationBody: "Each morning, Aletheia sends a passage to your lock screen — no need to open the app to read it.",
+    notificationBody: "Each morning, if you want, Aletheia leaves a small passage on your lock screen. No need to open the app.",
     notificationPermissionDenied: "Notification permission denied. Go to system Settings to re-enable.",
 
     weeklySummarySection: "Weekly Mirror",
@@ -232,6 +234,9 @@ export const en: Strings = {
     deleteAllConfirmBody: "All readings will be permanently deleted. This cannot be undone.",
     deleteAllConfirmYes: "Delete all",
     deleteAllSuccess: "All readings deleted",
+    
+    syncSectionTitle: "Sync Options",
+    syncNoAccountInfo: "AletheiA works completely offline without an account. Sign in only if you want to sync between devices.",
   },
 
   auth: {

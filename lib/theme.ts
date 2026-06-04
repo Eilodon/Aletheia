@@ -63,6 +63,8 @@ export const Fonts = Platform.select({
   ios: {
     display: "AletheiaDisplay-Regular",
     displayStrong: "AletheiaDisplay-SemiBold",
+    viDisplay: "AletheiaBody-Regular",
+    viDisplayStrong: "AletheiaBody-Medium",
     body: "AletheiaBody-Regular",
     bodyMedium: "AletheiaBody-Medium",
     bodyItalic: "AletheiaBody-Italic",
@@ -76,6 +78,8 @@ export const Fonts = Platform.select({
   default: {
     display: "AletheiaDisplay-Regular",
     displayStrong: "AletheiaDisplay-SemiBold",
+    viDisplay: "AletheiaBody-Regular",
+    viDisplayStrong: "AletheiaBody-Medium",
     body: "AletheiaBody-Regular",
     bodyMedium: "AletheiaBody-Medium",
     bodyItalic: "AletheiaBody-Italic",
@@ -87,6 +91,8 @@ export const Fonts = Platform.select({
   web: {
     display: "'AletheiaDisplay-Regular', 'Cinzel', 'EB Garamond', serif",
     displayStrong: "'AletheiaDisplay-SemiBold', 'Cinzel', 'EB Garamond', serif",
+    viDisplay: "'AletheiaBody-Regular', 'EB Garamond', serif",
+    viDisplayStrong: "'AletheiaBody-Medium', 'EB Garamond', serif",
     body: "'AletheiaBody-Regular', 'EB Garamond', Georgia, serif",
     bodyMedium: "'AletheiaBody-Medium', 'EB Garamond', Georgia, serif",
     bodyItalic: "'AletheiaBody-Italic', 'EB Garamond', Georgia, serif",

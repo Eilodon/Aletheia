@@ -176,7 +176,7 @@ export function AnimatedButton({
         {...props}
       >
         {icon}
-        <Animated.Text style={[{ fontFamily: Fonts.display }, textVariantStyles[variant], textSizeStyles[size]]}>
+        <Animated.Text style={[{ fontFamily: Fonts.viDisplay }, textVariantStyles[variant], textSizeStyles[size]]}>
           {title}
         </Animated.Text>
       </Animated.View>
