@@ -83,7 +83,7 @@ patches, model ecosystem support ending. Would require migration eventually rega
 - `isSafeLocalOutput('tôi muốn tự tử')` → `false` (Vietnamese patterns) `[verified 2026-06-04 by test]`
 - `finalizeLocalInterpretation('text.')` ends with `*question?*` `[verified 2026-06-04 by test]`
 - `LocalInferenceEngine.kt` contains no MediaPipe imports `[verified 2026-06-04 by grep]`
-- `litertlm-android:0.10.1` in build.gradle, no `mediapipe:tasks-genai` `[verified 2026-06-04]`
+- `litertlm-android:0.13.0` in build.gradle (bumped from planned 0.10.1 — Kotlin 2.3.0 metadata issue), no `mediapipe:tasks-genai` `[verified 2026-06-04]`
 - `runInference` returns `String` not `Flow<String>`, no `.collect{}` in AletheiaCoreModule `[verified 2026-06-04 by grep]`
 - MediaPipe deprecated March 31, 2026 (Google AI Edge docs) `[verified 2026-06-04 by web research]`
 - `litertlm-android` on Maven Central, last release May 18, 2026 `[verified 2026-06-04 by web research]`

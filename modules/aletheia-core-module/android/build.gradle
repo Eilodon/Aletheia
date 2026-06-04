@@ -21,6 +21,10 @@ android {
       ]
     }
   }
+
+  kotlinOptions {
+    freeCompilerArgs += ["-Xskip-metadata-version-check"]
+  }
 }
 
 dependencies {
@@ -28,7 +32,7 @@ dependencies {
   implementation 'net.java.dev.jna:jna:5.14.0@aar'
 
   // LiteRT-LM for on-device LLM inference (replaces deprecated mediapipe:tasks-genai, March 2026)
-  implementation 'com.google.ai.edge.litertlm:litertlm-android:0.10.1'
+  implementation 'com.google.ai.edge.litertlm:litertlm-android:0.13.0'
 
   // OkHttp for model downloads
   implementation 'com.squareup.okhttp3:okhttp:4.12.0'

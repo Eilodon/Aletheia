@@ -42,6 +42,7 @@ import android.content.Context
 import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.cancel
 
 private data class AletheiaCoreBridgeError(
   val code: String,
