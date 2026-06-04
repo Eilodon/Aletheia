@@ -86,10 +86,13 @@ class CoreStoreService {
       return readingEngine.chooseSymbol(session, symbolId, method);
     }
 
+    console.log("[DEBUG chooseSymbol] ensureNativeReady...");
     await this.ensureNativeReady();
-    return unwrapNativeChooseSymbolResponse(
-      await aletheiaNativeClient.chooseSymbol(session as NativeReadingSession, symbolId, method),
-    ) as ChosenPassage;
+    console.log("[DEBUG chooseSymbol] calling native, symbolId=", symbolId, "source=", (session as NativeReadingSession).source?.id);
+    const plainSession = JSON.parse(JSON.stringify(session));
+    const raw = await aletheiaNativeClient.chooseSymbol(plainSession as NativeReadingSession, symbolId, method);
+    console.log("[DEBUG chooseSymbol] native returned", JSON.stringify(raw).slice(0, 200));
+    return unwrapNativeChooseSymbolResponse(raw) as ChosenPassage;
   }
 
   async completeReading(reading: Reading): Promise<CompletedReading> {
@@ -99,8 +102,9 @@ class CoreStoreService {
 
     await this.ensureNativeReady();
     const userId = await getCurrentUserId();
+    const plainReading = JSON.parse(JSON.stringify(reading));
     return unwrapNativeCompleteReadingResponse(
-      await aletheiaNativeClient.completeReading(userId, reading),
+      await aletheiaNativeClient.completeReading(userId, plainReading),
     ) as CompletedReading;
   }
 
@@ -128,8 +132,9 @@ class CoreStoreService {
     }
 
     await this.ensureNativeReady();
+    const plainState = JSON.parse(JSON.stringify(state));
     unwrapNativeUpdateUserStateResponse(
-      await aletheiaNativeClient.updateUserState(state as NativeUserState),
+      await aletheiaNativeClient.updateUserState(plainState as NativeUserState),
     );
   }
 

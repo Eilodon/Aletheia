@@ -55,7 +55,7 @@ export const vi = {
     title: "ALETHEIA",
     tagline: "Dừng lại. Phản chiếu. Hiểu.",
     subtitle: "Dừng lại trong vài phút. Gọi tên điều bạn đang mang. Rồi để một đoạn trích phản chiếu lại nó.",
-    cta: "Lật một lá",
+    cta: "Chọn một biểu tượng",
     ctaHint: "Bạn sẽ mô tả tình huống, chọn một biểu tượng, rồi nhận đoạn trích phù hợp nhất với khoảnh khắc này.",
     passageLabel: "PASSAGE OF THE PRACTICE",
     passageRef: "Nghi thức mở đầu của Aletheia",

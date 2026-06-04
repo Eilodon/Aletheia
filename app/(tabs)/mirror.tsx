@@ -245,54 +245,56 @@ export default function HistoryScreen() {
       <Text className="text-sm text-muted text-center">
         {s.mirror.countLabel(visibleReadings.length, readings.length)}
       </Text>
-      <View style={{ width: "100%", gap: 12, marginTop: 8 }}>
-        <View style={{ borderRadius: 22, borderWidth: 1, borderColor: colors.primary + "22", backgroundColor: colors.surface + "BC", paddingHorizontal: 14 }}>
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder={s.mirror.searchPlaceholder}
-            placeholderTextColor={colors.muted}
-            accessibilityLabel={s.mirror.searchPlaceholder}
-            style={{ color: colors.foreground, paddingVertical: 12, fontSize: 14, fontFamily: Fonts.body }}
-          />
+      {readings.length > 0 && (
+        <View style={{ width: "100%", gap: 12, marginTop: 8 }}>
+          <View style={{ borderRadius: 22, borderWidth: 1, borderColor: colors.primary + "22", backgroundColor: colors.surface + "BC", paddingHorizontal: 14 }}>
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder={s.mirror.searchPlaceholder}
+              placeholderTextColor={colors.muted}
+              accessibilityLabel={s.mirror.searchPlaceholder}
+              style={{ color: colors.foreground, paddingVertical: 12, fontSize: 14, fontFamily: Fonts.body }}
+            />
+          </View>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+            {filterOptions.map((option) => {
+              const active = option.key === activeFilter;
+              return (
+                <Pressable
+                  key={option.key}
+                  onPress={() => { haptic("selection"); setActiveFilter(option.key); }}
+                  accessibilityRole="button"
+                  accessibilityLabel={option.label}
+                  style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, backgroundColor: active ? colors.primary + "18" : colors.surface + "DA", borderWidth: 1, borderColor: active ? colors.primary + "72" : colors.primary + "22" }}
+                >
+                  <Text style={{ color: active ? colors.foreground : colors.muted, fontSize: 12, letterSpacing: 0.5, textTransform: "uppercase" }}>
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+            {sortOptions.map((option) => {
+              const active = option.key === activeSort;
+              return (
+                <Pressable
+                  key={option.key}
+                  onPress={() => { haptic("selection"); setActiveSort(option.key); }}
+                  accessibilityRole="button"
+                  accessibilityLabel={option.label}
+                  style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, backgroundColor: active ? colors.primary + "18" : "transparent" }}
+                >
+                  <Text style={{ color: active ? colors.primary : colors.muted, fontSize: 12, letterSpacing: 0.8, textTransform: "uppercase" }}>
+                    {option.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
-          {filterOptions.map((option) => {
-            const active = option.key === activeFilter;
-            return (
-              <Pressable
-                key={option.key}
-                onPress={() => { haptic("selection"); setActiveFilter(option.key); }}
-                accessibilityRole="button"
-                accessibilityLabel={option.label}
-                style={{ paddingHorizontal: 14, paddingVertical: 10, borderRadius: 18, backgroundColor: active ? colors.primary + "18" : colors.surface + "DA", borderWidth: 1, borderColor: active ? colors.primary + "72" : colors.primary + "22" }}
-              >
-                <Text style={{ color: active ? colors.foreground : colors.muted, fontSize: 12, letterSpacing: 0.5, textTransform: "uppercase" }}>
-                  {option.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
-          {sortOptions.map((option) => {
-            const active = option.key === activeSort;
-            return (
-              <Pressable
-                key={option.key}
-                onPress={() => { haptic("selection"); setActiveSort(option.key); }}
-                accessibilityRole="button"
-                accessibilityLabel={option.label}
-                style={{ paddingHorizontal: 12, paddingVertical: 8, borderRadius: 16, backgroundColor: active ? colors.primary + "18" : "transparent" }}
-              >
-                <Text style={{ color: active ? colors.primary : colors.muted, fontSize: 12, letterSpacing: 0.8, textTransform: "uppercase" }}>
-                  {option.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      </View>
+      )}
     </View>
   );
 

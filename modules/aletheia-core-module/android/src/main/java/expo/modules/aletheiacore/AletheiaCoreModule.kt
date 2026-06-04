@@ -1173,28 +1173,28 @@ class AletheiaCoreModule : Module() {
       client.performReading(userId, sourceId, situationText)
     }
 
-    AsyncFunction("chooseSymbol") { session: Map<String, Any?>, symbolId: String, method: String ->
-      client.chooseSymbol(session, symbolId, method)
+    AsyncFunction("chooseSymbol") { sessionStr: String, symbolId: String, method: String ->
+      client.chooseSymbol(parseJsonMap(sessionStr), symbolId, method)
     }
 
-    AsyncFunction("completeReading") { userId: String, reading: Map<String, Any?> ->
-      client.completeReading(userId, reading)
+    AsyncFunction("completeReading") { userId: String, readingStr: String ->
+      client.completeReading(userId, parseJsonMap(readingStr))
     }
 
     AsyncFunction("requestInterpretation") {
-      passage: Map<String, Any?>,
-      symbol: Map<String, Any?>,
+      passageStr: String,
+      symbolStr: String,
       situationText: String? ->
-      client.requestInterpretation(passage, symbol, situationText)
+      client.requestInterpretation(parseJsonMap(passageStr), parseJsonMap(symbolStr), situationText)
     }
 
     AsyncFunction("startInterpretationStream") {
-      passage: Map<String, Any?>,
-      symbol: Map<String, Any?>,
+      passageStr: String,
+      symbolStr: String,
       situationText: String?,
       userIntent: String?,
       useSonnet: Boolean ->
-      client.startInterpretationStream(passage, symbol, situationText, userIntent, useSonnet)
+      client.startInterpretationStream(parseJsonMap(passageStr), parseJsonMap(symbolStr), situationText, userIntent, useSonnet)
     }
 
     AsyncFunction("pollInterpretationStream") { requestId: String ->
@@ -1273,8 +1273,8 @@ class AletheiaCoreModule : Module() {
 
     // LOCAL INFERENCE STREAM (CYCLE 2)
     AsyncFunction("startLocalInterpretationStream") 
-      { passage: Map<String, Any?>, symbol: Map<String, Any?>, situationText: String?, userIntent: String? ->
-        adapter.startLocalInterpretationStream(passage, symbol, situationText, userIntent)
+      { passageStr: String, symbolStr: String, situationText: String?, userIntent: String? ->
+        adapter.startLocalInterpretationStream(parseJsonMap(passageStr), parseJsonMap(symbolStr), situationText, userIntent)
       }
 
     AsyncFunction("pollLocalInterpretationStream") { requestId: String ->
@@ -1284,5 +1284,43 @@ class AletheiaCoreModule : Module() {
     AsyncFunction("cancelLocalInterpretationStream") { requestId: String ->
       adapter.cancelLocalInterpretationStream(requestId)
     }
+  }
+
+  private fun parseJsonMap(jsonString: String): Map<String, Any?> {
+    return jsonObjectToMap(org.json.JSONObject(jsonString))
+  }
+
+  private fun jsonObjectToMap(json: org.json.JSONObject): Map<String, Any?> {
+    val map = mutableMapOf<String, Any?>()
+    val keys = json.keys()
+    while (keys.hasNext()) {
+      val key = keys.next()
+      var value = json.get(key)
+      if (value === org.json.JSONObject.NULL) {
+        value = null
+      } else if (value is org.json.JSONObject) {
+        value = jsonObjectToMap(value)
+      } else if (value is org.json.JSONArray) {
+        value = jsonArrayToList(value)
+      }
+      map[key] = value
+    }
+    return map
+  }
+
+  private fun jsonArrayToList(array: org.json.JSONArray): List<Any?> {
+    val list = mutableListOf<Any?>()
+    for (i in 0 until array.length()) {
+      var value = array.get(i)
+      if (value === org.json.JSONObject.NULL) {
+        value = null
+      } else if (value is org.json.JSONObject) {
+        value = jsonObjectToMap(value)
+      } else if (value is org.json.JSONArray) {
+        value = jsonArrayToList(value)
+      }
+      list.add(value)
+    }
+    return list
   }
 }

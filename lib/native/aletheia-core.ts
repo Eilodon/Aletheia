@@ -80,14 +80,16 @@ class AletheiaNativeClient {
     symbolId: string,
     method: string,
   ): Promise<NativeChooseSymbolResponse> {
-    return this.requireModule().chooseSymbol(session, symbolId, method);
+    const sessionArg = Platform.OS === 'android' ? JSON.stringify(session) : session;
+    return this.requireModule().chooseSymbol(sessionArg as any, symbolId, method);
   }
 
   completeReading(
     userId: string,
     reading: NativeReading,
   ): Promise<NativeCompleteReadingResponse> {
-    return this.requireModule().completeReading(userId, reading);
+    const readingArg = Platform.OS === 'android' ? JSON.stringify(reading) : reading;
+    return this.requireModule().completeReading(userId, readingArg as any);
   }
 
   getFallbackPrompts(sourceId: string): Promise<NativeFallbackPromptsResponse> {
@@ -145,7 +147,9 @@ class AletheiaNativeClient {
     symbol: NativeSymbol,
     situationText?: string,
   ): Promise<NativeRequestInterpretationResponse> {
-    return this.requireModule().requestInterpretation(passage, symbol, situationText);
+    const p = Platform.OS === 'android' ? JSON.stringify(passage) : passage;
+    const s = Platform.OS === 'android' ? JSON.stringify(symbol) : symbol;
+    return this.requireModule().requestInterpretation(p as any, s as any, situationText);
   }
 
   startInterpretationStream(
@@ -155,8 +159,10 @@ class AletheiaNativeClient {
     userIntent?: string,
     useSonnet?: boolean,
   ): Promise<NativeStartInterpretationStreamResponse> {
+    const p = Platform.OS === 'android' ? JSON.stringify(passage) : passage;
+    const s = Platform.OS === 'android' ? JSON.stringify(symbol) : symbol;
     return this.requireModule().startInterpretationStream(
-      passage, symbol, situationText, userIntent,
+      p as any, s as any, situationText, userIntent,
       useSonnet ?? false,
     );
   }
@@ -211,9 +217,11 @@ class AletheiaNativeClient {
     situationText?: string,
     userIntent?: string,
   ): Promise<NativeStartInterpretationStreamResponse> {
+    const p = Platform.OS === 'android' ? JSON.stringify(passage) : passage;
+    const s = Platform.OS === 'android' ? JSON.stringify(symbol) : symbol;
     return this.requireModule().startLocalInterpretationStream(
-      passage,
-      symbol,
+      p as any,
+      s as any,
       situationText,
       userIntent,
     );

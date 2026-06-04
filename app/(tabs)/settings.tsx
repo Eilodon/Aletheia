@@ -222,54 +222,79 @@ export default function SettingsScreen() {
         {s.settings.subtitle}
       </Text>
 
-      {/* Account */}
-      {currentUser !== undefined && (
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: colors.muted }]}>
-            {currentUser ? s.auth.signedInAs : s.auth.guestMode}
-          </Text>
-          <View style={[styles.card, { backgroundColor: colors.surface + "C8", borderColor: colors.primary + "22" }]}>
-            {currentUser ? (
-              <>
-                <View style={styles.row}>
-                  <Text style={[styles.rowLabel, { color: colors.foreground }]} numberOfLines={1}>
-                    {currentUser.email ?? currentUser.name ?? currentUser.id}
-                  </Text>
-                </View>
-                <View style={[styles.divider, { backgroundColor: colors.primary + "18" }]} />
-                <Pressable
-                  onPress={handleSignOut}
-                  disabled={isSigningOut}
-                  style={[styles.row, { opacity: isSigningOut ? 0.5 : 1 }]}
-                >
-                  <Text style={[styles.rowLabel, { color: "#E07070" }]}>
-                    {s.auth.signOut}
-                  </Text>
-                </Pressable>
-              </>
-            ) : (
-              <>
-                <View style={styles.row}>
-                  <Text style={[styles.rowSubLabel, { color: colors.muted }]}>
-                    {s.auth.accountBenefits}
-                  </Text>
-                </View>
-                <View style={[styles.divider, { backgroundColor: colors.primary + "18" }]} />
-                <Pressable
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  onPress={() => router.push("/(auth)/sign-in" as any)}
-                  style={styles.row}
-                >
-                  <Text style={[styles.rowLabel, { color: colors.primary }]}>
-                    {s.auth.signIn}
-                  </Text>
-                  <Text style={{ color: colors.primary, fontSize: 14 }}>→</Text>
-                </Pressable>
-              </>
-            )}
+      {/* Privacy & Data */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.muted }]}>
+          {s.settings.privacySection}
+        </Text>
+
+        {/* Analytics toggle */}
+        <Text style={[styles.sectionTitle, { color: colors.muted, marginBottom: 8, textTransform: "none", letterSpacing: 0.5, fontSize: 12 }]}>
+          {s.settings.analyticsSection}
+        </Text>
+        <View style={[styles.card, { backgroundColor: colors.surface + "C8", borderColor: colors.primary + "22" }]}>
+          <View style={styles.row}>
+            <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+              {analyticsEnabled ? s.settings.analyticsToggleOn : s.settings.analyticsToggleOff}
+            </Text>
+            <Switch
+              value={analyticsEnabled ?? false}
+              onValueChange={handleAnalyticsToggle}
+              disabled={isTogglingAnalytics || analyticsEnabled === null}
+              trackColor={{ false: colors.border + "88", true: colors.primary + "AA" }}
+              thumbColor={analyticsEnabled ? colors.primary : colors.muted}
+            />
           </View>
         </View>
-      )}
+        <Text style={[styles.sectionNote, { color: colors.muted }]}>
+          {s.settings.analyticsBody}
+        </Text>
+
+        {/* Privacy ledger */}
+        <Pressable
+          onPress={() => setPrivacyExpanded((v) => !v)}
+          style={[styles.card, { backgroundColor: colors.surface + "C8", borderColor: colors.primary + "22", marginTop: 14 }]}
+        >
+          <View style={styles.row}>
+            <Text style={[styles.rowLabel, { color: colors.foreground }]}>{s.settings.privacyLedgerSection}</Text>
+            <Text style={{ color: colors.muted, fontSize: 16 }}>{privacyExpanded ? "−" : "+"}</Text>
+          </View>
+          {privacyExpanded && (
+            <>
+              <View style={[styles.divider, { backgroundColor: colors.primary + "18" }]} />
+              <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4, gap: 10 }}>
+                <Text style={[styles.rowSubLabel, { color: colors.primary }]}>{s.settings.privacyLedgerStaysTitle}</Text>
+                {s.settings.privacyLedgerStaysItems.map((item, i) => (
+                  <Text key={i} style={[styles.rowSubLabel, { color: colors.muted }]}>◦  {item}</Text>
+                ))}
+              </View>
+              <View style={[styles.divider, { backgroundColor: colors.primary + "18", marginTop: 10 }]} />
+              <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16, gap: 10 }}>
+                <Text style={[styles.rowSubLabel, { color: colors.primary }]}>{s.settings.privacyLedgerLeavesTitle}</Text>
+                {s.settings.privacyLedgerLeavesItems.map((item, i) => (
+                  <Text key={i} style={[styles.rowSubLabel, { color: colors.muted }]}>◦  {item}</Text>
+                ))}
+              </View>
+            </>
+          )}
+        </Pressable>
+
+        {/* Delete all readings */}
+        <Pressable
+          onPress={handleDeleteAllReadings}
+          disabled={isDeletingAll}
+          style={[styles.card, {
+            backgroundColor: "transparent",
+            borderColor: "#ff453a44",
+            marginTop: 14,
+            opacity: isDeletingAll ? 0.5 : 1,
+          }]}
+        >
+          <View style={styles.row}>
+            <Text style={[styles.rowLabel, { color: "#ff453a" }]}>{s.settings.deleteAllReadingsLabel}</Text>
+          </View>
+        </Pressable>
+      </View>
 
       {/* Language */}
       <View style={styles.section}>
@@ -386,79 +411,54 @@ export default function SettingsScreen() {
         </Text>
       </View>
 
-      {/* Privacy & Data */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.muted }]}>
-          {s.settings.privacySection}
-        </Text>
-
-        {/* Analytics toggle */}
-        <Text style={[styles.sectionTitle, { color: colors.muted, marginBottom: 8, textTransform: "none", letterSpacing: 0.5, fontSize: 12 }]}>
-          {s.settings.analyticsSection}
-        </Text>
-        <View style={[styles.card, { backgroundColor: colors.surface + "C8", borderColor: colors.primary + "22" }]}>
-          <View style={styles.row}>
-            <Text style={[styles.rowLabel, { color: colors.foreground }]}>
-              {analyticsEnabled ? s.settings.analyticsToggleOn : s.settings.analyticsToggleOff}
-            </Text>
-            <Switch
-              value={analyticsEnabled ?? false}
-              onValueChange={handleAnalyticsToggle}
-              disabled={isTogglingAnalytics || analyticsEnabled === null}
-              trackColor={{ false: colors.border + "88", true: colors.primary + "AA" }}
-              thumbColor={analyticsEnabled ? colors.primary : colors.muted}
-            />
+      {/* Account */}
+      {currentUser !== undefined && (
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: colors.muted }]}>
+            Tùy chọn đồng bộ
+          </Text>
+          <View style={[styles.card, { backgroundColor: colors.surface + "C8", borderColor: colors.primary + "22" }]}>
+            {currentUser ? (
+              <>
+                <View style={styles.row}>
+                  <Text style={[styles.rowLabel, { color: colors.foreground }]} numberOfLines={1}>
+                    {currentUser.email ?? currentUser.name ?? currentUser.id}
+                  </Text>
+                </View>
+                <View style={[styles.divider, { backgroundColor: colors.primary + "18" }]} />
+                <Pressable
+                  onPress={handleSignOut}
+                  disabled={isSigningOut}
+                  style={[styles.row, { opacity: isSigningOut ? 0.5 : 1 }]}
+                >
+                  <Text style={[styles.rowLabel, { color: "#E07070" }]}>
+                    {s.auth.signOut}
+                  </Text>
+                </Pressable>
+              </>
+            ) : (
+              <>
+                <View style={styles.row}>
+                  <Text style={[styles.rowSubLabel, { color: colors.muted }]}>
+                    AletheiA hoạt động đầy đủ không cần tài khoản. Đăng nhập chỉ dùng nếu bạn muốn đồng bộ giữa các thiết bị.
+                  </Text>
+                </View>
+                <View style={[styles.divider, { backgroundColor: colors.primary + "18" }]} />
+                <Pressable
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  onPress={() => router.push("/(auth)/sign-in" as any)}
+                  style={styles.row}
+                >
+                  <Text style={[styles.rowLabel, { color: colors.primary }]}>
+                    {s.auth.signIn}
+                  </Text>
+                  <Text style={{ color: colors.primary, fontSize: 14 }}>→</Text>
+                </Pressable>
+              </>
+            )}
           </View>
         </View>
-        <Text style={[styles.sectionNote, { color: colors.muted }]}>
-          {s.settings.analyticsBody}
-        </Text>
-
-        {/* Privacy ledger */}
-        <Pressable
-          onPress={() => setPrivacyExpanded((v) => !v)}
-          style={[styles.card, { backgroundColor: colors.surface + "C8", borderColor: colors.primary + "22", marginTop: 14 }]}
-        >
-          <View style={styles.row}>
-            <Text style={[styles.rowLabel, { color: colors.foreground }]}>{s.settings.privacyLedgerSection}</Text>
-            <Text style={{ color: colors.muted, fontSize: 16 }}>{privacyExpanded ? "−" : "+"}</Text>
-          </View>
-          {privacyExpanded && (
-            <>
-              <View style={[styles.divider, { backgroundColor: colors.primary + "18" }]} />
-              <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 4, gap: 10 }}>
-                <Text style={[styles.rowSubLabel, { color: colors.primary }]}>{s.settings.privacyLedgerStaysTitle}</Text>
-                {s.settings.privacyLedgerStaysItems.map((item, i) => (
-                  <Text key={i} style={[styles.rowSubLabel, { color: colors.muted }]}>◦  {item}</Text>
-                ))}
-              </View>
-              <View style={[styles.divider, { backgroundColor: colors.primary + "18", marginTop: 10 }]} />
-              <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16, gap: 10 }}>
-                <Text style={[styles.rowSubLabel, { color: colors.primary }]}>{s.settings.privacyLedgerLeavesTitle}</Text>
-                {s.settings.privacyLedgerLeavesItems.map((item, i) => (
-                  <Text key={i} style={[styles.rowSubLabel, { color: colors.muted }]}>◦  {item}</Text>
-                ))}
-              </View>
-            </>
-          )}
-        </Pressable>
-
-        {/* Delete all readings */}
-        <Pressable
-          onPress={handleDeleteAllReadings}
-          disabled={isDeletingAll}
-          style={[styles.card, {
-            backgroundColor: "transparent",
-            borderColor: "#ff453a44",
-            marginTop: 14,
-            opacity: isDeletingAll ? 0.5 : 1,
-          }]}
-        >
-          <View style={styles.row}>
-            <Text style={[styles.rowLabel, { color: "#ff453a" }]}>{s.settings.deleteAllReadingsLabel}</Text>
-          </View>
-        </Pressable>
-      </View>
+      )}
 
       {/* About */}
       <View style={styles.section}>

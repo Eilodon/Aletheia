@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { haptic } from "@/lib/utils/haptics";
 
@@ -12,6 +12,7 @@ import { DURATION } from "@/lib/constants/animation";
 import { Fonts } from "@/constants/theme";
 import { screen, trackShareEvent } from "@/lib/analytics";
 import { useStrings } from "@/lib/i18n";
+import { getSymbolAsset } from "@/assets/symbols";
 import { ReadingState, MoodTag } from "@/lib/types";
 import { showToast } from "@/components/toast";
 import { AITrustSheet } from "@/components/ai-trust-sheet";
@@ -147,7 +148,15 @@ export default function PassageScreen() {
       <Animated.View style={{ opacity: fadeAnim }} className="flex-1">
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            <RitualOrnament variant="line" />
+            {selectedSymbol && getSymbolAsset(selectedSymbol.id) ? (
+              <Image
+                source={getSymbolAsset(selectedSymbol.id)!}
+                style={{ width: 80, height: 80, opacity: 0.9, marginBottom: 4 }}
+                resizeMode="contain"
+              />
+            ) : (
+              <RitualOrnament variant="line" />
+            )}
             <Text testID="reading-passage-symbol" style={[styles.symbolName, { color: colors.primary }]}>
               {selectedSymbol?.display_name || "—"}
             </Text>

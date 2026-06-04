@@ -94,23 +94,41 @@ function AppChrome({
   trpcClient: ReturnType<typeof createTRPCClient>;
 }) {
   const { toasts, removeToast } = useToast();
+  const colors = useColors();
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <ErrorBoundary>
-        <trpc.Provider client={trpcClient} queryClient={queryClient}>
-          <QueryClientProvider client={queryClient}>
-            <ReadingProvider>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(tabs)" />
-              </Stack>
-              <ToastContainer toasts={toasts} removeToast={removeToast} />
-              <StatusBar style="light" />
-            </ReadingProvider>
-          </QueryClientProvider>
-        </trpc.Provider>
-      </ErrorBoundary>
-    </GestureHandlerRootView>
+    <View
+      style={
+        Platform.OS === "web"
+          ? {
+              maxWidth: 430,
+              width: "100%",
+              height: "100%",
+              marginHorizontal: "auto",
+              overflow: "hidden",
+              backgroundColor: colors.background,
+              position: "relative",
+              boxShadow: "0 0 20px rgba(0,0,0,0.5)",
+            }
+          : { flex: 1 }
+      }
+    >
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <ErrorBoundary>
+          <trpc.Provider client={trpcClient} queryClient={queryClient}>
+            <QueryClientProvider client={queryClient}>
+              <ReadingProvider>
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="(tabs)" />
+                </Stack>
+                <ToastContainer toasts={toasts} removeToast={removeToast} />
+                <StatusBar style="light" />
+              </ReadingProvider>
+            </QueryClientProvider>
+          </trpc.Provider>
+        </ErrorBoundary>
+      </GestureHandlerRootView>
+    </View>
   );
 }
 

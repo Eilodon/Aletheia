@@ -227,7 +227,7 @@ export default function ReadingDetailScreen() {
         message: [
           `Gần đây mình đang đọc ${sourceTitle} trên Aletheia — và muốn gửi cho bạn một lần đọc từ cùng nguồn này.`,
           ``,
-          `Lật một lá và để nó phản chiếu điều gì đó:`,
+          `Chọn một biểu tượng và để nó phản chiếu điều gì đó:`,
           gift.deep_link,
           ``,
           `(Link dùng được trong 7 ngày, không cần cài app)`,

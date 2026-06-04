@@ -69,10 +69,12 @@ class AIRuntimeService {
       return null;
     }
 
+    const plainPassage = JSON.parse(JSON.stringify(withRuntimePassage(request)));
+    const plainSymbol = JSON.parse(JSON.stringify(request.symbol));
     const interpretation = unwrapNativeRequestInterpretationResponse(
       await aletheiaNativeClient.requestInterpretation(
-        withRuntimePassage(request),
-        request.symbol,
+        plainPassage,
+        plainSymbol,
         request.situationText,
       ),
     );
@@ -99,10 +101,12 @@ class AIRuntimeService {
       useSonnet = false;
     }
 
+    const plainPassage = JSON.parse(JSON.stringify(withRuntimePassage(request)));
+    const plainSymbol = JSON.parse(JSON.stringify(request.symbol));
     return unwrapNativeStartInterpretationStreamResponse(
       await aletheiaNativeClient.startInterpretationStream(
-        withRuntimePassage(request),
-        request.symbol,
+        plainPassage,
+        plainSymbol,
         request.situationText,
         request.userIntent,
         useSonnet,

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Easing, Pressable, StyleSheet, Text, View, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { haptic } from "@/lib/utils/haptics";
 
@@ -12,6 +12,7 @@ import { secureRandomIndex } from "@/lib/utils/random";
 import { Fonts } from "@/constants/theme";
 import { showToast } from "@/components/toast";
 import { useStrings } from "@/lib/i18n";
+import { getSymbolAsset } from "@/assets/symbols";
 
 function SymbolCard({
   symbol,
@@ -86,7 +87,17 @@ function SymbolCard({
             },
           ]}
         >
-          <Text style={[styles.symbolTitle, { color: colors.foreground, fontFamily: Fonts.display }]}>
+          {getSymbolAsset(symbol.id) ? (
+            <Image
+              source={getSymbolAsset(symbol.id)!}
+              style={{ width: 64, height: 64, opacity: 0.9 }}
+              resizeMode="contain"
+            />
+          ) : (
+            <Text style={[styles.symbolGlyph, { color: colors.primary }]}>✦</Text>
+          )}
+
+          <Text style={[styles.symbolTitle, { color: colors.foreground, fontFamily: Fonts.display, textTransform: "uppercase" }]}>
             {symbol.display_name}
           </Text>
           {symbol.flavor_text ? (
@@ -94,7 +105,6 @@ function SymbolCard({
               {symbol.flavor_text}
             </Text>
           ) : null}
-          <Text style={[styles.symbolGlyph, { color: colors.primary }]}>✦</Text>
         </Animated.View>
       </View>
     </Pressable>
