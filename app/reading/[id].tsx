@@ -120,18 +120,18 @@ export default function ReadingDetailScreen() {
       const quote = passageText ?? reading.situation_text ?? s.readingDetail.shareDefaultQuote;
       const reference = passageReference ?? sourceName ?? reading.source_id;
       await Share.share({
-        message: `”${quote}”\n\n— ${reference}\n${s.readingDetail.shareSymbolLabel} ${reading.symbol_chosen}\n\n${s.readingDetail.shareFrom}`,
+        message: `"${quote}"\n\n— ${reference}\n${s.readingDetail.shareSymbolLabel} ${reading.symbol_chosen}\n\n${s.readingDetail.shareFrom}`,
       });
       await syncFlags({ shared: true });
-      trackShareEvent(“shared”, {
-        mode: “archive_detail”,
+      trackShareEvent("shared", {
+        mode: "archive_detail",
         reading_id: reading.id,
         source_id: reading.source_id,
       });
-      showToast(“success”, s.readingDetail.shareOpened);
+      showToast("success", s.readingDetail.shareOpened);
     } catch (error) {
-      console.error(“Failed to share reading:”, error);
-      showToast(“error”, s.readingDetail.shareError);
+      console.error("Failed to share reading:", error);
+      showToast("error", s.readingDetail.shareError);
     } finally {
       setIsSharing(false);
     }
@@ -301,7 +301,7 @@ export default function ReadingDetailScreen() {
 
         {passageText ? (
           <View style={[styles.heroCard, { backgroundColor: colors.surface + "C8", borderColor: colors.primary + "42" }]}>
-            <Text style={[styles.heroQuote, { color: colors.foreground, fontFamily: Fonts.bodyItalic }]}>“{passageText}”</Text>
+            <Text style={[styles.heroQuote, { color: colors.foreground, fontFamily: Fonts.bodyItalic }]}>"{passageText}"</Text>
             <View style={styles.heroFooter}>
               <View style={[styles.rule, { backgroundColor: colors.primary + "50" }]} />
               <Text style={[styles.heroRef, { color: colors.muted }]}>{passageReference}</Text>
