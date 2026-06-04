@@ -8,6 +8,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
 import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
+import { useStrings } from "@/lib/i18n";
 import { Fonts } from "@/constants/theme";
 import { screen, trackShareEvent } from "@/lib/analytics";
 
@@ -84,6 +85,7 @@ function CardPreview({
 export default function ShareCardScreen() {
   const { passage, session, selectedSymbol } = useReading();
   const colors = useColors();
+  const s = useStrings();
   const router = useRouter();
   const cardRef = useRef<View>(null);
   const [selectedTheme, setSelectedTheme] = useState<"dark" | "light" | "gold">("dark");
@@ -115,7 +117,7 @@ export default function ShareCardScreen() {
         const uri = await captureRef(cardRef, { format: "png", quality: 0.92 });
         await Share.share({
           url: uri,
-          message: `"${passage.text.slice(0, 100)}..." — ${selectedSymbol.display_name}\n\nTừ Aletheia, not a fortune. A mirror.`,
+          message: `"${passage.text.slice(0, 100)}..." — ${selectedSymbol.display_name}\n\n${s.shareCard.shareAttribution}`,
         });
         trackShareEvent("shared", {
           mode: "image",
@@ -125,7 +127,7 @@ export default function ShareCardScreen() {
         });
       } else {
         await Share.share({
-          message: `"${passage.text.slice(0, 150)}..." — ${selectedSymbol.display_name} (${passage.reference})\n\nTừ Aletheia ✦`,
+          message: `"${passage.text.slice(0, 150)}..." — ${selectedSymbol.display_name} (${passage.reference})\n\n${s.shareCard.shareAttributionShort}`,
         });
         trackShareEvent("shared", {
           mode: "text_fallback",
@@ -152,7 +154,7 @@ export default function ShareCardScreen() {
 
     try {
       await Share.share({
-        message: `"${passage.text}"\n\n— ${passage.reference}\nBiểu tượng: ${selectedSymbol.display_name}\n\nTừ Aletheia ✦`,
+        message: `"${passage.text}"\n\n— ${passage.reference}\n${s.shareCard.shareSymbolLabel} ${selectedSymbol.display_name}\n\n${s.shareCard.shareAttributionShort}`,
       });
       trackShareEvent("text_shared", {
         source_id: session?.source.id,
@@ -171,22 +173,22 @@ export default function ShareCardScreen() {
   if (!passage || !session || !selectedSymbol) {
     return (
       <ScreenContainer className="justify-center items-center p-6">
-        <Text className="text-muted mb-4">Không có dữ liệu để chia sẻ</Text>
+        <Text className="text-muted mb-4">{s.shareCard.noData}</Text>
         <Pressable
           onPress={() => router.back()}
           accessibilityRole="button"
-          accessibilityLabel="Quay lại"
+          accessibilityLabel={s.shareCard.back}
         >
-          <Text style={{ color: colors.primary }}>Quay lại</Text>
+          <Text style={{ color: colors.primary }}>{s.shareCard.back}</Text>
         </Pressable>
       </ScreenContainer>
     );
   }
 
   const themes: { key: typeof selectedTheme; label: string }[] = [
-    { key: "dark", label: "Tối" },
-    { key: "light", label: "Sáng" },
-    { key: "gold", label: "Vàng" },
+    { key: "dark", label: s.shareCard.themeDark },
+    { key: "light", label: s.shareCard.themeLight },
+    { key: "gold", label: s.shareCard.themeGold },
   ];
 
   return (
@@ -195,7 +197,7 @@ export default function ShareCardScreen() {
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <RitualOrnament variant="line" />
-            <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>Chia sẻ lá bài</Text>
+            <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{s.shareCard.title}</Text>
             <Text style={[styles.subtitle, { color: colors.muted }]}>{selectedSymbol.display_name}</Text>
           </View>
 
@@ -246,7 +248,7 @@ export default function ShareCardScreen() {
               ]}
             >
               <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
-                {isSharing ? "Đang chuẩn bị..." : "Chia sẻ"}
+                {isSharing ? s.shareCard.sharing : s.shareCard.shareButton}
               </Text>
             </Pressable>
 
@@ -254,11 +256,11 @@ export default function ShareCardScreen() {
               onPress={handleCopyText}
               style={[styles.secondaryButton, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "22" }]}
             >
-              <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>Chỉ sao chép văn bản</Text>
+              <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>{s.shareCard.copyTextButton}</Text>
             </Pressable>
 
             <Pressable onPress={() => router.back()}>
-              <Text style={[styles.closeText, { color: colors.muted }]}>Đóng</Text>
+              <Text style={[styles.closeText, { color: colors.muted }]}>{s.shareCard.close}</Text>
             </Pressable>
           </View>
         </ScrollView>

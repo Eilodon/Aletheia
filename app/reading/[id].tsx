@@ -9,20 +9,13 @@ import { ScreenContainer } from "@/components/screen-container";
 import { SkeletonCard } from "@/components/skeleton";
 import { showToast } from "@/components/toast";
 import { useColors } from "@/hooks/use-colors";
+import { useStrings } from "@/lib/i18n";
 import { useReading } from "@/lib/context/reading-context";
 import { coreStore } from "@/lib/services/core-store";
 import { shouldUseAletheiaNative } from "@/lib/native/runtime";
 import type { MoodTag, Reading } from "@/lib/types";
 import { screen, trackArchiveEvent, trackGiftEvent, trackShareEvent } from "@/lib/analytics";
 
-const MOOD_LABELS: Record<MoodTag, string> = {
-  anxious: "Lo âu",
-  confused: "Mơ hồ",
-  curious: "Tò mò",
-  grateful: "Biết ơn",
-  grief: "Mất mát",
-  hopeful: "Hy vọng",
-};
 
 const MOOD_EMOJIS: Record<MoodTag, string> = {
   anxious: "😰",
@@ -36,6 +29,7 @@ const MOOD_EMOJIS: Record<MoodTag, string> = {
 export default function ReadingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
+  const s = useStrings();
   const router = useRouter();
   const { startReading } = useReading();
   const [reading, setReading] = useState<Reading | null>(null);
@@ -108,10 +102,10 @@ export default function ReadingDetailScreen() {
         reading_id: reading.id,
         next_value: !reading.is_favorite,
       });
-      showToast("success", reading.is_favorite ? "Đã bỏ khỏi mục yêu thích" : "Đã thêm vào mục yêu thích");
+      showToast("success", reading.is_favorite ? s.readingDetail.favoriteRemoved : s.readingDetail.favoriteAdded);
     } catch (error) {
       console.error("Failed to update favorite:", error);
-      showToast("error", error instanceof Error ? error.message : "Không thể cập nhật yêu thích");
+      showToast("error", error instanceof Error ? error.message : s.readingDetail.favoriteError);
     } finally {
       setIsSavingFavorite(false);
     }
@@ -123,21 +117,21 @@ export default function ReadingDetailScreen() {
     setIsSharing(true);
 
     try {
-      const quote = passageText ?? reading.situation_text ?? "Một lần phản chiếu từ Aletheia";
+      const quote = passageText ?? reading.situation_text ?? s.readingDetail.shareDefaultQuote;
       const reference = passageReference ?? sourceName ?? reading.source_id;
       await Share.share({
-        message: `“${quote}”\n\n— ${reference}\nBiểu tượng: ${reading.symbol_chosen}\n\nTừ Aletheia ✦`,
+        message: `”${quote}”\n\n— ${reference}\n${s.readingDetail.shareSymbolLabel} ${reading.symbol_chosen}\n\n${s.readingDetail.shareFrom}`,
       });
       await syncFlags({ shared: true });
-      trackShareEvent("shared", {
-        mode: "archive_detail",
+      trackShareEvent(“shared”, {
+        mode: “archive_detail”,
         reading_id: reading.id,
         source_id: reading.source_id,
       });
-      showToast("success", "Đã mở chia sẻ");
+      showToast(“success”, s.readingDetail.shareOpened);
     } catch (error) {
-      console.error("Failed to share reading:", error);
-      showToast("error", "Không thể chia sẻ lần đọc này");
+      console.error(“Failed to share reading:”, error);
+      showToast(“error”, s.readingDetail.shareError);
     } finally {
       setIsSharing(false);
     }
@@ -343,7 +337,7 @@ export default function ReadingDetailScreen() {
             <View style={[styles.infoCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "22" }]}>
               <Text style={[styles.sectionLabel, { color: colors.primary }]}>Cảm xúc ghi nhận</Text>
               <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
-                {MOOD_EMOJIS[reading.mood_tag]} {MOOD_LABELS[reading.mood_tag]}
+                {MOOD_EMOJIS[reading.mood_tag]} {s.readingDetail.moodLabels[reading.mood_tag] ?? reading.mood_tag}
               </Text>
               <Text style={[styles.infoHint, { color: colors.muted }]}>#{reading.mood_tag}</Text>
             </View>

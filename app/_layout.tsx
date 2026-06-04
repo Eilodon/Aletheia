@@ -36,7 +36,7 @@ import { initSentry } from "@/lib/sentry";
 import { assertStartupConfig } from "@/hooks/use-startup-guard";
 import { flushAnalytics, identify, initAnalytics, track } from "@/lib/analytics";
 import { initializePurchases } from "@/lib/services/purchases";
-import { setLocale } from "@/lib/i18n";
+import { setLocale, getStrings } from "@/lib/i18n";
 import { initializeNotificationHandler } from "@/lib/services/notification-service";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -133,6 +133,7 @@ function AppChrome({
 }
 
 export default function RootLayout() {
+  const s = getStrings();
   const isIosHold = Platform.OS === "ios";
   const initialInsets = initialWindowMetrics?.insets ?? DEFAULT_WEB_INSETS;
   const initialFrame = initialWindowMetrics?.frame ?? DEFAULT_WEB_FRAME;
@@ -140,7 +141,7 @@ export default function RootLayout() {
   const [insets, setInsets] = useState<EdgeInsets>(initialInsets);
   const [frame, setFrame] = useState<Rect>(initialFrame);
   const [isOnboardingComplete, setIsOnboardingComplete] = useState<boolean | null>(null);
-  const [bootstrapDetail, setBootstrapDetail] = useState("Đang dựng nhịp khởi tạo cốt lõi.");
+  const [bootstrapDetail, setBootstrapDetail] = useState(() => getStrings().bootstrap.generic);
   const [bootstrapError, setBootstrapError] = useState<string | null>(null);
   const [bootstrapAttempt, setBootstrapAttempt] = useState(0);
   const [fontsLoaded] = useFonts({
@@ -178,13 +179,13 @@ export default function RootLayout() {
       try {
         setBootstrapError(null);
         setIsOnboardingComplete(null);
-        setBootstrapDetail("Đang khởi tạo kho cục bộ và runtime cốt lõi.");
+        setBootstrapDetail(getStrings().bootstrap.initCore);
         initializePurchases(); // non-blocking, no-op when not configured
         initializeNotificationHandler();
         await Promise.all([dbInit.initialize(), initAnalytics()]);
 
         const afterDbInitMs = Date.now() - bootstrapStart;
-        setBootstrapDetail("Đang nạp hồ sơ người dùng và gate onboarding.");
+        setBootstrapDetail(getStrings().bootstrap.loadProfile);
 
         const userId = await getCurrentUserId();
         let userState = await coreStore.getUserState(userId);
@@ -245,7 +246,7 @@ export default function RootLayout() {
         });
         if (!cancelled) {
           setBootstrapError(reason);
-          setBootstrapDetail("Không thể hoàn tất khởi tạo cục bộ.");
+          setBootstrapDetail(s.bootstrap.failErrorFallback);
         }
       }
     };
@@ -312,13 +313,13 @@ export default function RootLayout() {
       <ThemeProvider>
         <SafeAreaProvider initialMetrics={providerInitialMetrics}>
           <RootGate
-            title="Khởi tạo cục bộ thất bại"
-            body="Android beta này cần Rust core sẵn sàng trước khi bạn có thể tiếp tục."
+            title={s.bootstrap.failTitle}
+            body={s.bootstrap.failBody}
             detail={bootstrapError}
-            actionLabel="Thử lại"
+            actionLabel={s.bootstrap.retryLabel}
             onAction={() => {
               setBootstrapError(null);
-              setBootstrapDetail("Đang thử khởi tạo lại runtime cốt lõi.");
+              setBootstrapDetail(s.bootstrap.failRetryDetail);
               setBootstrapAttempt((attempt) => attempt + 1);
             }}
           />
@@ -333,8 +334,8 @@ export default function RootLayout() {
       <ThemeProvider>
         <SafeAreaProvider initialMetrics={providerInitialMetrics}>
           <RootGate
-            title="Đang mở Aletheia"
-            body="Hệ thống đang đồng bộ safe area, trạng thái người dùng và nhịp khởi tạo cục bộ."
+            title={s.bootstrap.openingTitle}
+            body={s.bootstrap.openingBody}
             detail={bootstrapDetail}
           />
         </SafeAreaProvider>
@@ -362,9 +363,9 @@ export default function RootLayout() {
       <ThemeProvider>
         <SafeAreaProvider initialMetrics={providerInitialMetrics}>
           <RootGate
-            title="iOS đang tạm hold"
-            body="Bản hiện tại chỉ hỗ trợ Android với Rust core là nguồn sự thật duy nhất, cùng web runtime riêng."
-            detail="Khi iOS path sẵn sàng trở lại, shell này có thể được tháo bỏ."
+            title={s.bootstrap.iOSHoldTitle}
+            body={s.bootstrap.iOSHoldBody}
+            detail={s.bootstrap.iOSHoldDetail}
           />
         </SafeAreaProvider>
       </ThemeProvider>

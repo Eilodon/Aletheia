@@ -14,6 +14,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { haptic } from '@/lib/utils/haptics';
 import { RitualOrnament } from './ritual-ornament';
 import { useColors } from '@/hooks/use-colors';
+import { useStrings } from '@/lib/i18n';
 import { Fonts } from '@/constants/theme';
 import { DURATION } from '@/lib/constants/animation';
 
@@ -25,6 +26,7 @@ interface Props {
 
 export function GatewayReveal({ onComplete }: Props) {
   const colors = useColors();
+  const s = useStrings();
 
   // Animation values
   const bgOpacity      = useRef(new Animated.Value(0)).current;
@@ -143,7 +145,7 @@ export function GatewayReveal({ onComplete }: Props) {
             styles.tagline,
             { color: colors.muted, fontFamily: Fonts?.bodyItalic, opacity: taglineOpacity }
           ]}>
-            Không phải tiên tri. Một chiếc gương.
+            {s.gateway.tagline}
           </Animated.Text>
         </Animated.View>
       </Animated.View>

@@ -8,12 +8,14 @@ import { RitualOrnament } from "@/components/ritual-ornament";
 import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
 import { useLayout } from "@/hooks/use-layout";
+import { useStrings } from "@/lib/i18n";
 import { Fonts } from "@/constants/theme";
 
 export default function RitualScreen() {
   const { passage, selectedSymbol } = useReading();
   const router = useRouter();
   const colors = useColors();
+  const s = useStrings();
   const { ornamentScale, typeScale } = useLayout();
   const shellSize = Math.round(270 * ornamentScale);
   const outerSize = Math.round(shellSize * 0.874);
@@ -133,12 +135,12 @@ export default function RitualScreen() {
         </View>
 
         <View style={styles.textGroup}>
-          <Text style={[styles.kicker, { color: colors.primary }]}>{selectedSymbol?.display_name?.toUpperCase() || "NGHI THỨC"}</Text>
+          <Text style={[styles.kicker, { color: colors.primary }]}>{selectedSymbol?.display_name?.toUpperCase() || s.ritual.kickerFallback}</Text>
           <Text testID="reading-ritual-title" style={[styles.title, { fontSize: Math.round(30 * typeScale), color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
-            Đang mở passage
+            {s.ritual.title}
           </Text>
           <Text style={[styles.subtitle, { color: colors.muted }]}>
-            {passage?.reference || "Một đoạn trích đang tiến lại gần bạn."}
+            {passage?.reference || s.ritual.subtitleFallback}
           </Text>
         </View>
       </Animated.View>

@@ -65,6 +65,7 @@ export const vi = {
     ctaHint: "Viết vài dòng. Chọn một biểu tượng. Để một đoạn trích soi lại điều ấy.",
     passageLabel: "PASSAGE OF THE PRACTICE",
     passageRef: "Nghi thức mở đầu của Aletheia",
+    quote: "Đừng đi tìm câu trả lời hoàn hảo. Hãy đi tìm câu hỏi đang thật sự sống trong bạn.",
     pillarSummary: "Lưu trên máy • Không tài khoản • AI chỉ khi bạn mời",
     footerText: "Không cần nhanh. Chỉ cần thành thật.",
   },
@@ -239,6 +240,76 @@ export const vi = {
     
     syncSectionTitle: "Tùy chọn đồng bộ",
     syncNoAccountInfo: "AletheiA hoạt động đầy đủ không cần tài khoản. Đăng nhập chỉ dùng nếu bạn muốn đồng bộ giữa các thiết bị.",
+  },
+
+  bootstrap: {
+    initCore: "Đang khởi tạo kho cục bộ và runtime cốt lõi.",
+    loadProfile: "Đang nạp hồ sơ người dùng và gate onboarding.",
+    generic: "Đang dựng nhịp khởi tạo cốt lõi.",
+    openingTitle: "Đang mở Aletheia",
+    openingBody: "Hệ thống đang đồng bộ safe area, trạng thái người dùng và nhịp khởi tạo cục bộ.",
+    failTitle: "Khởi tạo cục bộ thất bại",
+    failBody: "Android beta này cần Rust core sẵn sàng trước khi bạn có thể tiếp tục.",
+    failRetryDetail: "Đang thử khởi tạo lại runtime cốt lõi.",
+    failErrorFallback: "Không thể hoàn tất khởi tạo cục bộ.",
+    retryLabel: "Thử lại",
+    iOSHoldTitle: "iOS đang tạm hold",
+    iOSHoldBody: "Bản hiện tại chỉ hỗ trợ Android với Rust core là nguồn sự thật duy nhất, cùng web runtime riêng.",
+    iOSHoldDetail: "Khi iOS path sẵn sàng trở lại, shell này có thể được tháo bỏ.",
+  },
+
+  gateway: {
+    tagline: "Không phải tiên tri. Một chiếc gương.",
+  },
+
+  ritual: {
+    kickerFallback: "NGHI THỨC",
+    title: "Đang mở passage",
+    subtitleFallback: "Một đoạn trích đang tiến lại gần bạn.",
+  },
+
+  aiStreaming: {
+    titleStreaming: "Đang diễn giải",
+    titleOracle: "Diễn giải",
+    titleFallback: "Diễn giải nội tại",
+    symbolFallback: "Biểu tượng",
+    cancelButton: "Hủy diễn giải",
+    backToPassage: "Quay lại đoạn trích",
+  },
+
+  shareCard: {
+    title: "Chia sẻ lá bài",
+    noData: "Không có dữ liệu để chia sẻ",
+    back: "Quay lại",
+    themeDark: "Tối",
+    themeLight: "Sáng",
+    themeGold: "Vàng",
+    sharing: "Đang chuẩn bị...",
+    shareButton: "Chia sẻ",
+    copyTextButton: "Chỉ sao chép văn bản",
+    close: "Đóng",
+    shareAttribution: "Từ Aletheia, not a fortune. A mirror.",
+    shareAttributionShort: "Từ Aletheia ✦",
+    shareSymbolLabel: "Biểu tượng:",
+  },
+
+  readingDetail: {
+    moodLabels: {
+      anxious: "Lo âu",
+      confused: "Mơ hồ",
+      curious: "Tò mò",
+      grateful: "Biết ơn",
+      grief: "Mất mát",
+      hopeful: "Hy vọng",
+    } as Record<string, string>,
+    favoriteAdded: "Đã thêm vào mục yêu thích",
+    favoriteRemoved: "Đã bỏ khỏi mục yêu thích",
+    favoriteError: "Không thể cập nhật yêu thích",
+    shareOpened: "Đã mở chia sẻ",
+    shareDefaultQuote: "Một lần phản chiếu từ Aletheia",
+    shareSymbolLabel: "Biểu tượng:",
+    shareFrom: "Từ Aletheia ✦",
+    shareError: "Không thể chia sẻ lần đọc này",
   },
 
   auth: {

@@ -63,6 +63,7 @@ export const en: Strings = {
     ctaHint: "Write a few lines. Choose a symbol. Let a passage reflect it back.",
     passageLabel: "PASSAGE OF THE PRACTICE",
     passageRef: "Aletheia opening ritual",
+    quote: "Don't seek the perfect answer. Seek the question that is truly alive in you.",
     pillarSummary: "Stored locally • No account • Optional AI",
     footerText: "No need to hurry. Just be honest.",
   },
@@ -237,6 +238,76 @@ export const en: Strings = {
     
     syncSectionTitle: "Sync Options",
     syncNoAccountInfo: "AletheiA works completely offline without an account. Sign in only if you want to sync between devices.",
+  },
+
+  bootstrap: {
+    initCore: "Initialising local store and core runtime.",
+    loadProfile: "Loading user profile and onboarding gate.",
+    generic: "Setting up core rhythm.",
+    openingTitle: "Opening Aletheia",
+    openingBody: "Syncing safe area, user state, and local runtime rhythm.",
+    failTitle: "Local init failed",
+    failBody: "This Android beta requires Rust core to be ready before you can continue.",
+    failRetryDetail: "Retrying core runtime initialisation.",
+    failErrorFallback: "Could not complete local init.",
+    retryLabel: "Retry",
+    iOSHoldTitle: "iOS temporarily on hold",
+    iOSHoldBody: "Current build supports Android with Rust core as the sole source of truth, plus a separate web runtime.",
+    iOSHoldDetail: "When the iOS path is ready, this shell can be removed.",
+  },
+
+  gateway: {
+    tagline: "Not a fortune. A mirror.",
+  },
+
+  ritual: {
+    kickerFallback: "RITUAL",
+    title: "Opening passage",
+    subtitleFallback: "A passage is drawing near.",
+  },
+
+  aiStreaming: {
+    titleStreaming: "Interpreting",
+    titleOracle: "Interpretation",
+    titleFallback: "Inner interpretation",
+    symbolFallback: "Symbol",
+    cancelButton: "Cancel",
+    backToPassage: "Back to passage",
+  },
+
+  shareCard: {
+    title: "Share reading",
+    noData: "Nothing to share",
+    back: "Back",
+    themeDark: "Dark",
+    themeLight: "Light",
+    themeGold: "Gold",
+    sharing: "Preparing...",
+    shareButton: "Share",
+    copyTextButton: "Copy text only",
+    close: "Close",
+    shareAttribution: "From Aletheia, not a fortune. A mirror.",
+    shareAttributionShort: "From Aletheia ✦",
+    shareSymbolLabel: "Symbol:",
+  },
+
+  readingDetail: {
+    moodLabels: {
+      anxious: "Anxious",
+      confused: "Confused",
+      curious: "Curious",
+      grateful: "Grateful",
+      grief: "Grief",
+      hopeful: "Hopeful",
+    } as Record<string, string>,
+    favoriteAdded: "Saved to Kept",
+    favoriteRemoved: "Removed from Kept",
+    favoriteError: "Could not update",
+    shareOpened: "Share opened",
+    shareDefaultQuote: "A reflection from Aletheia",
+    shareSymbolLabel: "Symbol:",
+    shareFrom: "From Aletheia ✦",
+    shareError: "Could not share this reading",
   },
 
   auth: {
