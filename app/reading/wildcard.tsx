@@ -7,11 +7,13 @@ import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
 import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
+import { useLayout } from "@/hooks/use-layout";
 import { SymbolMethod } from "@/lib/types";
 import { secureRandomIndex } from "@/lib/utils/random";
 import { Fonts } from "@/constants/theme";
 import { showToast } from "@/components/toast";
-import { useStrings } from "@/lib/i18n";
+import { useStrings, getLocale } from "@/lib/i18n";
+import { getLocalizedSymbol, getLocalizedThemeName } from "@/lib/i18n/symbol-names";
 import { getSymbolAsset } from "@/assets/symbols";
 
 function SymbolCard({
@@ -116,6 +118,8 @@ export default function WildcardScreen() {
   const router = useRouter();
   const colors = useColors();
   const s = useStrings();
+  const { ornamentScale } = useLayout();
+  const deckHaloSize = Math.round(320 * ornamentScale);
   const [isRevealed, setIsRevealed] = useState(false);
   const [isAutoSelecting, setIsAutoSelecting] = useState(false);
 
@@ -172,7 +176,7 @@ export default function WildcardScreen() {
   return (
     <ScreenContainer className="px-5 pb-6">
       <View style={styles.screen}>
-        <View style={[styles.deckHalo, { backgroundColor: colors.primary + "0D" }]} />
+        <View style={[styles.deckHalo, { width: deckHaloSize, height: deckHaloSize, borderRadius: deckHaloSize / 2, backgroundColor: colors.primary + "0D" }]} />
 
         <View style={styles.header}>
           <RitualOrnament variant="line" />
@@ -180,22 +184,25 @@ export default function WildcardScreen() {
             {s.wildcard.title}
           </Text>
           <Text style={[styles.headerMeta, { color: colors.muted }]}>
-            {session.theme.name} • {session.symbols.length} {s.wildcard.metaSuffix}
+            {getLocalizedThemeName(session.theme.id, session.theme.name, getLocale())} • {session.symbols.length} {s.wildcard.metaSuffix}
           </Text>
           <Text style={[styles.headerHint, { color: colors.primary }]}>{s.wildcard.hint}</Text>
         </View>
 
         <View style={styles.cardsRow}>
-          {session.symbols.map((symbol, index) => (
-            <SymbolCard
-              key={symbol.id}
-              symbol={symbol}
-              index={index}
-              isRevealed={isRevealed}
-              isSelected={selectedSymbolId === symbol.id}
-              onSelect={() => handleSelect(symbol.id)}
-            />
-          ))}
+          {session.symbols.map((symbol, index) => {
+            const localizedSymbol = getLocalizedSymbol(symbol, getLocale());
+            return (
+              <SymbolCard
+                key={symbol.id}
+                symbol={localizedSymbol}
+                index={index}
+                isRevealed={isRevealed}
+                isSelected={selectedSymbolId === symbol.id}
+                onSelect={() => handleSelect(symbol.id)}
+              />
+            );
+          })}
         </View>
 
         <View style={styles.footer}>
@@ -227,7 +234,7 @@ export default function WildcardScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, paddingTop: 18, position: "relative" },
-  deckHalo: { position: "absolute", width: 320, height: 320, borderRadius: 160, alignSelf: "center", top: 88 },
+  deckHalo: { position: "absolute", alignSelf: "center", top: 88 },
   header: { alignItems: "center", gap: 10, paddingBottom: 28 },
   headerTitle: { fontSize: 30, textAlign: "center" },
   headerMeta: { fontSize: 13, textAlign: "center", fontFamily: Fonts.bodyItalic },

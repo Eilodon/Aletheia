@@ -7,11 +7,14 @@ import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
 import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
+import { useLayout } from "@/hooks/use-layout";
 import { Fonts } from "@/constants/theme";
 
 export default function AIStreamingScreen() {
   const { selectedSymbol, aiResponse, isAIFallback, cancelAIInterpretation } = useReading();
   const colors = useColors();
+  const { ornamentScale } = useLayout();
+  const waitHaloSize = Math.round(180 * ornamentScale);
   const router = useRouter();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(0.4)).current;
@@ -86,7 +89,7 @@ export default function AIStreamingScreen() {
     <ScreenContainer className="px-6 pb-6">
       <Animated.View style={{ opacity: fadeAnim }} className="flex-1 justify-between">
         <View style={styles.header}>
-          <View style={[styles.waitHalo, { backgroundColor: colors.primary + "12" }]} />
+          <View style={[styles.waitHalo, { width: waitHaloSize, height: waitHaloSize, borderRadius: waitHaloSize / 2, backgroundColor: colors.primary + "12" }]} />
           <RitualOrnament variant="sigil" />
           <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>Đang diễn giải</Text>
           <Text style={[styles.subtitle, { color: colors.muted }]}>{selectedSymbol?.display_name}</Text>
@@ -119,9 +122,6 @@ const styles = StyleSheet.create({
   },
   waitHalo: {
     position: "absolute",
-    width: 180,
-    height: 180,
-    borderRadius: 90,
     top: -10,
   },
   title: {

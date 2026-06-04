@@ -7,6 +7,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
 import { OnboardingPassagePreview } from "@/components/onboarding-passage-preview";
 import { useColors } from "@/hooks/use-colors";
+import { useLayout } from "@/hooks/use-layout";
 import { coreStore } from "@/lib/services/core-store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
 import { SubscriptionTier, UserIntent } from "@/lib/types";
@@ -20,6 +21,9 @@ export default function OnboardingScreen() {
   const colors = useColors();
   const router = useRouter();
   const s = useStrings();
+  const { ornamentScale, contentMaxWidth } = useLayout();
+  const heroHaloSize = Math.round(240 * ornamentScale);
+  const bodyMaxWidth = Math.min(320, contentMaxWidth * 0.82);
   const [step, setStep] = useState(0);
   const [selectedIntent, setSelectedIntent] = useState<UserIntent | null>(null);
   const [isCompleting, setIsCompleting] = useState(false);
@@ -121,9 +125,9 @@ export default function OnboardingScreen() {
           <View style={styles.main}>
             {currentStep === "welcome" ? (
               <>
-                <View style={[styles.heroHalo, { backgroundColor: colors.primary + "10" }]} />
+                <View style={[styles.heroHalo, { width: heroHaloSize, height: heroHaloSize, borderRadius: heroHaloSize / 2, backgroundColor: colors.primary + "10" }]} />
                 <RitualOrnament variant="eye" size="lg" />
-                <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.displayStrong }]}>
+                <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.brand }]}>
                   {s.onboarding.welcome.title}
                 </Text>
                 <Text style={[styles.kicker, { color: colors.primary }]}>
@@ -132,7 +136,7 @@ export default function OnboardingScreen() {
                 <Text style={[styles.tagline, { color: colors.foreground }]}>
                   {s.onboarding.welcome.tagline}
                 </Text>
-                <Text style={[styles.body, { color: colors.muted }]}>
+                <Text style={[styles.body, { maxWidth: bodyMaxWidth, color: colors.muted }]}>
                   {s.onboarding.welcome.body}
                 </Text>
               </>
@@ -144,7 +148,7 @@ export default function OnboardingScreen() {
                 <Text style={[styles.sectionTitle, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
                   {s.onboarding.intent.title}
                 </Text>
-                <Text style={[styles.body, { color: colors.muted }]}>
+                <Text style={[styles.body, { maxWidth: bodyMaxWidth, color: colors.muted }]}>
                   {s.onboarding.intent.body}
                 </Text>
                 <View style={styles.intentGrid}>
@@ -246,13 +250,13 @@ const styles = StyleSheet.create({
   progressPill: { height: 8, borderRadius: 999 },
   skip: { fontSize: 11, textTransform: "uppercase", letterSpacing: 2 },
   main: { flex: 1, justifyContent: "center", alignItems: "center", gap: 16, position: "relative" },
-  heroHalo: { position: "absolute", width: 240, height: 240, borderRadius: 120, top: -24 },
+  heroHalo: { position: "absolute", top: -24 },
   title: { fontSize: 40, letterSpacing: 8 },
   kicker: { fontSize: 10, letterSpacing: 3.2, textTransform: "uppercase" },
   tagline: { fontSize: 13, letterSpacing: 3.2, textTransform: "uppercase", textAlign: "center" },
   sectionTitle: { fontSize: 28, lineHeight: 34, textAlign: "center" },
   previewLabel: { fontSize: 11, letterSpacing: 2.2, textTransform: "uppercase", textAlign: "center", fontFamily: Fonts.bodyItalic },
-  body: { maxWidth: 320, textAlign: "center", fontSize: 15, lineHeight: 24, fontFamily: Fonts.bodyItalic },
+  body: { textAlign: "center", fontSize: 15, lineHeight: 24, fontFamily: Fonts.bodyItalic },
   intentGrid: { width: "100%", gap: 12, marginTop: 8 },
   intentCard: { borderRadius: 24, borderWidth: 1, paddingHorizontal: 18, paddingVertical: 18, gap: 8 },
   intentIcon: { fontSize: 22 },

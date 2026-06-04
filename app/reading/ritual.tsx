@@ -7,12 +7,19 @@ import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
 import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
+import { useLayout } from "@/hooks/use-layout";
 import { Fonts } from "@/constants/theme";
 
 export default function RitualScreen() {
   const { passage, selectedSymbol } = useReading();
   const router = useRouter();
   const colors = useColors();
+  const { ornamentScale } = useLayout();
+  const shellSize = Math.round(270 * ornamentScale);
+  const outerSize = Math.round(shellSize * 0.874);
+  const middleSize = Math.round(shellSize * 0.689);
+  const innerSize = Math.round(shellSize * 0.548);
+  const coreSize = Math.round(shellSize * 0.459);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.88)).current;
   const pulseAnim = useRef(new Animated.Value(0.96)).current;
@@ -86,11 +93,13 @@ export default function RitualScreen() {
           transform: [{ scale: scaleAnim }],
         }}
       >
-        <View style={styles.shell}>
+        <View style={[styles.shell, { width: shellSize, height: shellSize }]}>
           <Animated.View
             style={[
               styles.outerHalo,
               {
+                width: outerSize,
+                height: outerSize,
                 borderColor: colors.primary + "24",
                 transform: [{ scale: pulseAnim }, { rotate: slowRotate }],
               },
@@ -100,6 +109,8 @@ export default function RitualScreen() {
             style={[
               styles.middleHalo,
               {
+                width: middleSize,
+                height: middleSize,
                 borderColor: colors.border + "95",
                 transform: [{ scale: pulseAnim }, { rotate: reverseRotate }],
               },
@@ -109,12 +120,14 @@ export default function RitualScreen() {
             style={[
               styles.innerHalo,
               {
+                width: innerSize,
+                height: innerSize,
                 borderColor: colors.primary + "18",
                 transform: [{ rotate: slowRotate }],
               },
             ]}
           />
-          <View style={[styles.coreHalo, { backgroundColor: colors.primary + "14", borderColor: colors.primary + "66" }]}>
+          <View style={[styles.coreHalo, { width: coreSize, height: coreSize, backgroundColor: colors.primary + "14", borderColor: colors.primary + "66" }]}>
             <RitualOrnament variant="sigil" />
           </View>
         </View>
@@ -135,36 +148,26 @@ export default function RitualScreen() {
 
 const styles = StyleSheet.create({
   shell: {
-    width: 270,
-    height: 270,
     alignItems: "center",
     justifyContent: "center",
   },
   outerHalo: {
     position: "absolute",
-    width: 236,
-    height: 236,
     borderRadius: 999,
     borderWidth: 1,
     borderStyle: "dashed",
   },
   middleHalo: {
     position: "absolute",
-    width: 186,
-    height: 186,
     borderRadius: 999,
     borderWidth: 1,
   },
   innerHalo: {
     position: "absolute",
-    width: 148,
-    height: 148,
     borderRadius: 999,
     borderWidth: 1,
   },
   coreHalo: {
-    width: 124,
-    height: 124,
     borderRadius: 999,
     borderWidth: 1,
     alignItems: "center",
