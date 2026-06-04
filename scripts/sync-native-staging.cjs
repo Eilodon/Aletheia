@@ -2,10 +2,17 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { syncNativeStaging } = require("../modules/aletheia-core-module/plugin");
+const { syncNativeStaging, checkNativeFreshness } = require("../modules/aletheia-core-module/plugin");
 
-const platform = process.argv[2] || "android";
+const args = process.argv.slice(2);
+const platform = args.find((a) => !a.startsWith("--")) || "android";
+const checkOnly = args.includes("--check");
 const projectRoot = path.resolve(__dirname, "..");
+
+if (checkOnly) {
+  checkNativeFreshness(projectRoot);
+  process.exit(0);
+}
 
 if (platform === "android") {
   const legacyAppJniLibs = path.join(projectRoot, "android", "app", "src", "main", "jniLibs");

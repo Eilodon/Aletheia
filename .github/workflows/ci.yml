@@ -183,6 +183,16 @@ jobs:
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+
+      - name: Assert committed UniFFI bindings are not stale vs UDL
+        run: |
+          if [ "core/src/aletheia.udl" -nt "generated/uniffi/kotlin/uniffi/aletheia/aletheia.kt" ]; then
+            echo "::error file=core/src/aletheia.udl::aletheia.udl is newer than committed bindings"
+            echo "Fix: pnpm uniffi:generate && git add generated/ && git commit"
+            exit 1
+          fi
+          echo "✅ Committed UniFFI bindings are up to date with UDL"
+
       - name: Validate CI environment (ADR-AL-56)
         env:
           EXPO_PUBLIC_EAS_PROJECT_ID: ci-eas-project

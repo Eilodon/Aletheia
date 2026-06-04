@@ -29,6 +29,7 @@
     "rust:android": "bash scripts/build-rust-android.sh",
     "rust:ios": "bash scripts/build-rust-ios.sh",
     "rust:mobile": "bash scripts/build-rust-mobile.sh",
+    "preandroid": "node scripts/sync-native-staging.cjs android --check",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "qr": "node scripts/generate_qr.mjs"

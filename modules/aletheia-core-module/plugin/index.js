@@ -172,6 +172,43 @@ function withAletheiaCoreModule(config) {
   return config;
 }
 
+/**
+ * Check that .native-staging is not stale relative to generated bindings.
+ * Throws if generated/uniffi/kotlin was modified after the last sync.
+ * Safe to call on CI (skips gracefully if no manifest or no generated files yet).
+ */
+function checkNativeFreshness(projectRoot) {
+  const moduleRoot = path.join(projectRoot, "modules", "aletheia-core-module");
+  const manifestPath = path.join(moduleRoot, ".native-staging", "manifest.json");
+  const generatedKt = path.join(
+    projectRoot, "generated", "uniffi", "kotlin", "uniffi", "aletheia", "aletheia.kt"
+  );
+
+  if (!fs.existsSync(generatedKt)) {
+    return; // Clean checkout without generated artifacts — skip
+  }
+  if (!fs.existsSync(manifestPath)) {
+    throw new Error(
+      "[native:check] .native-staging/manifest.json not found.\n" +
+      "Run: pnpm native:sync"
+    );
+  }
+
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  const lastSync = new Date(manifest.generatedAt);
+  const generatedMtime = fs.statSync(generatedKt).mtime;
+
+  if (generatedMtime > lastSync) {
+    throw new Error(
+      `[native:check] UniFFI bindings were regenerated ${generatedMtime.toISOString()} ` +
+      `but staging was last synced ${lastSync.toISOString()}.\n` +
+      `Run: pnpm native:sync`
+    );
+  }
+
+  console.log(`[native:check] ✅ Native staging is up to date (synced ${lastSync.toISOString()})`);
+}
+
 module.exports = createRunOncePlugin(
   withAletheiaCoreModule,
   PLUGIN_NAME,
@@ -179,3 +216,4 @@ module.exports = createRunOncePlugin(
 );
 module.exports.default = module.exports;
 module.exports.syncNativeStaging = syncNativeStaging;
+module.exports.checkNativeFreshness = checkNativeFreshness;
