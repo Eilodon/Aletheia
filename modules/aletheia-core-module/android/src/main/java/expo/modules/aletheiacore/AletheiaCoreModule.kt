@@ -143,6 +143,14 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
     modelDownloadManager = ModelDownloadManager(context)
   }
 
+  /// Release MediaPipe resources — called from OnDestroy
+  fun shutdownLocalInference() {
+    localInferenceEngine?.shutdown()
+    localInferenceEngine = null
+    modelDownloadManager = null
+    moduleScope.cancel()
+  }
+
   override fun setApiKey(provider: String, key: String): Map<String, Any?> =
     safeCall { serializeSetApiKeyResponse(requireCore().setAiApiKey(provider, key)) }
 
@@ -404,8 +412,14 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
     // Build prompt from passage, symbol, situation
     val prompt = buildLocalInferencePrompt(passage, symbol, situationText, userIntent)
     
-    // Launch inference in background
+    // Launch inference in background — initialize engine first (idempotent)
     moduleScope.launch(kotlinx.coroutines.Dispatchers.Default) {
+      val initResult = engine.initialize()
+      if (initResult.isFailure) {
+        Log.e("AletheiaCore", "Engine init failed: ${initResult.exceptionOrNull()?.message}")
+        session.done = true
+        return@launch
+      }
       try {
         engine.runInference(prompt, session.cancelToken)
           .collect { chunk ->
@@ -1142,6 +1156,10 @@ class AletheiaCoreModule : Module() {
       if (context != null) {
         adapter.initializeLocalInference(context)
       }
+    }
+
+    OnDestroy {
+      adapter.shutdownLocalInference()
     }
 
     AsyncFunction("init") { options: Map<String, String> ->

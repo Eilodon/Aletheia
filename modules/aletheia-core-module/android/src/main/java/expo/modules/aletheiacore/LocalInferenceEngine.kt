@@ -200,13 +200,7 @@ class LocalInferenceEngine(private val context: Context) {
             }
         } catch (e: Exception) {
             Log.e(TAG, "Inference error", e)
-            // Fallback to simulated response on error
-            val fallback = generateSimulatedResponse(prompt)
-            for (char in fallback) {
-                if (cancelToken.get()) break
-                emit(char.toString())
-                delay(25)
-            }
+            throw e  // propagate — orchestrator handles fallback to cloud
         } finally {
             currentSession = null
         }
@@ -232,27 +226,6 @@ class LocalInferenceEngine(private val context: Context) {
         isInitialized = false
     }
     
-    /// Generate simulated response for testing
-    private fun generateSimulatedResponse(prompt: String): String {
-        // Extract key elements from prompt for context-aware simulation
-        val hasSituation = prompt.contains("Tình hu")
-        val hasSymbol = prompt.contains("Bi u t ng")
-        
-        // Return a realistic Vietnamese interpretation
-        return buildString {
-            append("N i t ng này xu t hi n không ph i ng u nhiên. ")
-            append("Khi b n nhìn vào l i nói này, có i u gì ang rung ng trong b n. ")
-            
-            if (hasSituation) {
-                append("Tình hu ng b n chia s mang m t s t i n, m t l i nh c nh . ")
-            }
-            
-            append("Có th b n ang c n nghe i u gì ó, ho c ch c n ng i v i nó thêm m t chút. ")
-            append("i u quan tr ng không ph i là tìm câu tr l i, mà là òi câu h i úng.\n\n")
-            append("*i u gì s x y ra n u b n cho phép mình ch ng i v i suy ngh này thêm m t lát?*")
-        }
-    }
-    
     /// Inference session state
     private data class InferenceSession(
         val prompt: String,
@@ -273,8 +246,8 @@ class ModelDownloadManager(private val context: Context) {
     
     private val client = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(60, TimeUnit.SECONDS)
+        .readTimeout(0, TimeUnit.SECONDS)   // no read timeout — model is 529MB
+        .writeTimeout(0, TimeUnit.SECONDS)
         .build()
     
     /// Check if model is bundled in assets
@@ -354,29 +327,6 @@ class ModelDownloadManager(private val context: Context) {
                 Log.i(TAG, "Bundled model found in assets, extracting...")
                 progressCallback(0)
                 
-                context.assets.open("models/$MODEL_FILENAME").use { input ->
-                    modelFile.sink().buffer().use { output ->
-                        val buffer = okio.Buffer()
-                        val totalSize = input.available().toLong()
-                        var totalRead = 0L
-                        
-                        while (true) {
-                            if (cancelToken.get()) {
-                                Log.i(TAG, "Extraction cancelled")
-                                modelFile.delete()
-                                return@withContext Result.failure(Exception("Extraction cancelled"))
-                            }
-                            
-                            val buffer2 = ByteArray(8192)
-                        val read = input.read(buffer2)
-                            if (read == -1) break
-                            
-                            // This is a simplified extraction - actual implementation would stream
-                        }
-                    }
-                }
-                
-                // Simpler approach: copy entire asset
                 context.assets.open("models/$MODEL_FILENAME").use { input ->
                     modelFile.outputStream().use { output ->
                         input.copyTo(output)
