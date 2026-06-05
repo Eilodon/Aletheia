@@ -142,35 +142,51 @@ impl LocalInferenceEngine {
     }
 
     /// Build a prompt for interpretation using the same logic as cloud AI.
+    /// `user_locale` is the user's preferred UI language ("vi" or "en") — the AI
+    /// responds in this locale regardless of the passage's source language.
     pub fn build_interpretation_prompt(
         &self,
         passage: &Passage,
         symbol: &Symbol,
         situation_text: Option<&str>,
         user_intent: Option<&str>,
-        language: &str,
+        user_locale: &str,
     ) -> String {
         let mut parts = Vec::new();
+        let is_en = user_locale == "en";
 
-        // Language instruction
-        parts.push(format!(
-            "Hãy trả lời hoàn toàn bằng ngôn ngữ của đoạn trích này: {}.",
-            language
-        ));
-
-        parts.push(
-            "Chỉ trả về đúng 2 phần: một đoạn phản chiếu ngắn và một câu hỏi mở ở dòng cuối."
-                .to_string(),
-        );
+        if is_en {
+            parts.push("Respond entirely in English.".to_string());
+            parts.push(
+                "Return exactly 2 parts: a short reflection paragraph and an open question on the last line."
+                    .to_string(),
+            );
+        } else {
+            parts.push("Hãy trả lời hoàn toàn bằng tiếng Việt.".to_string());
+            parts.push(
+                "Chỉ trả về đúng 2 phần: một đoạn phản chiếu ngắn và một câu hỏi mở ở dòng cuối."
+                    .to_string(),
+            );
+        }
 
         // Intent-based tone instruction (canonical — must match server interpretationService.ts)
         if let Some(intent) = user_intent {
-            let intent_instruction = match intent {
-                "clarity" => "Tone cho lần đọc này: rõ ràng, gọn, chính xác. User cần thấy pattern trong tình huống.",
-                "comfort" => "Tone cho lần đọc này: ấm áp, nhẹ, giàu compassion nhưng không lên lớp.",
-                "challenge" => "Tone cho lần đọc này: trực tiếp, tỉnh táo, không né điều khó.",
-                "guidance" => "Tone cho lần đọc này: mở, không định hướng, giữ không gian để người đọc tự nghe mình.",
-                _ => "",
+            let intent_instruction = if is_en {
+                match intent {
+                    "clarity"   => "Tone for this reading: clear, concise, precise. Help the reader see the pattern in their situation.",
+                    "comfort"   => "Tone for this reading: warm, gentle, full of compassion — but not preachy.",
+                    "challenge" => "Tone for this reading: direct, clear-eyed, not avoiding the difficult.",
+                    "guidance"  => "Tone for this reading: open, non-directive — hold space for the reader to listen to themselves.",
+                    _ => "",
+                }
+            } else {
+                match intent {
+                    "clarity"   => "Tone cho lần đọc này: rõ ràng, gọn, chính xác. User cần thấy pattern trong tình huống.",
+                    "comfort"   => "Tone cho lần đọc này: ấm áp, nhẹ, giàu compassion nhưng không lên lớp.",
+                    "challenge" => "Tone cho lần đọc này: trực tiếp, tỉnh táo, không né điều khó.",
+                    "guidance"  => "Tone cho lần đọc này: mở, không định hướng, giữ không gian để người đọc tự nghe mình.",
+                    _ => "",
+                }
             };
             if !intent_instruction.is_empty() {
                 parts.push(intent_instruction.to_string());
@@ -179,11 +195,19 @@ impl LocalInferenceEngine {
 
         // Situation text
         if let Some(situation) = situation_text {
-            parts.push(format!("Tình huống: {}", situation));
-            parts.push(
-                "Mirror lại ngôn ngữ của người dùng khi phản chiếu, nhưng đừng lặp lại một cách máy móc."
-                    .to_string(),
-            );
+            if is_en {
+                parts.push(format!("Situation: {}", situation));
+                parts.push(
+                    "Mirror the reader's own language in the reflection, but don't echo it mechanically."
+                        .to_string(),
+                );
+            } else {
+                parts.push(format!("Tình huống: {}", situation));
+                parts.push(
+                    "Mirror lại ngôn ngữ của người dùng khi phản chiếu, nhưng đừng lặp lại một cách máy móc."
+                        .to_string(),
+                );
+            }
         }
 
         // Symbol and passage

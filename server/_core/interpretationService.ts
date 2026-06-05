@@ -100,6 +100,8 @@ export const interpretationRequestSchema = z.object({
   sourceLanguage: z.string().max(16).optional(),
   sourceFallbackPrompts: z.array(z.string().max(500)).max(20).optional(),
   userIntent: z.enum(["clarity", "comfort", "challenge", "guidance"]).optional(),
+  /** User's preferred UI language — AI responds in this locale, not the passage source language */
+  userLocale: z.enum(["vi", "en"]).optional(),
   mode: z.enum(["auto", "quality"]).optional(),
 });
 
@@ -200,29 +202,43 @@ function buildPrompt(request: InterpretationRequest): string {
     request.resonanceContext ?? request.passage.resonance_context,
   );
 
-  const parts: string[] = [
-    `Hãy trả lời hoàn toàn bằng ngôn ngữ của đoạn trích này: ${request.sourceLanguage || "vi"}.`,
-    "Chỉ trả về đúng 2 phần: một đoạn phản chiếu ngắn và một câu hỏi mở ở dòng cuối.",
-  ];
+  // Respond in the user's preferred UI language, not the source passage language.
+  const isEn = request.userLocale === "en";
+
+  const parts: string[] = isEn
+    ? [
+        "Respond entirely in English.",
+        "Return exactly 2 parts: a short reflection paragraph and an open question on the last line.",
+      ]
+    : [
+        `Hãy trả lời hoàn toàn bằng tiếng Việt.`,
+        "Chỉ trả về đúng 2 phần: một đoạn phản chiếu ngắn và một câu hỏi mở ở dòng cuối.",
+      ];
 
   if (request.userIntent) {
     parts.push(
-      ({
-        clarity:
-          "Tone cho lần đọc này: rõ ràng, gọn, chính xác. User cần thấy pattern trong tình huống.",
-        comfort:
-          "Tone cho lần đọc này: ấm áp, nhẹ, giàu compassion nhưng không lên lớp.",
-        challenge: "Tone cho lần đọc này: trực tiếp, tỉnh táo, không né điều khó.",
-        guidance:
-          "Tone cho lần đọc này: mở, không định hướng, giữ không gian để người đọc tự nghe mình.",
-      } as const)[request.userIntent],
+      isEn
+        ? ({
+            clarity:   "Tone for this reading: clear, concise, precise. Help the reader see the pattern in their situation.",
+            comfort:   "Tone for this reading: warm, gentle, full of compassion — but not preachy.",
+            challenge: "Tone for this reading: direct, clear-eyed, not avoiding the difficult.",
+            guidance:  "Tone for this reading: open, non-directive — hold space for the reader to listen to themselves.",
+          } as const)[request.userIntent]
+        : ({
+            clarity:   "Tone cho lần đọc này: rõ ràng, gọn, chính xác. User cần thấy pattern trong tình huống.",
+            comfort:   "Tone cho lần đọc này: ấm áp, nhẹ, giàu compassion nhưng không lên lớp.",
+            challenge: "Tone cho lần đọc này: trực tiếp, tỉnh táo, không né điều khó.",
+            guidance:  "Tone cho lần đọc này: mở, không định hướng, giữ không gian để người đọc tự nghe mình.",
+          } as const)[request.userIntent],
     );
   }
 
   if (safeSituation) {
-    parts.push(`Tình huống: ${safeSituation}`);
+    parts.push(isEn ? `Situation: ${safeSituation}` : `Tình huống: ${safeSituation}`);
     parts.push(
-      "Mirror lại ngôn ngữ của người dùng khi phản chiếu, nhưng đừng lặp lại một cách máy móc.",
+      isEn
+        ? "Mirror the reader's own language in the reflection, but don't echo it mechanically."
+        : "Mirror lại ngôn ngữ của người dùng khi phản chiếu, nhưng đừng lặp lại một cách máy móc.",
     );
   }
 
@@ -242,17 +258,19 @@ function getFallbackChunks(request: InterpretationRequest): string[] {
     return [prompts[0]];
   }
 
-  if (request.sourceLanguage === "en") {
+  // Prefer user's UI locale over source language for fallback text
+  const isEn = (request.userLocale ?? request.sourceLanguage) === "en";
+  if (isEn) {
     return ["Take a moment to sit with these words. What do they stir in you?"];
   }
 
   return ["Hãy để những lời này lắng xuống một chút. Điều gì đang dấy lên trong bạn?"];
 }
 
-function ensureClosingQuestion(text: string, sourceLanguage?: string): string {
+function ensureClosingQuestion(text: string, locale?: string): string {
   const normalized = text.trim();
   if (!normalized) {
-    return sourceLanguage === "en"
+    return locale === "en"
       ? "*What feels most true in you right now?*"
       : "*Lúc này điều gì cần được nhìn rõ hơn?*";
   }
@@ -269,7 +287,7 @@ function ensureClosingQuestion(text: string, sourceLanguage?: string): string {
   }
 
   const question =
-    sourceLanguage === "en"
+    locale === "en"
       ? "*What feels most true in you right now?*"
       : "*Lúc này điều gì cần được nhìn rõ hơn?*";
 
@@ -298,7 +316,7 @@ function splitInlineClosingQuestion(text: string): string {
   return `${body}\n\n*${question.replace(/^[*_]+|[*_]+$/g, "")}*`;
 }
 
-function finalizeInterpretationText(text: string, sourceLanguage?: string): string {
+function finalizeInterpretationText(text: string, sourceLanguage?: string, userLocale?: string): string {
   const normalized = normalizeFreeText(text) || "";
   const withoutSquareQuestion = normalized
     .replace(/\[([^\]\n]{3,120}\?)\]/g, "*$1*")
@@ -306,7 +324,7 @@ function finalizeInterpretationText(text: string, sourceLanguage?: string): stri
     .replace(/\s+\*/g, "\n\n*");
   const separatedQuestion = splitInlineClosingQuestion(withoutSquareQuestion);
 
-  return ensureClosingQuestion(separatedQuestion, sourceLanguage);
+  return ensureClosingQuestion(separatedQuestion, userLocale ?? sourceLanguage);
 }
 
 // R07: lightweight output safety check for harmful content patterns.
@@ -482,7 +500,7 @@ async function runOllamaInterpretation(
 
   if (!stream) {
     const body = (await response.json()) as { response?: string };
-    const text = finalizeInterpretationText(body.response || "", request.sourceLanguage);
+    const text = finalizeInterpretationText(body.response || "", request.sourceLanguage, request.userLocale);
     if (!text) {
       throw new Error("Ollama returned an empty interpretation.");
     }
@@ -543,7 +561,7 @@ async function runOllamaInterpretation(
       }
 
       if (payload.done) {
-        const text = finalizeInterpretationText(fullText, request.sourceLanguage);
+        const text = finalizeInterpretationText(fullText, request.sourceLanguage, request.userLocale);
         if (!text) {
           throw new Error("Ollama stream completed without text.");
         }
@@ -569,7 +587,7 @@ async function runOllamaInterpretation(
     }
   }
 
-  const text = finalizeInterpretationText(fullText, request.sourceLanguage);
+  const text = finalizeInterpretationText(fullText, request.sourceLanguage, request.userLocale);
   if (!text) {
     throw new Error("Ollama stream ended without a final interpretation.");
   }
@@ -632,6 +650,7 @@ async function runAnthropicInterpretation(
     const text = finalizeInterpretationText(
       body.content?.find((b) => b.type === "text")?.text ?? "",
       request.sourceLanguage,
+      request.userLocale,
     );
     if (!text) throw new Error("Anthropic returned empty response.");
     return { text, chunks: [text], usedFallback: false, mode: "cloud", provider: "anthropic", model: config.model };
@@ -669,7 +688,7 @@ async function runAnthropicInterpretation(
     }
   }
 
-  const text = finalizeInterpretationText(fullText, request.sourceLanguage);
+  const text = finalizeInterpretationText(fullText, request.sourceLanguage, request.userLocale);
   if (!text) throw new Error("Anthropic stream ended without text.");
 
   const result: InterpretationResult = {
@@ -712,7 +731,7 @@ async function runOpenAIInterpretation(request: InterpretationRequest): Promise<
   const body = (await response.json()) as {
     choices?: Array<{ message?: { content?: string } }>;
   };
-  const text = finalizeInterpretationText(body.choices?.[0]?.message?.content || "", request.sourceLanguage);
+  const text = finalizeInterpretationText(body.choices?.[0]?.message?.content || "", request.sourceLanguage, request.userLocale);
   if (!text) {
     throw new Error("OpenAI returned an empty interpretation.");
   }
@@ -770,6 +789,7 @@ async function runGeminiInterpretation(request: InterpretationRequest): Promise<
   const text = finalizeInterpretationText(
     body.candidates?.[0]?.content?.parts?.[0]?.text || "",
     request.sourceLanguage,
+    request.userLocale,
   );
   if (!text) {
     throw new Error("Gemini returned an empty interpretation.");
@@ -875,7 +895,7 @@ async function runGeminiStreamInterpretation(
     }
   }
 
-  const text = finalizeInterpretationText(fullText, request.sourceLanguage);
+  const text = finalizeInterpretationText(fullText, request.sourceLanguage, request.userLocale);
   if (!text) {
     throw new Error("Gemini stream completed without text.");
   }

@@ -269,32 +269,43 @@ impl AIClient {
     ) -> String {
         let mut parts = Vec::new();
 
-        let passage_language = self
-            .store
-            .get_source(&passage.source_id)
-            .ok()
-            .flatten()
-            .map(|source| source.language)
-            .unwrap_or_else(|| "vi".to_string());
+        // Respond in the user's preferred UI language, not the source passage language.
+        // This ensures English users get English AI responses even when reading Vietnamese sources.
+        let user_locale = self.store.get_default_locale();
+        let is_en = user_locale == "en";
 
-        parts.push(format!(
-            "Hãy trả lời hoàn toàn bằng ngôn ngữ của đoạn trích này: {}.",
-            passage_language
-        ));
-
-        parts.push(
-            "Chỉ trả về đúng 2 phần: một đoạn phản chiếu ngắn và một câu hỏi mở ở dòng cuối."
-                .to_string(),
-        );
+        if is_en {
+            parts.push("Respond entirely in English.".to_string());
+            parts.push(
+                "Return exactly 2 parts: a short reflection paragraph and an open question on the last line."
+                    .to_string(),
+            );
+        } else {
+            parts.push("Hãy trả lời hoàn toàn bằng tiếng Việt.".to_string());
+            parts.push(
+                "Chỉ trả về đúng 2 phần: một đoạn phản chiếu ngắn và một câu hỏi mở ở dòng cuối."
+                    .to_string(),
+            );
+        }
 
         // Add intent-based tone instruction (canonical — must match server interpretationService.ts)
         if let Some(intent) = user_intent {
-            let intent_instruction = match intent {
-                "clarity" => "Tone cho lần đọc này: rõ ràng, gọn, chính xác. User cần thấy pattern trong tình huống.",
-                "comfort" => "Tone cho lần đọc này: ấm áp, nhẹ, giàu compassion nhưng không lên lớp.",
-                "challenge" => "Tone cho lần đọc này: trực tiếp, tỉnh táo, không né điều khó.",
-                "guidance" => "Tone cho lần đọc này: mở, không định hướng, giữ không gian để người đọc tự nghe mình.",
-                _ => "",
+            let intent_instruction = if is_en {
+                match intent {
+                    "clarity"   => "Tone for this reading: clear, concise, precise. Help the reader see the pattern in their situation.",
+                    "comfort"   => "Tone for this reading: warm, gentle, full of compassion — but not preachy.",
+                    "challenge" => "Tone for this reading: direct, clear-eyed, not avoiding the difficult.",
+                    "guidance"  => "Tone for this reading: open, non-directive — hold space for the reader to listen to themselves.",
+                    _ => "",
+                }
+            } else {
+                match intent {
+                    "clarity"   => "Tone cho lần đọc này: rõ ràng, gọn, chính xác. User cần thấy pattern trong tình huống.",
+                    "comfort"   => "Tone cho lần đọc này: ấm áp, nhẹ, giàu compassion nhưng không lên lớp.",
+                    "challenge" => "Tone cho lần đọc này: trực tiếp, tỉnh táo, không né điều khó.",
+                    "guidance"  => "Tone cho lần đọc này: mở, không định hướng, giữ không gian để người đọc tự nghe mình.",
+                    _ => "",
+                }
             };
             if !intent_instruction.is_empty() {
                 parts.push(intent_instruction.to_string());
@@ -303,11 +314,19 @@ impl AIClient {
 
         if let Some(situation) = situation_text {
             if let Some(safe_situation) = sanitize_situation_text(situation) {
-                parts.push(format!("Tình huống: {}", safe_situation));
-                parts.push(
-                    "Mirror lại ngôn ngữ của người dùng khi phản chiếu, nhưng đừng lặp lại một cách máy móc."
-                        .to_string(),
-                );
+                if is_en {
+                    parts.push(format!("Situation: {}", safe_situation));
+                    parts.push(
+                        "Mirror the reader's own language in the reflection, but don't echo it mechanically."
+                            .to_string(),
+                    );
+                } else {
+                    parts.push(format!("Tình huống: {}", safe_situation));
+                    parts.push(
+                        "Mirror lại ngôn ngữ của người dùng khi phản chiếu, nhưng đừng lặp lại một cách máy móc."
+                            .to_string(),
+                    );
+                }
             }
         }
 

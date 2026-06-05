@@ -3,13 +3,21 @@
  * No Context needed. setLocale() triggers re-render in all useStrings() callers.
  *
  * Usage:
- *   const s = useStrings();          // in components
+ *   const s = useStrings();          // localized strings in components
+ *   const df = useDisplayFont();     // locale-aware display font (switches Cinzel ↔ EB Garamond)
  *   setLocale("en");                 // at bootstrap, after loading UserState
  *   getLocale();                     // for non-React code (e.g. AI prompt language)
+ *
+ * Font note:
+ *   useDisplayFont() returns EB Garamond for "vi" (Vietnamese diacritic support)
+ *   and Cinzel for "en" (decorative Latin display). For brand text that is always
+ *   pure Latin ASCII (e.g. the "ALETHEIA" wordmark), use Fonts.brand directly —
+ *   it is explicitly excluded from locale switching.
  */
 import { useSyncExternalStore } from "react";
 import { vi, type Strings } from "./vi";
 import { en } from "./en";
+import { Fonts } from "@/lib/theme";
 
 type Locale = "vi" | "en";
 
@@ -48,4 +56,32 @@ function subscribe(fn: () => void): () => void {
 /** React hook — returns localized strings, re-renders when locale changes. */
 export function useStrings(): Strings {
   return useSyncExternalStore(subscribe, getStrings, getStrings);
+}
+
+// Stable references — useSyncExternalStore uses Object.is, so these must not be recreated per call.
+const DISPLAY_FONTS_VI = {
+  display: Fonts!.viDisplay,
+  displayStrong: Fonts!.viDisplayStrong,
+} as const;
+const DISPLAY_FONTS_EN = {
+  display: Fonts!.display,
+  displayStrong: Fonts!.displayStrong,
+} as const;
+
+function getDisplayFontSnapshot() {
+  return _locale === "vi" ? DISPLAY_FONTS_VI : DISPLAY_FONTS_EN;
+}
+
+/**
+ * React hook — returns locale-appropriate display font families.
+ * Re-renders when locale changes. Use for any display/title text that may
+ * contain Vietnamese diacritics. Do NOT use for the "ALETHEIA" wordmark —
+ * use Fonts.brand there instead.
+ *
+ * @example
+ *   const { display, displayStrong } = useDisplayFont();
+ *   <Text style={{ fontFamily: displayStrong }}>{s.home.tagline}</Text>
+ */
+export function useDisplayFont() {
+  return useSyncExternalStore(subscribe, getDisplayFontSnapshot, getDisplayFontSnapshot);
 }

@@ -18,6 +18,8 @@ export interface AIRequest {
   sourceFallbackPrompts?: string[];
   /** UX-01: user's stated reading intent from onboarding */
   userIntent?: "clarity" | "comfort" | "challenge" | "guidance";
+  /** User's preferred UI language — AI responds in this locale, not the passage source language */
+  userLocale?: "vi" | "en";
 }
 
 export interface AIInterpretationResult {

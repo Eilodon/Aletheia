@@ -11,7 +11,8 @@ import { COMPLETE_SILENCE_BEAT_MS } from "@/lib/reading/ritual";
 import { DURATION } from "@/lib/constants/animation";
 import { Fonts } from "@/constants/theme";
 import { screen, trackShareEvent } from "@/lib/analytics";
-import { useStrings } from "@/lib/i18n";
+import { useStrings, getLocale } from "@/lib/i18n";
+import { getLocalizedSymbol } from "@/lib/i18n/symbol-names";
 import { getSymbolAsset } from "@/assets/symbols";
 import { ReadingState, MoodTag } from "@/lib/types";
 import { showToast } from "@/components/toast";
@@ -43,6 +44,7 @@ export default function PassageScreen() {
   const [isCompleting, setIsCompleting] = useState(false);
   const [showTrustSheet, setShowTrustSheet] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const localizedSymbol = selectedSymbol ? getLocalizedSymbol(selectedSymbol, getLocale()) : null;
 
   const AI_TRUST_KEY = "aletheia_ai_trust_seen";
 
@@ -158,7 +160,7 @@ export default function PassageScreen() {
               <RitualOrnament variant="line" />
             )}
             <Text testID="reading-passage-symbol" style={[styles.symbolName, { color: colors.primary }]}>
-              {selectedSymbol?.display_name || "—"}
+              {localizedSymbol?.display_name || "—"}
             </Text>
             <Text style={[styles.sourceName, { color: colors.muted }]}>{session.source.name}</Text>
           </View>

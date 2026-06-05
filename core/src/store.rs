@@ -754,6 +754,19 @@ impl Store {
         }
     }
 
+    /// Returns the preferred UI language for the single device user ("vi" or "en").
+    /// Falls back to "vi" if no user state exists. Safe to call from AIClient
+    /// without a user_id — correct for single-user mobile apps.
+    pub fn get_default_locale(&self) -> String {
+        let conn = self.conn.lock();
+        conn.query_row(
+            "SELECT preferred_language FROM user_state LIMIT 1",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .unwrap_or_else(|_| "vi".to_string())
+    }
+
     pub fn insert_user_state(&self, state: &UserState) -> Result<(), AletheiaError> {
         let tier = ser(&state.subscription_tier, "subscription_tier")?;
         let user_intent = state

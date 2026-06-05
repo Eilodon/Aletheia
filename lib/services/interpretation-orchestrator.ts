@@ -14,6 +14,8 @@ import { getCurrentUserId } from "./current-user-id";
 import { getSessionToken } from "@/lib/auth";
 import { AI_STREAM_TIMEOUT_MS } from "@/lib/constants";
 import { APP_ID } from "@/constants/oauth";
+import { getLocale } from "@/lib/i18n";
+import { getLocalizedSymbol } from "@/lib/i18n/symbol-names";
 
 type InterpretationMode = "auto" | "quality" | "local";
 
@@ -309,7 +311,11 @@ class InterpretationOrchestratorService {
       const selection = await this.selectInferenceMode(request.mode);
       const startMs = Date.now();
       let serverTimeout: ReturnType<typeof setTimeout> | null = null;
-      
+
+      // Localize symbol display_name/flavor_text for the current UI locale so
+      // both local (Rust) and server AI prompts receive the correct language name.
+      const localizedSymbol = getLocalizedSymbol(request.symbol, getLocale());
+
       // If local mode is selected and ready, use native local inference
       if (selection.mode === "local" && selection.localReady) {
         trackLocalModelEvent("inference_started", {
@@ -319,7 +325,7 @@ class InterpretationOrchestratorService {
         // Start local inference stream
         const streamResponse = await aletheiaNativeClient.startLocalInterpretationStream(
           request.passage,
-          request.symbol,
+          localizedSymbol,
           request.situationText,
           request.userIntent
         );
@@ -387,12 +393,13 @@ class InterpretationOrchestratorService {
             headers: await this.buildServerHeaders(),
             body: JSON.stringify({
               passage: request.passage,
-              symbol: request.symbol,
+              symbol: localizedSymbol,
               situationText: request.situationText,
               resonanceContext: request.resonanceContext,
               sourceLanguage: request.sourceLanguage,
               sourceFallbackPrompts: request.sourceFallbackPrompts,
               userIntent: request.userIntent,
+              userLocale: getLocale(),
               mode: request.mode ?? "auto",
               useSonnet: request.useSonnet ?? false,
             }),

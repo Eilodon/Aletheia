@@ -63,6 +63,8 @@ export const Fonts = Platform.select({
   ios: {
     display: "AletheiaDisplay-Regular",
     displayStrong: "AletheiaDisplay-SemiBold",
+    /** Latin-only brand font — always Cinzel regardless of locale (e.g. "ALETHEIA" wordmark). */
+    brand: "AletheiaDisplay-SemiBold",
     viDisplay: "AletheiaBody-Regular",
     viDisplayStrong: "AletheiaBody-Medium",
     body: "AletheiaBody-Regular",
@@ -78,6 +80,7 @@ export const Fonts = Platform.select({
   default: {
     display: "AletheiaDisplay-Regular",
     displayStrong: "AletheiaDisplay-SemiBold",
+    brand: "AletheiaDisplay-SemiBold",
     viDisplay: "AletheiaBody-Regular",
     viDisplayStrong: "AletheiaBody-Medium",
     body: "AletheiaBody-Regular",
@@ -91,6 +94,7 @@ export const Fonts = Platform.select({
   web: {
     display: "'AletheiaDisplay-Regular', 'Cinzel', 'EB Garamond', serif",
     displayStrong: "'AletheiaDisplay-SemiBold', 'Cinzel', 'EB Garamond', serif",
+    brand: "'AletheiaDisplay-SemiBold', 'Cinzel', serif",
     viDisplay: "'AletheiaBody-Regular', 'EB Garamond', serif",
     viDisplayStrong: "'AletheiaBody-Medium', 'EB Garamond', serif",
     body: "'AletheiaBody-Regular', 'EB Garamond', Georgia, serif",
