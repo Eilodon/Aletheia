@@ -1,7 +1,7 @@
 import { Modal, View, Text, Pressable, StyleSheet, Linking } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { Fonts } from "@/constants/theme";
-import { useStrings } from "@/lib/i18n";
+import { useStrings, useDisplayFont } from "@/lib/i18n";
 import { CRISIS_HOTLINES } from "@/lib/utils/crisis-guard";
 import { getLocale } from "@/lib/i18n";
 
@@ -14,6 +14,7 @@ interface Props {
 export function CrisisResponseModal({ visible, onContinue, onReturn }: Props) {
   const colors = useColors();
   const s = useStrings();
+  const df = useDisplayFont();
   const locale = getLocale();
   const hotlines = locale === "vi" ? CRISIS_HOTLINES.vi : CRISIS_HOTLINES.en;
 
@@ -31,7 +32,7 @@ export function CrisisResponseModal({ visible, onContinue, onReturn }: Props) {
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onReturn}>
       <View style={styles.overlay}>
         <View style={[styles.card, { backgroundColor: colors.surface + "FA", borderColor: colors.primary + "22" }]}>
-          <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+          <Text style={[styles.title, { color: colors.foreground, fontFamily: df.display }]}>
             {s.situation.crisisTitle}
           </Text>
 
@@ -40,7 +41,7 @@ export function CrisisResponseModal({ visible, onContinue, onReturn }: Props) {
           </Text>
 
           <View style={[styles.hotlineBlock, { borderColor: colors.primary + "28" }]}>
-            <Text style={[styles.hotlineLabel, { color: colors.muted }]}>
+            <Text style={[styles.hotlineLabel, { color: colors.muted, fontFamily: df.display }]}>
               {s.situation.crisisHotlineLabel}
             </Text>
             {hotlines.map((h, i) => (
@@ -56,7 +57,7 @@ export function CrisisResponseModal({ visible, onContinue, onReturn }: Props) {
             onPress={onReturn}
             style={[styles.returnButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}
           >
-            <Text style={[styles.returnText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+            <Text style={[styles.returnText, { color: colors.foreground, fontFamily: df.display }]}>
               {s.situation.crisisReturn}
             </Text>
           </Pressable>

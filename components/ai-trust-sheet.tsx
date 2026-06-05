@@ -1,7 +1,7 @@
 import { Modal, View, Text, Pressable, StyleSheet } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 import { Fonts } from "@/constants/theme";
-import { useStrings } from "@/lib/i18n";
+import { useStrings, useDisplayFont } from "@/lib/i18n";
 import { RitualOrnament } from "@/components/ritual-ornament";
 
 interface Props {
@@ -13,6 +13,7 @@ interface Props {
 export function AITrustSheet({ visible, onConfirm, onCancel }: Props) {
   const colors = useColors();
   const s = useStrings();
+  const df = useDisplayFont();
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
@@ -22,7 +23,7 @@ export function AITrustSheet({ visible, onConfirm, onCancel }: Props) {
 
         <RitualOrnament variant="line" />
 
-        <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.display }]}>
+        <Text style={[styles.title, { color: colors.foreground, fontFamily: df.display }]}>
           {s.passage.aiTrustTitle}
         </Text>
 
@@ -40,7 +41,7 @@ export function AITrustSheet({ visible, onConfirm, onCancel }: Props) {
             onPress={onConfirm}
             style={[styles.confirmButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}
           >
-            <Text style={[styles.confirmText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+            <Text style={[styles.confirmText, { color: colors.foreground, fontFamily: df.displayStrong }]}>
               {s.passage.aiTrustConfirm}
             </Text>
           </Pressable>

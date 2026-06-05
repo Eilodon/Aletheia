@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { Fonts } from "@/constants/theme";
 import { useLocalModel } from "@/hooks/use-local-model";
 import { useColors } from "@/hooks/use-colors";
 
@@ -211,10 +212,12 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: "600",
+    fontFamily: Fonts.bodyMedium,
   },
   subtitle: {
     fontSize: 13,
     marginTop: 2,
+    fontFamily: Fonts.body,
   },
   section: {
     paddingTop: 12,
@@ -226,6 +229,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     textTransform: "uppercase",
     letterSpacing: 0.5,
+    fontFamily: Fonts.bodyMedium,
   },
   capabilityRow: {
     flexDirection: "row",
@@ -235,6 +239,7 @@ const styles = StyleSheet.create({
   capabilityText: {
     fontSize: 14,
     fontWeight: "500",
+    fontFamily: Fonts.bodyMedium,
   },
   capabilityDetails: {
     flexDirection: "row",
@@ -244,6 +249,7 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 12,
+    fontFamily: Fonts.body,
   },
   statusRow: {
     flexDirection: "row",
@@ -253,6 +259,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 14,
     fontWeight: "500",
+    fontFamily: Fonts.bodyMedium,
   },
   downloadProgress: {
     gap: 8,
@@ -269,9 +276,11 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 14,
     fontWeight: "500",
+    fontFamily: Fonts.bodyMedium,
   },
   etaText: {
     fontSize: 12,
+    fontFamily: Fonts.body,
   },
   errorBox: {
     flexDirection: "row",
@@ -283,6 +292,7 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 13,
     flex: 1,
+    fontFamily: Fonts.body,
   },
   actions: {
     flexDirection: "row",
@@ -300,10 +310,12 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 8,
     minWidth: 120,
+    minHeight: 44,
   },
   buttonText: {
     fontSize: 14,
     fontWeight: "600",
+    fontFamily: Fonts.bodyMedium,
   },
   primaryButton: {
     flex: 1,
@@ -324,9 +336,11 @@ const styles = StyleSheet.create({
     fontSize: 13,
     textAlign: "center",
     flex: 1,
+    fontFamily: Fonts.body,
   },
   loadingText: {
     fontSize: 14,
     marginTop: 8,
+    fontFamily: Fonts.body,
   },
 });

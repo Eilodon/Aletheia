@@ -7,7 +7,7 @@ import { useColors } from "@/hooks/use-colors";
 import { Fonts } from "@/constants/theme";
 import { coreStore } from "@/lib/services/core-store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
-import { setLocale, useStrings } from "@/lib/i18n";
+import { setLocale, useStrings, useDisplayFont } from "@/lib/i18n";
 import { getUserInfo, signOut, type User } from "@/lib/auth";
 import {
   requestNotificationPermission,
@@ -35,6 +35,7 @@ export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const s = useStrings();
+  const df = useDisplayFont();
   const router = useRouter();
 
   const [currentUser, setCurrentUser] = useState<User | null | undefined>(undefined);
@@ -215,7 +216,7 @@ export default function SettingsScreen() {
       }}
     >
       {/* Header */}
-      <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+      <Text style={[styles.title, { color: colors.foreground, fontFamily: df.display }]}>
         {s.settings.title}
       </Text>
       <Text style={[styles.subtitle, { color: colors.muted }]}>

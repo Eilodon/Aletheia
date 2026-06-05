@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Pressable, ScrollView, StyleSheet, Text, View, Image } from "react-native";
 import { useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { haptic } from "@/lib/utils/haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -11,7 +12,7 @@ import { COMPLETE_SILENCE_BEAT_MS } from "@/lib/reading/ritual";
 import { DURATION } from "@/lib/constants/animation";
 import { Fonts } from "@/constants/theme";
 import { screen, trackShareEvent } from "@/lib/analytics";
-import { useStrings, getLocale } from "@/lib/i18n";
+import { useStrings, useDisplayFont, getLocale } from "@/lib/i18n";
 import { getLocalizedSymbol } from "@/lib/i18n/symbol-names";
 import { getSymbolAsset } from "@/assets/symbols";
 import { ReadingState, MoodTag } from "@/lib/types";
@@ -39,11 +40,14 @@ export default function PassageScreen() {
   const colors = useColors();
   const router = useRouter();
   const s = useStrings();
+  const df = useDisplayFont();
+  const insets = useSafeAreaInsets();
   const [showAI, setShowAI] = useState(false);
   const [isRequestingAI, setIsRequestingAI] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [showTrustSheet, setShowTrustSheet] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const prevStateRef = useRef(currentState);
   const localizedSymbol = selectedSymbol ? getLocalizedSymbol(selectedSymbol, getLocale()) : null;
 
   const AI_TRUST_KEY = "aletheia_ai_trust_seen";
@@ -68,6 +72,17 @@ export default function PassageScreen() {
       setIsRequestingAI(false);
     }
   }, [aiResponse]);
+
+  useEffect(() => {
+    const wasStreaming = prevStateRef.current === ReadingState.AiStreaming;
+    const streamDone =
+      currentState === ReadingState.PassageDisplayed ||
+      currentState === ReadingState.AiFallback;
+    if (wasStreaming && streamDone) {
+      haptic("success");
+    }
+    prevStateRef.current = currentState;
+  }, [currentState]);
 
   const proceedWithAI = async () => {
     setShowAI(true);
@@ -146,9 +161,9 @@ export default function PassageScreen() {
   }
 
   return (
-    <ScreenContainer className="px-6 pb-6">
+    <ScreenContainer className="px-6">
       <Animated.View style={{ opacity: fadeAnim }} className="flex-1">
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 16 }} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             {selectedSymbol && getSymbolAsset(selectedSymbol.id) ? (
               <Image
@@ -183,7 +198,7 @@ export default function PassageScreen() {
             testID="reading-passage-card"
             style={[styles.passageCard, { backgroundColor: colors.surface + "C8", borderColor: colors.primary + "42" }]}
           >
-            <Text style={[styles.quoteMark, { color: colors.primary + "88", fontFamily: Fonts.viDisplay }]}>“</Text>
+            <Text style={[styles.quoteMark, { color: colors.primary + “88”, fontFamily: Fonts.body }]}>”</Text>
             <Text style={[styles.passageText, { color: colors.foreground, fontFamily: Fonts.bodyItalic }]}>
               {visiblePassageText}
             </Text>
@@ -206,7 +221,7 @@ export default function PassageScreen() {
                 ]}
               >
                 <Text style={[styles.aiButtonKicker, { color: colors.primary }]}>{s.passage.aiKicker}</Text>
-                <Text style={[styles.aiButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{s.passage.aiButton}</Text>
+                <Text style={[styles.aiButtonText, { color: colors.foreground, fontFamily: df.display }]}>{s.passage.aiButton}</Text>
                 <Text style={[styles.aiButtonHint, { color: colors.muted }]}>{s.passage.aiHint}</Text>
               </Pressable>
             ) : null}
@@ -299,7 +314,7 @@ export default function PassageScreen() {
                 },
               ]}
             >
-              <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>{s.passage.shareButton}</Text>
+              <Text style={[styles.secondaryButtonText, { color: colors.foreground, fontFamily: df.display }]}>{s.passage.shareButton}</Text>
             </Pressable>
 
             <Pressable
@@ -316,7 +331,7 @@ export default function PassageScreen() {
                 },
               ]}
             >
-              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: df.display }]}>
                 {isCompleting ? s.passage.completingButton : s.passage.completeButton}
               </Text>
             </Pressable>
@@ -353,7 +368,7 @@ const styles = StyleSheet.create({
   aiSection: { gap: 14, marginBottom: 20 },
   aiButton: { borderRadius: 24, borderWidth: 1, paddingHorizontal: 22, paddingVertical: 18, alignItems: "center", gap: 6 },
   aiButtonKicker: { fontSize: 10, letterSpacing: 2, textTransform: "uppercase" },
-  aiButtonText: { fontSize: 18, letterSpacing: 1.1, textTransform: "uppercase" },
+  aiButtonText: { fontSize: 18, letterSpacing: 1.1 },
   aiButtonHint: { fontSize: 12, textAlign: "center", fontFamily: Fonts.bodyItalic },
   aiCard: { borderRadius: 24, borderWidth: 1, paddingHorizontal: 20, paddingVertical: 18, gap: 10, alignItems: "center" },
   aiStatus: { fontSize: 14, fontFamily: Fonts.bodyMedium },
@@ -364,11 +379,11 @@ const styles = StyleSheet.create({
   aftertasteSection: { gap: 10, marginBottom: 16 },
   aftertastePrompt: { fontSize: 12, textAlign: "center", fontFamily: Fonts.bodyItalic, letterSpacing: 0.3 },
   aftertasteChips: { flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "center" },
-  aftertasteChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
+  aftertasteChip: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, borderWidth: 1, minHeight: 44, justifyContent: "center" },
   aftertasteChipText: { fontSize: 13, fontFamily: Fonts.bodyMedium },
   actions: { gap: 12, paddingBottom: 8 },
   secondaryButton: { borderRadius: 22, borderWidth: 1, paddingVertical: 16, alignItems: "center" },
-  secondaryButtonText: { fontSize: 15, letterSpacing: 0.5, fontFamily: Fonts.viDisplay },
+  secondaryButtonText: { fontSize: 15, letterSpacing: 0.5 },
   primaryButton: { borderRadius: 22, borderWidth: 1.2, paddingVertical: 18, alignItems: "center" },
-  primaryButtonText: { fontSize: 18, letterSpacing: 1.1, textTransform: "uppercase" },
+  primaryButtonText: { fontSize: 18, letterSpacing: 1.1 },
 });

@@ -12,7 +12,7 @@ import { SymbolMethod } from "@/lib/types";
 import { secureRandomIndex } from "@/lib/utils/random";
 import { Fonts } from "@/constants/theme";
 import { showToast } from "@/components/toast";
-import { useStrings, getLocale } from "@/lib/i18n";
+import { useStrings, useDisplayFont, getLocale } from "@/lib/i18n";
 import { getLocalizedSymbol, getLocalizedThemeName } from "@/lib/i18n/symbol-names";
 import { getSymbolAsset } from "@/assets/symbols";
 
@@ -33,6 +33,7 @@ function SymbolCard({
 }) {
   const colors = useColors();
   const s = useStrings();
+  const df = useDisplayFont();
   const flipAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -105,7 +106,7 @@ function SymbolCard({
 
           <View style={styles.cardTextArea}>
             <Text
-              style={[styles.symbolTitle, { color: colors.foreground, fontFamily: Fonts.viDisplay, textTransform: "uppercase" }]}
+              style={[styles.symbolTitle, { color: colors.foreground, fontFamily: df.display, textTransform: "uppercase" }]}
               numberOfLines={2}
               adjustsFontSizeToFit
               minimumFontScale={0.55}
@@ -133,6 +134,7 @@ export default function WildcardScreen() {
   const router = useRouter();
   const colors = useColors();
   const s = useStrings();
+  const df = useDisplayFont();
   const { ornamentScale, width: screenWidth } = useLayout();
   const deckHaloSize = Math.round(320 * ornamentScale);
   // px-5 on ScreenContainer = 20px each side; gap: 10 between 3 cards = 20px total
@@ -197,7 +199,7 @@ export default function WildcardScreen() {
 
         <View style={styles.header}>
           <RitualOrnament variant="line" />
-          <Text testID="reading-wildcard-title" style={[styles.headerTitle, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+          <Text testID="reading-wildcard-title" style={[styles.headerTitle, { color: colors.foreground, fontFamily: df.display }]}>
             {s.wildcard.title}
           </Text>
           <Text style={[styles.headerMeta, { color: colors.muted }]}>
@@ -235,7 +237,7 @@ export default function WildcardScreen() {
                 { backgroundColor: colors.primary + "15", borderColor: colors.primary + "60", opacity: isAutoSelecting ? 0.6 : 1 },
               ]}
             >
-              <Text style={[styles.secondaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+              <Text style={[styles.secondaryButtonText, { color: colors.foreground, fontFamily: df.display }]}>
                 {isAutoSelecting ? s.wildcard.autoButtonLoading : s.wildcard.autoButton}
               </Text>
             </Pressable>

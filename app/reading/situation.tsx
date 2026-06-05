@@ -9,7 +9,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
 import { Fonts } from "@/constants/theme";
 import { showToast } from "@/components/toast";
-import { useStrings } from "@/lib/i18n";
+import { useStrings, useDisplayFont } from "@/lib/i18n";
 import { detectCrisis } from "@/lib/utils/crisis-guard";
 import { CrisisResponseModal } from "@/components/crisis-response-modal";
 
@@ -23,6 +23,7 @@ export default function SituationScreen() {
   const colors = useColors();
   const router = useRouter();
   const s = useStrings();
+  const df = useDisplayFont();
   const { sourceId } = useLocalSearchParams<{ sourceId?: string }>();
 
   const proceedReading = async () => {
@@ -101,7 +102,7 @@ export default function SituationScreen() {
 
           <View style={styles.header}>
             <RitualOrnament variant="line" />
-            <Text testID="reading-situation-title" style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+            <Text testID="reading-situation-title" style={[styles.title, { color: colors.foreground, fontFamily: df.display }]}>
               {s.situation.title}
             </Text>
             <Text style={[styles.subtitle, { color: colors.muted }]}>
@@ -149,7 +150,7 @@ export default function SituationScreen() {
                 transform: [{ scale: pressed ? 0.98 : 1 }],
               })}
             >
-              <Text style={[styles.primaryText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+              <Text style={[styles.primaryText, { color: colors.foreground, fontFamily: df.display }]}>
                 {isLoading ? s.situation.ctaLoading : s.situation.cta}
               </Text>
             </Pressable>

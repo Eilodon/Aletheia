@@ -5,12 +5,13 @@ import { Fonts } from "@/constants/theme";
 import { RitualOrnament } from "@/components/ritual-ornament";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { useStrings } from "@/lib/i18n";
+import { useStrings, useDisplayFont } from "@/lib/i18n";
 import { captureException } from "@/lib/sentry";
 
 export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   const colors = useColors();
   const s = useStrings();
+  const df = useDisplayFont();
 
   return (
     <ScreenContainer className="px-6 pb-6">
@@ -18,7 +19,7 @@ export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
       <View style={styles.container}>
         <RitualOrnament variant="eye" size="lg" />
         <Text style={[styles.kicker, { color: colors.primary }]}>ritual interrupted</Text>
-        <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{s.errorBoundary.title}</Text>
+        <Text style={[styles.title, { color: colors.foreground, fontFamily: df.display }]}>{s.errorBoundary.title}</Text>
         <Text style={[styles.message, { color: colors.muted }]}>
           {s.errorBoundary.body}
         </Text>
@@ -31,7 +32,7 @@ export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
           onPress={resetErrorBoundary}
           style={[styles.button, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}
         >
-          <Text style={[styles.buttonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{s.errorBoundary.retry}</Text>
+          <Text style={[styles.buttonText, { color: colors.foreground, fontFamily: df.displayStrong }]}>{s.errorBoundary.retry}</Text>
         </Pressable>
       </View>
     </ScreenContainer>
@@ -72,6 +73,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     letterSpacing: 3,
     textTransform: "uppercase",
+    fontFamily: Fonts.display,
   },
   title: {
     fontSize: 30,
@@ -89,6 +91,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 18,
     maxWidth: 320,
+    fontFamily: Fonts.body,
   },
   button: {
     borderRadius: 22,

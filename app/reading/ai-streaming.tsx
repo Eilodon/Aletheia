@@ -8,13 +8,14 @@ import { RitualOrnament } from "@/components/ritual-ornament";
 import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
 import { useLayout } from "@/hooks/use-layout";
-import { useStrings } from "@/lib/i18n";
+import { useStrings, useDisplayFont } from "@/lib/i18n";
 import { Fonts } from "@/constants/theme";
 
 export default function AIStreamingScreen() {
   const { selectedSymbol, aiResponse, isAIFallback, cancelAIInterpretation } = useReading();
   const colors = useColors();
   const s = useStrings();
+  const df = useDisplayFont();
   const { ornamentScale } = useLayout();
   const waitHaloSize = Math.round(180 * ornamentScale);
   const router = useRouter();
@@ -63,7 +64,7 @@ export default function AIStreamingScreen() {
           <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
             <View style={styles.header}>
               <RitualOrnament variant="line" />
-              <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+              <Text style={[styles.title, { color: colors.foreground, fontFamily: df.display }]}>
                 {isAIFallback ? s.aiStreaming.titleFallback : s.aiStreaming.titleOracle}
               </Text>
               <Text style={[styles.subtitle, { color: colors.muted }]}>{selectedSymbol?.display_name || s.aiStreaming.symbolFallback}</Text>
@@ -79,7 +80,7 @@ export default function AIStreamingScreen() {
             <View style={styles.spacer} />
 
             <Pressable onPress={handleBackToPassage} style={[styles.primaryButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}>
-              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{s.aiStreaming.backToPassage}</Text>
+              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: df.display }]}>{s.aiStreaming.backToPassage}</Text>
             </Pressable>
           </ScrollView>
         </Animated.View>
@@ -93,7 +94,7 @@ export default function AIStreamingScreen() {
         <View style={styles.header}>
           <View style={[styles.waitHalo, { width: waitHaloSize, height: waitHaloSize, borderRadius: waitHaloSize / 2, backgroundColor: colors.primary + "12" }]} />
           <RitualOrnament variant="sigil" />
-          <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{s.aiStreaming.titleStreaming}</Text>
+          <Text style={[styles.title, { color: colors.foreground, fontFamily: df.display }]}>{s.aiStreaming.titleStreaming}</Text>
           <Text style={[styles.subtitle, { color: colors.muted }]}>{selectedSymbol?.display_name || s.aiStreaming.symbolFallback}</Text>
         </View>
 
@@ -107,7 +108,7 @@ export default function AIStreamingScreen() {
         </View>
 
         <Pressable onPress={handleCancel} style={[styles.secondaryButton, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "22" }]}>
-          <Text style={[styles.secondaryButtonText, { color: colors.muted }]}>{s.aiStreaming.cancelButton}</Text>
+          <Text style={[styles.secondaryButtonText, { color: colors.muted, fontFamily: df.display }]}>{s.aiStreaming.cancelButton}</Text>
         </Pressable>
       </Animated.View>
     </ScreenContainer>
@@ -179,6 +180,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     letterSpacing: 0.8,
     textTransform: "uppercase",
-    fontFamily: Fonts.viDisplay,
   },
 });

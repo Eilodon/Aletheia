@@ -36,7 +36,7 @@ import { initSentry } from "@/lib/sentry";
 import { assertStartupConfig } from "@/hooks/use-startup-guard";
 import { flushAnalytics, identify, initAnalytics, track } from "@/lib/analytics";
 import { initializePurchases } from "@/lib/services/purchases";
-import { setLocale, getStrings } from "@/lib/i18n";
+import { setLocale, getStrings, useDisplayFont } from "@/lib/i18n";
 import { initializeNotificationHandler } from "@/lib/services/notification-service";
 
 const DEFAULT_WEB_INSETS: EdgeInsets = { top: 0, right: 0, bottom: 0, left: 0 };
@@ -65,12 +65,13 @@ function RootGate({
   onAction?: () => void;
 }) {
   const colors = useColors();
+  const df = useDisplayFont();
 
   return (
     <ScreenContainer className="px-6 pb-6">
       <View style={styles.gateWrap}>
         <RitualOrnament variant="eye" size="lg" />
-        <Text style={[styles.gateTitle, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{title}</Text>
+        <Text style={[styles.gateTitle, { color: colors.foreground, fontFamily: df.display }]}>{title}</Text>
         <Text style={[styles.gateBody, { color: colors.muted }]}>{body}</Text>
         {detail ? <Text style={[styles.gateDetail, { color: colors.muted }]}>{detail}</Text> : null}
         {actionLabel && onAction ? (
@@ -78,7 +79,7 @@ function RootGate({
             onPress={onAction}
             style={[styles.gateButton, { backgroundColor: colors.surface + "F4", borderColor: colors.primary + "88" }]}
           >
-            <Text style={[styles.gateButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{actionLabel}</Text>
+            <Text style={[styles.gateButtonText, { color: colors.foreground, fontFamily: df.display }]}>{actionLabel}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -108,7 +109,6 @@ function AppChrome({
               overflow: "hidden",
               backgroundColor: colors.background,
               position: "relative",
-              boxShadow: "0 0 20px rgba(0,0,0,0.5)",
             }
           : { flex: 1 }
       }
@@ -152,7 +152,7 @@ export default function RootLayout() {
     "AletheiaBody-Italic": require("../assets/fonts/EBGaramond-Italic.ttf"),
   });
 
-  // Ensure minimum 8px padding for top and bottom on mobile
+  // Ensure minimum 16px top padding and 12px bottom padding on mobile
   const providerInitialMetrics = useMemo(() => {
     const metrics = initialWindowMetrics ?? { insets: initialInsets, frame: initialFrame };
     return {
@@ -409,12 +409,14 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     maxWidth: 320,
     textAlign: "center",
+    fontFamily: Fonts.body,
   },
   gateDetail: {
     fontSize: 12,
     lineHeight: 18,
     maxWidth: 320,
     textAlign: "center",
+    fontFamily: Fonts.body,
   },
   gateButton: {
     marginTop: 6,

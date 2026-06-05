@@ -1,7 +1,7 @@
 import { useRef } from "react";
 import { Pressable, Animated, ViewProps } from "react-native";
 import { haptic } from "@/lib/utils/haptics";
-import { Fonts } from "@/constants/theme";
+import { useDisplayFont } from "@/lib/i18n";
 import { useColors } from "@/hooks/use-colors";
 
 interface PressableCardProps extends ViewProps {
@@ -107,6 +107,7 @@ export function AnimatedButton({
   ...props
 }: AnimatedButtonProps) {
   const colors = useColors();
+  const df = useDisplayFont();
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handlePressIn = () => {
@@ -176,7 +177,7 @@ export function AnimatedButton({
         {...props}
       >
         {icon}
-        <Animated.Text style={[{ fontFamily: Fonts.viDisplay }, textVariantStyles[variant], textSizeStyles[size]]}>
+        <Animated.Text style={[{ fontFamily: df.display }, textVariantStyles[variant], textSizeStyles[size]]}>
           {title}
         </Animated.Text>
       </Animated.View>

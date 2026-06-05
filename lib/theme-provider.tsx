@@ -49,6 +49,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         "color-success": SchemeColors[colorScheme].success,
         "color-warning": SchemeColors[colorScheme].warning,
         "color-error": SchemeColors[colorScheme].error,
+        "color-void": SchemeColors[colorScheme].void,
+        "color-ghost": SchemeColors[colorScheme].ghost,
+        "color-ritual": SchemeColors[colorScheme].ritual,
       }),
     [colorScheme],
   );

@@ -16,8 +16,8 @@ const themeColors = {
   void:       { light: '#EFE7D9', dark: '#16141C' },
   /** Ultra-subtle surface overlay — ghost cards, inactive states */
   ghost:      { light: '#D4C3AA44', dark: '#4A435244' },
-  /** Motion glow color — same as primary, explicit semantic alias */
-  ritual:     { light: '#B98B3C', dark: '#D8B86A' },
+  /** Motion glow color — semantic alias for primary; use for glow/motion effects */
+  ritual:     { light: '#B98B3C', dark: '#C1A661' },
 };
 
 module.exports = { themeColors };

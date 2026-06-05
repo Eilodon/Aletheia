@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { View, Text, Animated, Pressable, StyleSheet } from "react-native";
 import { Fonts } from "@/constants/theme";
-
-type ToastKind = "success" | "warn" | "error" | "info";
+import type { ToastKind } from "@/lib/types";
 
 interface Toast {
   id: string;
@@ -166,7 +165,7 @@ const styles = StyleSheet.create({
   toastIcon: {
     fontSize: 16,
     marginRight: 12,
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.body,
   },
   toastMessage: {
     flex: 1,
@@ -175,12 +174,15 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bodyItalic,
   },
   toastClose: {
-    padding: 4,
-    marginLeft: 8,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 4,
   },
   toastCloseText: {
     fontSize: 12,
     opacity: 0.7,
-    fontFamily: Fonts.display,
+    fontFamily: Fonts.body,
   },
 });

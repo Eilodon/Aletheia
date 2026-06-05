@@ -1,15 +1,16 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
-import { Alert, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Animated, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { haptic } from "@/lib/utils/haptics";
 
 import { Fonts } from "@/constants/theme";
+import { DURATION } from "@/lib/constants/animation";
 import { RitualOrnament } from "@/components/ritual-ornament";
 import { ScreenContainer } from "@/components/screen-container";
 import { SkeletonCard } from "@/components/skeleton";
 import { showToast } from "@/components/toast";
 import { useColors } from "@/hooks/use-colors";
-import { useStrings } from "@/lib/i18n";
+import { useStrings, useDisplayFont } from "@/lib/i18n";
 import { useReading } from "@/lib/context/reading-context";
 import { coreStore } from "@/lib/services/core-store";
 import { shouldUseAletheiaNative } from "@/lib/native/runtime";
@@ -30,6 +31,7 @@ export default function ReadingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
   const s = useStrings();
+  const df = useDisplayFont();
   const router = useRouter();
   const { startReading } = useReading();
   const [reading, setReading] = useState<Reading | null>(null);
@@ -63,6 +65,17 @@ export default function ReadingDetailScreen() {
       loadReading();
     }
   }, [id]);
+
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!isLoading && reading) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: DURATION.normal,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [isLoading, reading, fadeAnim]);
 
   const formattedDate = useMemo(() => {
     if (!reading) return "";
@@ -247,7 +260,7 @@ export default function ReadingDetailScreen() {
       <ScreenContainer className="px-6 pb-6">
         <View style={styles.loadingWrap}>
           <RitualOrnament variant="sigil" />
-          <Text style={[styles.loadingTitle, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+          <Text style={[styles.loadingTitle, { color: colors.foreground, fontFamily: df.display }]}>
             {s.readingDetail.reopeningLabel}
           </Text>
           <View style={styles.loadingCards}>
@@ -264,7 +277,7 @@ export default function ReadingDetailScreen() {
       <ScreenContainer className="px-6 pb-6">
         <View style={styles.emptyWrap}>
           <RitualOrnament variant="eye" size="lg" />
-          <Text style={[styles.emptyTitle, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+          <Text style={[styles.emptyTitle, { color: colors.foreground, fontFamily: df.display }]}>
             {s.readingDetail.notFoundTitle}
           </Text>
           <Text style={[styles.emptyText, { color: colors.muted }]}>
@@ -274,7 +287,7 @@ export default function ReadingDetailScreen() {
             onPress={() => router.back()}
             style={[styles.primaryButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}
           >
-            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{s.readingDetail.backButton}</Text>
+            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: df.display }]}>{s.readingDetail.backButton}</Text>
           </Pressable>
         </View>
       </ScreenContainer>
@@ -283,6 +296,7 @@ export default function ReadingDetailScreen() {
 
   return (
     <ScreenContainer className="px-6 pb-6">
+      <Animated.View style={{ opacity: fadeAnim, flex: 1 }}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <Pressable
@@ -293,7 +307,7 @@ export default function ReadingDetailScreen() {
           </Pressable>
           <RitualOrnament variant="line" />
           <Text style={[styles.kicker, { color: colors.primary }]}>Reflection Archive</Text>
-          <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+          <Text style={[styles.title, { color: colors.foreground, fontFamily: df.display }]}>
             {sourceName || reading.source_id}
           </Text>
           <Text style={[styles.metaText, { color: colors.muted }]}>{formattedDate}</Text>
@@ -324,7 +338,7 @@ export default function ReadingDetailScreen() {
         <View style={styles.rowGrid}>
           <View style={[styles.infoCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "22" }]}>
             <Text style={[styles.sectionLabel, { color: colors.primary }]}>{s.readingDetail.sectionSymbol}</Text>
-            <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{reading.symbol_chosen}</Text>
+            <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: df.display }]}>{reading.symbol_chosen}</Text>
             <Text style={[styles.infoHint, { color: colors.muted }]}>
               {reading.symbol_method === "auto" ? s.readingDetail.symbolMethodAuto : s.readingDetail.symbolMethodManual}
             </Text>
@@ -333,7 +347,7 @@ export default function ReadingDetailScreen() {
           {reading.mood_tag ? (
             <View style={[styles.infoCard, { backgroundColor: colors.surface + "BC", borderColor: colors.primary + "22" }]}>
               <Text style={[styles.sectionLabel, { color: colors.primary }]}>{s.readingDetail.sectionMood}</Text>
-              <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+              <Text style={[styles.infoValue, { color: colors.foreground, fontFamily: df.display }]}>
                 {MOOD_EMOJIS[reading.mood_tag]} {s.readingDetail.moodLabels[reading.mood_tag] ?? reading.mood_tag}
               </Text>
               <Text style={[styles.infoHint, { color: colors.muted }]}>#{reading.mood_tag}</Text>
@@ -413,7 +427,7 @@ export default function ReadingDetailScreen() {
             disabled={isReopening}
             style={[styles.primaryButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72", opacity: isReopening ? 0.65 : 1 }]}
           >
-            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: df.display }]}>
               {isReopening ? s.readingDetail.actionReopening : s.readingDetail.actionReopen}
             </Text>
           </Pressable>
@@ -421,12 +435,13 @@ export default function ReadingDetailScreen() {
             onPress={() => router.back()}
             style={[styles.primaryButton, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "72" }]}
           >
-            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+            <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: df.display }]}>
               {s.readingDetail.backToHistory}
             </Text>
           </Pressable>
         </View>
       </ScrollView>
+      </Animated.View>
     </ScreenContainer>
   );
 }

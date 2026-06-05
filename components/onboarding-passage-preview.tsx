@@ -4,7 +4,7 @@ import { Animated, Easing, Pressable, StyleSheet, Text, View } from "react-nativ
 import { useColors } from "@/hooks/use-colors";
 import { Fonts } from "@/constants/theme";
 import { DURATION, EASING } from "@/lib/constants/animation";
-import { useStrings } from "@/lib/i18n";
+import { useStrings, useDisplayFont } from "@/lib/i18n";
 
 interface Props {
   text: string;
@@ -48,6 +48,7 @@ export function OnboardingPassagePreview({
 }: Props) {
   const colors = useColors();
   const s = useStrings();
+  const df = useDisplayFont();
   const [visibleText, setVisibleText] = useState("");
   const [passageDone, setPassageDone] = useState(false);
 
@@ -154,7 +155,7 @@ export function OnboardingPassagePreview({
           <Text
             style={[
               styles.quoteMark,
-              { color: colors.primary + "88", fontFamily: Fonts.viDisplay },
+              { color: colors.primary + "88", fontFamily: df.display },
             ]}
           >
             “

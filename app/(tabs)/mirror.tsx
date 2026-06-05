@@ -10,19 +10,17 @@ import { PressableCard } from "@/components/pressable-card";
 import { RitualOrnament } from "@/components/ritual-ornament";
 import { coreStore } from "@/lib/services/core-store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
-import { Reading, MoodTag } from "@/lib/types";
+import { Reading, MoodTag, ArchiveFilter, ArchiveSort } from "@/lib/types";
 import { Fonts } from "@/constants/theme";
 import { haptic } from "@/lib/utils/haptics";
 import { screen, trackArchiveEvent } from "@/lib/analytics";
-import { useStrings } from "@/lib/i18n";
+import { useStrings, useDisplayFont } from "@/lib/i18n";
 
 interface ReadingWithDetails extends Reading {
   sourceName?: string;
   symbolName?: string;
 }
 
-type ArchiveFilter = "all" | "favorites" | "ai" | "shared";
-type ArchiveSort = "latest" | "oldest" | "depth";
 
 const ITEM_HEIGHT = 168;
 
@@ -30,6 +28,7 @@ export default function HistoryScreen() {
   const colors = useColors();
   const router = useRouter();
   const s = useStrings();
+  const df = useDisplayFont();
   const insets = useSafeAreaInsets();
   const [readings, setReadings] = useState<ReadingWithDetails[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -190,7 +189,7 @@ export default function HistoryScreen() {
         </View>
         {item.ai_interpreted && (
           <View style={{ paddingHorizontal: 8, paddingVertical: 4, borderRadius: 10, backgroundColor: colors.primary + "1E", borderWidth: 1, borderColor: colors.primary + "44" }}>
-            <Text style={{ fontSize: 10, color: colors.primary, letterSpacing: 1, textTransform: "uppercase", fontFamily: Fonts.viDisplay }}>AI</Text>
+            <Text style={{ fontSize: 10, color: colors.primary, letterSpacing: 1, textTransform: "uppercase", fontFamily: Fonts.display }}>AI</Text>
           </View>
         )}
       </View>
@@ -218,7 +217,7 @@ export default function HistoryScreen() {
   const renderEmpty = () => (
     <View className="flex-1 justify-center items-center py-20">
       <RitualOrnament variant="sigil" />
-      <Text className="text-lg text-foreground mb-2 mt-4" style={{ fontFamily: Fonts.viDisplay }}>
+      <Text className="text-lg text-foreground mb-2 mt-4" style={{ fontFamily: df.display }}>
         {readings.length === 0 ? s.mirror.emptyTitle : s.mirror.emptyFilteredTitle}
       </Text>
       <Text className="text-sm text-muted text-center max-w-xs">
@@ -232,7 +231,7 @@ export default function HistoryScreen() {
           className="mt-6 px-6 py-3 rounded-xl"
           style={{ backgroundColor: colors.primary + "18", borderWidth: 1, borderColor: colors.primary + "72" }}
         >
-          <Text className="text-base text-foreground" style={{ fontFamily: Fonts.viDisplay }}>
+          <Text className="text-base text-foreground" style={{ fontFamily: df.display }}>
             {s.mirror.startReading}
           </Text>
         </Pressable>
@@ -243,7 +242,7 @@ export default function HistoryScreen() {
   const renderHeader = () => (
     <View className="pb-6 pt-2 items-center gap-3">
       <RitualOrnament variant="line" />
-      <Text className="text-3xl text-foreground" style={{ fontFamily: Fonts.viDisplay }}>{s.mirror.title}</Text>
+      <Text className="text-3xl text-foreground" style={{ fontFamily: df.display }}>{s.mirror.title}</Text>
       <Text className="text-sm text-muted text-center">
         {s.mirror.countLabel(visibleReadings.length, readings.length)}
       </Text>

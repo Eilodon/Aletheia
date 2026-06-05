@@ -78,7 +78,7 @@ const config: ExpoConfig = {
   icon: "./assets/images/icon.png",
   scheme: env.scheme,
   userInterfaceStyle: "dark",
-  primaryColor: "#D8B86A",
+  primaryColor: "#C1A661",
   newArchEnabled: true,
   ios: {
     supportsTablet: true,
@@ -129,7 +129,7 @@ const config: ExpoConfig = {
       "expo-notifications",
       {
         icon: "./assets/images/icon.png",
-        color: "#D8B86A",
+        color: "#C1A661",
         defaultChannel: "default",
       },
     ],

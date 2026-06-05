@@ -13,7 +13,7 @@ import { getCurrentUserId } from "@/lib/services/current-user-id";
 import { SubscriptionTier, UserIntent } from "@/lib/types";
 import { ONBOARDING_PREVIEW_PASSAGES, ONBOARDING_PREVIEW_PASSAGES_EN } from "@/lib/data/onboarding-content";
 import { Fonts } from "@/constants/theme";
-import { useStrings, getLocale } from "@/lib/i18n";
+import { useStrings, getLocale, useDisplayFont } from "@/lib/i18n";
 
 const STEPS = ["welcome", "intent", "ready"] as const;
 
@@ -21,6 +21,7 @@ export default function OnboardingScreen() {
   const colors = useColors();
   const router = useRouter();
   const s = useStrings();
+  const df = useDisplayFont();
   const { ornamentScale, contentMaxWidth, typeScale } = useLayout();
   const heroHaloSize = Math.round(240 * ornamentScale);
   const bodyMaxWidth = Math.min(320, contentMaxWidth * 0.82);
@@ -145,7 +146,7 @@ export default function OnboardingScreen() {
             {currentStep === "intent" ? (
               <>
                 <RitualOrnament variant="sigil" />
-                <Text style={[styles.sectionTitle, { fontSize: Math.round(28 * typeScale), color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+                <Text style={[styles.sectionTitle, { fontSize: Math.round(28 * typeScale), color: colors.foreground, fontFamily: df.display }]}>
                   {s.onboarding.intent.title}
                 </Text>
                 <Text style={[styles.body, { maxWidth: bodyMaxWidth, color: colors.muted }]}>
@@ -172,7 +173,7 @@ export default function OnboardingScreen() {
                         ]}
                       >
                         <Text style={[styles.intentIcon, { color: colors.primary }]}>{item.icon}</Text>
-                        <Text style={[styles.intentTitle, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+                        <Text style={[styles.intentTitle, { color: colors.foreground, fontFamily: df.display }]}>
                           {item.title}
                         </Text>
                         <Text style={[styles.intentDesc, { color: colors.muted }]}>
@@ -216,7 +217,7 @@ export default function OnboardingScreen() {
                 },
               ]}
             >
-              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: df.display }]}>
                 {isLastStep
                   ? isCompleting
                     ? s.onboarding.enteringLabel

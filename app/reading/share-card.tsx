@@ -8,7 +8,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
 import { useReading } from "@/lib/context/reading-context";
 import { useColors } from "@/hooks/use-colors";
-import { useStrings } from "@/lib/i18n";
+import { useStrings, useDisplayFont } from "@/lib/i18n";
 import { Fonts } from "@/constants/theme";
 import { screen, trackShareEvent } from "@/lib/analytics";
 
@@ -86,6 +86,7 @@ export default function ShareCardScreen() {
   const { passage, session, selectedSymbol } = useReading();
   const colors = useColors();
   const s = useStrings();
+  const df = useDisplayFont();
   const router = useRouter();
   const cardRef = useRef<View>(null);
   const [selectedTheme, setSelectedTheme] = useState<"dark" | "light" | "gold">("dark");
@@ -197,7 +198,7 @@ export default function ShareCardScreen() {
         <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <RitualOrnament variant="line" />
-            <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{s.shareCard.title}</Text>
+            <Text style={[styles.title, { color: colors.foreground, fontFamily: df.display }]}>{s.shareCard.title}</Text>
             <Text style={[styles.subtitle, { color: colors.muted }]}>{selectedSymbol.display_name}</Text>
           </View>
 
@@ -247,7 +248,7 @@ export default function ShareCardScreen() {
                 },
               ]}
             >
-              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+              <Text style={[styles.primaryButtonText, { color: colors.foreground, fontFamily: df.display }]}>
                 {isSharing ? s.shareCard.sharing : s.shareCard.shareButton}
               </Text>
             </Pressable>
@@ -256,7 +257,7 @@ export default function ShareCardScreen() {
               onPress={handleCopyText}
               style={[styles.secondaryButton, { backgroundColor: colors.surface + "B8", borderColor: colors.primary + "22" }]}
             >
-              <Text style={[styles.secondaryButtonText, { color: colors.foreground }]}>{s.shareCard.copyTextButton}</Text>
+              <Text style={[styles.secondaryButtonText, { color: colors.foreground, fontFamily: df.display }]}>{s.shareCard.copyTextButton}</Text>
             </Pressable>
 
             <Pressable onPress={() => router.back()}>
@@ -336,7 +337,6 @@ const styles = StyleSheet.create({
   secondaryButtonText: {
     fontSize: 14,
     letterSpacing: 0.4,
-    fontFamily: Fonts.viDisplay,
   },
   closeText: {
     textAlign: "center",

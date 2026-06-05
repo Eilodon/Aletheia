@@ -10,12 +10,13 @@ import { useColors } from "@/hooks/use-colors";
 import { useLayout } from "@/hooks/use-layout";
 import { Fonts } from "@/constants/theme";
 import { screen, trackRitualEvent } from "@/lib/analytics";
-import { useStrings } from "@/lib/i18n";
+import { useStrings, useDisplayFont } from "@/lib/i18n";
 
 export default function HomeScreen() {
   const colors = useColors();
   const router = useRouter();
   const s = useStrings();
+  const df = useDisplayFont();
   const insets = useSafeAreaInsets();
   const { ornamentScale, contentMaxWidth, isCompact, typeScale } = useLayout();
   const haloSize = Math.round(300 * ornamentScale);
@@ -69,7 +70,7 @@ export default function HomeScreen() {
               ]}
             >
               <Text style={[styles.ctaGlyph, { color: colors.primary }]}>✦</Text>
-              <Text style={[styles.ctaText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>{s.home.cta}</Text>
+              <Text style={[styles.ctaText, { color: colors.foreground, fontFamily: df.display }]}>{s.home.cta}</Text>
               <Text style={[styles.ctaGlyph, { color: colors.primary }]}>✦</Text>
             </Pressable>
             <Text style={[styles.ctaHint, { maxWidth: Math.min(300, contentMaxWidth * 0.78), color: colors.muted }]}>{s.home.ctaHint}</Text>
@@ -117,9 +118,9 @@ const styles = StyleSheet.create({
   brandRule: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 2 },
   ruleLine: { width: 44, height: 1 },
   ruleDiamond: { width: 8, height: 8, transform: [{ rotate: "45deg" }], borderWidth: 1 },
-  kicker: { fontSize: 10, letterSpacing: 3.2, textTransform: "uppercase" },
+  kicker: { fontSize: 10, letterSpacing: 3.2, textTransform: "uppercase", fontFamily: Fonts.body },
   title: { letterSpacing: 9 },
-  tagline: { fontSize: 13, letterSpacing: 4, textTransform: "uppercase", textAlign: "center" },
+  tagline: { fontSize: 13, letterSpacing: 4, textTransform: "uppercase", textAlign: "center", fontFamily: Fonts.body },
   subtitle: { textAlign: "center", fontSize: 15, lineHeight: 25, fontFamily: Fonts.bodyItalic },
   ctaGroup: { alignItems: "center", gap: 12 },
   ctaButton: {
@@ -128,17 +129,17 @@ const styles = StyleSheet.create({
     shadowColor: "#000000", shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.2, shadowRadius: 28, elevation: 6,
   },
   ctaGlyph: { fontSize: 16 },
-  ctaText: { fontSize: 18, letterSpacing: 1.9, textTransform: "uppercase" },
+  ctaText: { fontSize: 18, letterSpacing: 1.9 },
   ctaHint: { textAlign: "center", fontSize: 13, lineHeight: 20, fontFamily: Fonts.bodyItalic },
   featureCard: { borderRadius: 28, paddingHorizontal: 22, paddingVertical: 22, borderWidth: 1, gap: 12 },
-  featureLabel: { fontSize: 10, letterSpacing: 3, textTransform: "uppercase" },
+  featureLabel: { fontSize: 10, letterSpacing: 3, textTransform: "uppercase", fontFamily: Fonts.body },
   featureQuote: { fontSize: 21, lineHeight: 31 },
   featureFooter: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 4 },
   featureRule: { width: 28, height: 1 },
-  featureRef: { fontSize: 12 },
+  featureRef: { fontSize: 12, fontFamily: Fonts.body },
   pillars: { gap: 10 },
   pillar: { borderRadius: 20, paddingHorizontal: 16, paddingVertical: 15, borderWidth: 1 },
-  pillarText: { fontSize: 14, lineHeight: 21 },
+  pillarText: { fontSize: 14, lineHeight: 21, fontFamily: Fonts.body },
   footer: { alignItems: "center", gap: 10, paddingBottom: 12 },
-  footerText: { fontSize: 12, letterSpacing: 0.4 },
+  footerText: { fontSize: 12, letterSpacing: 0.4, fontFamily: Fonts.body },
 });

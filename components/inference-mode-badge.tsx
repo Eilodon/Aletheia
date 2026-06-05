@@ -1,10 +1,9 @@
 import { View, Text, StyleSheet } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
+import { Fonts } from "@/constants/theme";
 import { useColors } from "@/hooks/use-colors";
-
-export type InferenceMode = "local" | "cloud" | "fallback" | "offline";
-export type LocalModelStatus = "not_downloaded" | "downloading" | "ready" | "update_available" | "error" | "unsupported";
+import type { InferenceMode, LocalModelStatus } from "@/lib/types";
 
 export interface InferenceModeBadgeProps {
   mode: InferenceMode;
@@ -174,10 +173,12 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "600",
+    fontFamily: Fonts.bodyMedium,
   },
   description: {
     fontSize: 12,
     marginTop: 2,
+    fontFamily: Fonts.body,
   },
   statusRow: {
     flexDirection: "row",
@@ -189,6 +190,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 11,
     fontWeight: "500",
+    fontFamily: Fonts.bodyMedium,
   },
   compactContainer: {
     flexDirection: "row",
@@ -201,5 +203,6 @@ const styles = StyleSheet.create({
   compactLabel: {
     fontSize: 11,
     fontWeight: "600",
+    fontFamily: Fonts.bodyMedium,
   },
 });

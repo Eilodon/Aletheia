@@ -135,7 +135,7 @@ export function GatewayReveal({ onComplete }: Props) {
           {/* Title */}
           <Animated.Text style={[
             styles.title,
-            { color: colors.foreground, fontFamily: Fonts?.display, opacity: titleOpacity, transform: [{ translateY: titleY }] }
+            { color: colors.foreground, fontFamily: Fonts?.brand, opacity: titleOpacity, transform: [{ translateY: titleY }] }
           ]}>
             ALETHEIA
           </Animated.Text>

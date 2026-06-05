@@ -15,7 +15,7 @@ import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { RitualOrnament } from "@/components/ritual-ornament";
 import { useColors } from "@/hooks/use-colors";
-import { useStrings } from "@/lib/i18n";
+import { useStrings, useDisplayFont } from "@/lib/i18n";
 import { Fonts } from "@/constants/theme";
 import { signIn, signUp, verifyEmail } from "@/lib/auth";
 
@@ -24,6 +24,7 @@ type Mode = "sign-in" | "sign-up" | "verify";
 export default function SignInScreen() {
   const colors = useColors();
   const s = useStrings();
+  const df = useDisplayFont();
   const router = useRouter();
 
   const [mode, setMode] = useState<Mode>("sign-in");
@@ -115,7 +116,7 @@ export default function SignInScreen() {
           {/* Header */}
           <View style={styles.header}>
             <RitualOrnament variant="eye" size="sm" />
-            <Text style={[styles.title, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+            <Text style={[styles.title, { color: colors.foreground, fontFamily: df.display }]}>
               {mode === "verify" ? s.auth.verifyEmailTitle : mode === "sign-in" ? s.auth.signIn : s.auth.signUp}
             </Text>
             {mode !== "verify" && (
@@ -198,7 +199,7 @@ export default function SignInScreen() {
               {loading ? (
                 <ActivityIndicator color={colors.primary} size="small" />
               ) : (
-                <Text style={[styles.primaryBtnText, { color: colors.foreground, fontFamily: Fonts.viDisplay }]}>
+                <Text style={[styles.primaryBtnText, { color: colors.foreground, fontFamily: df.display }]}>
                   {mode === "verify"
                     ? s.auth.verify
                     : mode === "sign-in"
