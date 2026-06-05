@@ -2,6 +2,7 @@ import { AppState, AppStateStatus, Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 
 import { captureMessage } from "./sentry";
+import type { InferenceMode } from "@/lib/types";
 
 // R14: analytics requires explicit user consent before any events are sent.
 const ANALYTICS_CONSENT_KEY = "aletheia:analytics:consent";
@@ -338,7 +339,7 @@ export const trackLocalModelEvent = (
 ) => track(`local_model_${action}`, properties);
 
 export const trackInferenceMode = (
-  mode: "local" | "cloud" | "fallback" | "offline",
+  mode: InferenceMode,
   properties?: Record<string, unknown>,
 ) =>
   track("inference_mode_selected", {

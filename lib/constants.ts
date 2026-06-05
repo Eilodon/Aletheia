@@ -26,7 +26,7 @@ export const MIN_PASSAGE_CHARS = 20;
 export const MAX_PASSAGE_CHARS = 500;
 
 // History & gifts
-export const FREE_HISTORY_DAYS = 30;
+export const FREE_HISTORY_DAYS = 90; // sync with contracts.rs FREE_HISTORY_DAYS
 export const GIFT_LINK_TTL_SECONDS = 86_400; // 24 hours
 
 // Auth (from shared/const.ts)

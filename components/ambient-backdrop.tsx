@@ -12,6 +12,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { useColors } from "@/hooks/use-colors";
+import { hexToRgba } from "@/lib/utils/color";
 
 type WebGradientStyle = ViewStyle & { backgroundImage: string };
 
@@ -69,8 +70,12 @@ export const AmbientBackdrop = memo(function AmbientBackdrop() {
   const centerHalo = Math.max(width * 0.56, 220);
 
   const webGradientStyle: WebGradientStyle = {
-    backgroundImage:
-      "radial-gradient(circle at 20% 20%, rgba(216,184,106,0.08) 0%, transparent 32%), radial-gradient(circle at 80% 10%, rgba(135,96,189,0.07) 0%, transparent 26%), radial-gradient(circle at 50% 100%, rgba(0,0,0,0.24) 0%, transparent 42%), radial-gradient(circle at 50% 40%, rgba(255,230,182,0.05) 0%, transparent 24%)",
+    backgroundImage: [
+      `radial-gradient(circle at 20% 20%, ${hexToRgba(colors.primary, 0.08)} 0%, transparent 32%)`,
+      "radial-gradient(circle at 80% 10%, rgba(135,96,189,0.07) 0%, transparent 26%)",
+      "radial-gradient(circle at 50% 100%, rgba(0,0,0,0.24) 0%, transparent 42%)",
+      "radial-gradient(circle at 50% 40%, rgba(255,230,182,0.05) 0%, transparent 24%)",
+    ].join(", "),
   };
 
   const breath1 = useBreathStyle(0);

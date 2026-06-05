@@ -10,10 +10,11 @@ import {
   trackLocalModelEvent,
   trackInferenceMode,
 } from "@/lib/analytics";
+import type { InferenceMode } from "@/lib/types";
 
 export type { NativeLocalModelInfo as LocalModelInfo };
-export type { NativeLocalModelStatus as LocalModelStatus };
 export type { NativeDeviceCapability as DeviceCapability };
+// LocalModelStatus is now canonical in lib/types.ts — import from there, not here
 
 export interface UseLocalModelResult {
   /** Device capability info */
@@ -216,7 +217,7 @@ export function determineInferenceMode(params: {
   isLocalReady: boolean;
   isLocalSupported: boolean;
   hasApiKey: boolean;
-}): "local" | "cloud" | "fallback" | "offline" {
+}): InferenceMode {
   const { isOnline, isLocalReady, isLocalSupported, hasApiKey } = params;
 
   // Offline mode - no network and no local model
@@ -248,7 +249,7 @@ export function determineInferenceMode(params: {
  */
 export function useInferenceModeTracking() {
   const trackMode = useCallback(
-    (mode: "local" | "cloud" | "fallback" | "offline", properties?: Record<string, unknown>) => {
+    (mode: InferenceMode, properties?: Record<string, unknown>) => {
       trackInferenceMode(mode, properties);
     },
     []

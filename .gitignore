@@ -18,6 +18,7 @@ node_modules/
 dist/
 build/
 web-build/
+artifacts/
 
 # Rust / Core
 core/target/

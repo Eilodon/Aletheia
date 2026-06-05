@@ -1,10 +1,14 @@
 # CONTRACTS.md — Schema Registry
-### {{TÊN_DỰ_ÁN}} · v{{VERSION}} · compatible with: [BLUEPRINT v{{Y}}, ADR v{{Z}}]
+### AletheiA · v0.1.0 · compatible with: [BLUEPRINT v0.1.0, ADR v0.1.0]
 
 > **Nguyên tắc vàng:** Mọi type, schema, enum, constant được define **MỘT LẦN DUY NHẤT** tại đây.
 > BLUEPRINT.md và code **reference** — không redefine, không copy, không paraphrase.
 >
-> Khi thấy conflict giữa file này và bất kỳ file nào khác → file này thắng.
+> Khi thấy conflict giữa file này và bất kỳ file nào khác → **file này thắng**.
+>
+> **Chain of command (ADR-AL-001):**
+> `CONTRACTS.md` (human spec, primary) → `aletheia.udl` + `contracts.rs` (executable spec) → `lib/types.ts` + Kotlin (generated artifacts)
+> Mọi thay đổi type/schema phải cập nhật file này **trước**, sau đó mới cập nhật code.
 
 ---
 
@@ -13,358 +17,1014 @@
 1. [Primitive Types & Constants](#1-primitive-types--constants)
 2. [Enums](#2-enums)
 3. [Core Schemas](#3-core-schemas)
-4. [Input / Output Contracts](#4-input--output-contracts)
+4. [I/O Contracts](#4-io-contracts)
 5. [Error Registry](#5-error-registry)
 6. [External Contracts](#6-external-contracts)
 7. [Naming Conventions](#7-naming-conventions)
 8. [Schema Changelog](#8-schema-changelog)
-9. [Deprecation Registry](#9-deprecation-registry)
+9. [Violation Registry](#9-violation-registry)
 10. [Glossary](#10-glossary)
 
 ---
 
 ## 1. PRIMITIVE TYPES & CONSTANTS
 
-> Các kiểu và hằng số dùng xuyên suốt hệ thống.
 > Agent KHÔNG hard-code giá trị của các constants này ở bất kỳ nơi nào khác.
+> Authority: `core/src/contracts.rs` (Rust), mirrored to `lib/constants.ts` (TypeScript).
+> ⚠️ Khi hai giá trị conflict → file này là source of truth — xem Section 9 để biết status.
 
-📝 **FILL-IN**
+**Type notation dùng trong file này:**
+```
+FieldName :: Type                      — required field
+FieldName :: Type?                     — optional (nullable)
+FieldName :: List<Type>                — ordered list
+FieldName :: Map<KeyType, ValueType>   — map / dict
+FieldName :: TypeA | TypeB            — union (chọn một)
+FieldName :: Ref<SchemaName>           — reference đến schema khác trong file này
+FieldName :: ~Expression               — derived/computed, KHÔNG persist vào storage
+```
+
+### 1.1 Business Rules
 
 ```
-{{CONST_1}} :: {{TYPE}} = {{VALUE}}
-  // Lý do: {{TẠI_SAO_GIÁ_TRỊ_NÀY}}
-
-{{CONST_2}} :: {{TYPE}} = {{VALUE}}
-  // Lý do: {{TẠI_SAO_GIÁ_TRỊ_NÀY}}
+FREE_READINGS_PER_DAY    :: u8    = 3       // Số lần đọc/ngày cho tier Free
+FREE_AI_PER_DAY          :: u8    = 1       // Số lần AI interpretation/ngày cho tier Free
+PRO_PRICE_MONTHLY_USD    :: f32   = 3.99
+PRO_PRICE_YEARLY_USD     :: f32   = 29.99
+GIFT_READING_PRICE_USD   :: f32   = 0.99
+THEME_PACK_PRICE_USD     :: f32   = 1.99
+FREE_HISTORY_DAYS        :: u16   = 90      // ⚠️ CONFLICT V-001: lib/constants.ts = 30
 ```
 
-> **Type notation dùng trong file này:**
-> ```
-> FieldName :: Type                         — required field
-> FieldName :: Type?                        — optional field (nullable)
-> FieldName :: List<Type>                   — ordered list
-> FieldName :: Map<KeyType, ValueType>      — map / dict
-> FieldName :: TypeA | TypeB               — union type (chọn một)
-> FieldName :: Ref<SchemaName>              — reference đến schema khác
-> FieldName :: Result<OkType, ErrCode>     — success hoặc typed error (không dùng exception)
-> FieldName :: (TypeA, TypeB, TypeC)       — tuple, thứ tự có ý nghĩa, không thay đổi
-> FieldName :: ~ExpressionOrField          — derived/computed từ fields khác, KHÔNG persist vào DB
-> ```
+### 1.2 UX Timing
+
+```
+WILDCARD_AUTO_DELAY_MS   :: u32   = 800     // Delay trước khi tự động chọn wildcard
+SYMBOL_FADE_STAGGER_MS   :: u32   = 200     // Stagger giữa các symbol animation frames
+AI_STREAM_TIMEOUT_MS     :: u32   = 15_000  // Hard timeout cho AI streaming request
+```
+
+### 1.3 Content Constraints
+
+```
+MIN_PASSAGE_CHARS        :: u16   = 20
+MAX_PASSAGE_CHARS        :: u16   = 500
+NOTIFICATION_MATRIX_SIZE :: u16   = 20      // Số entries trong daily notification pool
+GIFT_LINK_TTL_SECONDS    :: u32   = 86_400  // 24 giờ — sau đó GiftExpired
+DEFAULT_PAGE_SIZE        :: u32   = 20
+MAX_PAGE_SIZE            :: u32   = 100
+```
+
+### 1.4 Local AI Model (Qwen3.5-2B / LiteRT-LM)
+
+> **Authority:** Các constants này được định nghĩa trong `lib/constants/local-model.ts` (TypeScript layer)
+> dưới dạng object `LOCAL_MODEL_CONFIG`, **không phải** là named Rust constants trong `contracts.rs`.
+> Các giá trị này được dùng làm defaults trong `LocalModelInfo::Default` impl (contracts.rs).
+> Nếu muốn thêm vào Rust layer, cần tạo `pub const` trong `contracts.rs` và sync sang đây.
+
+```
+LOCAL_MODEL_ID           :: string = "qwen3.5-2b-instruct"
+LOCAL_MODEL_VERSION      :: string = "1.0.0"
+LOCAL_MODEL_CDN_BASE     :: string = "https://storage.googleapis.com/aletheia-models/qwen3.5-2b"
+LOCAL_MODEL_FILENAME     :: string = "Qwen3.5-2B-IT.litertlm"
+LOCAL_MODEL_SIZE_BYTES   :: u64    = 1_500_000_000   // ~1.5GB — verify từ HF paulsp94/Qwen3.5-2B-LiteRT-LM
+LOCAL_MODEL_MIN_RAM_MB   :: u32    = 3_072
+LOCAL_MODEL_MIN_CPU_CORES :: u32   = 4
+LOCAL_MODEL_MAX_TOKENS   :: u32    = 512
+LOCAL_MODEL_TOP_K        :: u32    = 40
+LOCAL_MODEL_TEMPERATURE  :: f32    = 0.7
+LOCAL_MODEL_THINKING_ENABLED :: boolean = true   // Qwen3 /think soft switch
+```
+
+> ⚠️ CONFLICT V-005: `LocalModelInfo::Default` trong `contracts.rs` vẫn trỏ về Gemma 1B cũ.
+> Xem Section 9.
+
+### 1.5 Server / Auth
+
+```
+COOKIE_NAME              :: string = "app_session_id"
+AXIOS_TIMEOUT_MS         :: u32    = 30_000
+```
 
 ---
 
 ## 2. ENUMS
 
-> Mọi enum được define tại đây. Không tạo inline enum trong schema.
+> Mọi enum được define tại đây. Component và service files KHÔNG được redefine enum.
+> Import từ `lib/types.ts` (TypeScript) hoặc `contracts.rs` (Rust).
 
-📝 **FILL-IN**
+### 2.1 Core Enums (exposed qua UniFFI bridge)
 
-### {{ENUM_1_NAME}}
-
-```
-{{ENUM_1_NAME}} ::
-  | {{VARIANT_A}}   // {{MÔ_TẢ_KHI_NÀO_DÙNG}}
-  | {{VARIANT_B}}   // {{MÔ_TẢ_KHI_NÀO_DÙNG}}
-  | {{VARIANT_C}}   // {{MÔ_TẢ_KHI_NÀO_DÙNG}}
-```
-
-**Dùng ở:** `{{SCHEMA_A}}`, `{{SCHEMA_B}}`
-**Không dùng cho:** {{EDGE_CASE_LOẠI_TRỪ}}
-
-### {{ENUM_2_NAME}}
+#### Tradition
 
 ```
-{{ENUM_2_NAME}} ::
-  | {{VARIANT_A}}
-  | {{VARIANT_B}}
+Tradition ::
+  | Chinese    // I Ching
+  | Christian  // Bible KJV
+  | Islamic    // (reserved — không có source bundled)
+  | Sufi       // Hafez, Rumi
+  | Stoic      // Marcus Aurelius
+  | Universal  // Tao Te Ching, cross-tradition — default
 ```
 
-**Dùng ở:** `{{SCHEMA}}`
+**Dùng ở:** `Ref<Source>`, `Ref<ShareCard>`
+**Serialization:** lowercase (`"chinese"`, `"universal"`, ...)
+
+---
+
+#### SourceType
+
+```
+SourceType ::
+  | Hexagram     // symbol_id → passage deterministically (I Ching: 64 quẻ → 64 passages)
+  | Bibliomancy  // passage chọn ngẫu nhiên từ pool (Hafez, Bible, Rumi, Marcus) — default
+  | Meditation   // passage chọn ngẫu nhiên, ordered by chapter (Tao Te Ching)
+```
+
+**Dùng ở:** `Ref<Source>`
+**Serialization:** snake_case (`"hexagram"`, `"bibliomancy"`, `"meditation"`)
+
+---
+
+#### SymbolMethod
+
+```
+SymbolMethod ::
+  | Manual  // User chủ động chọn symbol — default
+  | Auto    // System chọn ngẫu nhiên (bounded randomness)
+```
+
+**Dùng ở:** `Ref<Reading>`
+**Serialization:** lowercase
+
+---
+
+#### MoodTag
+
+```
+MoodTag ::
+  | Confused   // 😕
+  | Hopeful    // 🌟
+  | Anxious    // 😰
+  | Curious    // 🤔
+  | Grateful   // 🙏
+  | Grief      // 😢
+```
+
+**Dùng ở:** `Ref<Reading>` (optional — user tag sau khi đọc)
+**Serialization:** lowercase
+
+---
+
+#### UserIntent
+
+```
+UserIntent ::
+  | Clarity    // Tìm sự rõ ràng
+  | Comfort    // Tìm sự an ủi
+  | Challenge  // Muốn bị thử thách
+  | Guidance   // Tìm hướng dẫn
+```
+
+**Dùng ở:** `Ref<Reading>`, `Ref<UserState>`, `Ref<ReadingSession>`
+**Serialization:** lowercase
+
+---
+
+#### SubscriptionTier
+
+```
+SubscriptionTier ::
+  | Free  // Giới hạn FREE_READINGS_PER_DAY readings/ngày — default
+  | Pro   // Unlimited readings, full AI access
+```
+
+**Dùng ở:** `Ref<UserState>`
+**Serialization:** lowercase
+
+---
+
+#### ReadingState
+
+```
+ReadingState ::
+  | Idle              // Màn hình trống, chờ user — default
+  | SituationInput    // User đang nhập câu hỏi/ngữ cảnh
+  | SourceSelection   // User đang chọn source (truyền thống)
+  | WildcardReveal    // Đang hiển thị các symbol cards để chọn
+  | WildcardChosen    // User đã chọn symbol, chờ confirm
+  | RitualAnimation   // Transition animation sang passage
+  | PassageDisplayed  // Passage đang hiển thị
+  | AiStreaming        // AI đang stream interpretation text
+  | AiFallback        // AI không khả dụng, hiển thị fallback prompts
+  | Complete          // Reading hoàn tất, có thể save/share
+```
+
+**Dùng ở:** Frontend reading flow state machine (session-only, KHÔNG persist)
+**Serialization:** snake_case (`"idle"`, `"situation_input"`, `"ai_streaming"`, ...)
+
+---
+
+#### LocalModelStatus
+
+```
+LocalModelStatus ::
+  | NotDownloaded   // Model chưa tải về device
+  | Downloading     // Đang tải — xem LocalModelInfo.download_progress (0–100)
+  | Ready           // Model đã tải và sẵn sàng inference
+  | UpdateAvailable // Model tồn tại nhưng có version mới trên CDN
+  | Error           // Lỗi trong quá trình tải hoặc khởi tạo engine
+  | Unsupported     // Device không đủ điều kiện (RAM/CPU)
+```
+
+**Dùng ở:** `Ref<LocalModelInfo>`
+**Serialization:** snake_case (`"not_downloaded"`, `"ready"`, ...)
+**⚠️ VIOLATION V-002:** `inference-mode-badge.tsx` redefines làm string union — phải import từ `lib/types.ts`
+
+---
+
+#### ErrorCode
+
+Xem Section 5 Error Registry.
+
+---
+
+### 2.2 UI-Scope Enums (frontend only — không qua bridge)
+
+> Các enums này chỉ sống ở frontend layer. KHÔNG define trong component files — phải có trong `lib/types.ts`.
+
+#### InferenceMode
+
+```
+InferenceMode ::
+  | local    // On-device Qwen3.5-2B qua LiteRT-LM
+  | cloud    // Anthropic Claude API (Haiku hoặc Sonnet)
+  | fallback // Không có AI, dùng cached fallback_prompts
+  | offline  // Không có kết nối và không có local model
+```
+
+**Dùng ở:** `components/inference-mode-badge.tsx`, AI orchestration layer
+**⚠️ VIOLATION V-003:** Chưa có trong `lib/types.ts` — chỉ tồn tại local trong component
+
+---
+
+#### ArchiveFilter
+
+```
+ArchiveFilter ::
+  | all        // Tất cả readings
+  | favorites  // is_favorite = true
+  | ai         // ai_interpreted = true
+  | shared     // shared = true
+```
+
+**Dùng ở:** `app/(tabs)/mirror.tsx` (UI filter state, không persist)
+
+---
+
+#### ArchiveSort
+
+```
+ArchiveSort ::
+  | latest  // created_at DESC — default
+  | oldest  // created_at ASC
+  | depth   // ~depth_score DESC, tie-break created_at DESC
+```
+
+**depth_score** :: ~ai_interpreted(4) + mood_tag(2) + situation_text(2) + min(read_duration_s/60, 3) + is_favorite(1.5) + shared(1)
+
+**Dùng ở:** `app/(tabs)/mirror.tsx` (UI sort state, không persist)
+
+---
+
+#### ToastKind
+
+```
+ToastKind ::
+  | success  // Hành động thành công
+  | warn     // Cảnh báo không block
+  | error    // Lỗi, cần attention
+  | info     // Thông tin trung lập
+```
+
+**Dùng ở:** `showToast()` API trong `components/toast.tsx`
 
 ---
 
 ## 3. CORE SCHEMAS
 
-> Schemas được sắp xếp từ primitive → composite.
-> Schema phụ thuộc schema khác → schema kia phải được define TRÊN nó.
+### 3.1 Content Domain
 
-📝 **FILL-IN**
-
----
-
-### {{SCHEMA_1_NAME}}
-
-> {{MÔ_TẢ_NGẮN_MỘT_DÒNG — schema này đại diện cho cái gì trong domain}}
-> **Owner:** {{TEAM/PERSON}}
+#### Symbol
 
 ```
-{{SCHEMA_1_NAME}} :: {
-  {{field_1}}  :: {{Type}}                    // {{ý_nghĩa_business}}
-  {{field_2}}  :: {{Type}}?                   // {{ý_nghĩa_business}} — optional vì {{lý_do}}
-  {{field_3}}  :: Ref<{{OTHER_SCHEMA}}>        // {{ý_nghĩa_relationship}}
-  {{field_4}}  :: {{ENUM_NAME}}               // {{ý_nghĩa_business}}
-  ~{{field_5}} :: {{Type}}                    // computed từ {{field_1}} + {{field_2}}, KHÔNG lưu DB
+Symbol {
+  id           :: string   // e.g. "01_earth", "32_thunder" — snake_case
+  display_name :: string   // Localized display name (vi/en)
+  flavor_text  :: string?  // Optional ritual/philosophical description
 }
 ```
 
-**Constraints:**
-```
-INVARIANT: {{field_1}} không được rỗng khi {{field_4}} == {{VARIANT}}
-INVARIANT: {{field_2}} phải present khi {{field_3}} != null
-RANGE:     {{field_1}}.length ∈ [{{MIN}}, {{MAX}}]
-```
-
-**Không được nhầm với:** `{{SIMILAR_SCHEMA}}` — khác ở chỗ {{ĐIỂM_KHÁC_BIỆT}}
-
----
-
-### {{SCHEMA_2_NAME}}
-
-> {{MÔ_TẢ_NGẮN}}
-> **Owner:** {{TEAM/PERSON}}
+#### Theme
 
 ```
-{{SCHEMA_2_NAME}} :: {
-  {{field_1}}  :: {{Type}}
-  {{field_2}}  :: List<Ref<{{SCHEMA_1_NAME}}>>
-  {{field_3}}  :: Map<string, {{Type}}>
+Theme {
+  id         :: string
+  name       :: string
+  symbols    :: List<Ref<Symbol>>
+  is_premium :: boolean
+  pack_id    :: string?    // null nếu là default theme
+  price_usd  :: f32?       // null nếu bundled miễn phí
 }
 ```
 
-**Constraints:**
-```
-INVARIANT: {{field_2}}.length >= 1   // phải có ít nhất một item
-```
-
----
-
-### {{SCHEMA_N_NAME}}
-
-📝 Thêm schemas theo cùng format. Mỗi schema cần: mô tả, owner, field definitions, constraints, disambiguation nếu cần.
-
----
-
-## 4. INPUT / OUTPUT CONTRACTS
-
-> I/O contract của từng entry point / API boundary trong hệ thống.
-> Đây là "giao kèo" giữa các components — không thay đổi mà không có ADR entry.
-
-📝 **FILL-IN**
-
----
-
-### {{OPERATION_1}}
-
-> {{MÔ_TẢ_OPERATION — làm gì, tại sao}}
+#### Source
 
 ```
-INPUT  :: Ref<{{INPUT_SCHEMA}}>
+Source {
+  id               :: string
+  name             :: string
+  tradition        :: Ref<Tradition>
+  language         :: string              // ISO 639-1: "en", "vi", "ar", ...
+  passage_count    :: u32
+  is_bundled       :: boolean             // true = có sẵn trong app; false = cần download
+  is_premium       :: boolean
+  fallback_prompts :: List<string>        // Dùng khi AI không available
+  source_type      :: Ref<SourceType>     // Điều khiển cách map symbol → passage
+}
+```
 
-OUTPUT :: Ref<{{OUTPUT_SCHEMA}}>
-       | Ref<{{ERROR_CODE}}>   // khi {{ĐIỀU_KIỆN_LỖI}}
-       | Ref<{{ERROR_CODE}}>   // khi {{ĐIỀU_KIỆN_LỖI}}
+#### Passage
 
-SIDE EFFECTS:
-  - {{STATE_MUTATION_1}} : {{MÔ_TẢ}}
-  - {{EXTERNAL_CALL}}    : gọi {{SERVICE}} với {{DATA}}
-
-PRE-CONDITIONS:
-  - {{field}} phải {{ĐIỀU_KIỆN}} trước khi gọi
-  - {{STATE}} phải ở trạng thái {{TRẠNG_THÁI}}
-
-POST-CONDITIONS:
-  - {{STATE}} sẽ chuyển sang {{TRẠNG_THÁI_MỚI}}
-  - {{RESOURCE}} sẽ được {{CREATED/UPDATED/DELETED}}
-
-IDEMPOTENT: {{CÓ/KHÔNG}} — {{LÝ_DO}}
+```
+Passage {
+  id                :: string
+  source_id         :: string             // FK → Source.id
+  reference         :: string             // e.g. "Quẻ 1 — Càn", "Matthew 5:3"
+  text              :: string             // Nội dung passage
+  context           :: string?            // Chú giải / lịch sử
+  resonance_context :: string?            // Gợi ý ngữ cảnh cho AI
+}
 ```
 
 ---
 
-### {{OPERATION_2}}
+### 3.2 Reading Domain
 
-📝 Thêm operations theo cùng format.
+#### Reading
 
 ```
-INPUT  :: Ref<{{INPUT_SCHEMA}}>
+Reading {
+  id                   :: string           // UUID (generate_uuid())
+  created_at           :: i64              // Unix timestamp, milliseconds
+  source_id            :: string           // FK → Source.id
+  passage_id           :: string           // FK → Passage.id
+  theme_id             :: string           // FK → Theme.id
+  symbol_chosen        :: string           // Symbol.id được chọn
+  symbol_method        :: Ref<SymbolMethod>
+  situation_text       :: string?          // Câu hỏi / ngữ cảnh của user
+  ai_interpreted       :: boolean          // AI interpretation đã được thực hiện
+  ai_used_fallback     :: boolean          // true = dùng fallback_prompts thay AI
+  read_duration_s      :: u32?             // Thời gian từ PassageDisplayed đến Complete
+  time_to_ai_request_s :: u32?             // Thời gian từ PassageDisplayed đến click AI
+  notification_opened  :: boolean          // Reading này được mở từ push notification
+  mood_tag             :: Ref<MoodTag>?
+  is_favorite          :: boolean
+  shared               :: boolean          // User đã share reading này
+  user_intent          :: Ref<UserIntent>?
+  hide_situation       :: boolean?         // TS-store-only — xem ghi chú bên dưới
+}
+```
 
-OUTPUT :: Ref<{{OUTPUT_SCHEMA}}>
-       | Ref<{{ERROR_CODE}}>
+> **TS-store-only field:** `hide_situation` được lưu trong TypeScript SQLite (`lib/services/store.ts`
+> migration v10), KHÔNG qua Rust bridge. Khi `Reading` được fetch từ Rust, field này được
+> enrich từ JS-layer store. Đây là pattern có chủ ý — data nhạy cảm thuần UI không cần đi vào
+> Rust core. Xem Glossary: "TS-store-only field".
 
-SIDE EFFECTS: none
+#### ReadingWithDetails *(UI-scope extension, không qua bridge)*
 
-PRE-CONDITIONS:
-  - {{ĐIỀU_KIỆN}}
+```
+ReadingWithDetails extends Ref<Reading> {
+  sourceName :: ~string?   // Derived từ Source.name theo source_id
+  symbolName :: ~string?   // Derived từ Symbol.display_name theo symbol_chosen
+}
+```
 
-POST-CONDITIONS:
-  - {{KẾT_QUẢ}}
+**Dùng ở:** `app/(tabs)/mirror.tsx` — enriched display, không persist
 
-IDEMPOTENT: CÓ
+---
+
+#### ReadingSession *(ephemeral — KHÔNG persist vào storage)*
+
+```
+ReadingSession {
+  temp_id        :: string           // ID tạm thời (chưa save vào DB)
+  source         :: Ref<Source>
+  theme          :: Ref<Theme>
+  symbols        :: List<Ref<Symbol>> // Shuffled subset để hiển thị wildcard cards
+  situation_text :: string?
+  user_intent    :: Ref<UserIntent>?
+  started_at     :: i64              // Unix timestamp ms
+}
+```
+
+#### CompletedReading
+
+```
+CompletedReading {
+  reading_id :: string   // UUID permanent sau khi complete_reading() thành công
+  saved_at   :: i64
+}
+```
+
+#### ChosenPassage
+
+```
+ChosenPassage {
+  passage    :: Ref<Passage>
+  reading_id :: string     // reading_id của ReadingSession tại thời điểm chọn
+}
+```
+
+#### ShareCard
+
+```
+ShareCard {
+  passage_text  :: string
+  symbol        :: Ref<Symbol>
+  reference     :: string
+  tradition     :: Ref<Tradition>
+  generated_at  :: i64
+  has_watermark :: boolean   // true nếu Free tier
+}
+```
+
+**Note:** Defined trong `contracts.rs` nhưng KHÔNG qua UniFFI bridge — construct phía frontend.
+
+#### PaginatedReadings
+
+```
+PaginatedReadings {
+  items       :: List<Ref<Reading>>
+  total_count :: u32
+  has_more    :: boolean
+}
+```
+
+---
+
+### 3.3 User Domain
+
+#### UserState
+
+```
+UserState {
+  user_id                :: string
+  subscription_tier      :: Ref<SubscriptionTier>
+  readings_today         :: u8              // Reset khi ngày thay đổi (via set_local_date)
+  ai_calls_today         :: u8
+  session_count          :: u32
+  last_reading_date      :: string?         // ISO date "YYYY-MM-DD"
+  notification_enabled   :: boolean
+  notification_time      :: string?         // "HH:MM" 24h format; default "09:00"
+  preferred_language     :: string          // ISO 639-1; default "vi"
+  dark_mode              :: boolean
+  onboarding_complete    :: boolean
+  user_intent            :: Ref<UserIntent>?
+  weekly_summary_enabled :: boolean
+}
+```
+
+**Defaults:** user_id="local-user", tier=Free, preferred_language="vi", notification_time="09:00", notification_enabled=true
+
+---
+
+### 3.4 Notification Domain
+
+#### NotificationEntry
+
+```
+NotificationEntry {
+  symbol_id :: string
+  question  :: string   // Câu hỏi gợi mở, max ~80 ký tự
+}
+```
+
+#### NotificationMessage
+
+```
+NotificationMessage {
+  symbol_id :: string
+  question  :: string
+  title     :: string   // Push notification title
+  body      :: string   // Push notification body text
+}
+```
+
+---
+
+### 3.5 Gift Domain
+
+#### GiftReadingData *(over bridge)*
+
+```
+GiftReadingData {
+  token      :: string
+  buyer_note :: string?
+  source_id  :: string?  // null = receiver tự chọn source
+  created_at :: i64
+  expires_at :: i64      // created_at + GIFT_LINK_TTL_SECONDS * 1000
+  redeemed   :: boolean
+}
+```
+
+#### GiftReading *(server-side full record — KHÔNG qua bridge)*
+
+```
+GiftReading extends Ref<GiftReadingData> {
+  redeemed_at :: i64?   // null nếu chưa redeem
+}
+```
+
+---
+
+### 3.6 Local AI Model Domain
+
+#### LocalModelInfo
+
+```
+LocalModelInfo {
+  model_id          :: string               // Ref: LOCAL_MODEL_ID
+  status            :: Ref<LocalModelStatus>
+  download_progress :: u8                   // 0–100 (%)
+  model_size_bytes  :: u64                  // Ref: LOCAL_MODEL_SIZE_BYTES
+  downloaded_bytes  :: u64
+  version           :: string
+  error_message     :: string?
+  eta_seconds       :: u32?
+  device_capable    :: boolean
+  required_ram_mb   :: u32                  // Ref: LOCAL_MODEL_MIN_RAM_MB
+  available_ram_mb  :: u32
+}
+```
+
+> ⚠️ CONFLICT V-005: Default Rust impl dùng model_id="gemma-3-1b-it-qat-q4_0", size=529MB, ram=1024MB.
+> Phải update thành Qwen3.5-2B values.
+
+#### DeviceCapability
+
+```
+DeviceCapability {
+  supported          :: boolean
+  available_ram_mb   :: u32
+  cpu_cores          :: u32
+  has_simd           :: boolean   // ARM NEON / x86 SSE support
+  estimated_tps      :: f32       // Tokens/second estimate
+  unsupported_reason :: string?   // null nếu supported = true
+}
+```
+
+#### ModelVersionInfo *(CDN version manifest — UI-scope)*
+
+```
+ModelVersionInfo {
+  version        :: string
+  releaseDate    :: string
+  checksum       :: string
+  sizeBytes      :: u64
+  minAppVersion  :: string
+  changelog      :: string?
+}
+```
+
+**Dùng ở:** `lib/constants/local-model.ts` — parse từ CDN `version.json`
+
+---
+
+### 3.7 AI Interpretation Domain
+
+#### AIInterpretation *(sync API — legacy, không dùng trực tiếp)*
+
+```
+AIInterpretation {
+  chunks        :: List<string>
+  used_fallback :: boolean
+}
+```
+
+#### InterpretationStreamState *(streaming — current pattern)*
+
+```
+InterpretationStreamState {
+  request_id    :: string
+  new_chunks    :: List<string>   // Chunks mới từ poll lần này
+  full_text     :: string         // Accumulated text đến hiện tại
+  done          :: boolean
+  used_fallback :: boolean
+  cancelled     :: boolean
+  error         :: Ref<BridgeError>?
+}
+```
+
+---
+
+### 3.8 Bridge Utilities
+
+#### BridgeError
+
+```
+BridgeError {
+  code    :: string   // "ERR_*" string từ ErrorCode.as_str() hoặc raw error string
+  message :: string
+}
+```
+
+**Response pattern:** Tất cả operations trả về `{ data?: T; error?: BridgeError }`.
+KHÔNG throw exception qua bridge — luôn kiểm tra error field.
+
+---
+
+### 3.9 Server / Auth Domain
+
+#### User *(in-memory store khi MYSQL_DISABLED=true — ADR-AL-002)*
+
+```
+User {
+  openId       :: string
+  name         :: string?
+  email        :: string?
+  loginMethod  :: string?   // "google" | "apple" | null
+  role         :: string    // "admin" | "user"
+  lastSignedIn :: Date
+}
+```
+
+#### InsertUser *(upsert input)*
+
+```
+InsertUser {
+  openId       :: string
+  name         :: string?
+  email        :: string?
+  loginMethod  :: string?
+  lastSignedIn :: Date?
+  role         :: string?   // default "user"; "admin" nếu openId = ENV.ownerOpenId
+}
+```
+
+**Note:** Pattern này là legacy từ khi dùng MySQL ORM (ADR-AL-002). Hiện tại cả hai type serve in-memory Map store trong `server/db.ts`.
+
+---
+
+## 4. I/O CONTRACTS
+
+> Tất cả operations của `AletheiaCore` interface (UniFFI bridge — `core/src/aletheia.udl`).
+> KHÔNG throw exception qua bridge — mọi error được wrap trong BridgeError field.
+
+### 4.1 Initialization
+
+```
+bootstrap_bundled_content() → Ref<SeedBundledDataResponse>
+  // Load sources/passages/themes từ bundled JSON assets
+  // PRE: app vừa khởi động
+  // POST: storage được seed với bundled content
+  // Phải thành công trước mọi operation khác
+
+seed_bundled_data(
+  sources_json  :: string,
+  passages_json :: string,
+  themes_json   :: string
+) → Ref<SeedBundledDataResponse>
+  // Manual seed — dùng trong tests hoặc override. Production dùng bootstrap_bundled_content().
+
+set_ai_api_key(
+  provider :: string,   // "anthropic"
+  key      :: string    // sk-ant-...
+) → Ref<SetApiKeyResponse>
+  // Lưu API key vào Rust-managed secure storage (không qua KeyChain JS side)
+  // PRE: app đã load
+  // POST: key available cho start_interpretation_stream
+```
+
+### 4.2 Reading Flow *(sequential — phải gọi đúng thứ tự)*
+
+```
+perform_reading(
+  user_id        :: string,
+  source_id      :: string?,    // null = Rust chọn ngẫu nhiên theo preference
+  situation_text :: string?
+) → Ref<PerformReadingResponse>
+  // PRE: bootstrap_bundled_content() thành công
+  // POST: trả về ReadingSession với symbols đã shuffle (để hiển thị wildcard cards)
+  // FAIL: DailyLimitReached nếu readings_today ≥ FREE_READINGS_PER_DAY (Free tier)
+  // FAIL: SourceNotFound, ThemeNotFound, PassageEmpty
+
+choose_symbol(
+  session   :: Ref<ReadingSession>,
+  symbol_id :: string,
+  method    :: Ref<SymbolMethod>
+) → Ref<ChooseSymbolResponse>
+  // PRE: symbol_id có trong session.symbols
+  // POST: trả về ChosenPassage — passage được select theo symbol + SourceType logic
+
+complete_reading(
+  user_id :: string,
+  reading :: Ref<Reading>
+) → Ref<CompleteReadingResponse>
+  // PRE: reading được build từ ReadingSession + ChosenPassage
+  // POST: persist Reading vào SQLite, increment readings_today counter
+  // FAIL: StorageWriteFail
+```
+
+### 4.3 AI Interpretation *(streaming pattern — current)*
+
+```
+request_interpretation(
+  passage        :: Ref<Passage>,
+  symbol         :: Ref<Symbol>,
+  situation_text :: string?
+) → Ref<RequestInterpretationResponse>
+  // ⚠️ LEGACY — sync blocking call. Exists in aletheia.udl và contracts.rs nhưng không dùng
+  // trong production flow. Dùng start_interpretation_stream() thay thế.
+
+start_interpretation_stream(
+  passage        :: Ref<Passage>,
+  symbol         :: Ref<Symbol>,
+  situation_text :: string?,
+  user_intent    :: string?,     // Ref<UserIntent> serialized value hoặc null
+  use_sonnet     :: boolean      // true = Claude Sonnet; false = Claude Haiku
+) → Ref<StartInterpretationStreamResponse>
+  // PRE: API key đã set (cloud) HOẶC LocalModelStatus = Ready (local)
+  // POST: request_id để dùng trong poll_interpretation_stream
+  // FAIL: AiUnavailable nếu tất cả providers fail; DailyLimitReached
+
+poll_interpretation_stream(request_id :: string) → Ref<InterpretationStreamState>
+  // Gọi mỗi ~300ms đến khi done=true hoặc error≠null
+  // new_chunks chứa text mới kể từ lần poll trước
+
+cancel_interpretation_stream(request_id :: string) → Ref<CancelInterpretationResponse>
+
+get_fallback_prompts(source_id :: string) → Ref<FallbackPromptsResponse>
+  // Lấy Source.fallback_prompts khi AI không available
+```
+
+### 4.4 User State
+
+```
+get_user_state(user_id :: string) → Ref<UserStateResponse>
+  // POST: nếu chưa tồn tại, tạo UserState với defaults
+
+update_user_state(state :: Ref<UserState>) → Ref<UpdateUserStateResponse>
+  // Full replace — persist toàn bộ UserState
+
+set_local_date(local_date :: string) → void
+  // Đặt ngày local (ISO "YYYY-MM-DD") để daily limit reset đúng
+  // Phải gọi mỗi khi app về foreground
+```
+
+### 4.5 Content Queries
+
+```
+get_sources(premium_allowed :: boolean) → Ref<SourcesResponse>
+  // premium_allowed = (subscription_tier == Pro)
+  // Trả về tất cả sources available cho tier đó
+
+get_readings(
+  limit  :: u32,   // ≤ MAX_PAGE_SIZE
+  offset :: u32
+) → Ref<PaginatedReadingsResponse>
+  // Ordered by created_at DESC
+
+get_reading_by_id(id :: string) → Ref<ReadingResponse>
+
+update_reading_flags(
+  id          :: string,
+  is_favorite :: boolean?,   // null = không thay đổi field này
+  shared      :: boolean?
+) → Ref<ReadingResponse>
+```
+
+### 4.6 Notifications
+
+```
+get_daily_notification_message(
+  user_id :: string,
+  date    :: string    // ISO "YYYY-MM-DD"
+) → Ref<NotificationMessageResponse>
+  // Deterministic từ hash(user_id + date) → NOTIFICATION_MATRIX_SIZE entries
+  // Mỗi user nhận cùng message cho cùng ngày (idempotent)
+```
+
+### 4.7 Gift Readings
+
+```
+redeem_gift(token :: string) → Ref<RedeemGiftResponse>
+  // FAIL: GiftExpired, GiftNotFound, GiftAlreadyRedeemed
+
+create_gift(
+  source_id  :: string?,
+  buyer_note :: string?
+) → Ref<CreateGiftResponse>
+  // POST: tạo gift token trên InsForge backend, trả về deep_link
+  // deep_link format: "aletheia://gift/{token}"
+```
+
+### 4.8 Local AI Model
+
+```
+check_device_capability() → Ref<DeviceCapabilityResponse>
+  // Kiểm tra hardware (RAM, CPU cores, SIMD) — không cần model đã download
+
+get_local_model_status() → Ref<LocalModelStatusResponse>
+
+prepare_local_model(force_download :: boolean) → Ref<PrepareLocalModelResponse>
+  // force_download=true: re-download ngay cả khi đã có file
+  // POST: nếu started=true → poll get_local_model_status() để track progress
+
+cancel_local_model_download() → Ref<LocalModelStatusResponse>
+
+delete_local_model() → boolean
 ```
 
 ---
 
 ## 5. ERROR REGISTRY
 
-> Mọi error code được define tại đây với HTTP status, retryability, severity,
-> message template, và context cần thiết để debug.
+> Mọi lỗi từ AletheiaCore đều được wrap trong `BridgeError.code` (string `ERR_*`).
+> HTTP status mapping áp dụng ở server transport layer (`lib/errors.ts`).
 
-📝 **FILL-IN**
+| ErrorCode variant | Wire string | HTTP | Trigger condition |
+|---|---|---|---|
+| `SourceNotFound` | `ERR_SOURCE_NOT_FOUND` | 404 | source_id không tồn tại trong SQLite |
+| `PassageEmpty` | `ERR_PASSAGE_EMPTY` | 404 | Source tồn tại nhưng không có passage |
+| `ThemeNotFound` | `ERR_THEME_NOT_FOUND` | 404 | theme_id không tìm thấy |
+| `SymbolInvalid` | `ERR_SYMBOL_INVALID` | 400 | symbol_id không thuộc theme đang active |
+| `AiTimeout` | `ERR_AI_TIMEOUT` | 504 | AI stream vượt `AI_STREAM_TIMEOUT_MS` (15s) |
+| `AiUnavailable` | `ERR_AI_UNAVAILABLE` | 503 | Tất cả providers (cloud + local) đều fail |
+| `GiftExpired` | `ERR_GIFT_EXPIRED` | 410 | Token quá `GIFT_LINK_TTL_SECONDS` (24h) |
+| `GiftNotFound` | `ERR_GIFT_NOT_FOUND` | 404 | Token không tồn tại trên backend |
+| `GiftAlreadyRedeemed` | `ERR_GIFT_ALREADY_REDEEMED` | 409 | Token đã được dùng một lần |
+| `DailyLimitReached` | `ERR_DAILY_LIMIT_REACHED` | 403 | readings_today ≥ `FREE_READINGS_PER_DAY` |
+| `SubscriptionRequired` | `ERR_SUBSCRIPTION_REQUIRED` | 402 | Nội dung premium với Free tier |
+| `StorageWriteFail` | `ERR_STORAGE_WRITE_FAIL` | 500 | SQLite write thất bại |
+| `InvalidInput` | `ERR_INVALID_INPUT` | 400 | Input validation fail |
 
-| Code | HTTP | Retryable? | Severity | Message Template | Context cần thiết | Khi nào xảy ra |
-|---|---|---|---|---|---|---|
-| `{{ERR_1}}` | {{4xx/5xx}} | CÓ (backoff) | ERROR | `"{{MESSAGE_TEMPLATE}}"` | `{{FIELD_1}}`, `{{FIELD_2}}` | {{TRIGGER_CONDITION}} |
-| `{{ERR_2}}` | {{4xx/5xx}} | KHÔNG | INFO | `"{{MESSAGE_TEMPLATE}}"` | `{{FIELD}}` | {{TRIGGER_CONDITION}} |
+**AletheiaError** (TypeScript full struct — `lib/types.ts`):
+```
+AletheiaError {
+  code    :: Ref<ErrorCode>
+  message :: string
+  context :: Map<string, unknown>?
+}
+```
 
-> **Severity guide:**
-> - `FATAL` — hệ thống không thể tiếp tục, page on-call ngay
-> - `ERROR` — operation fail, cần investigate; hệ thống vẫn chạy
-> - `WARN`  — không fail nhưng bất thường, cần monitor
-> - `INFO`  — lỗi do user input, không cần alert
->
-> **Retryable guide:**
-> - `CÓ (backoff)` — retry với exponential backoff, tối đa {{N}} lần
-> - `CÓ (immediate)` — retry ngay lập tức, tối đa {{N}} lần
-> - `KHÔNG` — retry sẽ không thay đổi kết quả, client không nên retry
->
-> **Error format chuẩn:**
-> ```
-> Error :: {
->   code      :: ErrorCode        // từ registry này
->   message   :: string           // theo message template
->   context   :: Map<string, any> // các fields liệt kê trong cột "Context"
->   retryable :: bool             // từ cột "Retryable?" trong registry
->   severity  :: Severity         // từ cột "Severity" trong registry
->   trace     :: string?          // optional, chỉ trong dev mode
-> }
-> ```
+**Note:** `AletheiaError` (TypeScript) ≠ `BridgeError` (over bridge). `BridgeError.code` là string `ERR_*`; `AletheiaError.code` là enum variant. Conversion: `lib/errors.ts:toHttpError()`.
 
 ---
 
 ## 6. EXTERNAL CONTRACTS
 
-> Interface với các external services, third-party APIs, hoặc databases.
-> Ghi lại những gì hệ thống này *expect* từ bên ngoài — không phải implementation của bên ngoài.
+### InsForge Backend
 
-📝 **FILL-IN**
+- **Project:** aletheia
+- **API Base:** `https://4ps4qk8r.us-east.insforge.app`
+- **Dùng cho:** Gift reading create/redeem; user auth (disabled — ADR-AL-002)
+- **Auth:** API key trong `.env.local` (KHÔNG commit)
 
-### {{EXTERNAL_SERVICE_1}}
+### AI Providers
 
-**API Version expected:** v{{N}}
-**SLA expected:** {{N}}% uptime · P99 ≤ {{N}}ms response time
-**Last verified:** {{YYYY-MM-DD}}
-**Contact / Docs:** {{URL_HOẶC_TEAM}}
+| Provider | Model | Khi nào dùng |
+|---|---|---|
+| Anthropic Claude Sonnet | `claude-sonnet-4-6` | `use_sonnet=true` (Pro tier) |
+| Anthropic Claude Haiku | `claude-haiku-4-5-20251001` | `use_sonnet=false` (Free tier) |
+| Local LiteRT-LM | Qwen3.5-2B-IT | Device capable + LocalModelStatus=Ready |
+
+**Fallback chain:** Local model → Cloud → fallback_prompts (static)
+
+### CDN — Google Cloud Storage
 
 ```
-// Hệ thống này gọi {{SERVICE}} với:
-REQUEST :: {
-  {{field}} :: {{Type}}
-}
-
-// Hệ thống này expect {{SERVICE}} trả về:
-RESPONSE :: {
-  {{field}} :: {{Type}}
-}
-
-// Failure modes hệ thống phải handle:
-FAILURES ::
-  | TIMEOUT          // sau {{N}}ms → {{XỬ_LÝ_GÌ}}
-  | UNAVAILABLE      // {{XỬ_LÝ_GÌ}}
-  | VERSION_MISMATCH // detect qua {{FIELD/HEADER}} → fail fast + alert, KHÔNG cố parse
-  | {{ERROR}}        // {{XỬ_LÝ_GÌ}}
+Base: https://storage.googleapis.com/aletheia-models/qwen3.5-2b/
+Files:
+  Qwen3.5-2B-IT.litertlm  — model binary (~1.5GB)
+  version.json             — Ref<ModelVersionInfo>
+  checksum.sha256          — SHA-256 của model file
 ```
-
-> Nếu response schema thay đổi không tương thích → alert + fail fast.
-> KHÔNG cố parse partial response. Xem BLUEPRINT.md Section 6 để biết retry/circuit breaker strategy.
 
 ---
 
 ## 7. NAMING CONVENTIONS
 
-> Quy ước đặt tên xuyên suốt codebase. Agent phải tuân theo khi generate code.
-
-📝 **FILL-IN**
-
-| Context | Convention | Ví dụ |
-|---|---|---|
-| Schema names | `PascalCase` | `UserProfile`, `OrderItem` |
-| Field names | `snake_case` | `user_id`, `created_at` |
-| Constants | `SCREAMING_SNAKE` | `MAX_RETRY`, `DEFAULT_TIMEOUT` |
-| Functions | `snake_case` | `compute_score()`, `build_report()` |
-| Error codes | `SCREAMING_SNAKE` với prefix domain | `AUTH_INVALID_TOKEN`, `ORDER_NOT_FOUND` |
-| File / module names | `snake_case` | `user_service.py`, `order_handler.ts` |
-| {{CONTEXT}} | `{{CONVENTION}}` | `{{EXAMPLE}}` |
-
-**Domain-specific rules:**
-
-📝 **FILL-IN:** Những quy tắc đặc thù của domain này mà agent không thể infer từ convention chung.
-
 ```
-{{RULE_1}}: {{MÔ_TẢ}}
-  ✅ {{ĐÚNG}}
-  ❌ {{SAI}}
+Schema names         :: PascalCase           (Reading, UserState, BridgeError)
+Enum variants        :: PascalCase           (NotDownloaded, AiStreaming)
+Field names          :: snake_case           (source_id, is_favorite, ai_calls_today)
+Constants            :: SCREAMING_SNAKE_CASE (FREE_READINGS_PER_DAY, AI_STREAM_TIMEOUT_MS)
+Error string IDs     :: ERR_SCREAMING_SNAKE  (ERR_SOURCE_NOT_FOUND)
+Response type names  :: {Verb}Response       (PerformReadingResponse, LocalModelStatusResponse)
 ```
+
+**Timestamp convention:**
+- Core schemas: `i64` Unix milliseconds (compatible với JavaScript `Date.now()`)
+- ISO date strings: `"YYYY-MM-DD"` (notification date, last_reading_date)
+- Time strings: `"HH:MM"` 24h format (notification_time)
+
+**Nullable/optional:** Luôn dùng `undefined` trong TypeScript (không mix `null` và `undefined`).
+Trong Rust: `Option<T>`. Trong UDL: `T?`.
 
 ---
 
 ## 8. SCHEMA CHANGELOG
 
-> Append-only. Mọi thay đổi schema đều phải có entry ở đây.
-> Breaking changes phải có ADR entry tương ứng trong ADR.md.
-> **Date format: YYYY-MM-DD (ISO 8601).**
-
-| Version | Date | Schema | Thay đổi | Breaking? | ADR Ref |
-|---|---|---|---|---|---|
-| v1.0 | {{YYYY-MM-DD}} | — | Init schema registry | — | — |
-| 📝 | | | | | |
-
-> **Template một entry:**
-> `| v{{X.Y}} | {{YYYY-MM-DD}} | {{SCHEMA}} | {{ADDED/REMOVED/RENAMED/DEPRECATED}}: {{FIELD}} {{→ NEW_NAME/TYPE}} | {{CÓ/KHÔNG}} | ADR-{{N}} |`
+| Version | Date | Files affected | Change |
+|---|---|---|---|
+| v0.1.0 | 2026-06-05 | All | Initial DSDD bootstrap — reverse-engineered từ codebase hiện có |
 
 ---
 
-## 9. DEPRECATION REGISTRY
+## 9. VIOLATION REGISTRY
 
-> Fields và schemas đang trong quá trình loại bỏ.
-> Entry ở đây: vẫn tồn tại trong schema definition nhưng **KHÔNG dùng cho logic mới**.
-> Code gen PHẢI emit deprecation warning khi gặp các fields/schemas trong registry này.
-> Removal là breaking change → bắt buộc có ADR entry trước khi xóa.
+> Theo dõi mọi vi phạm Single Definition Rule và conflict giữa spec và code.
+> Lifecycle: **OPEN** → **IN_PROGRESS** → **RESOLVED**
+> Mọi violation phải được resolve trước khi merge code liên quan.
 
-📝 **FILL-IN** *(bỏ qua nếu chưa có deprecation nào)*
+---
 
-| Schema | Field / Schema bị deprecated | Deprecated since | Removal target | Migration path | ADR Ref |
-|---|---|---|---|---|---|
-| `{{SCHEMA}}` | `{{field}}` | v{{X.Y}} | v{{X+1.0}} | Dùng `{{NEW_FIELD}}` thay thế | ADR-{{N}} |
-| `{{SCHEMA}}` | *(toàn bộ schema)* | v{{X.Y}} | v{{X+1.0}} | Dùng `{{NEW_SCHEMA}}` | ADR-{{N}} |
+**V-001 — FREE_HISTORY_DAYS conflict**
+- **Status:** ✅ RESOLVED — 2026-06-05
+- **Severity:** HIGH — business logic inconsistency
+- **Locations:** `core/src/contracts.rs:109` (= 90) vs `lib/constants.ts:29` (was 30)
+- **Fix:** `lib/constants.ts:29` updated từ 30 → 90 để sync với contracts.rs.
+- **Note:** Cả hai constants là dead code hiện tại (không được import ở đâu). Conflict đã được giải quyết nhưng constants cần được sử dụng khi implement history filter feature.
 
-> **Lifecycle của một field/schema:**
-> ```
-> ACTIVE
->   │
->   ├─[team quyết định loại bỏ]──▶ DEPRECATED ─── ghi vào registry này, bump minor version
->   │                                   │
->   │                                   ├─[migration done, sau ≥1 release cycle]
->   │                                   ▼
->   │                               REMOVED ────── ghi vào Schema Changelog, bump major + ADR
->   │
->   └─ Không được skip từ ACTIVE thẳng sang REMOVED nếu có consumer bên ngoài
-> ```
+---
+
+**V-002 — LocalModelStatus duplicate type definition**
+- **Status:** ✅ RESOLVED — 2026-06-05
+- **Severity:** HIGH — type safety risk tại bridge boundary
+- **Root cause:** Native module trả về string union values, nhưng `lib/types.ts` generate TypeScript enum — hai type không structurally compatible. Badge tự define string union riêng vì enum không khớp.
+- **Fix:**
+  - `lib/types.ts`: Đổi `LocalModelStatus` từ TypeScript enum sang string union type
+  - `scripts/sync-types.ts`: Thêm `GENERATE_AS_UNION` set — `LocalModelStatus` được generate là string union thay vì enum khi sync
+  - `components/inference-mode-badge.tsx`: Xóa local definition, import từ `@/lib/types`
+  - `hooks/use-local-model.ts`: Xóa re-export `NativeLocalModelStatus as LocalModelStatus`
+
+---
+
+**V-003 — InferenceMode không có trong global registry**
+- **Status:** ✅ RESOLVED — 2026-06-05
+- **Severity:** MEDIUM — missing single definition
+- **Root cause:** `"local" | "cloud" | "fallback" | "offline"` được định nghĩa inline tại 4+ file: badge component, hook, orchestrator, analytics. Không ai import từ badge vì dependency direction sẽ sai.
+- **Fix:**
+  - `lib/types.ts`: Thêm `export type InferenceMode = "local" | "cloud" | "fallback" | "offline"`
+  - `scripts/sync-types.ts`: InferenceMode được thêm như static UI-scope type trong generateTypeScript()
+  - `components/inference-mode-badge.tsx`: Import từ `@/lib/types`
+  - `hooks/use-local-model.ts`: `determineInferenceMode` return type → `InferenceMode`; callback param → `InferenceMode`
+  - `lib/services/interpretation-orchestrator.ts`: `InferenceModeSelection.mode` → `InferenceMode`
+  - `lib/analytics.ts`: `trackInferenceMode` param → `InferenceMode`
+
+---
+
+**V-004 — hide_situation field trong lib/types.ts không có trong contracts.rs hay aletheia.udl**
+- **Status:** ✅ RESOLVED (INCORRECT VIOLATION) — 2026-06-05
+- **Finding:** Đây KHÔNG phải vi phạm. `hide_situation` là **TS-store-only field** được thiết kế có chủ ý:
+  - `lib/services/store.ts` migration v10: `ALTER TABLE readings ADD COLUMN hide_situation INTEGER NOT NULL DEFAULT 0` — tồn tại trong TypeScript SQLite riêng biệt
+  - `lib/services/core-store.ts`: Comment rõ "hide_situation is TS-store-only — persist it first, then handle native flags separately"
+  - `app/reading/[id].tsx:396`: UI toggle "Show/Hide Situation" được implement đầy đủ
+- **Architecture:** Có hai SQLite databases tách biệt: (1) Rust SQLite via AletheiaCore bridge, (2) TypeScript SQLite trong store.ts. `hide_situation` thuộc về (2) — data thuần UI không cần đi vào Rust core.
+- **Action taken:** Cập nhật CONTRACTS.md: `hide_situation` được thêm vào `Reading` schema với annotation TS-store-only. Glossary cập nhật với pattern "TS-store-only field".
+
+---
+
+**V-005 — LocalModelInfo::Default trong contracts.rs trỏ về Gemma 1B cũ**
+- **Status:** ✅ RESOLVED — 2026-06-05
+- **Severity:** MEDIUM — stale defaults sau LiteRT-LM migration (ADR-AL-003)
+- **Fix:** `core/src/contracts.rs` Default impl đã được cập nhật:
+  - `model_id`: `"gemma-3-1b-it-qat-q4_0"` → `"qwen3.5-2b-instruct"`
+  - `model_size_bytes`: `529_000_000` → `1_500_000_000`
+  - `required_ram_mb`: `1024` → `3_072`
 
 ---
 
 ## 10. GLOSSARY
 
-> Domain terms và abbreviations dùng trong schemas, comments, và pseudocode.
-> Agent PHẢI dùng đúng định nghĩa này khi generate code, docs, log messages, và error messages.
-> Nếu một term xuất hiện trong schema comment mà không có trong bảng này → thêm vào.
-
-📝 **FILL-IN** *(bỏ qua nếu tất cả terms đều self-explanatory)*
-
-| Term | Định nghĩa | Không nhầm với |
-|---|---|---|
-| **{{TERM_1}}** | {{ĐỊNH_NGHĨA_CHÍNH_XÁC_THEO_BUSINESS_DOMAIN}} | `{{SIMILAR_TERM}}` — khác ở {{ĐIỂM_KHÁC_BIỆT}} |
-| **{{TERM_2}}** | {{ĐỊNH_NGHĨA}} | — |
-| **{{ABBR}}** | {{VIẾT_ĐẦY_ĐỦ}} ({{ĐỊNH_NGHĨA_NGẮN}}) | — |
-
-> Nếu hai người trong team định nghĩa cùng một term khác nhau → đây là nơi chốt định nghĩa chính thức.
-> Khi có conflict → tạo ADR để document quyết định chọn định nghĩa nào.
+| Term | Definition |
+|---|---|
+| **AletheiA** | App thiền định kỹ thuật số — kết hợp wisdom texts với AI interpretation |
+| **Bridge** | UniFFI-generated layer giữa Rust core và Kotlin (Android) / TypeScript (RN) |
+| **Bundled content** | Sources, passages, themes được đóng gói sẵn trong APK — không cần network |
+| **Daily limit** | `FREE_READINGS_PER_DAY` readings/ngày cho Free tier — reset khi ngày thay đổi |
+| **depth score** | Điểm "chiều sâu" của một reading — tính từ ai_interpreted, mood_tag, situation_text, read_duration, is_favorite, shared |
+| **Fallback** | AI interpretation được thay bằng `Source.fallback_prompts` khi cloud + local đều fail |
+| **DSDD** | Design-Sufficient Design Document — bộ ba CONTRACTS/BLUEPRINT/ADR |
+| **LiteRT-LM** | Google's on-device LLM runtime (replacement cho deprecated MediaPipe GenAI) |
+| **Passage** | Một đoạn trích từ Source — unit cơ bản của một reading |
+| **Reading** | Một phiên đọc hoàn chỉnh: từ situation input → symbol chọn → passage → optional AI |
+| **ReadingSession** | Ephemeral in-memory state trong suốt một reading flow — không persist |
+| **Source** | Một văn bản thiêng liêng (I Ching, Bible KJV, Hafez, Rumi, Marcus Aurelius, Tao Te Ching) |
+| **Symbol / Wildcard** | Card user chọn trong ritual — mapping tới passage theo SourceType logic |
+| **Tier Free** | SubscriptionTier.Free — giới hạn FREE_READINGS_PER_DAY readings/ngày |
+| **Tier Pro** | SubscriptionTier.Pro — không giới hạn readings, full AI access |
+| **UDL** | UniFFI Definition Language — `core/src/aletheia.udl` — executable spec cho Kotlin/TS binding |
+| **TS-store-only field** | Field tồn tại trong TypeScript SQLite (`lib/services/store.ts`) nhưng không trong Rust bridge. Reading được enrich với các field này sau khi fetch từ Rust. Pattern cho UI-only data không cần đi vào Rust core (e.g., `hide_situation`). |
+| **UserIntent** | Mục đích của user khi đọc (Clarity/Comfort/Challenge/Guidance) — ảnh hưởng AI prompt |

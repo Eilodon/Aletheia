@@ -3,6 +3,7 @@ import { getApiBaseUrl } from "@/constants/oauth";
 import { aiClient, type AIInterpretationResult, type AIRequest, type AIStreamSession } from "./ai-client";
 import { aletheiaNativeClient } from "@/lib/native/aletheia-core";
 import { determineInferenceMode } from "@/hooks/use-local-model";
+import type { InferenceMode } from "@/lib/types";
 import { trackInferenceMode, trackLocalModelEvent } from "@/lib/analytics";
 import {
   isSafeLocalOutput,
@@ -40,7 +41,7 @@ type StreamHandlers = {
 };
 
 type InferenceModeSelection = {
-  mode: "local" | "cloud" | "fallback" | "offline";
+  mode: InferenceMode;
   localReady: boolean;
   localSupported: boolean;
 };

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "fs";
 import { join } from "path";
+import type { UserIntent } from "../lib/types";
 
 /**
  * Interpretation Output Contract Evaluator
@@ -8,9 +9,6 @@ import { join } from "path";
  * This test harness evaluates AI interpretation outputs against the Aletheia rubric.
  * Used to validate local and cloud model outputs for contract fidelity.
  */
-
-// Types
-type UserIntent = "clarity" | "comfort" | "challenge" | "guidance";
 
 interface EvalCase {
   id: string;

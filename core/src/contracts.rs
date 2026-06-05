@@ -485,16 +485,16 @@ pub struct LocalModelInfo {
 impl Default for LocalModelInfo {
     fn default() -> Self {
         Self {
-            model_id: "gemma-3-1b-it-qat-q4_0".to_string(),
+            model_id: "qwen3.5-2b-instruct".to_string(),
             status: LocalModelStatus::NotDownloaded,
             download_progress: 0,
-            model_size_bytes: 529_000_000,
+            model_size_bytes: 1_500_000_000,
             downloaded_bytes: 0,
             version: String::new(),
             error_message: None,
             eta_seconds: None,
             device_capable: false,
-            required_ram_mb: 1024,
+            required_ram_mb: 3_072,
             available_ram_mb: 0,
         }
     }

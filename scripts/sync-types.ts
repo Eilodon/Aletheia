@@ -1,10 +1,17 @@
 /**
  * Type Sync Script - Generate TypeScript types from Rust contracts
- * 
+ *
  * Usage: npx tsx scripts/sync-types.ts
- * 
- * This script parses executable Rust contracts and generates lib/types.ts
- * Run this whenever the Rust contracts change
+ *
+ * Chain of command (ADR-AL-001):
+ *   docs/CORE/CONTRACTS.md  ← primary spec (human layer, edit here first)
+ *       ↓ mirror manually
+ *   core/src/contracts.rs   ← executable spec (update after CONTRACTS.md)
+ *       ↓ this script
+ *   lib/types.ts            ← generated artifact (do not edit manually)
+ *
+ * Run this script after updating contracts.rs to keep lib/types.ts in sync.
+ * Do NOT change types in lib/types.ts directly — update CONTRACTS.md first.
  */
 
 import * as fs from "fs";
@@ -106,15 +113,21 @@ function parseRustFile(content: string): { enums: ParsedEnum[]; structs: ParsedS
   return { enums, structs };
 }
 
+// Enums listed here are generated as TypeScript string union types instead of
+// TypeScript enums. Use this for enums whose values are compared as raw strings
+// at runtime (e.g. values coming directly from the native bridge).
+const GENERATE_AS_UNION = new Set(["LocalModelStatus"]);
+
 function generateTypeScript(enums: ParsedEnum[], structs: ParsedStruct[]): string {
   let output = `/**
  * Aletheia Type Definitions
  * AUTO-GENERATED - Do not edit manually
- * Sync from: core/src/contracts.rs and core/src/aletheia.udl
+ * Sync from: CONTRACTS.md → core/src/contracts.rs → this file (ADR-AL-001)
  * Last synced: ${new Date().toISOString().split("T")[0]}
- * 
- * Executable Rust contracts are the source of truth.
- * docs/CONTRACTS.md is a synchronized reference, not the authority.
+ *
+ * docs/CORE/CONTRACTS.md is the primary spec (human layer).
+ * core/src/contracts.rs is the executable spec.
+ * This file is a generated artifact — change CONTRACTS.md first.
  */
 
 // ============================================================================
@@ -124,20 +137,34 @@ function generateTypeScript(enums: ParsedEnum[], structs: ParsedStruct[]): strin
 `;
 
   // Generate enums (handle snake_case for ErrorCode)
+  // Enums in GENERATE_AS_UNION are emitted as string union types instead of
+  // TypeScript enums — used when values are compared as raw strings at runtime.
   for (const enumItem of enums) {
-    output += `export enum ${enumItem.name} {\n`;
-    for (const value of enumItem.values) {
-      let enumValue = value;
+    const wireValues = enumItem.values.map(value => {
       if (enumItem.hasSnakeCase) {
-        // Convert PascalCase to snake_case: SourceNotFound -> source_not_found
-        enumValue = value.replace(/([A-Z])/g, "_$1").toLowerCase().replace(/^_/, "");
-      } else {
-        enumValue = value.toLowerCase();
+        return value.replace(/([A-Z])/g, "_$1").toLowerCase().replace(/^_/, "");
       }
-      output += `  ${value} = "${enumValue}",\n`;
+      return value.toLowerCase();
+    });
+
+    if (GENERATE_AS_UNION.has(enumItem.name)) {
+      output += `export type ${enumItem.name} =\n`;
+      output += wireValues.map(v => `  | "${v}"`).join("\n") + ";\n\n";
+    } else {
+      output += `export enum ${enumItem.name} {\n`;
+      enumItem.values.forEach((value, i) => {
+        output += `  ${value} = "${wireValues[i]}",\n`;
+      });
+      output += `}\n\n`;
     }
-    output += `}\n\n`;
   }
+
+  // UI-scope types — not in contracts.rs, maintained manually per CONTRACTS.md Section 2.2
+  output += `// UI-scope types (not generated from contracts.rs — see CONTRACTS.md Section 2.2)\n`;
+  output += `export type InferenceMode = "local" | "cloud" | "fallback" | "offline";\n`;
+  output += `export type ArchiveFilter = "all" | "favorites" | "ai" | "shared";\n`;
+  output += `export type ArchiveSort = "latest" | "oldest" | "depth";\n`;
+  output += `export type ToastKind = "success" | "warn" | "error" | "info";\n\n`;
 
   output += `// ============================================================================
 // CORE SCHEMAS

@@ -66,14 +66,21 @@ export enum UserIntent {
   Guidance = "guidance",
 }
 
-export enum LocalModelStatus {
-  NotDownloaded = "not_downloaded",
-  Downloading = "downloading",
-  Ready = "ready",
-  UpdateAvailable = "update_available",
-  Error = "error",
-  Unsupported = "unsupported",
-}
+export type LocalModelStatus =
+  | "not_downloaded"
+  | "downloading"
+  | "ready"
+  | "update_available"
+  | "error"
+  | "unsupported";
+
+export type InferenceMode = "local" | "cloud" | "fallback" | "offline";
+
+export type ArchiveFilter = "all" | "favorites" | "ai" | "shared";
+
+export type ArchiveSort = "latest" | "oldest" | "depth";
+
+export type ToastKind = "success" | "warn" | "error" | "info";
 
 export enum ErrorCode {
   SourceNotFound = "source_not_found",
