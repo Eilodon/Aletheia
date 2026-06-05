@@ -2,42 +2,37 @@
 
 This directory is for bundling AI models with the APK.
 
-## Gemma 3n E2B
+## Qwen3.5-2B LiteRT-LM
 
-The local inference engine expects `gemma-3n-e2b.task` (MediaPipe format).
+The local inference engine expects `Qwen3.5-2B-IT.litertlm` (LiteRT-LM format).
 
 ### Option 1: Bundle with APK (Not Recommended)
 
 Place the model file here:
 ```
-assets/models/gemma-3n-e2b.task
+assets/models/Qwen3.5-2B-IT.litertlm
 ```
 
-This will increase APK size by ~2GB.
+This will increase APK size by ~1.5GB.
 
 ### Option 2: Runtime Download (Recommended)
 
 1. Upload model to GCS using the script:
    ```bash
-   ./scripts/upload-model-to-gcs.sh /path/to/gemma-3n-e2b.task
+   ./scripts/upload-model-to-gcs.sh /path/to/Qwen3.5-2B-IT.litertlm
    ```
 
 2. Users download the model from Settings > Local AI
 
 ### Model Sources
 
-- **Google AI Edge**: https://ai.google.dev/edge
-- **HuggingFace**: Convert from GGUF to MediaPipe format
+- **Google AI Edge LiteRT-LM**: https://github.com/google-ai-edge/LiteRT-LM
+- **HuggingFace**: `paulsp94/Qwen3.5-2B-LiteRT-LM`
 
-### Format Conversion
+### Format
 
-If you have a GGUF model, convert it to MediaPipe format:
-```bash
-# Using MediaPipe's conversion tool
-python -m mediapipe.tasks.python.text.llm_converter \
-  --input_model model.gguf \
-  --output_model gemma-3n-e2b.task
-```
+Do not use MediaPipe `.task` files here. The Android runtime loads LiteRT-LM `.litertlm`
+files through `com.google.ai.edge.litertlm:litertlm-android`.
 
 ### Version Tracking
 

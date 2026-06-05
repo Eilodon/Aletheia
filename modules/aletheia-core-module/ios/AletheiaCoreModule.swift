@@ -51,6 +51,8 @@ private protocol AletheiaCoreClient {
   func getUserState(userId: String) async -> [String: Any?]
   func getReadingById(id: String) async -> [String: Any?]
   func updateReadingFlags(id: String, flags: [String: Any]) async -> [String: Any?]
+  func deleteReading(id: String) async -> Bool
+  func deleteAllReadings() async -> Int
 
   // LOCAL MODEL OPERATIONS (CYCLE 2)
   func checkDeviceCapability() async -> [String: Any?]
@@ -210,6 +212,15 @@ private final class AletheiaCoreUniFFIAdapter: AletheiaCoreClient {
     return response(reading: nil)
   }
 
+  func deleteReading(id: String) async -> Bool {
+    _ = id
+    return false
+  }
+
+  func deleteAllReadings() async -> Int {
+    return 0
+  }
+
   // LOCAL MODEL OPERATIONS (CYCLE 2)
   func checkDeviceCapability() async -> [String: Any?] {
     return [
@@ -228,16 +239,16 @@ private final class AletheiaCoreUniFFIAdapter: AletheiaCoreClient {
   func getLocalModelStatus() async -> [String: Any?] {
     return [
       "model_info": [
-        "model_id": "gemma-3n-e2b",
+        "model_id": "qwen3.5-2b-instruct",
         "status": "not_downloaded",
         "download_progress": 0,
-        "model_size_bytes": 0,
+        "model_size_bytes": 1_500_000_000,
         "downloaded_bytes": 0,
         "version": "",
         "error_message": nil,
         "eta_seconds": nil,
         "device_capable": false,
-        "required_ram_mb": 2048,
+        "required_ram_mb": 3072,
         "available_ram_mb": 0
       ],
       "error": nil
@@ -415,6 +426,14 @@ public final class AletheiaCoreModule: Module {
 
     AsyncFunction("updateReadingFlags") { (id: String, flags: [String: Any]) in
       await self.client.updateReadingFlags(id: id, flags: flags)
+    }
+
+    AsyncFunction("deleteReading") { (id: String) in
+      await self.client.deleteReading(id: id)
+    }
+
+    AsyncFunction("deleteAllReadings") {
+      await self.client.deleteAllReadings()
     }
 
     // LOCAL MODEL OPERATIONS (CYCLE 2)

@@ -222,14 +222,20 @@ export const en: Strings = {
       "All readings and situation text",
       "Symbol history and mood tags",
       "Settings and user intent",
+      "Downloaded local AI model files",
+      "Exported readings until you share or save the export",
     ] as string[],
-    privacyLedgerLeavesTitle: "Leaves when you use AI",
+    privacyLedgerLeavesTitle: "Leaves only when you choose",
     privacyLedgerLeavesItems: [
-      "The passage selected",
-      "The symbol chosen",
-      "The situation text you wrote (if any)",
+      "AI cloud: selected passage, chosen symbol, and situation text if you wrote one",
+      "Gift: gift token, source id, and optional buyer note",
+      "Analytics: anonymous event counts only when enabled",
+      "Export: readings JSON only when you share or save it",
+      "Delete: removes local readings from this device",
     ] as string[],
 
+    exportReadingsLabel: "Export readings JSON",
+    exportReadingsWorking: "Preparing export...",
     deleteAllReadingsLabel: "Delete all readings",
     deleteAllConfirmTitle: "Delete everything?",
     deleteAllConfirmBody: "All readings will be permanently deleted. This cannot be undone.",
@@ -237,7 +243,7 @@ export const en: Strings = {
     deleteAllSuccess: "All readings deleted",
     
     syncSectionTitle: "Sync Options",
-    syncNoAccountInfo: "AletheiA works completely offline without an account. Sign in only if you want to sync between devices.",
+    syncNoAccountInfo: "AletheiA works completely offline without an account. Account sync is not enabled for reading history.",
   },
 
   bootstrap: {

@@ -101,6 +101,8 @@ private interface AletheiaCoreClient {
   fun getReadings(limit: Int, offset: Int): Map<String, Any?>
   fun getReadingById(id: String): Map<String, Any?>
   fun updateReadingFlags(id: String, flags: Map<String, Any?>): Map<String, Any?>
+  fun deleteReading(id: String): Boolean
+  fun deleteAllReadings(): Int
   fun getDailyNotificationMessage(userId: String, date: String): Map<String, Any?>
   fun setLocalDate(localDate: String)
   fun redeemGift(token: String): Map<String, Any?>
@@ -144,7 +146,7 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
     modelDownloadManager = ModelDownloadManager(context)
   }
 
-  /// Release MediaPipe resources — called from OnDestroy
+  /// Release LiteRT-LM resources — called from OnDestroy
   fun shutdownLocalInference() {
     localInferenceEngine?.shutdown()
     localInferenceEngine = null
@@ -249,6 +251,20 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
       )
     }
 
+  override fun deleteReading(id: String): Boolean =
+    try { requireCore().deleteReading(id) }
+    catch (e: Throwable) {
+      Log.e("AletheiaCore", "deleteReading error: ${e.message}", e)
+      false
+    }
+
+  override fun deleteAllReadings(): Int =
+    try { requireCore().deleteAllReadings().toInt() }
+    catch (e: Throwable) {
+      Log.e("AletheiaCore", "deleteAllReadings error: ${e.message}", e)
+      0
+    }
+
   override fun getDailyNotificationMessage(userId: String, date: String): Map<String, Any?> =
     safeCall { serializeNotificationMessageResponse(requireCore().getDailyNotificationMessage(userId, date)) }
 
@@ -293,16 +309,16 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
       }
       mapOf(
         "model_info" to mapOf(
-          "model_id" to "gemma-3n-e2b",
+          "model_id" to LocalInferenceEngine.MODEL_ID,
           "status" to status,
           "download_progress" to downloadProgress,
-          "model_size_bytes" to modelSize,
+          "model_size_bytes" to if (modelSize > 0L) modelSize else LocalInferenceEngine.EXPECTED_MODEL_SIZE_BYTES,
           "downloaded_bytes" to if (modelReady) modelSize else 0L,
           "version" to "1.0.0",
           "error_message" to null,
           "eta_seconds" to null,
           "device_capable" to true,
-          "required_ram_mb" to 2048,
+          "required_ram_mb" to LocalInferenceEngine.REQUIRED_RAM_MB,
           "available_ram_mb" to 0
         ),
         "error" to null
@@ -325,7 +341,7 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
       )
     }
 
-    if (!forceDownload && downloadManager.getModelSize() > 0) {
+    if (!forceDownload && downloadManager.hasCompleteModel()) {
       return@safeCall mapOf(
         "started" to false,
         "model_info" to getLocalModelStatus()["model_info"],
@@ -783,7 +799,8 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
     return mapOf(
       "id" to symbol.id,
       "display_name" to symbol.displayName,
-      "flavor_text" to symbol.flavorText
+      "flavor_text" to symbol.flavorText,
+      "archetype_asset_id" to symbol.archetypeAssetId
     )
   }
 
@@ -929,7 +946,8 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
     return Symbol(
       id = payload.requireString("id"),
       displayName = payload.requireString("display_name"),
-      flavorText = payload.optionalString("flavor_text")
+      flavorText = payload.optionalString("flavor_text"),
+      archetypeAssetId = payload.optionalString("archetype_asset_id")
     )
   }
 
@@ -1252,6 +1270,14 @@ class AletheiaCoreModule : Module() {
 
     AsyncFunction("updateReadingFlags") { id: String, flags: Map<String, Any?> ->
       client.updateReadingFlags(id, flags)
+    }
+
+    AsyncFunction("deleteReading") { id: String ->
+      client.deleteReading(id)
+    }
+
+    AsyncFunction("deleteAllReadings") {
+      client.deleteAllReadings()
     }
 
     AsyncFunction("getDailyNotificationMessage") { userId: String, date: String ->

@@ -370,7 +370,7 @@ estimatedTps     :: f32?       // hiển thị khi local mode Ready
 compact          :: boolean    // true = icon + label only, no details
 ```
 
-**⚠️ Current violations:** Props dùng local type definitions thay vì import từ `lib/types.ts`. Xem CONTRACTS.md V-002, V-003.
+**Status:** V-002/V-003 resolved — props import `InferenceMode` và `LocalModelStatus` từ `lib/types.ts`.
 
 ### 5.4 Toast System
 
@@ -381,7 +381,7 @@ showToast(kind: ToastKind, message: string): void
 
 **Mechanism:** Module-level singleton callback (`toastCallback`). `useToast()` hook đăng ký callback khi mount. `ToastContainer` render active toasts với fade-in/slide animation. Auto-dismiss sau 4000ms.
 
-**Note:** `ToastKind` không được export — callers phải pass string literal. Cần fix khi `ToastKind` được thêm vào `lib/types.ts`.
+**Status:** `ToastKind` đã được export từ `lib/types.ts`; callers import type thay vì tự define string union.
 
 ---
 

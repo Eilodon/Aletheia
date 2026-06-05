@@ -19,7 +19,7 @@ Mỗi lần mở ra là một nghi thức nhỏ: bạn gọi tên điều đang 
 
 ### Dữ liệu & quyền riêng tư
 
-Lịch sử đọc của bạn được lưu hoàn toàn local trên thiết bị. Bạn có thể dùng AletheiA không cần tài khoản. Nếu đăng nhập, đó là để đồng bộ lịch sử giữa nhiều thiết bị — không có dữ liệu nào được dùng cho quảng cáo hay phân tích cá nhân.
+Lịch sử đọc của bạn được lưu hoàn toàn local trên thiết bị. Bạn có thể dùng AletheiA không cần tài khoản. Đăng nhập không bật đồng bộ lịch sử đọc trong bản hiện tại — không có dữ liệu nào được dùng cho quảng cáo hay phân tích cá nhân.
 
 Khi bạn dùng AI: đoạn trích, biểu tượng, và tình huống bạn đã viết được gửi để tạo phản chiếu. Không có gì khác rời khỏi thiết bị.
 

@@ -24,7 +24,7 @@ function SymbolCard({
   onSelect,
   cardMaxWidth,
 }: {
-  symbol: { id: string; display_name: string; flavor_text?: string };
+  symbol: { id: string; display_name: string; flavor_text?: string; archetype_asset_id?: string };
   index: number;
   isRevealed: boolean;
   isSelected: boolean;
@@ -93,9 +93,9 @@ function SymbolCard({
           ]}
         >
           <View style={styles.cardImageArea}>
-            {getSymbolAsset(symbol.id) ? (
+            {getSymbolAsset(symbol) ? (
               <Image
-                source={getSymbolAsset(symbol.id)!}
+                source={getSymbolAsset(symbol)!}
                 style={{ width: Math.floor(cardMaxWidth * 0.56), height: Math.floor(cardMaxWidth * 0.56), opacity: 0.9 }}
                 resizeMode="contain"
               />

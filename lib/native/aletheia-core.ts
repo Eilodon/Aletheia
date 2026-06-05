@@ -123,6 +123,14 @@ class AletheiaNativeClient {
     return this.requireModule().updateReadingFlags(id, flags);
   }
 
+  deleteReading(id: string): Promise<boolean> {
+    return this.requireModule().deleteReading(id);
+  }
+
+  deleteAllReadings(): Promise<number> {
+    return this.requireModule().deleteAllReadings();
+  }
+
   getDailyNotificationMessage(
     userId: string,
     date: string,

@@ -124,6 +124,8 @@ pub struct Symbol {
     pub id: String,
     pub display_name: String,
     pub flavor_text: Option<String>,
+    #[serde(default)]
+    pub archetype_asset_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -458,7 +460,7 @@ pub enum LocalModelStatus {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LocalModelInfo {
-    /// Model identifier (e.g., "gemma-3n-e2b")
+    /// Model identifier (e.g., "qwen3.5-2b-instruct")
     pub model_id: String,
     /// Current status
     pub status: LocalModelStatus,

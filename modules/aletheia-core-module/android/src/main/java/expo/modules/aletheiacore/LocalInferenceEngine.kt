@@ -33,7 +33,8 @@ class LocalInferenceEngine(private val context: Context) {
         const val ESTIMATED_TPS_LOW = 5.0f
         const val ESTIMATED_TPS_HIGH = 20.0f
         // FM2 mitigation: ~1.5GB expected — verify against paulsp94/Qwen3.5-2B-LiteRT-LM HF card
-        private const val EXPECTED_MODEL_SIZE = 1_500_000_000L
+        const val EXPECTED_MODEL_SIZE_BYTES = 1_500_000_000L
+        const val MIN_READY_MODEL_BYTES = EXPECTED_MODEL_SIZE_BYTES * 95 / 100
     }
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -50,7 +51,7 @@ class LocalInferenceEngine(private val context: Context) {
      */
     fun isModelReady(): Boolean {
         val modelFile = getModelFile()
-        return modelFile.exists() && modelFile.length() >= EXPECTED_MODEL_SIZE * 95 / 100
+        return modelFile.exists() && modelFile.length() >= MIN_READY_MODEL_BYTES
     }
 
     private fun getModelFile(): File {
@@ -66,9 +67,9 @@ class LocalInferenceEngine(private val context: Context) {
 
         try {
             val modelFile = getModelFile()
-            if (!modelFile.exists() || modelFile.length() < EXPECTED_MODEL_SIZE * 95 / 100) {
+            if (!modelFile.exists() || modelFile.length() < MIN_READY_MODEL_BYTES) {
                 return@withContext Result.failure(
-                    Exception("Model not ready. File: ${modelFile.length()} bytes, expected ~$EXPECTED_MODEL_SIZE")
+                    Exception("Model not ready. File: ${modelFile.length()} bytes, expected ~$EXPECTED_MODEL_SIZE_BYTES")
                 )
             }
 
@@ -157,6 +158,7 @@ class ModelDownloadManager(private val context: Context) {
         private const val VERSION_CHECK_URL =
             "https://storage.googleapis.com/aletheia-models/qwen3.5-2b/version.json"
         private const val EXPECTED_MODEL_SIZE = 1_500_000_000L
+        private const val MIN_READY_MODEL_BYTES = EXPECTED_MODEL_SIZE * 95 / 100
     }
 
     private val client = OkHttpClient.Builder()
@@ -196,6 +198,11 @@ class ModelDownloadManager(private val context: Context) {
         return if (modelFile.exists()) modelFile.length() else 0L
     }
 
+    fun hasCompleteModel(): Boolean {
+        val modelFile = File(File(context.filesDir, "local_models"), MODEL_FILENAME)
+        return modelFile.exists() && modelFile.length() >= MIN_READY_MODEL_BYTES
+    }
+
     fun deleteModel(): Boolean {
         val modelFile = File(File(context.filesDir, "local_models"), MODEL_FILENAME)
         return if (modelFile.exists()) modelFile.delete() else true
@@ -213,7 +220,7 @@ class ModelDownloadManager(private val context: Context) {
             val modelFile = File(dir, MODEL_FILENAME)
             val tempFile = File(dir, "$MODEL_FILENAME.tmp")
 
-            if (modelFile.exists() && modelFile.length() >= EXPECTED_MODEL_SIZE * 90 / 100) {
+            if (modelFile.exists() && modelFile.length() >= MIN_READY_MODEL_BYTES) {
                 Log.i(TAG, "Model already downloaded: ${modelFile.absolutePath}")
                 return@withContext Result.success(modelFile)
             }
@@ -254,12 +261,38 @@ class ModelDownloadManager(private val context: Context) {
                 }
             }
 
-            if (tempFile.exists()) tempFile.renameTo(modelFile)
+            if (!tempFile.exists() || tempFile.length() < MIN_READY_MODEL_BYTES) {
+                val actualBytes = if (tempFile.exists()) tempFile.length() else 0L
+                tempFile.delete()
+                return@withContext Result.failure(
+                    Exception("Downloaded model incomplete: $actualBytes bytes, expected at least $MIN_READY_MODEL_BYTES")
+                )
+            }
+
+            if (modelFile.exists() && !modelFile.delete()) {
+                tempFile.delete()
+                return@withContext Result.failure(Exception("Could not replace existing model file"))
+            }
+
+            if (!tempFile.renameTo(modelFile)) {
+                tempFile.delete()
+                return@withContext Result.failure(Exception("Could not finalize model download"))
+            }
+
+            if (modelFile.length() < MIN_READY_MODEL_BYTES) {
+                modelFile.delete()
+                return@withContext Result.failure(
+                    Exception("Final model file failed validation: ${modelFile.length()} bytes")
+                )
+            }
+
             File(dir, "version.txt").writeText(version)
             Log.i(TAG, "Model downloaded: ${modelFile.absolutePath} (${modelFile.length()} bytes)")
             Result.success(modelFile)
         } catch (e: Exception) {
             Log.e(TAG, "Download failed after $downloadedBytes bytes", e)
+            val dir = File(context.filesDir, "local_models")
+            File(dir, "$MODEL_FILENAME.tmp").delete()
             Result.failure(e)
         }
     }

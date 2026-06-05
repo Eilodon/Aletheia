@@ -31,7 +31,7 @@ Chosen over alternatives after research (June 2026):
 ### Why LiteRT-LM (mandatory, not optional)
 
 `com.google.mediapipe:tasks-genai` (MediaPipe LLM Inference) was deprecated March 31, 2026.
-LiteRT-LM (`com.google.ai.edge.litertlm:litertlm-android`, last release May 18, 2026) is the
+LiteRT-LM (`com.google.ai.edge.litertlm:litertlm-android`, current 0.13.x release line) is the
 official replacement. Not migrating = no security patches, no new model support, eventual removal.
 
 ### Display philosophy
@@ -142,7 +142,7 @@ Replace deprecated MediaPipe with LiteRT-LM:
 implementation 'com.google.mediapipe:tasks-genai:0.10.27'
 
 // ADD:
-implementation 'com.google.ai.edge.litertlm:litertlm-android:0.10.1'
+implementation 'com.google.ai.edge.litertlm:litertlm-android:0.13.0'
 ```
 
 Keep OkHttp, coroutines, JNA — those are unchanged.

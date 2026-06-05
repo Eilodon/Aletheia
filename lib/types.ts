@@ -1,11 +1,12 @@
 /**
  * Aletheia Type Definitions
  * AUTO-GENERATED - Do not edit manually
- * Sync from: core/src/contracts.rs and core/src/aletheia.udl
- * Last synced: 2026-06-02
+ * Sync from: CONTRACTS.md → core/src/contracts.rs → this file (ADR-AL-001)
+ * Last synced: 2026-06-05
  *
- * Executable Rust contracts are the source of truth.
- * docs/CONTRACTS.md is a synchronized reference, not the authority.
+ * docs/CORE/CONTRACTS.md is the primary spec (human layer).
+ * core/src/contracts.rs is the executable spec.
+ * This file is a generated artifact — change CONTRACTS.md first.
  */
 
 // ============================================================================
@@ -74,14 +75,6 @@ export type LocalModelStatus =
   | "error"
   | "unsupported";
 
-export type InferenceMode = "local" | "cloud" | "fallback" | "offline";
-
-export type ArchiveFilter = "all" | "favorites" | "ai" | "shared";
-
-export type ArchiveSort = "latest" | "oldest" | "depth";
-
-export type ToastKind = "success" | "warn" | "error" | "info";
-
 export enum ErrorCode {
   SourceNotFound = "source_not_found",
   PassageEmpty = "passage_empty",
@@ -98,6 +91,12 @@ export enum ErrorCode {
   InvalidInput = "invalid_input",
 }
 
+// UI-scope types (not generated from contracts.rs — see CONTRACTS.md Section 2.2)
+export type InferenceMode = "local" | "cloud" | "fallback" | "offline";
+export type ArchiveFilter = "all" | "favorites" | "ai" | "shared";
+export type ArchiveSort = "latest" | "oldest" | "depth";
+export type ToastKind = "success" | "warn" | "error" | "info";
+
 // ============================================================================
 // CORE SCHEMAS
 // ============================================================================
@@ -112,6 +111,7 @@ export interface Symbol {
   id: string;
   display_name: string;
   flavor_text: string | undefined;
+  archetype_asset_id?: string;
 }
 
 export interface Theme {
@@ -162,6 +162,7 @@ export interface Reading {
   is_favorite: boolean;
   shared: boolean;
   user_intent: UserIntent | undefined;
+  // TS-store-only privacy flag — see CONTRACTS.md Reading.hide_situation.
   hide_situation?: boolean;
 }
 

@@ -21,6 +21,8 @@ const nativeClientMocks = vi.hoisted(() => ({
   getDailyNotificationMessage: vi.fn(),
   redeemGift: vi.fn(),
   createGift: vi.fn(),
+  deleteReading: vi.fn(),
+  deleteAllReadings: vi.fn(),
 }));
 
 const storeMocks = vi.hoisted(() => ({
@@ -130,5 +132,51 @@ describe("CoreStoreService", () => {
     await expect(coreStore.redeemGift("gift-token")).rejects.toThrow(
       "Gift backend chưa được cấu hình. Cần EXPO_PUBLIC_GIFT_BACKEND_URL.",
     );
+  });
+
+  it("exposes gift creation support without screen-level native branching", () => {
+    runtimeMocks.shouldUseAletheiaNative.mockReturnValue(false);
+    runtimeMocks.isGiftBackendConfigured.mockReturnValue(true);
+    expect(coreStore.canCreateGift()).toBe(false);
+
+    runtimeMocks.shouldUseAletheiaNative.mockReturnValue(true);
+    runtimeMocks.isGiftBackendConfigured.mockReturnValue(false);
+    expect(coreStore.canCreateGift()).toBe(false);
+
+    runtimeMocks.shouldUseAletheiaNative.mockReturnValue(true);
+    runtimeMocks.isGiftBackendConfigured.mockReturnValue(true);
+    expect(coreStore.canCreateGift()).toBe(true);
+  });
+
+  it("deletes one reading through native bridge when native path is enabled", async () => {
+    runtimeMocks.shouldUseAletheiaNative.mockReturnValue(true);
+    nativeClientMocks.deleteReading.mockResolvedValue(undefined);
+
+    await coreStore.deleteReading("reading-native");
+
+    expect(runtimeMocks.initializeAletheiaNative).toHaveBeenCalledTimes(1);
+    expect(nativeClientMocks.deleteReading).toHaveBeenCalledWith("reading-native");
+    expect(storeMocks.getReadingById).not.toHaveBeenCalled();
+  });
+
+  it("deletes all readings through native bridge when native path is enabled", async () => {
+    runtimeMocks.shouldUseAletheiaNative.mockReturnValue(true);
+    nativeClientMocks.deleteAllReadings.mockResolvedValue(undefined);
+
+    await coreStore.deleteAllReadings();
+
+    expect(runtimeMocks.initializeAletheiaNative).toHaveBeenCalledTimes(1);
+    expect(nativeClientMocks.deleteAllReadings).toHaveBeenCalledTimes(1);
+    expect(storeMocks.getReadings).not.toHaveBeenCalled();
+  });
+
+  it("exports readings through the core-store facade", async () => {
+    storeMocks.getReadingsCount.mockResolvedValue(1);
+    storeMocks.getReadings.mockResolvedValue([{ id: "reading-1" }]);
+
+    await expect(coreStore.exportReadings()).resolves.toMatchObject({
+      schema: "aletheia.readings.export.v1",
+      readings: [{ id: "reading-1" }],
+    });
   });
 });

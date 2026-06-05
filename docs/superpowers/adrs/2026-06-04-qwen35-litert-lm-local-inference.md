@@ -15,12 +15,12 @@ B1 (missing `engine.initialize()` call), B2 (60s OkHttp timeout on 529MB downloa
 B3 (garbled fallback text), B4 (dead loop in asset extraction), B5 (no shutdown).
 
 After research (June 2026): Qwen3.5-2B chosen for Vietnamese quality (201 languages),
-MoE efficiency, and thinking-mode toggle via `/think` soft switch. LiteRT-LM v0.10.1
-chosen as the mandatory migration target (official replacement, MTP 2x speedup, active).
+MoE efficiency, and thinking-mode toggle via `/think` soft switch. LiteRT-LM v0.13.0
+is the current migration target (official replacement, MTP support, active).
 
 ## 3. Decision
 
-Replaced `com.google.mediapipe:tasks-genai` with `com.google.ai.edge.litertlm:litertlm-android:0.10.1`.
+Replaced `com.google.mediapipe:tasks-genai` with `com.google.ai.edge.litertlm:litertlm-android:0.13.0`.
 Rewrote `LocalInferenceEngine.kt` to use LiteRT-LM `Engine`/`EngineConfig`/`createConversation()` API.
 Model changed to Qwen3.5-2B (`Qwen3.5-2B-IT.litertlm`) hosted on GCS `aletheia-models/qwen3.5-2b/`.
 `runInference()` now collects full token stream, strips `<think>` block, returns clean `String`.

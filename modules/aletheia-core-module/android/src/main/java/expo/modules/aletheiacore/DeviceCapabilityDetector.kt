@@ -5,10 +5,10 @@ import android.content.Context
 import android.os.Build
 
 /// Device capability detector for local inference.
-/// Checks if the device has sufficient resources to run Gemma 3n E2B.
+/// Checks if the device has sufficient resources to run Qwen3.5-2B.
 /// minSdkVersion = 26 (Android O) — pre-O compatibility branches removed.
 object DeviceCapabilityDetector {
-    private const val MIN_RAM_MB: Int = 2048
+    private const val MIN_RAM_MB: Int = LocalInferenceEngine.REQUIRED_RAM_MB
     private const val MIN_CPU_CORES: Int = 4
     private const val MIN_SDK_VERSION: Int = Build.VERSION_CODES.O // API 26
 

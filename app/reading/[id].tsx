@@ -13,7 +13,6 @@ import { useColors } from "@/hooks/use-colors";
 import { useStrings, useDisplayFont } from "@/lib/i18n";
 import { useReading } from "@/lib/context/reading-context";
 import { coreStore } from "@/lib/services/core-store";
-import { shouldUseAletheiaNative } from "@/lib/native/runtime";
 import type { MoodTag, Reading } from "@/lib/types";
 import { screen, trackArchiveEvent, trackGiftEvent, trackShareEvent } from "@/lib/analytics";
 
@@ -411,7 +410,7 @@ export default function ReadingDetailScreen() {
               </Text>
             </Pressable>
           ) : null}
-          {shouldUseAletheiaNative() && (
+          {coreStore.canCreateGift() && (
             <Pressable
               onPress={handleGift}
               disabled={isGifting}

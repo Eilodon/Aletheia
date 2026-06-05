@@ -224,14 +224,20 @@ export const vi = {
       "Toàn bộ lần đọc và tình huống",
       "Lịch sử biểu tượng và tâm trạng",
       "Cài đặt và ý định người dùng",
+      "File model AI local đã tải về",
+      "Bản xuất dữ liệu cho tới khi bạn tự chia sẻ hoặc lưu",
     ] as string[],
-    privacyLedgerLeavesTitle: "Rời thiết bị khi bạn dùng AI",
+    privacyLedgerLeavesTitle: "Chỉ rời thiết bị khi bạn chọn",
     privacyLedgerLeavesItems: [
-      "Đoạn trích được chọn",
-      "Biểu tượng đã chọn",
-      "Tình huống bạn đã viết (nếu có)",
+      "AI cloud: đoạn trích, biểu tượng, và tình huống nếu bạn có viết",
+      "Quà: token quà, source id, và ghi chú người mua nếu có",
+      "Phân tích: chỉ đếm sự kiện ẩn danh khi được bật",
+      "Xuất dữ liệu: JSON lần đọc chỉ khi bạn tự chia sẻ hoặc lưu",
+      "Xóa dữ liệu: xóa lần đọc local khỏi thiết bị này",
     ] as string[],
 
+    exportReadingsLabel: "Xuất JSON lần đọc",
+    exportReadingsWorking: "Đang chuẩn bị bản xuất...",
     deleteAllReadingsLabel: "Xóa toàn bộ lần đọc",
     deleteAllConfirmTitle: "Xóa tất cả?",
     deleteAllConfirmBody: "Mọi lần đọc sẽ bị xóa vĩnh viễn. Không thể hoàn tác.",
@@ -239,7 +245,7 @@ export const vi = {
     deleteAllSuccess: "Đã xóa toàn bộ",
     
     syncSectionTitle: "Tùy chọn đồng bộ",
-    syncNoAccountInfo: "AletheiA hoạt động đầy đủ không cần tài khoản. Đăng nhập chỉ dùng nếu bạn muốn đồng bộ giữa các thiết bị.",
+    syncNoAccountInfo: "AletheiA hoạt động đầy đủ không cần tài khoản. Đồng bộ lịch sử đọc chưa được bật.",
   },
 
   bootstrap: {

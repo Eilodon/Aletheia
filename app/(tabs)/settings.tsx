@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { View, ScrollView, StyleSheet, Text, Switch, Pressable, Alert } from "react-native";
+import { View, ScrollView, StyleSheet, Text, Switch, Pressable, Alert, Share } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Constants from "expo-constants";
@@ -47,6 +47,7 @@ export default function SettingsScreen() {
   const [analyticsEnabled, setAnalyticsEnabled] = useState<boolean | null>(null);
   const [isTogglingAnalytics, setIsTogglingAnalytics] = useState(false);
   const [isDeletingAll, setIsDeletingAll] = useState(false);
+  const [isExportingReadings, setIsExportingReadings] = useState(false);
   const [privacyExpanded, setPrivacyExpanded] = useState(false);
 
   const loadUserState = useCallback(async () => {
@@ -121,6 +122,23 @@ export default function SettingsScreen() {
         },
       ]
     );
+  };
+
+  const handleExportReadings = async () => {
+    if (isExportingReadings) return;
+    setIsExportingReadings(true);
+    try {
+      const payload = await coreStore.exportReadings();
+      await Share.share({
+        title: s.settings.exportReadingsLabel,
+        message: JSON.stringify(payload, null, 2),
+      });
+      track("settings_export_readings", { count: payload.readings.length });
+    } catch (e) {
+      console.error("[settings] export readings failed:", e);
+    } finally {
+      setIsExportingReadings(false);
+    }
   };
 
   const saveUserState = async (updates: Partial<UserState>) => {
@@ -278,6 +296,24 @@ export default function SettingsScreen() {
               </View>
             </>
           )}
+        </Pressable>
+
+        {/* Export readings */}
+        <Pressable
+          onPress={handleExportReadings}
+          disabled={isExportingReadings}
+          style={[styles.card, {
+            backgroundColor: colors.surface + "C8",
+            borderColor: colors.primary + "22",
+            marginTop: 14,
+            opacity: isExportingReadings ? 0.5 : 1,
+          }]}
+        >
+          <View style={styles.row}>
+            <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+              {isExportingReadings ? s.settings.exportReadingsWorking : s.settings.exportReadingsLabel}
+            </Text>
+          </View>
         </Pressable>
 
         {/* Delete all readings */}

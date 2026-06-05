@@ -119,7 +119,8 @@ describe("generated contract types", () => {
 
     expect(types).not.toContain('  Model = "model"');
     expect(types).not.toContain("model_size_bytes: u64");
-    expect(types).toContain('NotDownloaded = "not_downloaded"');
+    expect(types).toContain("export type LocalModelStatus =");
+    expect(types).toContain('| "not_downloaded"');
     expect(types).toContain('AiStreaming = "ai_streaming"');
     expect(types).toContain("export interface AletheiaError");
     expect(types).toContain("model_size_bytes: number");

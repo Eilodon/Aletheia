@@ -3,9 +3,9 @@
 # This copies a quantized model to the app's assets folder for offline-first experience
 #
 # Usage:
-#   ./scripts/bundle-model-to-assets.sh /path/to/gemma-3n-e2b-q4.task
+#   ./scripts/bundle-model-to-assets.sh /path/to/Qwen3.5-2B-IT.litertlm
 #
-# Note: This will increase APK size by the model size (~250MB for INT4)
+# Note: This will increase APK size by the model size (~1.5GB for Qwen3.5-2B)
 # For Google Play, consider using Dynamic Feature Modules instead
 
 set -e
@@ -25,7 +25,7 @@ if [ $# -lt 1 ]; then
     log_error "Usage: $0 <path-to-model-file>"
     echo ""
     echo "Example:"
-    echo "  $0 ./gemma-3n-e2b-q4_k_m.task"
+    echo "  $0 ./Qwen3.5-2B-IT.litertlm"
     exit 1
 fi
 
@@ -48,7 +48,7 @@ mkdir -p "$ASSETS_DIR"
 
 # Copy model to assets
 log_info "Copying model to assets..."
-cp "$MODEL_FILE" "$ASSETS_DIR/gemma-3n-e2b.task"
+cp "$MODEL_FILE" "$ASSETS_DIR/Qwen3.5-2B-IT.litertlm"
 
 # Create version file
 echo "1.0.0-bundled" > "$ASSETS_DIR/version.txt"
@@ -56,12 +56,12 @@ echo "1.0.0-bundled" > "$ASSETS_DIR/version.txt"
 # Calculate checksum
 log_info "Calculating checksum..."
 CHECKSUM=$(sha256sum "$MODEL_FILE" | cut -d' ' -f1)
-echo "$CHECKSUM  gemma-3n-e2b.task" > "$ASSETS_DIR/checksum.sha256"
+echo "$CHECKSUM  Qwen3.5-2B-IT.litertlm" > "$ASSETS_DIR/checksum.sha256"
 
 log_info "Model bundled successfully!"
 echo ""
 echo "Assets location: $ASSETS_DIR"
-echo "  - gemma-3n-e2b.task (${MODEL_SIZE_MB} MB)"
+echo "  - Qwen3.5-2B-IT.litertlm (${MODEL_SIZE_MB} MB)"
 echo "  - version.txt"
 echo "  - checksum.sha256"
 echo ""

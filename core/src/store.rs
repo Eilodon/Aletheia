@@ -263,8 +263,23 @@ impl Store {
             tx.execute("PRAGMA user_version = 9", [])?;
         }
 
+        if user_version < 10 {
+            let exists: bool = tx
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('symbols') WHERE name='archetype_asset_id'",
+                    [],
+                    |r| r.get::<_, i32>(0),
+                )
+                .unwrap_or(0)
+                > 0;
+            if !exists {
+                tx.execute_batch("ALTER TABLE symbols ADD COLUMN archetype_asset_id TEXT;")?;
+            }
+            tx.execute("PRAGMA user_version = 10", [])?;
+        }
+
         tx.commit()?;
-        info!("Migrations complete (schema v9, WAL)");
+        info!("Migrations complete (schema v10, WAL)");
         Ok(())
     }
 
@@ -321,8 +336,14 @@ impl Store {
             )?;
             for symbol in &theme.symbols {
                 tx.execute(
-                    "INSERT INTO symbols (id,theme_id,display_name,flavor_text) VALUES (?,?,?,?)",
-                    params![symbol.id, theme.id, symbol.display_name, symbol.flavor_text],
+                    "INSERT INTO symbols (id,theme_id,display_name,flavor_text,archetype_asset_id) VALUES (?,?,?,?,?)",
+                    params![
+                        symbol.id,
+                        theme.id,
+                        symbol.display_name,
+                        symbol.flavor_text,
+                        symbol.archetype_asset_id
+                    ],
                 )?;
             }
         }
@@ -418,6 +439,18 @@ impl Store {
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(AletheiaError::from(e)),
         }
+    }
+
+    pub fn delete_reading(&self, id: &str) -> Result<bool, AletheiaError> {
+        let conn = self.conn.lock();
+        let affected = conn.execute("DELETE FROM readings WHERE id = ?", params![id])?;
+        Ok(affected > 0)
+    }
+
+    pub fn delete_all_readings(&self) -> Result<u32, AletheiaError> {
+        let conn = self.conn.lock();
+        let affected = conn.execute("DELETE FROM readings", [])?;
+        Ok(affected as u32)
     }
 
     #[allow(dead_code)]
@@ -609,8 +642,14 @@ impl Store {
         )?;
         for symbol in &theme.symbols {
             conn.execute(
-                "INSERT INTO symbols (id,theme_id,display_name,flavor_text) VALUES (?,?,?,?)",
-                params![symbol.id, theme.id, symbol.display_name, symbol.flavor_text],
+                "INSERT INTO symbols (id,theme_id,display_name,flavor_text,archetype_asset_id) VALUES (?,?,?,?,?)",
+                params![
+                    symbol.id,
+                    theme.id,
+                    symbol.display_name,
+                    symbol.flavor_text,
+                    symbol.archetype_asset_id
+                ],
             )?;
         }
         Ok(())
@@ -637,6 +676,7 @@ impl Store {
                         id: r.get(0)?,
                         display_name: r.get(2)?,
                         flavor_text: r.get(3)?,
+                        archetype_asset_id: r.get(4)?,
                     })
                 })?;
                 theme.symbols = syms.filter_map(|s| s.ok()).collect();
@@ -672,6 +712,7 @@ impl Store {
                         id: r.get(0)?,
                         display_name: r.get(2)?,
                         flavor_text: r.get(3)?,
+                        archetype_asset_id: r.get(4)?,
                     })
                 })?;
                 theme.symbols = syms.filter_map(|s| s.ok()).collect();
@@ -698,6 +739,7 @@ impl Store {
                 id: r.get(0)?,
                 display_name: r.get(2)?,
                 flavor_text: r.get(3)?,
+                archetype_asset_id: r.get(4)?,
             })
         })?;
         collect_rows(rows)
@@ -711,6 +753,7 @@ impl Store {
                 id: r.get(0)?,
                 display_name: r.get(2)?,
                 flavor_text: r.get(3)?,
+                archetype_asset_id: r.get(4)?,
             })
         }) {
             Ok(s) => Ok(Some(s)),
@@ -1084,6 +1127,28 @@ mod tests {
         }
     }
 
+    fn sample_reading(id: &str) -> Reading {
+        Reading {
+            id: id.into(),
+            created_at: 9999,
+            source_id: "src-1".into(),
+            passage_id: "psg-1".into(),
+            theme_id: "thm-1".into(),
+            symbol_chosen: "sym".into(),
+            symbol_method: SymbolMethod::Manual,
+            situation_text: Some("hi".into()),
+            ai_interpreted: false,
+            ai_used_fallback: false,
+            read_duration_s: None,
+            time_to_ai_request_s: None,
+            notification_opened: false,
+            mood_tag: None,
+            is_favorite: false,
+            shared: false,
+            user_intent: None,
+        }
+    }
+
     #[test]
     fn store_init_wal() {
         let s = make_store();
@@ -1126,6 +1191,41 @@ mod tests {
         s.insert_reading(&r).unwrap();
         assert_eq!(s.get_readings(10, 0).unwrap().len(), 1);
         assert_eq!(s.get_readings_count().unwrap(), 1);
+    }
+
+    #[test]
+    fn delete_reading_removes_one_history_entry() {
+        let s = make_store();
+        s.insert_source(&src()).unwrap();
+        s.insert_theme(&thm()).unwrap();
+        s.insert_passage(&psg()).unwrap();
+        let mut first = sample_reading("r-1");
+        first.created_at = 9999;
+        let mut second = sample_reading("r-2");
+        second.created_at = 10000;
+        s.insert_reading(&first).unwrap();
+        s.insert_reading(&second).unwrap();
+
+        assert!(s.delete_reading("r-1").unwrap());
+
+        assert!(s.get_reading_by_id("r-1").unwrap().is_none());
+        assert!(s.get_reading_by_id("r-2").unwrap().is_some());
+        assert_eq!(s.get_readings_count().unwrap(), 1);
+    }
+
+    #[test]
+    fn delete_all_readings_clears_history() {
+        let s = make_store();
+        s.insert_source(&src()).unwrap();
+        s.insert_theme(&thm()).unwrap();
+        s.insert_passage(&psg()).unwrap();
+        s.insert_reading(&sample_reading("r-1")).unwrap();
+        s.insert_reading(&sample_reading("r-2")).unwrap();
+
+        assert_eq!(s.delete_all_readings().unwrap(), 2);
+
+        assert_eq!(s.get_readings_count().unwrap(), 0);
+        assert!(s.get_readings(10, 0).unwrap().is_empty());
     }
 
     #[test]

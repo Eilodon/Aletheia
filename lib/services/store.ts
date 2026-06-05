@@ -55,6 +55,7 @@ type SymbolRow = {
   id: string;
   display_name: string;
   flavor_text: string | null;
+  archetype_asset_id: string | null;
 };
 
 type UserStateRow = {
@@ -122,7 +123,7 @@ class StoreService {
   private db: SQLite.SQLiteDatabase | null = null;
   private initialized = false;
   private initPromise: Promise<void> | null = null;
-  private static readonly SCHEMA_VERSION = 10;
+  private static readonly SCHEMA_VERSION = 11;
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
@@ -200,6 +201,7 @@ class StoreService {
           id TEXT PRIMARY KEY,
           display_name TEXT NOT NULL,
           flavor_text TEXT,
+          archetype_asset_id TEXT,
           theme_id TEXT,
           FOREIGN KEY (theme_id) REFERENCES themes(id)
         );
@@ -344,6 +346,16 @@ class StoreService {
       }
     }
 
+    // Migration v11: Add explicit optional visual asset id for symbol artwork.
+    if (currentVersion < 11) {
+      const symbolCols = await this.db.getAllAsync<SqliteColumnInfo>(`PRAGMA table_info(symbols)`);
+      if (!symbolCols.some((c) => c.name === "archetype_asset_id")) {
+        await this.db.execAsync(
+          `ALTER TABLE symbols ADD COLUMN archetype_asset_id TEXT;`
+        );
+      }
+    }
+
     await this.db.execAsync(`PRAGMA user_version = ${StoreService.SCHEMA_VERSION}`);
     console.log(`[Store] Migrated to version ${StoreService.SCHEMA_VERSION}`);
   }
@@ -377,8 +389,8 @@ class StoreService {
       // Seed symbols
       for (const symbol of theme.symbols) {
         await this.db.runAsync(
-          `INSERT OR REPLACE INTO symbols (id, theme_id, display_name, flavor_text) VALUES (?, ?, ?, ?)`,
-          [symbol.id, theme.id, symbol.display_name, symbol.flavor_text || null]
+          `INSERT OR REPLACE INTO symbols (id, theme_id, display_name, flavor_text, archetype_asset_id) VALUES (?, ?, ?, ?, ?)`,
+          [symbol.id, theme.id, symbol.display_name, symbol.flavor_text || null, symbol.archetype_asset_id || null]
         );
       }
     }
@@ -851,6 +863,7 @@ class StoreService {
             id: symbol.id,
             display_name: symbol.display_name,
             flavor_text: symbol.flavor_text || undefined,
+            archetype_asset_id: symbol.archetype_asset_id || undefined,
           })),
         } as Theme;
       })

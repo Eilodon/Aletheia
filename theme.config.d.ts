@@ -8,6 +8,9 @@ export const themeColors: {
   success: { light: string; dark: string };
   warning: { light: string; dark: string };
   error: { light: string; dark: string };
+  void: { light: string; dark: string };
+  ghost: { light: string; dark: string };
+  ritual: { light: string; dark: string };
 };
 
 declare const themeConfig: {

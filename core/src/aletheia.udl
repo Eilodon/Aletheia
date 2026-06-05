@@ -67,6 +67,7 @@ dictionary Symbol {
     string id;
     string display_name;
     string? flavor_text;
+    string? archetype_asset_id;
 };
 
 dictionary Theme {
@@ -395,6 +396,8 @@ interface AletheiaCore {
         boolean? is_favorite,
         boolean? shared
     );
+    boolean delete_reading(string id);
+    u32 delete_all_readings();
 
     NotificationMessageResponse get_daily_notification_message(
         string user_id,

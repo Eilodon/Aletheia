@@ -645,6 +645,20 @@ impl AletheiaCore {
         }
     }
 
+    pub fn delete_reading(&self, id: String) -> bool {
+        if self.init_error.is_some() {
+            return false;
+        }
+        self.store.delete_reading(&id).unwrap_or(false)
+    }
+
+    pub fn delete_all_readings(&self) -> u32 {
+        if self.init_error.is_some() {
+            return 0;
+        }
+        self.store.delete_all_readings().unwrap_or(0)
+    }
+
     // ── Sources ────────────────────────────────────────────────────────────
 
     pub fn get_sources(&self, premium_allowed: bool) -> SourcesResponse {

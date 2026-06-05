@@ -119,7 +119,7 @@ export const THEME_NAMES_EN: Record<string, string> = {
 
 /** Returns a symbol with locale-appropriate display_name and flavor_text.
  *  Falls back to the original values if no English translation exists. */
-export function getLocalizedSymbol<T extends { id: string; display_name: string; flavor_text?: string }>(
+export function getLocalizedSymbol<T extends { id: string; display_name: string; flavor_text?: string; archetype_asset_id?: string }>(
   symbol: T,
   locale: string,
 ): T {

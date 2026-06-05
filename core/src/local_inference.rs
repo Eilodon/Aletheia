@@ -1,13 +1,13 @@
 //! Aletheia Core - Local Inference Engine
-//! CYCLE 2: On-device inference with Gemma 3n E2B
+//! CYCLE 2: On-device inference with Qwen3.5-2B
 //!
 //! This module provides the contract for local inference. The actual implementation
 //! will be done in native modules (Android/iOS) using platform-specific ML runtimes.
 //!
 //! Architecture:
 //! - Rust core defines the interface and provides stub implementations
-//! - Android native module uses MediaPipe Tasks or llama.cpp
-//! - iOS native module uses Core ML or llama.cpp
+//! - Android native module uses LiteRT-LM
+//! - iOS native module is deferred until native parity is proven
 //!
 //! The inference flow:
 //! 1. Check device capability (RAM, CPU, SIMD)
@@ -22,16 +22,16 @@ use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use tracing::info;
 
-/// Model configuration for Gemma 3 1B IT QAT Q4_0 (llama.cpp GGUF)
+/// Model configuration for Qwen3.5-2B IT (LiteRT-LM)
 /// These constants are used by native modules for capability checks
 #[allow(dead_code)]
-pub const MODEL_ID: &str = "gemma-3-1b-it-qat-q4_0";
+pub const MODEL_ID: &str = "qwen3.5-2b-instruct";
 #[allow(dead_code)]
 pub const MODEL_VERSION: &str = "1.0.0";
 #[allow(dead_code)]
-pub const MODEL_SIZE_BYTES: u64 = 529_000_000; // 529MB (Google official QAT Q4_0 GGUF)
+pub const MODEL_SIZE_BYTES: u64 = 1_500_000_000; // ~1.5GB LiteRT-LM package
 #[allow(dead_code)]
-pub const REQUIRED_RAM_MB: u32 = 1024; // 1GB device RAM minimum (peak usage ~700-800MB)
+pub const REQUIRED_RAM_MB: u32 = 3_072;
 #[allow(dead_code)]
 pub const MIN_CPU_CORES: u32 = 4;
 #[allow(dead_code)]
@@ -39,12 +39,12 @@ pub const ESTIMATED_TPS_LOW: f32 = 5.0; // mid-range Android với llama.cpp
 #[allow(dead_code)]
 pub const ESTIMATED_TPS_HIGH: f32 = 30.0; // flagship với GPU offload
 #[allow(dead_code)]
-pub const HUGGINGFACE_REPO: &str = "google/gemma-3-1b-it-qat-q4_0-gguf";
+pub const HUGGINGFACE_REPO: &str = "paulsp94/Qwen3.5-2B-LiteRT-LM";
 #[allow(dead_code)]
-pub const MODEL_FILENAME: &str = "gemma-3-1b-it-q4_0.gguf";
+pub const MODEL_FILENAME: &str = "Qwen3.5-2B-IT.litertlm";
 #[allow(dead_code)]
 pub const MODEL_DOWNLOAD_URL: &str =
-    "https://huggingface.co/google/gemma-3-1b-it-qat-q4_0-gguf/resolve/main/gemma-3-1b-it-q4_0.gguf";
+    "https://storage.googleapis.com/aletheia-models/qwen3.5-2b/Qwen3.5-2B-IT.litertlm";
 
 /// Local inference engine state
 #[derive(Debug, Clone, Default)]
@@ -286,6 +286,7 @@ mod tests {
             id: "test_symbol".to_string(),
             display_name: "Test Symbol".to_string(),
             flavor_text: None,
+            archetype_asset_id: None,
         };
 
         let prompt = engine.build_interpretation_prompt(

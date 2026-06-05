@@ -1,6 +1,6 @@
 # Beta Implementation Roadmap
 
-Last verified against repo: 2026-06-02.
+Last verified against repo: 2026-06-05.
 
 ## Summary
 
@@ -87,7 +87,7 @@ Decision:
 
 Current state:
 
-- Android native local inference targets `gemma-3-1b-it-qat-q4_0` GGUF, about 529MB.
+- Android native local inference targets Qwen3.5-2B LiteRT-LM (`Qwen3.5-2B-IT.litertlm`), about 1.5GB, with 3072MB RAM minimum.
 - Runtime download/cache/delete flows exist.
 - Rust core local inference remains an interface/stub; Android native owns real execution.
 
@@ -117,6 +117,20 @@ Goal:
 
 - Keep `core/src/contracts.rs`, `core/src/aletheia.udl`, generated bindings, and `modules/aletheia-core-module/src/index.ts` aligned.
 - Expand UniFFI only for Android release paths that need stable read/write access.
+
+Current guard:
+
+```bash
+pnpm spec:lint
+```
+
+Status as of 2026-06-05:
+
+- `spec:lint` checks contract constants, enum parity, `LocalModelStatus` native/TS parity, and local-model defaults across `CONTRACTS.md`, Rust, UDL, generated TS, native module types, and Android local inference constants.
+- `verify:medium` now includes `spec:lint`, architecture guard, core-store regressions, local model ops source guards, privacy ledger copy guards, and archetype asset decoupling guards.
+- Native reading deletion now reaches Rust SQLite through the native bridge instead of falling back to the JS store.
+- Settings Privacy Ledger now distinguishes local readings/model/export data from explicit AI cloud, gift, analytics, export, and delete flows.
+- Symbol artwork is decoupled through optional `Symbol.archetype_asset_id`; UI asset lookup uses the full symbol object and falls back to id/hash.
 
 ## Phase 4 - Release Evidence
 

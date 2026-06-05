@@ -1,20 +1,20 @@
 #!/bin/bash
-# Upload Gemma 3n E2B model to Google Cloud Storage
+# Upload Qwen3.5-2B LiteRT-LM model to Google Cloud Storage
 # 
 # Prerequisites:
 # 1. Google Cloud SDK installed: https://cloud.google.com/sdk/docs/install
 # 2. Authenticated: gcloud auth login
 # 3. Project set: gcloud config set project YOUR_PROJECT_ID
-# 4. Model file downloaded from Google AI Edge or converted from HuggingFace
+# 4. LiteRT-LM model file available locally
 #
 # Usage:
-#   ./upload-model-to-gcs.sh /path/to/gemma-3n-e2b.task
+#   ./upload-model-to-gcs.sh /path/to/Qwen3.5-2B-IT.litertlm
 
 set -e
 
 # Configuration
 GCS_BUCKET="gs://aletheia-models"
-MODEL_NAME="gemma-3n-e2b"
+MODEL_NAME="qwen3.5-2b"
 MODEL_DIR="${GCS_BUCKET}/${MODEL_NAME}"
 
 # Colors for output
@@ -40,7 +40,7 @@ if [ $# -lt 1 ]; then
     log_error "Usage: $0 <path-to-model-file> [version]"
     echo ""
     echo "Example:"
-    echo "  $0 ./gemma-3n-e2b.task 1.0.0"
+    echo "  $0 ./Qwen3.5-2B-IT.litertlm 1.0.0"
     exit 1
 fi
 
@@ -94,7 +94,7 @@ cat > "$VERSION_FILE" << EOF
   "checksum": "",
   "sizeBytes": $MODEL_SIZE,
   "minAppVersion": "1.0.0",
-  "changelog": "Initial release of Gemma 3n E2B for Aletheia"
+  "changelog": "Initial release of Qwen3.5-2B LiteRT-LM for AletheiA"
 }
 EOF
 

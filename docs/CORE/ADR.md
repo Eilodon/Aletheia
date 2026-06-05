@@ -174,7 +174,7 @@ Ngoài ra, 5 blocking bugs ngăn local inference hoạt động hoàn toàn:
 - **B4:** Dead loop trong asset extraction
 - **B5:** Không có shutdown path
 
-Research (tháng 6/2026): Qwen3.5-2B là model phù hợp nhất cho Vietnamese (201 languages, MoE efficiency, thinking-mode toggle via `/think`). LiteRT-LM v0.10.1 là migration target bắt buộc từ MediaPipe.
+Research (tháng 6/2026): Qwen3.5-2B là model phù hợp nhất cho Vietnamese (201 languages, MoE efficiency, thinking-mode toggle via `/think`). LiteRT-LM v0.13.0 là migration target hiện tại từ MediaPipe.
 
 **Constraints:**
 - Android-only (iOS: deferred — LiteRT-LM iOS support chưa stable)
@@ -183,7 +183,9 @@ Research (tháng 6/2026): Qwen3.5-2B là model phù hợp nhất cho Vietnamese 
 
 ### Decision
 
-**Thay `com.google.mediapipe:tasks-genai` bằng `com.google.ai.edge.litertlm:litertlm-android:0.10.1`.**
+**Thay `com.google.mediapipe:tasks-genai` bằng `com.google.ai.edge.litertlm:litertlm-android:0.13.0`.**
+
+**Version note:** Kế hoạch ban đầu pin `0.10.1`, nhưng implementation dùng `0.13.0` vì Kotlin metadata compatibility. Maven Central liệt kê `0.13.0` phát hành 2026-06-03 và docs Kotlin chính thức cho phép dùng Gradle Maven package hiện hành; do đó code `0.13.0` là reality đúng hơn docs cũ.
 
 - Rewrite `LocalInferenceEngine.kt` dùng LiteRT-LM `Engine`/`EngineConfig`/`createConversation()` API
 - Model: Qwen3.5-2B-IT (`Qwen3.5-2B-IT.litertlm`) hosted trên GCS `aletheia-models/qwen3.5-2b/`
@@ -198,7 +200,7 @@ Research (tháng 6/2026): Qwen3.5-2B là model phù hợp nhất cho Vietnamese 
 
 **Server fix:** `OUTPUT_HARM_PATTERNS` bug — `\b` word boundaries không hoạt động với Vietnamese Unicode diacritics. Removed `\b` từ `tự\s*tử` và `tự\s*làm\s*đau` patterns.
 
-**CONFLICT V-005 consequence:** `LocalModelInfo::Default` trong `contracts.rs` chưa được update để reflect Qwen3.5-2B — xem CONTRACTS.md Section 9 V-005.
+**V-005 resolution:** `LocalModelInfo::Default` trong `contracts.rs` đã được update để reflect Qwen3.5-2B — xem CONTRACTS.md Section 9 V-005.
 
 ### Consequences
 
@@ -210,7 +212,7 @@ Research (tháng 6/2026): Qwen3.5-2B là model phù hợp nhất cho Vietnamese 
 
 **Worsened / Debt:**
 - Model size tăng từ 529MB (Gemma) lên ~1.5GB (Qwen3.5-2B) — download time tăng đáng kể
-- `LocalModelInfo::Default` trong `contracts.rs` vẫn trỏ Gemma (V-005 — chưa fix)
+- Một số native status payload vẫn cần audit để đảm bảo mọi layer report cùng Qwen3.5-2B metadata.
 - iOS local inference deferred
 
 ### Alternatives Considered

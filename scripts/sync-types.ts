@@ -182,13 +182,21 @@ export interface AletheiaError {
   for (const struct of structs) {
     output += `export interface ${struct.name} {\n`;
     for (const field of struct.fields) {
+      if (field.name === "archetype_asset_id" && field.optional) {
+        output += `  ${field.name}?: ${field.type};\n`;
+        continue;
+      }
       const optional = field.optional ? " | undefined" : "";
       output += `  ${field.name}: ${field.type}${optional};\n`;
+    }
+    if (struct.name === "Reading") {
+      output += `  // TS-store-only privacy flag — see CONTRACTS.md Reading.hide_situation.\n`;
+      output += `  hide_situation?: boolean;\n`;
     }
     output += `}\n\n`;
   }
 
-  return output;
+  return output.trimEnd() + "\n";
 }
 
 async function main() {

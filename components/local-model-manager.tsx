@@ -3,6 +3,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { Fonts } from "@/constants/theme";
 import { useLocalModel } from "@/hooks/use-local-model";
 import { useColors } from "@/hooks/use-colors";
+import { LOCAL_MODEL_CONFIG } from "@/lib/constants/local-model";
 
 export function LocalModelManager() {
   const colors = useColors();
@@ -127,7 +128,7 @@ export function LocalModelManager() {
             <View style={styles.statusRow}>
               <MaterialIcons name="download" size={16} color={colors.muted} />
               <Text style={[styles.statusText, { color: colors.muted }]}>
-                Not downloaded (~529MB)
+                Not downloaded (~{formatBytes(LOCAL_MODEL_CONFIG.REQUIREMENTS.MODEL_SIZE_BYTES)})
               </Text>
             </View>
           )}

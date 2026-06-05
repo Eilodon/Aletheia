@@ -53,7 +53,7 @@ PRO_PRICE_MONTHLY_USD    :: f32   = 3.99
 PRO_PRICE_YEARLY_USD     :: f32   = 29.99
 GIFT_READING_PRICE_USD   :: f32   = 0.99
 THEME_PACK_PRICE_USD     :: f32   = 1.99
-FREE_HISTORY_DAYS        :: u16   = 90      // ⚠️ CONFLICT V-001: lib/constants.ts = 30
+FREE_HISTORY_DAYS        :: u16   = 90      // Synced with lib/constants.ts
 ```
 
 ### 1.2 UX Timing
@@ -96,8 +96,8 @@ LOCAL_MODEL_TEMPERATURE  :: f32    = 0.7
 LOCAL_MODEL_THINKING_ENABLED :: boolean = true   // Qwen3 /think soft switch
 ```
 
-> ⚠️ CONFLICT V-005: `LocalModelInfo::Default` trong `contracts.rs` vẫn trỏ về Gemma 1B cũ.
-> Xem Section 9.
+> `LocalModelInfo::Default` trong `contracts.rs` đã sync các giá trị Qwen3.5-2B.
+> Xem Section 9 V-005.
 
 ### 1.5 Server / Auth
 
@@ -239,7 +239,7 @@ LocalModelStatus ::
 
 **Dùng ở:** `Ref<LocalModelInfo>`
 **Serialization:** snake_case (`"not_downloaded"`, `"ready"`, ...)
-**⚠️ VIOLATION V-002:** `inference-mode-badge.tsx` redefines làm string union — phải import từ `lib/types.ts`
+**Status:** V-002 resolved — `components/inference-mode-badge.tsx` import từ `lib/types.ts`.
 
 ---
 
@@ -264,7 +264,7 @@ InferenceMode ::
 ```
 
 **Dùng ở:** `components/inference-mode-badge.tsx`, AI orchestration layer
-**⚠️ VIOLATION V-003:** Chưa có trong `lib/types.ts` — chỉ tồn tại local trong component
+**Status:** V-003 resolved — defined trong `lib/types.ts` và generated bởi `scripts/sync-types.ts`.
 
 ---
 
@@ -322,6 +322,7 @@ Symbol {
   id           :: string   // e.g. "01_earth", "32_thunder" — snake_case
   display_name :: string   // Localized display name (vi/en)
   flavor_text  :: string?  // Optional ritual/philosophical description
+  archetype_asset_id :: string? // Optional visual asset id; defaults to Symbol.id/fallback
 }
 ```
 
@@ -568,8 +569,7 @@ LocalModelInfo {
 }
 ```
 
-> ⚠️ CONFLICT V-005: Default Rust impl dùng model_id="gemma-3-1b-it-qat-q4_0", size=529MB, ram=1024MB.
-> Phải update thành Qwen3.5-2B values.
+> V-005 resolved: `LocalModelInfo::Default` trong `contracts.rs` dùng Qwen3.5-2B values.
 
 #### DeviceCapability
 
@@ -996,7 +996,7 @@ Trong Rust: `Option<T>`. Trong UDL: `T?`.
 
 ---
 
-**V-005 — LocalModelInfo::Default trong contracts.rs trỏ về Gemma 1B cũ**
+**V-005 — LocalModelInfo::Default stale Gemma defaults**
 - **Status:** ✅ RESOLVED — 2026-06-05
 - **Severity:** MEDIUM — stale defaults sau LiteRT-LM migration (ADR-AL-003)
 - **Fix:** `core/src/contracts.rs` Default impl đã được cập nhật:

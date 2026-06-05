@@ -14,6 +14,7 @@ export type NativeSymbol = {
   id: string;
   display_name: string;
   flavor_text?: string;
+  archetype_asset_id?: string;
 };
 
 export type NativeTheme = {
@@ -339,6 +340,8 @@ export type NativeAletheiaModule = {
     id: string,
     flags: { isFavorite?: boolean; shared?: boolean },
   ): Promise<NativeReadingResponse>;
+  deleteReading(id: string): Promise<boolean>;
+  deleteAllReadings(): Promise<number>;
   getDailyNotificationMessage(
     userId: string,
     date: string,

@@ -9,7 +9,7 @@ Qwen3.5-2B with `/think` CoT, and add client-side safety + sentence-paced reveal
 strips `<think>` block, sets done=true. TypeScript runs harm check + format normalization, then
 paces sentence-by-sentence reveal at 600ms/sentence via existing onChunk interface.
 
-**Tech Stack:** Kotlin, LiteRT-LM v0.10.1 (`com.google.ai.edge.litertlm:litertlm-android`),
+**Tech Stack:** Kotlin, LiteRT-LM v0.13.0 (`com.google.ai.edge.litertlm:litertlm-android`),
 TypeScript, Vitest.
 
 **Audit Gate:** PASS WITH FLAGS — FM1 (empty-string bypass), FM2 (partial download crash),
@@ -290,7 +290,7 @@ git commit -m "feat(local-inference): postprocess layer — harm check, format, 
 **Files:**
 - Modify: `modules/aletheia-core-module/android/build.gradle`
 
-ℹ️ MEDIUM: Pin LiteRT-LM to `0.10.1` instead of `latest.release` to prevent silent API breaks.
+ℹ️ MEDIUM: Pin LiteRT-LM to `0.13.0` instead of `latest.release` to prevent silent API breaks.
 
 - [ ] **Step 1: Edit build.gradle**
 
@@ -325,7 +325,7 @@ dependencies {
   implementation 'net.java.dev.jna:jna:5.14.0@aar'
   
   // LiteRT-LM for on-device LLM inference (replaces deprecated mediapipe:tasks-genai)
-  implementation 'com.google.ai.edge.litertlm:litertlm-android:0.10.1'
+  implementation 'com.google.ai.edge.litertlm:litertlm-android:0.13.0'
   
   // OkHttp for model downloads
   implementation 'com.squareup.okhttp3:okhttp:4.12.0'
@@ -339,11 +339,11 @@ dependencies {
 ```bash
 grep "litertlm\|mediapipe" modules/aletheia-core-module/android/build.gradle
 ```
-Expected: only `litertlm-android:0.10.1` appears, no `mediapipe` line.
+Expected: only `litertlm-android:0.13.0` appears, no `mediapipe` line.
 
 - [ ] **Step 3: Commit**
 ```
-git commit -m "chore(android): LiteRT-LM 0.10.1 — remove deprecated mediapipe tasks-genai"
+git commit -m "chore(android): LiteRT-LM 0.13.0 — remove deprecated mediapipe tasks-genai"
 ```
 
 ---
@@ -790,7 +790,7 @@ git commit -m "chore: verify Qwen3.5-2B + LiteRT-LM integration — all checks p
 |---|---|---|---|---|---|
 | T1 model-config | 2×2/1 | 4 | MEDIUM | SINGLE | GCS bucket operational dep — verify before beta |
 | T2 postprocess-ts | 3×2/3 | 2 | LOW | SINGLE | Unit tests cover all harm patterns |
-| T3 build-gradle | 2×3/2 | 3 | MEDIUM | SINGLE | Pin to 0.10.1 not latest.release |
+| T3 build-gradle | 2×3/2 | 3 | MEDIUM | SINGLE | Pin to 0.13.0 not latest.release |
 | T4a Engine migration | 3×3/1 | 9 | **HIGH ⚠️** | SINGLE | Verify no MediaPipe import; Kotlin compile check |
 | T4b runInference sig | 2×2/1 | 4 | MEDIUM | SINGLE | Verify no .collect{} remains |
 | T4c ModelDownloadMgr | 2×2/2 | 2 | LOW | SINGLE | — |

@@ -1,6 +1,6 @@
 # Aletheia Current State
 
-Last verified against repo: 2026-06-02.
+Last verified against repo: 2026-06-05.
 
 ## System Shape
 
@@ -18,7 +18,7 @@ Last verified against repo: 2026-06-02.
 - Release verification tiers exist: `pnpm verify:fast`, `pnpm verify:medium`, `pnpm verify:release`.
 - RevenueCat is wired as a graceful optional runtime: dependency exists, `initializePurchases()` runs at startup, and paywall can load offerings, purchase, and restore when API keys are configured.
 - Gift create/redeem fails explicitly when `EXPO_PUBLIC_GIFT_BACKEND_URL` is missing or invalid.
-- Android local model code targets `gemma-3-1b-it-qat-q4_0` GGUF, downloaded from HuggingFace into app-private storage.
+- Android local model code targets Qwen3.5-2B LiteRT-LM (`Qwen3.5-2B-IT.litertlm`), downloaded from GCS into app-private storage.
 
 ## Active Gaps
 
@@ -45,7 +45,7 @@ RevenueCat has a real optional integration, but beta readiness still depends on 
 
 ### G-05 Local AI Readiness
 
-Android local inference implementation exists, but beta readiness depends on real device testing, model download reliability, MediaPipe compatibility, fallback behavior, and quality evaluation.
+Android local inference implementation exists, but beta readiness depends on real device testing, Qwen3.5-2B model download reliability, LiteRT-LM runtime behavior, fallback behavior, and quality evaluation.
 
 ### G-06 Share Card Pipeline
 

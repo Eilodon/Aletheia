@@ -165,9 +165,9 @@ export default function PassageScreen() {
       <Animated.View style={{ opacity: fadeAnim }} className="flex-1">
         <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 16 }} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
-            {selectedSymbol && getSymbolAsset(selectedSymbol.id) ? (
+            {selectedSymbol && getSymbolAsset(selectedSymbol) ? (
               <Image
-                source={getSymbolAsset(selectedSymbol.id)!}
+                source={getSymbolAsset(selectedSymbol)!}
                 style={{ width: 80, height: 80, opacity: 0.9, marginBottom: 4 }}
                 resizeMode="contain"
               />
@@ -198,7 +198,7 @@ export default function PassageScreen() {
             testID="reading-passage-card"
             style={[styles.passageCard, { backgroundColor: colors.surface + "C8", borderColor: colors.primary + "42" }]}
           >
-            <Text style={[styles.quoteMark, { color: colors.primary + “88”, fontFamily: Fonts.body }]}>”</Text>
+            <Text style={[styles.quoteMark, { color: colors.primary + "88", fontFamily: Fonts.body }]}>”</Text>
             <Text style={[styles.passageText, { color: colors.foreground, fontFamily: Fonts.bodyItalic }]}>
               {visiblePassageText}
             </Text>

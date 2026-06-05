@@ -46,6 +46,12 @@ export interface ReadingDetail {
   passage: Passage | undefined;
 }
 
+export interface ReadingsExport {
+  schema: "aletheia.readings.export.v1";
+  exported_at: string;
+  readings: Reading[];
+}
+
 class CoreStoreService {
   private async ensureNativeReady() {
     if (shouldUseAletheiaNative()) {
@@ -247,15 +253,35 @@ class CoreStoreService {
     if (!shouldUseAletheiaNative()) {
       return store.deleteReading(id);
     }
-    // Native path: not yet exposed via UniFFI — fall back to TS store.
-    return store.deleteReading(id);
+    await this.ensureNativeReady();
+    await aletheiaNativeClient.deleteReading(id);
   }
 
   async deleteAllReadings(): Promise<void> {
     if (!shouldUseAletheiaNative()) {
       return store.deleteAllReadings();
     }
-    return store.deleteAllReadings();
+    await this.ensureNativeReady();
+    await aletheiaNativeClient.deleteAllReadings();
+  }
+
+  async exportReadings(): Promise<ReadingsExport> {
+    const readings: Reading[] = [];
+    const pageSize = 100;
+    let offset = 0;
+
+    while (true) {
+      const page = await this.getReadingsPage(pageSize, offset);
+      readings.push(...page.items);
+      if (!page.has_more) break;
+      offset += pageSize;
+    }
+
+    return {
+      schema: "aletheia.readings.export.v1",
+      exported_at: new Date().toISOString(),
+      readings,
+    };
   }
 
   async getGiftableSources(): Promise<Source[]> {
@@ -321,6 +347,10 @@ class CoreStoreService {
       token: response.token,
       deep_link: response.deep_link,
     };
+  }
+
+  canCreateGift(): boolean {
+    return shouldUseAletheiaNative() && isGiftBackendConfigured();
   }
 
   private ensureGiftSupport(action: "create" | "redeem") {
