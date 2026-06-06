@@ -2,6 +2,7 @@ package expo.modules.aletheiacore
 
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
+import uniffi.aletheia.AiPrivacyMode
 import uniffi.aletheia.AletheiaCore
 import uniffi.aletheia.BridgeError
 import uniffi.aletheia.ChosenPassage
@@ -11,6 +12,8 @@ import uniffi.aletheia.CompletedReading
 import uniffi.aletheia.MoodTag
 import uniffi.aletheia.PerformReadingResponse
 import uniffi.aletheia.Passage
+import uniffi.aletheia.Interpretation
+import uniffi.aletheia.InterpretationResponse
 import uniffi.aletheia.InterpretationStreamState
 import uniffi.aletheia.RequestInterpretationResponse
 import uniffi.aletheia.Reading
@@ -23,6 +26,7 @@ import uniffi.aletheia.NotificationMessage
 import uniffi.aletheia.NotificationMessageResponse
 import uniffi.aletheia.SeedBundledDataResponse
 import uniffi.aletheia.SetApiKeyResponse
+import uniffi.aletheia.SaveInterpretationResponse
 import uniffi.aletheia.ReadingResponse
 import uniffi.aletheia.SourcesResponse
 import uniffi.aletheia.StartInterpretationStreamResponse
@@ -98,9 +102,12 @@ private interface AletheiaCoreClient {
   fun getUserState(userId: String): Map<String, Any?>
   fun updateUserState(state: Map<String, Any?>): Map<String, Any?>
   fun getSources(premiumAllowed: Boolean): Map<String, Any?>
+  fun getSourcesForUser(userId: String): Map<String, Any?>
   fun getReadings(limit: Int, offset: Int): Map<String, Any?>
   fun getReadingById(id: String): Map<String, Any?>
   fun updateReadingFlags(id: String, flags: Map<String, Any?>): Map<String, Any?>
+  fun saveInterpretation(interpretation: Map<String, Any?>): Map<String, Any?>
+  fun getInterpretationByReadingId(readingId: String): Map<String, Any?>
   fun deleteReading(id: String): Boolean
   fun deleteAllReadings(): Int
   fun getDailyNotificationMessage(userId: String, date: String): Map<String, Any?>
@@ -238,6 +245,9 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
   override fun getSources(premiumAllowed: Boolean): Map<String, Any?> =
     safeCall { serializeSourcesResponse(requireCore().getSources(premiumAllowed)) }
 
+  override fun getSourcesForUser(userId: String): Map<String, Any?> =
+    safeCall { serializeSourcesResponse(requireCore().getSourcesForUser(userId)) }
+
   override fun getReadings(limit: Int, offset: Int): Map<String, Any?> =
     safeCall { serializePaginatedReadingsResponse(requireCore().getReadings(limit.toUInt(), offset.toUInt())) }
 
@@ -249,6 +259,18 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
       serializeReadingResponse(
         requireCore().updateReadingFlags(id, flags.optionalBoolean("isFavorite"), flags.optionalBoolean("shared"))
       )
+    }
+
+  override fun saveInterpretation(interpretation: Map<String, Any?>): Map<String, Any?> =
+    safeCall {
+      serializeSaveInterpretationResponse(
+        requireCore().saveInterpretation(deserializeInterpretation(interpretation))
+      )
+    }
+
+  override fun getInterpretationByReadingId(readingId: String): Map<String, Any?> =
+    safeCall {
+      serializeInterpretationResponse(requireCore().getInterpretationByReadingId(readingId))
     }
 
   override fun deleteReading(id: String): Boolean =
@@ -621,6 +643,20 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
     )
   }
 
+  private fun serializeInterpretationResponse(response: InterpretationResponse): Map<String, Any?> {
+    return mapOf(
+      "interpretation" to response.interpretation?.let(::serializeInterpretation),
+      "error" to serializeBridgeError(response.error)
+    )
+  }
+
+  private fun serializeSaveInterpretationResponse(response: SaveInterpretationResponse): Map<String, Any?> {
+    return mapOf(
+      "saved" to response.saved,
+      "error" to serializeBridgeError(response.error)
+    )
+  }
+
   private fun serializeSourcesResponse(response: SourcesResponse): Map<String, Any?> {
     return mapOf(
       "sources" to response.sources.map(::serializeSource),
@@ -837,6 +873,25 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
     )
   }
 
+  private fun serializeInterpretation(interpretation: Interpretation): Map<String, Any?> {
+    return mapOf(
+      "id" to interpretation.id,
+      "reading_id" to interpretation.readingId,
+      "created_at" to interpretation.createdAt,
+      "mode" to interpretation.mode,
+      "provider" to interpretation.provider,
+      "model_id" to interpretation.modelId,
+      "prompt_version" to interpretation.promptVersion,
+      "text" to interpretation.text,
+      "used_fallback" to interpretation.usedFallback,
+      "safety_status" to interpretation.safetyStatus,
+      "safety_reasons" to interpretation.safetyReasons,
+      "input_tokens" to interpretation.inputTokens?.toInt(),
+      "output_tokens" to interpretation.outputTokens?.toInt(),
+      "latency_ms" to interpretation.latencyMs?.toInt()
+    )
+  }
+
   private fun serializeNotificationMessage(message: NotificationMessage): Map<String, Any?> {
     return mapOf(
       "symbol_id" to message.symbolId,
@@ -861,7 +916,8 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
         "dark_mode" to it.darkMode,
         "onboarding_complete" to it.onboardingComplete,
         "user_intent" to it.userIntent?.name?.lowercase(),
-        "weekly_summary_enabled" to it.weeklySummaryEnabled
+        "weekly_summary_enabled" to it.weeklySummaryEnabled,
+        "ai_privacy_mode" to serializeAiPrivacyMode(it.aiPrivacyMode)
       )
     }
   }
@@ -973,6 +1029,25 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
     )
   }
 
+  private fun deserializeInterpretation(payload: Map<String, Any?>): Interpretation {
+    return Interpretation(
+      id = payload.requireString("id"),
+      readingId = payload.requireString("reading_id"),
+      createdAt = payload.requireLong("created_at"),
+      mode = payload.requireString("mode"),
+      provider = payload.optionalString("provider"),
+      modelId = payload.optionalString("model_id"),
+      promptVersion = payload.requireString("prompt_version"),
+      text = payload.requireString("text"),
+      usedFallback = payload.requireBoolean("used_fallback"),
+      safetyStatus = payload.requireString("safety_status"),
+      safetyReasons = payload.requireStringList("safety_reasons"),
+      inputTokens = payload.optionalInt("input_tokens")?.toUInt(),
+      outputTokens = payload.optionalInt("output_tokens")?.toUInt(),
+      latencyMs = payload.optionalInt("latency_ms")?.toUInt()
+    )
+  }
+
   private fun deserializePassage(payload: Map<String, Any?>): Passage {
     return Passage(
       id = payload.requireString("id"),
@@ -998,8 +1073,26 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
       darkMode = payload.requireBoolean("dark_mode"),
       onboardingComplete = payload.requireBoolean("onboarding_complete"),
       userIntent = payload.optionalString("user_intent")?.let(::deserializeUserIntent),
-      weeklySummaryEnabled = payload.optionalBoolean("weekly_summary_enabled") ?: false
+      weeklySummaryEnabled = payload.optionalBoolean("weekly_summary_enabled") ?: false,
+      aiPrivacyMode = payload.optionalString("ai_privacy_mode")?.let(::deserializeAiPrivacyMode)
+        ?: AiPrivacyMode.ASK_BEFORE_CLOUD
     )
+  }
+
+  private fun serializeAiPrivacyMode(value: AiPrivacyMode): String {
+    return when (value) {
+      AiPrivacyMode.LOCAL_ONLY -> "local_only"
+      AiPrivacyMode.ASK_BEFORE_CLOUD -> "ask_before_cloud"
+      AiPrivacyMode.ALLOW_CLOUD_FALLBACK -> "allow_cloud_fallback"
+    }
+  }
+
+  private fun deserializeAiPrivacyMode(value: String): AiPrivacyMode {
+    return when (value.lowercase()) {
+      "local_only" -> AiPrivacyMode.LOCAL_ONLY
+      "allow_cloud_fallback" -> AiPrivacyMode.ALLOW_CLOUD_FALLBACK
+      else -> AiPrivacyMode.ASK_BEFORE_CLOUD
+    }
   }
 
   private fun serializeSourceType(value: SourceType): String {
@@ -1260,6 +1353,10 @@ class AletheiaCoreModule : Module() {
       client.getSources(premiumAllowed)
     }
 
+    AsyncFunction("getSourcesForUser") { userId: String ->
+      client.getSourcesForUser(userId)
+    }
+
     AsyncFunction("getReadings") { limit: Int, offset: Int ->
       client.getReadings(limit, offset)
     }
@@ -1270,6 +1367,14 @@ class AletheiaCoreModule : Module() {
 
     AsyncFunction("updateReadingFlags") { id: String, flags: Map<String, Any?> ->
       client.updateReadingFlags(id, flags)
+    }
+
+    AsyncFunction("saveInterpretation") { interpretationStr: String ->
+      client.saveInterpretation(parseJsonMap(interpretationStr))
+    }
+
+    AsyncFunction("getInterpretationByReadingId") { readingId: String ->
+      client.getInterpretationByReadingId(readingId)
     }
 
     AsyncFunction("deleteReading") { id: String ->

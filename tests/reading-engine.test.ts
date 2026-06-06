@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readingEngine } from "../lib/services/reading-engine";
-import { SubscriptionTier, ErrorCode, SourceType, SymbolMethod, Tradition } from "../lib/types";
+import { AiPrivacyMode, SubscriptionTier, ErrorCode, SourceType, SymbolMethod, Tradition } from "../lib/types";
 
 vi.mock("@/lib/services/store", () => ({
   store: {
@@ -58,6 +58,7 @@ describe("ReadingEngine", () => {
         onboarding_complete: false,
         user_intent: undefined,
         weekly_summary_enabled: false,
+        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
       });
 
       // ACT & ASSERT
@@ -82,6 +83,7 @@ describe("ReadingEngine", () => {
         onboarding_complete: false,
         user_intent: undefined,
         weekly_summary_enabled: false,
+        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
       });
 
       vi.mocked(store.getRandomSourceWeighted).mockResolvedValue({
@@ -133,6 +135,7 @@ describe("ReadingEngine", () => {
         onboarding_complete: false,
         user_intent: undefined,
         weekly_summary_enabled: false,
+        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
       });
 
       vi.mocked(store.getRandomSourceWeighted).mockResolvedValue({
@@ -295,6 +298,7 @@ describe("ReadingEngine", () => {
         onboarding_complete: false,
         user_intent: undefined,
         weekly_summary_enabled: false,
+        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
       });
 
       vi.mocked(store.getRandomSourceWeighted).mockResolvedValue({

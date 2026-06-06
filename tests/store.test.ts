@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { store } from "../lib/services/store";
-import { SubscriptionTier, SymbolMethod } from "../lib/types";
+import { AiPrivacyMode, SubscriptionTier, SymbolMethod } from "../lib/types";
 
 type MockParam = string | number | null | undefined;
 type MockRow = Record<string, MockParam>;
@@ -70,6 +70,7 @@ const mockDb = vi.hoisted(() => ({
             "user_id", "subscription_tier", "readings_today", "ai_calls_today",
             "session_count", "last_reading_date", "notification_enabled",
             "notification_time", "preferred_language", "dark_mode", "onboarding_complete", "user_intent",
+            "weekly_summary_enabled", "ai_privacy_mode",
           ],
         };
       return (knownColumns[table] ?? []).map((name) => ({ name }));
@@ -102,6 +103,9 @@ const mockDb = vi.hoisted(() => ({
         preferred_language: params?.[8],
         dark_mode: params?.[9],
         onboarding_complete: params?.[10],
+        user_intent: params?.[11],
+        weekly_summary_enabled: params?.[12],
+        ai_privacy_mode: params?.[13],
       };
       if (existingIdx >= 0) {
         rows[existingIdx] = row;
@@ -248,6 +252,7 @@ describe("StoreService", () => {
         onboarding_complete: false,
         user_intent: undefined,
         weekly_summary_enabled: false,
+        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
       });
 
       // ACT
@@ -275,6 +280,7 @@ describe("StoreService", () => {
         onboarding_complete: false,
         user_intent: undefined,
         weekly_summary_enabled: false,
+        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
       });
 
       // ACT
@@ -301,6 +307,7 @@ describe("StoreService", () => {
         onboarding_complete: false,
         user_intent: undefined,
         weekly_summary_enabled: false,
+        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
       });
 
       // ACT

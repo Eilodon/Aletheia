@@ -7,6 +7,7 @@ import type {
   PaginatedReadings,
   Passage,
   Reading,
+  Interpretation,
   ReadingSession,
   Source,
   SubscriptionTier,
@@ -22,6 +23,7 @@ import {
   unwrapNativePaginatedReadingsResponse,
   unwrapNativePerformReadingResponse,
   unwrapNativeReadingResponse,
+  unwrapNativeSaveInterpretationResponse,
   unwrapNativeUpdateUserStateResponse,
   unwrapNativeUserStateResponse,
   unwrapNativeSourcesResponse,
@@ -190,8 +192,9 @@ class CoreStoreService {
         try {
           await this.ensureNativeReady();
           if (!source) {
+            const userId = await getCurrentUserId();
             const nativeSources = unwrapNativeSourcesResponse(
-              await aletheiaNativeClient.getSources(true),
+              await aletheiaNativeClient.getSourcesForUser(userId),
             ) as Source[];
             source = nativeSources.find((s) => s.id === reading.source_id);
           }
@@ -282,6 +285,17 @@ class CoreStoreService {
       exported_at: new Date().toISOString(),
       readings,
     };
+  }
+
+  async saveInterpretation(interpretation: Interpretation): Promise<void> {
+    if (shouldUseAletheiaNative()) {
+      await this.ensureNativeReady();
+      unwrapNativeSaveInterpretationResponse(
+        await aletheiaNativeClient.saveInterpretation(interpretation),
+      );
+      return;
+    }
+    await store.saveInterpretation(interpretation);
   }
 
   async getGiftableSources(): Promise<Source[]> {

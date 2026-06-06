@@ -11,6 +11,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.ResponseBody
 import java.io.File
+import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -157,6 +158,8 @@ class ModelDownloadManager(private val context: Context) {
             "https://storage.googleapis.com/aletheia-models/qwen3.5-2b/Qwen3.5-2B-IT.litertlm"
         private const val VERSION_CHECK_URL =
             "https://storage.googleapis.com/aletheia-models/qwen3.5-2b/version.json"
+        private const val MODEL_MANIFEST_URL =
+            "https://storage.googleapis.com/aletheia-models/qwen3.5-2b/manifest.json"
         private const val EXPECTED_MODEL_SIZE = 1_500_000_000L
         private const val MIN_READY_MODEL_BYTES = EXPECTED_MODEL_SIZE * 95 / 100
     }
@@ -206,6 +209,62 @@ class ModelDownloadManager(private val context: Context) {
     fun deleteModel(): Boolean {
         val modelFile = File(File(context.filesDir, "local_models"), MODEL_FILENAME)
         return if (modelFile.exists()) modelFile.delete() else true
+    }
+
+    private fun computeSha256(file: File): String {
+        val digest = MessageDigest.getInstance("SHA-256")
+        file.inputStream().use { input ->
+            val buffer = ByteArray(1024 * 1024)
+            while (true) {
+                val read = input.read(buffer)
+                if (read == -1) break
+                digest.update(buffer, 0, read)
+            }
+        }
+        return digest.digest().joinToString("") { "%02x".format(it) }
+    }
+
+    private suspend fun fetchManifest(): org.json.JSONObject? = withContext(Dispatchers.IO) {
+        val urls = listOf(MODEL_MANIFEST_URL, VERSION_CHECK_URL)
+        for (url in urls) {
+            try {
+                val response = client.newCall(Request.Builder().url(url).build()).execute()
+                if (!response.isSuccessful) continue
+                val json = response.body?.string() ?: continue
+                return@withContext org.json.JSONObject(json)
+            } catch (_: Exception) {
+                continue
+            }
+        }
+        null
+    }
+
+    private suspend fun validateManifest(file: File): Result<Unit> = withContext(Dispatchers.IO) {
+        val manifest = fetchManifest()
+        if (manifest == null) {
+            return@withContext if (file.length() >= MIN_READY_MODEL_BYTES) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Downloaded model incomplete: ${file.length()} bytes"))
+            }
+        }
+
+        val expectedSize = manifest.optLong("size_bytes", manifest.optLong("sizeBytes", 0L))
+        if (expectedSize > 0L && file.length() != expectedSize) {
+            return@withContext Result.failure(
+                Exception("Model size mismatch: ${file.length()} bytes, expected $expectedSize")
+            )
+        }
+
+        val expectedSha = manifest.optString("sha256", manifest.optString("checksum", "")).lowercase()
+        if (expectedSha.isNotBlank()) {
+            val actualSha = computeSha256(file)
+            if (actualSha != expectedSha) {
+                return@withContext Result.failure(Exception("Model sha256 mismatch"))
+            }
+        }
+
+        Result.success(Unit)
     }
 
     suspend fun downloadModel(
@@ -266,6 +325,14 @@ class ModelDownloadManager(private val context: Context) {
                 tempFile.delete()
                 return@withContext Result.failure(
                     Exception("Downloaded model incomplete: $actualBytes bytes, expected at least $MIN_READY_MODEL_BYTES")
+                )
+            }
+
+            val manifestValidation = validateManifest(tempFile)
+            if (manifestValidation.isFailure) {
+                tempFile.delete()
+                return@withContext Result.failure(
+                    manifestValidation.exceptionOrNull() ?: Exception("Model manifest validation failed")
                 )
             }
 

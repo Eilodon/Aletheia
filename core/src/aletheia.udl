@@ -41,6 +41,12 @@ enum SubscriptionTier {
     "Pro"
 };
 
+enum AiPrivacyMode {
+    "LocalOnly",
+    "AskBeforeCloud",
+    "AllowCloudFallback"
+};
+
 enum ReadingState {
     "Idle",
     "SituationInput",
@@ -171,6 +177,7 @@ dictionary UserState {
     boolean onboarding_complete;
     UserIntent? user_intent;
     boolean weekly_summary_enabled;
+    AiPrivacyMode ai_privacy_mode;
 };
 
 dictionary PaginatedReadings {
@@ -247,6 +254,23 @@ dictionary CreateGiftResponse {
 dictionary AIInterpretation {
     sequence<string> chunks;
     boolean used_fallback;
+};
+
+dictionary Interpretation {
+    string id;
+    string reading_id;
+    i64 created_at;
+    string mode;
+    string? provider;
+    string? model_id;
+    string prompt_version;
+    string text;
+    boolean used_fallback;
+    string safety_status;
+    sequence<string> safety_reasons;
+    u32? input_tokens;
+    u32? output_tokens;
+    u32? latency_ms;
 };
 
 dictionary LocalModelInfo {
@@ -328,6 +352,16 @@ dictionary ReadingResponse {
     BridgeError? error;
 };
 
+dictionary InterpretationResponse {
+    Interpretation? interpretation;
+    BridgeError? error;
+};
+
+dictionary SaveInterpretationResponse {
+    boolean saved;
+    BridgeError? error;
+};
+
 interface AletheiaCore {
     constructor(string db_path, string gift_backend_url);
 
@@ -387,6 +421,8 @@ interface AletheiaCore {
 
     SourcesResponse get_sources(boolean premium_allowed);
 
+    SourcesResponse get_sources_for_user(string user_id);
+
     PaginatedReadingsResponse get_readings(u32 limit, u32 offset);
 
     ReadingResponse get_reading_by_id(string id);
@@ -396,6 +432,8 @@ interface AletheiaCore {
         boolean? is_favorite,
         boolean? shared
     );
+    SaveInterpretationResponse save_interpretation(Interpretation interpretation);
+    InterpretationResponse get_interpretation_by_reading_id(string reading_id);
     boolean delete_reading(string id);
     u32 delete_all_readings();
 

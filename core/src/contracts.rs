@@ -62,6 +62,15 @@ pub enum SubscriptionTier {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
+pub enum AiPrivacyMode {
+    LocalOnly,
+    #[default]
+    AskBeforeCloud,
+    AllowCloudFallback,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
 pub enum ReadingState {
     #[default]
     Idle,
@@ -286,6 +295,8 @@ pub struct UserState {
     pub onboarding_complete: bool,
     pub user_intent: Option<UserIntent>,
     pub weekly_summary_enabled: bool,
+    #[serde(default)]
+    pub ai_privacy_mode: AiPrivacyMode,
 }
 
 impl Default for UserState {
@@ -304,6 +315,7 @@ impl Default for UserState {
             onboarding_complete: false,
             user_intent: None,
             weekly_summary_enabled: false,
+            ai_privacy_mode: AiPrivacyMode::AskBeforeCloud,
         }
     }
 }
@@ -434,6 +446,18 @@ pub struct PaginatedReadingsResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReadingResponse {
     pub reading: Option<Reading>,
+    pub error: Option<BridgeError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InterpretationResponse {
+    pub interpretation: Option<Interpretation>,
+    pub error: Option<BridgeError>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SaveInterpretationResponse {
+    pub saved: bool,
     pub error: Option<BridgeError>,
 }
 
@@ -573,6 +597,24 @@ pub struct InterpretationStreamState {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Interpretation {
+    pub id: String,
+    pub reading_id: String,
+    pub created_at: i64,
+    pub mode: String,
+    pub provider: Option<String>,
+    pub model_id: Option<String>,
+    pub prompt_version: String,
+    pub text: String,
+    pub used_fallback: bool,
+    pub safety_status: String,
+    pub safety_reasons: Vec<String>,
+    pub input_tokens: Option<u32>,
+    pub output_tokens: Option<u32>,
+    pub latency_ms: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CancelInterpretationResponse {
     pub cancelled: bool,
     pub error: Option<BridgeError>,
@@ -593,6 +635,7 @@ pub enum ErrorCode {
     SymbolInvalid,
     AiTimeout,
     AiUnavailable,
+    AiDailyLimitReached,
     GiftExpired,
     GiftNotFound,
     GiftAlreadyRedeemed,
@@ -611,6 +654,7 @@ impl ErrorCode {
             ErrorCode::SymbolInvalid => "ERR_SYMBOL_INVALID",
             ErrorCode::AiTimeout => "ERR_AI_TIMEOUT",
             ErrorCode::AiUnavailable => "ERR_AI_UNAVAILABLE",
+            ErrorCode::AiDailyLimitReached => "ERR_AI_DAILY_LIMIT_REACHED",
             ErrorCode::GiftExpired => "ERR_GIFT_EXPIRED",
             ErrorCode::GiftNotFound => "ERR_GIFT_NOT_FOUND",
             ErrorCode::GiftAlreadyRedeemed => "ERR_GIFT_ALREADY_REDEEMED",

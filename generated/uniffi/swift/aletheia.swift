@@ -430,26 +430,31 @@ public protocol AletheiaCoreProtocol {
     func chooseSymbol(session: ReadingSession, symbolId: String, method: SymbolMethod)   -> ChooseSymbolResponse
     func completeReading(userId: String, reading: Reading)   -> CompleteReadingResponse
     func createGift(sourceId: String?, buyerNote: String?)   -> CreateGiftResponse
+    func deleteAllReadings()   -> UInt32
     func deleteLocalModel()   -> Bool
+    func deleteReading(id: String)   -> Bool
     func getDailyNotificationMessage(userId: String, date: String)   -> NotificationMessageResponse
     func getFallbackPrompts(sourceId: String)   -> FallbackPromptsResponse
+    func getInterpretationByReadingId(readingId: String)   -> InterpretationResponse
     func getLocalModelStatus()   -> LocalModelStatusResponse
     func getReadingById(id: String)   -> ReadingResponse
     func getReadings(limit: UInt32, offset: UInt32)   -> PaginatedReadingsResponse
     func getSources(premiumAllowed: Bool)   -> SourcesResponse
+    func getSourcesForUser(userId: String)   -> SourcesResponse
     func getUserState(userId: String)   -> UserStateResponse
     func performReading(userId: String, sourceId: String?, situationText: String?)   -> PerformReadingResponse
     func pollInterpretationStream(requestId: String)   -> InterpretationStreamState
     func prepareLocalModel(forceDownload: Bool)   -> PrepareLocalModelResponse
     func redeemGift(token: String)   -> RedeemGiftResponse
     func requestInterpretation(passage: Passage, symbol: Symbol, situationText: String?)   -> RequestInterpretationResponse
+    func saveInterpretation(interpretation: Interpretation)   -> SaveInterpretationResponse
     func seedBundledData(sourcesJson: String, passagesJson: String, themesJson: String)   -> SeedBundledDataResponse
     func setAiApiKey(provider: String, key: String)   -> SetApiKeyResponse
-    func setLocalDate(localDate: String)  
+    func setLocalDate(localDate: String)
     func startInterpretationStream(passage: Passage, symbol: Symbol, situationText: String?, userIntent: String?, useSonnet: Bool)   -> StartInterpretationStreamResponse
     func updateReadingFlags(id: String, isFavorite: Bool?, shared: Bool?)   -> ReadingResponse
     func updateUserState(state: UserState)   -> UpdateUserStateResponse
-    
+
 }
 
 public class AletheiaCore: AletheiaCoreProtocol {
@@ -473,16 +478,16 @@ public class AletheiaCore: AletheiaCoreProtocol {
         try! rustCall { uniffi_aletheia_core_fn_free_aletheiacore(pointer, $0) }
     }
 
-    
 
-    
-    
+
+
+
 
     public func bootstrapBundledContent()  -> SeedBundledDataResponse {
         return try!  FfiConverterTypeSeedBundledDataResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
+
     uniffi_aletheia_core_fn_method_aletheiacore_bootstrap_bundled_content(self.pointer, $0
     )
 }
@@ -491,10 +496,10 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func cancelInterpretationStream(requestId: String)  -> CancelInterpretationResponse {
         return try!  FfiConverterTypeCancelInterpretationResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_cancel_interpretation_stream(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_cancel_interpretation_stream(self.pointer,
         FfiConverterString.lower(requestId),$0
     )
 }
@@ -503,9 +508,9 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func cancelLocalModelDownload()  -> LocalModelStatusResponse {
         return try!  FfiConverterTypeLocalModelStatusResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
+
     uniffi_aletheia_core_fn_method_aletheiacore_cancel_local_model_download(self.pointer, $0
     )
 }
@@ -514,9 +519,9 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func checkDeviceCapability()  -> DeviceCapabilityResponse {
         return try!  FfiConverterTypeDeviceCapabilityResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
+
     uniffi_aletheia_core_fn_method_aletheiacore_check_device_capability(self.pointer, $0
     )
 }
@@ -525,10 +530,10 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func chooseSymbol(session: ReadingSession, symbolId: String, method: SymbolMethod)  -> ChooseSymbolResponse {
         return try!  FfiConverterTypeChooseSymbolResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_choose_symbol(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_choose_symbol(self.pointer,
         FfiConverterTypeReadingSession.lower(session),
         FfiConverterString.lower(symbolId),
         FfiConverterTypeSymbolMethod.lower(method),$0
@@ -539,10 +544,10 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func completeReading(userId: String, reading: Reading)  -> CompleteReadingResponse {
         return try!  FfiConverterTypeCompleteReadingResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_complete_reading(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_complete_reading(self.pointer,
         FfiConverterString.lower(userId),
         FfiConverterTypeReading.lower(reading),$0
     )
@@ -552,10 +557,10 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func createGift(sourceId: String?, buyerNote: String?)  -> CreateGiftResponse {
         return try!  FfiConverterTypeCreateGiftResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_create_gift(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_create_gift(self.pointer,
         FfiConverterOptionString.lower(sourceId),
         FfiConverterOptionString.lower(buyerNote),$0
     )
@@ -563,12 +568,35 @@ public class AletheiaCore: AletheiaCoreProtocol {
         )
     }
 
+    public func deleteAllReadings()  -> UInt32 {
+        return try!  FfiConverterUInt32.lift(
+            try!
+    rustCall() {
+
+    uniffi_aletheia_core_fn_method_aletheiacore_delete_all_readings(self.pointer, $0
+    )
+}
+        )
+    }
+
     public func deleteLocalModel()  -> Bool {
         return try!  FfiConverterBool.lift(
-            try! 
+            try!
     rustCall() {
-    
+
     uniffi_aletheia_core_fn_method_aletheiacore_delete_local_model(self.pointer, $0
+    )
+}
+        )
+    }
+
+    public func deleteReading(id: String)  -> Bool {
+        return try!  FfiConverterBool.lift(
+            try!
+    rustCall() {
+
+    uniffi_aletheia_core_fn_method_aletheiacore_delete_reading(self.pointer,
+        FfiConverterString.lower(id),$0
     )
 }
         )
@@ -576,10 +604,10 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func getDailyNotificationMessage(userId: String, date: String)  -> NotificationMessageResponse {
         return try!  FfiConverterTypeNotificationMessageResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_get_daily_notification_message(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_get_daily_notification_message(self.pointer,
         FfiConverterString.lower(userId),
         FfiConverterString.lower(date),$0
     )
@@ -589,11 +617,23 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func getFallbackPrompts(sourceId: String)  -> FallbackPromptsResponse {
         return try!  FfiConverterTypeFallbackPromptsResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_get_fallback_prompts(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_get_fallback_prompts(self.pointer,
         FfiConverterString.lower(sourceId),$0
+    )
+}
+        )
+    }
+
+    public func getInterpretationByReadingId(readingId: String)  -> InterpretationResponse {
+        return try!  FfiConverterTypeInterpretationResponse.lift(
+            try!
+    rustCall() {
+
+    uniffi_aletheia_core_fn_method_aletheiacore_get_interpretation_by_reading_id(self.pointer,
+        FfiConverterString.lower(readingId),$0
     )
 }
         )
@@ -601,9 +641,9 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func getLocalModelStatus()  -> LocalModelStatusResponse {
         return try!  FfiConverterTypeLocalModelStatusResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
+
     uniffi_aletheia_core_fn_method_aletheiacore_get_local_model_status(self.pointer, $0
     )
 }
@@ -612,10 +652,10 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func getReadingById(id: String)  -> ReadingResponse {
         return try!  FfiConverterTypeReadingResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_get_reading_by_id(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_get_reading_by_id(self.pointer,
         FfiConverterString.lower(id),$0
     )
 }
@@ -624,10 +664,10 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func getReadings(limit: UInt32, offset: UInt32)  -> PaginatedReadingsResponse {
         return try!  FfiConverterTypePaginatedReadingsResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_get_readings(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_get_readings(self.pointer,
         FfiConverterUInt32.lower(limit),
         FfiConverterUInt32.lower(offset),$0
     )
@@ -637,11 +677,23 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func getSources(premiumAllowed: Bool)  -> SourcesResponse {
         return try!  FfiConverterTypeSourcesResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_get_sources(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_get_sources(self.pointer,
         FfiConverterBool.lower(premiumAllowed),$0
+    )
+}
+        )
+    }
+
+    public func getSourcesForUser(userId: String)  -> SourcesResponse {
+        return try!  FfiConverterTypeSourcesResponse.lift(
+            try!
+    rustCall() {
+
+    uniffi_aletheia_core_fn_method_aletheiacore_get_sources_for_user(self.pointer,
+        FfiConverterString.lower(userId),$0
     )
 }
         )
@@ -649,10 +701,10 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func getUserState(userId: String)  -> UserStateResponse {
         return try!  FfiConverterTypeUserStateResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_get_user_state(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_get_user_state(self.pointer,
         FfiConverterString.lower(userId),$0
     )
 }
@@ -661,10 +713,10 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func performReading(userId: String, sourceId: String?, situationText: String?)  -> PerformReadingResponse {
         return try!  FfiConverterTypePerformReadingResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_perform_reading(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_perform_reading(self.pointer,
         FfiConverterString.lower(userId),
         FfiConverterOptionString.lower(sourceId),
         FfiConverterOptionString.lower(situationText),$0
@@ -675,10 +727,10 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func pollInterpretationStream(requestId: String)  -> InterpretationStreamState {
         return try!  FfiConverterTypeInterpretationStreamState.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_poll_interpretation_stream(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_poll_interpretation_stream(self.pointer,
         FfiConverterString.lower(requestId),$0
     )
 }
@@ -687,10 +739,10 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func prepareLocalModel(forceDownload: Bool)  -> PrepareLocalModelResponse {
         return try!  FfiConverterTypePrepareLocalModelResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_prepare_local_model(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_prepare_local_model(self.pointer,
         FfiConverterBool.lower(forceDownload),$0
     )
 }
@@ -699,10 +751,10 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func redeemGift(token: String)  -> RedeemGiftResponse {
         return try!  FfiConverterTypeRedeemGiftResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_redeem_gift(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_redeem_gift(self.pointer,
         FfiConverterString.lower(token),$0
     )
 }
@@ -711,10 +763,10 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func requestInterpretation(passage: Passage, symbol: Symbol, situationText: String?)  -> RequestInterpretationResponse {
         return try!  FfiConverterTypeRequestInterpretationResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_request_interpretation(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_request_interpretation(self.pointer,
         FfiConverterTypePassage.lower(passage),
         FfiConverterTypeSymbol.lower(symbol),
         FfiConverterOptionString.lower(situationText),$0
@@ -723,12 +775,24 @@ public class AletheiaCore: AletheiaCoreProtocol {
         )
     }
 
+    public func saveInterpretation(interpretation: Interpretation)  -> SaveInterpretationResponse {
+        return try!  FfiConverterTypeSaveInterpretationResponse.lift(
+            try!
+    rustCall() {
+
+    uniffi_aletheia_core_fn_method_aletheiacore_save_interpretation(self.pointer,
+        FfiConverterTypeInterpretation.lower(interpretation),$0
+    )
+}
+        )
+    }
+
     public func seedBundledData(sourcesJson: String, passagesJson: String, themesJson: String)  -> SeedBundledDataResponse {
         return try!  FfiConverterTypeSeedBundledDataResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_seed_bundled_data(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_seed_bundled_data(self.pointer,
         FfiConverterString.lower(sourcesJson),
         FfiConverterString.lower(passagesJson),
         FfiConverterString.lower(themesJson),$0
@@ -739,10 +803,10 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func setAiApiKey(provider: String, key: String)  -> SetApiKeyResponse {
         return try!  FfiConverterTypeSetApiKeyResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_set_ai_api_key(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_set_ai_api_key(self.pointer,
         FfiConverterString.lower(provider),
         FfiConverterString.lower(key),$0
     )
@@ -751,10 +815,10 @@ public class AletheiaCore: AletheiaCoreProtocol {
     }
 
     public func setLocalDate(localDate: String)  {
-        try! 
+        try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_set_local_date(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_set_local_date(self.pointer,
         FfiConverterString.lower(localDate),$0
     )
 }
@@ -762,10 +826,10 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func startInterpretationStream(passage: Passage, symbol: Symbol, situationText: String?, userIntent: String?, useSonnet: Bool)  -> StartInterpretationStreamResponse {
         return try!  FfiConverterTypeStartInterpretationStreamResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_start_interpretation_stream(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_start_interpretation_stream(self.pointer,
         FfiConverterTypePassage.lower(passage),
         FfiConverterTypeSymbol.lower(symbol),
         FfiConverterOptionString.lower(situationText),
@@ -778,10 +842,10 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func updateReadingFlags(id: String, isFavorite: Bool?, shared: Bool?)  -> ReadingResponse {
         return try!  FfiConverterTypeReadingResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_update_reading_flags(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_update_reading_flags(self.pointer,
         FfiConverterString.lower(id),
         FfiConverterOptionBool.lower(isFavorite),
         FfiConverterOptionBool.lower(shared),$0
@@ -792,10 +856,10 @@ public class AletheiaCore: AletheiaCoreProtocol {
 
     public func updateUserState(state: UserState)  -> UpdateUserStateResponse {
         return try!  FfiConverterTypeUpdateUserStateResponse.lift(
-            try! 
+            try!
     rustCall() {
-    
-    uniffi_aletheia_core_fn_method_aletheiacore_update_user_state(self.pointer, 
+
+    uniffi_aletheia_core_fn_method_aletheiacore_update_user_state(self.pointer,
         FfiConverterTypeUserState.lower(state),$0
     )
 }
@@ -877,7 +941,7 @@ extension AiInterpretation: Equatable, Hashable {
 public struct FfiConverterTypeAIInterpretation: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> AiInterpretation {
         return try AiInterpretation(
-            chunks: FfiConverterSequenceString.read(from: &buf), 
+            chunks: FfiConverterSequenceString.read(from: &buf),
             usedFallback: FfiConverterBool.read(from: &buf)
         )
     }
@@ -932,7 +996,7 @@ extension BridgeError: Equatable, Hashable {
 public struct FfiConverterTypeBridgeError: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> BridgeError {
         return try BridgeError(
-            code: FfiConverterString.read(from: &buf), 
+            code: FfiConverterString.read(from: &buf),
             message: FfiConverterString.read(from: &buf)
         )
     }
@@ -987,7 +1051,7 @@ extension CancelInterpretationResponse: Equatable, Hashable {
 public struct FfiConverterTypeCancelInterpretationResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> CancelInterpretationResponse {
         return try CancelInterpretationResponse(
-            cancelled: FfiConverterBool.read(from: &buf), 
+            cancelled: FfiConverterBool.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -1042,7 +1106,7 @@ extension ChooseSymbolResponse: Equatable, Hashable {
 public struct FfiConverterTypeChooseSymbolResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ChooseSymbolResponse {
         return try ChooseSymbolResponse(
-            chosen: FfiConverterOptionTypeChosenPassage.read(from: &buf), 
+            chosen: FfiConverterOptionTypeChosenPassage.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -1097,7 +1161,7 @@ extension ChosenPassage: Equatable, Hashable {
 public struct FfiConverterTypeChosenPassage: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ChosenPassage {
         return try ChosenPassage(
-            passage: FfiConverterTypePassage.read(from: &buf), 
+            passage: FfiConverterTypePassage.read(from: &buf),
             readingId: FfiConverterString.read(from: &buf)
         )
     }
@@ -1152,7 +1216,7 @@ extension CompleteReadingResponse: Equatable, Hashable {
 public struct FfiConverterTypeCompleteReadingResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> CompleteReadingResponse {
         return try CompleteReadingResponse(
-            completed: FfiConverterOptionTypeCompletedReading.read(from: &buf), 
+            completed: FfiConverterOptionTypeCompletedReading.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -1207,7 +1271,7 @@ extension CompletedReading: Equatable, Hashable {
 public struct FfiConverterTypeCompletedReading: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> CompletedReading {
         return try CompletedReading(
-            readingId: FfiConverterString.read(from: &buf), 
+            readingId: FfiConverterString.read(from: &buf),
             savedAt: FfiConverterInt64.read(from: &buf)
         )
     }
@@ -1268,8 +1332,8 @@ extension CreateGiftResponse: Equatable, Hashable {
 public struct FfiConverterTypeCreateGiftResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> CreateGiftResponse {
         return try CreateGiftResponse(
-            token: FfiConverterOptionString.read(from: &buf), 
-            deepLink: FfiConverterOptionString.read(from: &buf), 
+            token: FfiConverterOptionString.read(from: &buf),
+            deepLink: FfiConverterOptionString.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -1349,11 +1413,11 @@ extension DeviceCapability: Equatable, Hashable {
 public struct FfiConverterTypeDeviceCapability: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DeviceCapability {
         return try DeviceCapability(
-            supported: FfiConverterBool.read(from: &buf), 
-            availableRamMb: FfiConverterUInt32.read(from: &buf), 
-            cpuCores: FfiConverterUInt32.read(from: &buf), 
-            hasSimd: FfiConverterBool.read(from: &buf), 
-            estimatedTps: FfiConverterFloat.read(from: &buf), 
+            supported: FfiConverterBool.read(from: &buf),
+            availableRamMb: FfiConverterUInt32.read(from: &buf),
+            cpuCores: FfiConverterUInt32.read(from: &buf),
+            hasSimd: FfiConverterBool.read(from: &buf),
+            estimatedTps: FfiConverterFloat.read(from: &buf),
             unsupportedReason: FfiConverterOptionString.read(from: &buf)
         )
     }
@@ -1412,7 +1476,7 @@ extension DeviceCapabilityResponse: Equatable, Hashable {
 public struct FfiConverterTypeDeviceCapabilityResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> DeviceCapabilityResponse {
         return try DeviceCapabilityResponse(
-            capability: FfiConverterOptionTypeDeviceCapability.read(from: &buf), 
+            capability: FfiConverterOptionTypeDeviceCapability.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -1467,7 +1531,7 @@ extension FallbackPromptsResponse: Equatable, Hashable {
 public struct FfiConverterTypeFallbackPromptsResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> FallbackPromptsResponse {
         return try FallbackPromptsResponse(
-            prompts: FfiConverterSequenceString.read(from: &buf), 
+            prompts: FfiConverterSequenceString.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -1546,11 +1610,11 @@ extension GiftReadingData: Equatable, Hashable {
 public struct FfiConverterTypeGiftReadingData: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> GiftReadingData {
         return try GiftReadingData(
-            token: FfiConverterString.read(from: &buf), 
-            buyerNote: FfiConverterOptionString.read(from: &buf), 
-            sourceId: FfiConverterOptionString.read(from: &buf), 
-            createdAt: FfiConverterInt64.read(from: &buf), 
-            expiresAt: FfiConverterInt64.read(from: &buf), 
+            token: FfiConverterString.read(from: &buf),
+            buyerNote: FfiConverterOptionString.read(from: &buf),
+            sourceId: FfiConverterOptionString.read(from: &buf),
+            createdAt: FfiConverterInt64.read(from: &buf),
+            expiresAt: FfiConverterInt64.read(from: &buf),
             redeemed: FfiConverterBool.read(from: &buf)
         )
     }
@@ -1572,6 +1636,212 @@ public func FfiConverterTypeGiftReadingData_lift(_ buf: RustBuffer) throws -> Gi
 
 public func FfiConverterTypeGiftReadingData_lower(_ value: GiftReadingData) -> RustBuffer {
     return FfiConverterTypeGiftReadingData.lower(value)
+}
+
+
+public struct Interpretation {
+    public var id: String
+    public var readingId: String
+    public var createdAt: Int64
+    public var mode: String
+    public var provider: String?
+    public var modelId: String?
+    public var promptVersion: String
+    public var text: String
+    public var usedFallback: Bool
+    public var safetyStatus: String
+    public var safetyReasons: [String]
+    public var inputTokens: UInt32?
+    public var outputTokens: UInt32?
+    public var latencyMs: UInt32?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(id: String, readingId: String, createdAt: Int64, mode: String, provider: String?, modelId: String?, promptVersion: String, text: String, usedFallback: Bool, safetyStatus: String, safetyReasons: [String], inputTokens: UInt32?, outputTokens: UInt32?, latencyMs: UInt32?) {
+        self.id = id
+        self.readingId = readingId
+        self.createdAt = createdAt
+        self.mode = mode
+        self.provider = provider
+        self.modelId = modelId
+        self.promptVersion = promptVersion
+        self.text = text
+        self.usedFallback = usedFallback
+        self.safetyStatus = safetyStatus
+        self.safetyReasons = safetyReasons
+        self.inputTokens = inputTokens
+        self.outputTokens = outputTokens
+        self.latencyMs = latencyMs
+    }
+}
+
+
+extension Interpretation: Equatable, Hashable {
+    public static func ==(lhs: Interpretation, rhs: Interpretation) -> Bool {
+        if lhs.id != rhs.id {
+            return false
+        }
+        if lhs.readingId != rhs.readingId {
+            return false
+        }
+        if lhs.createdAt != rhs.createdAt {
+            return false
+        }
+        if lhs.mode != rhs.mode {
+            return false
+        }
+        if lhs.provider != rhs.provider {
+            return false
+        }
+        if lhs.modelId != rhs.modelId {
+            return false
+        }
+        if lhs.promptVersion != rhs.promptVersion {
+            return false
+        }
+        if lhs.text != rhs.text {
+            return false
+        }
+        if lhs.usedFallback != rhs.usedFallback {
+            return false
+        }
+        if lhs.safetyStatus != rhs.safetyStatus {
+            return false
+        }
+        if lhs.safetyReasons != rhs.safetyReasons {
+            return false
+        }
+        if lhs.inputTokens != rhs.inputTokens {
+            return false
+        }
+        if lhs.outputTokens != rhs.outputTokens {
+            return false
+        }
+        if lhs.latencyMs != rhs.latencyMs {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+        hasher.combine(readingId)
+        hasher.combine(createdAt)
+        hasher.combine(mode)
+        hasher.combine(provider)
+        hasher.combine(modelId)
+        hasher.combine(promptVersion)
+        hasher.combine(text)
+        hasher.combine(usedFallback)
+        hasher.combine(safetyStatus)
+        hasher.combine(safetyReasons)
+        hasher.combine(inputTokens)
+        hasher.combine(outputTokens)
+        hasher.combine(latencyMs)
+    }
+}
+
+
+public struct FfiConverterTypeInterpretation: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Interpretation {
+        return try Interpretation(
+            id: FfiConverterString.read(from: &buf),
+            readingId: FfiConverterString.read(from: &buf),
+            createdAt: FfiConverterInt64.read(from: &buf),
+            mode: FfiConverterString.read(from: &buf),
+            provider: FfiConverterOptionString.read(from: &buf),
+            modelId: FfiConverterOptionString.read(from: &buf),
+            promptVersion: FfiConverterString.read(from: &buf),
+            text: FfiConverterString.read(from: &buf),
+            usedFallback: FfiConverterBool.read(from: &buf),
+            safetyStatus: FfiConverterString.read(from: &buf),
+            safetyReasons: FfiConverterSequenceString.read(from: &buf),
+            inputTokens: FfiConverterOptionUInt32.read(from: &buf),
+            outputTokens: FfiConverterOptionUInt32.read(from: &buf),
+            latencyMs: FfiConverterOptionUInt32.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: Interpretation, into buf: inout [UInt8]) {
+        FfiConverterString.write(value.id, into: &buf)
+        FfiConverterString.write(value.readingId, into: &buf)
+        FfiConverterInt64.write(value.createdAt, into: &buf)
+        FfiConverterString.write(value.mode, into: &buf)
+        FfiConverterOptionString.write(value.provider, into: &buf)
+        FfiConverterOptionString.write(value.modelId, into: &buf)
+        FfiConverterString.write(value.promptVersion, into: &buf)
+        FfiConverterString.write(value.text, into: &buf)
+        FfiConverterBool.write(value.usedFallback, into: &buf)
+        FfiConverterString.write(value.safetyStatus, into: &buf)
+        FfiConverterSequenceString.write(value.safetyReasons, into: &buf)
+        FfiConverterOptionUInt32.write(value.inputTokens, into: &buf)
+        FfiConverterOptionUInt32.write(value.outputTokens, into: &buf)
+        FfiConverterOptionUInt32.write(value.latencyMs, into: &buf)
+    }
+}
+
+
+public func FfiConverterTypeInterpretation_lift(_ buf: RustBuffer) throws -> Interpretation {
+    return try FfiConverterTypeInterpretation.lift(buf)
+}
+
+public func FfiConverterTypeInterpretation_lower(_ value: Interpretation) -> RustBuffer {
+    return FfiConverterTypeInterpretation.lower(value)
+}
+
+
+public struct InterpretationResponse {
+    public var interpretation: Interpretation?
+    public var error: BridgeError?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(interpretation: Interpretation?, error: BridgeError?) {
+        self.interpretation = interpretation
+        self.error = error
+    }
+}
+
+
+extension InterpretationResponse: Equatable, Hashable {
+    public static func ==(lhs: InterpretationResponse, rhs: InterpretationResponse) -> Bool {
+        if lhs.interpretation != rhs.interpretation {
+            return false
+        }
+        if lhs.error != rhs.error {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(interpretation)
+        hasher.combine(error)
+    }
+}
+
+
+public struct FfiConverterTypeInterpretationResponse: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> InterpretationResponse {
+        return try InterpretationResponse(
+            interpretation: FfiConverterOptionTypeInterpretation.read(from: &buf),
+            error: FfiConverterOptionTypeBridgeError.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: InterpretationResponse, into buf: inout [UInt8]) {
+        FfiConverterOptionTypeInterpretation.write(value.interpretation, into: &buf)
+        FfiConverterOptionTypeBridgeError.write(value.error, into: &buf)
+    }
+}
+
+
+public func FfiConverterTypeInterpretationResponse_lift(_ buf: RustBuffer) throws -> InterpretationResponse {
+    return try FfiConverterTypeInterpretationResponse.lift(buf)
+}
+
+public func FfiConverterTypeInterpretationResponse_lower(_ value: InterpretationResponse) -> RustBuffer {
+    return FfiConverterTypeInterpretationResponse.lower(value)
 }
 
 
@@ -1639,12 +1909,12 @@ extension InterpretationStreamState: Equatable, Hashable {
 public struct FfiConverterTypeInterpretationStreamState: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> InterpretationStreamState {
         return try InterpretationStreamState(
-            requestId: FfiConverterString.read(from: &buf), 
-            newChunks: FfiConverterSequenceString.read(from: &buf), 
-            fullText: FfiConverterString.read(from: &buf), 
-            done: FfiConverterBool.read(from: &buf), 
-            usedFallback: FfiConverterBool.read(from: &buf), 
-            cancelled: FfiConverterBool.read(from: &buf), 
+            requestId: FfiConverterString.read(from: &buf),
+            newChunks: FfiConverterSequenceString.read(from: &buf),
+            fullText: FfiConverterString.read(from: &buf),
+            done: FfiConverterBool.read(from: &buf),
+            usedFallback: FfiConverterBool.read(from: &buf),
+            cancelled: FfiConverterBool.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -1758,16 +2028,16 @@ extension LocalModelInfo: Equatable, Hashable {
 public struct FfiConverterTypeLocalModelInfo: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LocalModelInfo {
         return try LocalModelInfo(
-            modelId: FfiConverterString.read(from: &buf), 
-            status: FfiConverterTypeLocalModelStatus.read(from: &buf), 
-            downloadProgress: FfiConverterUInt8.read(from: &buf), 
-            modelSizeBytes: FfiConverterUInt64.read(from: &buf), 
-            downloadedBytes: FfiConverterUInt64.read(from: &buf), 
-            version: FfiConverterString.read(from: &buf), 
-            errorMessage: FfiConverterOptionString.read(from: &buf), 
-            etaSeconds: FfiConverterOptionUInt32.read(from: &buf), 
-            deviceCapable: FfiConverterBool.read(from: &buf), 
-            requiredRamMb: FfiConverterUInt32.read(from: &buf), 
+            modelId: FfiConverterString.read(from: &buf),
+            status: FfiConverterTypeLocalModelStatus.read(from: &buf),
+            downloadProgress: FfiConverterUInt8.read(from: &buf),
+            modelSizeBytes: FfiConverterUInt64.read(from: &buf),
+            downloadedBytes: FfiConverterUInt64.read(from: &buf),
+            version: FfiConverterString.read(from: &buf),
+            errorMessage: FfiConverterOptionString.read(from: &buf),
+            etaSeconds: FfiConverterOptionUInt32.read(from: &buf),
+            deviceCapable: FfiConverterBool.read(from: &buf),
+            requiredRamMb: FfiConverterUInt32.read(from: &buf),
             availableRamMb: FfiConverterUInt32.read(from: &buf)
         )
     }
@@ -1831,7 +2101,7 @@ extension LocalModelStatusResponse: Equatable, Hashable {
 public struct FfiConverterTypeLocalModelStatusResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LocalModelStatusResponse {
         return try LocalModelStatusResponse(
-            modelInfo: FfiConverterOptionTypeLocalModelInfo.read(from: &buf), 
+            modelInfo: FfiConverterOptionTypeLocalModelInfo.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -1886,7 +2156,7 @@ extension NotificationEntry: Equatable, Hashable {
 public struct FfiConverterTypeNotificationEntry: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> NotificationEntry {
         return try NotificationEntry(
-            symbolId: FfiConverterString.read(from: &buf), 
+            symbolId: FfiConverterString.read(from: &buf),
             question: FfiConverterString.read(from: &buf)
         )
     }
@@ -1953,9 +2223,9 @@ extension NotificationMessage: Equatable, Hashable {
 public struct FfiConverterTypeNotificationMessage: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> NotificationMessage {
         return try NotificationMessage(
-            symbolId: FfiConverterString.read(from: &buf), 
-            question: FfiConverterString.read(from: &buf), 
-            title: FfiConverterString.read(from: &buf), 
+            symbolId: FfiConverterString.read(from: &buf),
+            question: FfiConverterString.read(from: &buf),
+            title: FfiConverterString.read(from: &buf),
             body: FfiConverterString.read(from: &buf)
         )
     }
@@ -2012,7 +2282,7 @@ extension NotificationMessageResponse: Equatable, Hashable {
 public struct FfiConverterTypeNotificationMessageResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> NotificationMessageResponse {
         return try NotificationMessageResponse(
-            message: FfiConverterOptionTypeNotificationMessage.read(from: &buf), 
+            message: FfiConverterOptionTypeNotificationMessage.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -2073,8 +2343,8 @@ extension PaginatedReadings: Equatable, Hashable {
 public struct FfiConverterTypePaginatedReadings: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> PaginatedReadings {
         return try PaginatedReadings(
-            items: FfiConverterSequenceTypeReading.read(from: &buf), 
-            totalCount: FfiConverterUInt32.read(from: &buf), 
+            items: FfiConverterSequenceTypeReading.read(from: &buf),
+            totalCount: FfiConverterUInt32.read(from: &buf),
             hasMore: FfiConverterBool.read(from: &buf)
         )
     }
@@ -2130,7 +2400,7 @@ extension PaginatedReadingsResponse: Equatable, Hashable {
 public struct FfiConverterTypePaginatedReadingsResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> PaginatedReadingsResponse {
         return try PaginatedReadingsResponse(
-            readings: FfiConverterOptionTypePaginatedReadings.read(from: &buf), 
+            readings: FfiConverterOptionTypePaginatedReadings.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -2209,11 +2479,11 @@ extension Passage: Equatable, Hashable {
 public struct FfiConverterTypePassage: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Passage {
         return try Passage(
-            id: FfiConverterString.read(from: &buf), 
-            sourceId: FfiConverterString.read(from: &buf), 
-            reference: FfiConverterString.read(from: &buf), 
-            text: FfiConverterString.read(from: &buf), 
-            context: FfiConverterOptionString.read(from: &buf), 
+            id: FfiConverterString.read(from: &buf),
+            sourceId: FfiConverterString.read(from: &buf),
+            reference: FfiConverterString.read(from: &buf),
+            text: FfiConverterString.read(from: &buf),
+            context: FfiConverterOptionString.read(from: &buf),
             resonanceContext: FfiConverterOptionString.read(from: &buf)
         )
     }
@@ -2272,7 +2542,7 @@ extension PerformReadingResponse: Equatable, Hashable {
 public struct FfiConverterTypePerformReadingResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> PerformReadingResponse {
         return try PerformReadingResponse(
-            session: FfiConverterOptionTypeReadingSession.read(from: &buf), 
+            session: FfiConverterOptionTypeReadingSession.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -2333,8 +2603,8 @@ extension PrepareLocalModelResponse: Equatable, Hashable {
 public struct FfiConverterTypePrepareLocalModelResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> PrepareLocalModelResponse {
         return try PrepareLocalModelResponse(
-            started: FfiConverterBool.read(from: &buf), 
-            modelInfo: FfiConverterOptionTypeLocalModelInfo.read(from: &buf), 
+            started: FfiConverterBool.read(from: &buf),
+            modelInfo: FfiConverterOptionTypeLocalModelInfo.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -2480,22 +2750,22 @@ extension Reading: Equatable, Hashable {
 public struct FfiConverterTypeReading: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Reading {
         return try Reading(
-            id: FfiConverterString.read(from: &buf), 
-            createdAt: FfiConverterInt64.read(from: &buf), 
-            sourceId: FfiConverterString.read(from: &buf), 
-            passageId: FfiConverterString.read(from: &buf), 
-            themeId: FfiConverterString.read(from: &buf), 
-            symbolChosen: FfiConverterString.read(from: &buf), 
-            symbolMethod: FfiConverterTypeSymbolMethod.read(from: &buf), 
-            situationText: FfiConverterOptionString.read(from: &buf), 
-            aiInterpreted: FfiConverterBool.read(from: &buf), 
-            aiUsedFallback: FfiConverterBool.read(from: &buf), 
-            readDurationS: FfiConverterOptionUInt32.read(from: &buf), 
-            timeToAiRequestS: FfiConverterOptionUInt32.read(from: &buf), 
-            notificationOpened: FfiConverterBool.read(from: &buf), 
-            moodTag: FfiConverterOptionTypeMoodTag.read(from: &buf), 
-            isFavorite: FfiConverterBool.read(from: &buf), 
-            shared: FfiConverterBool.read(from: &buf), 
+            id: FfiConverterString.read(from: &buf),
+            createdAt: FfiConverterInt64.read(from: &buf),
+            sourceId: FfiConverterString.read(from: &buf),
+            passageId: FfiConverterString.read(from: &buf),
+            themeId: FfiConverterString.read(from: &buf),
+            symbolChosen: FfiConverterString.read(from: &buf),
+            symbolMethod: FfiConverterTypeSymbolMethod.read(from: &buf),
+            situationText: FfiConverterOptionString.read(from: &buf),
+            aiInterpreted: FfiConverterBool.read(from: &buf),
+            aiUsedFallback: FfiConverterBool.read(from: &buf),
+            readDurationS: FfiConverterOptionUInt32.read(from: &buf),
+            timeToAiRequestS: FfiConverterOptionUInt32.read(from: &buf),
+            notificationOpened: FfiConverterBool.read(from: &buf),
+            moodTag: FfiConverterOptionTypeMoodTag.read(from: &buf),
+            isFavorite: FfiConverterBool.read(from: &buf),
+            shared: FfiConverterBool.read(from: &buf),
             userIntent: FfiConverterOptionTypeUserIntent.read(from: &buf)
         )
     }
@@ -2565,7 +2835,7 @@ extension ReadingResponse: Equatable, Hashable {
 public struct FfiConverterTypeReadingResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ReadingResponse {
         return try ReadingResponse(
-            reading: FfiConverterOptionTypeReading.read(from: &buf), 
+            reading: FfiConverterOptionTypeReading.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -2650,12 +2920,12 @@ extension ReadingSession: Equatable, Hashable {
 public struct FfiConverterTypeReadingSession: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ReadingSession {
         return try ReadingSession(
-            tempId: FfiConverterString.read(from: &buf), 
-            source: FfiConverterTypeSource.read(from: &buf), 
-            theme: FfiConverterTypeTheme.read(from: &buf), 
-            symbols: FfiConverterSequenceTypeSymbol.read(from: &buf), 
-            situationText: FfiConverterOptionString.read(from: &buf), 
-            userIntent: FfiConverterOptionTypeUserIntent.read(from: &buf), 
+            tempId: FfiConverterString.read(from: &buf),
+            source: FfiConverterTypeSource.read(from: &buf),
+            theme: FfiConverterTypeTheme.read(from: &buf),
+            symbols: FfiConverterSequenceTypeSymbol.read(from: &buf),
+            situationText: FfiConverterOptionString.read(from: &buf),
+            userIntent: FfiConverterOptionTypeUserIntent.read(from: &buf),
             startedAt: FfiConverterInt64.read(from: &buf)
         )
     }
@@ -2715,7 +2985,7 @@ extension RedeemGiftResponse: Equatable, Hashable {
 public struct FfiConverterTypeRedeemGiftResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> RedeemGiftResponse {
         return try RedeemGiftResponse(
-            gift: FfiConverterOptionTypeGiftReadingData.read(from: &buf), 
+            gift: FfiConverterOptionTypeGiftReadingData.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -2770,7 +3040,7 @@ extension RequestInterpretationResponse: Equatable, Hashable {
 public struct FfiConverterTypeRequestInterpretationResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> RequestInterpretationResponse {
         return try RequestInterpretationResponse(
-            interpretation: FfiConverterOptionTypeAIInterpretation.read(from: &buf), 
+            interpretation: FfiConverterOptionTypeAIInterpretation.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -2788,6 +3058,61 @@ public func FfiConverterTypeRequestInterpretationResponse_lift(_ buf: RustBuffer
 
 public func FfiConverterTypeRequestInterpretationResponse_lower(_ value: RequestInterpretationResponse) -> RustBuffer {
     return FfiConverterTypeRequestInterpretationResponse.lower(value)
+}
+
+
+public struct SaveInterpretationResponse {
+    public var saved: Bool
+    public var error: BridgeError?
+
+    // Default memberwise initializers are never public by default, so we
+    // declare one manually.
+    public init(saved: Bool, error: BridgeError?) {
+        self.saved = saved
+        self.error = error
+    }
+}
+
+
+extension SaveInterpretationResponse: Equatable, Hashable {
+    public static func ==(lhs: SaveInterpretationResponse, rhs: SaveInterpretationResponse) -> Bool {
+        if lhs.saved != rhs.saved {
+            return false
+        }
+        if lhs.error != rhs.error {
+            return false
+        }
+        return true
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(saved)
+        hasher.combine(error)
+    }
+}
+
+
+public struct FfiConverterTypeSaveInterpretationResponse: FfiConverterRustBuffer {
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SaveInterpretationResponse {
+        return try SaveInterpretationResponse(
+            saved: FfiConverterBool.read(from: &buf),
+            error: FfiConverterOptionTypeBridgeError.read(from: &buf)
+        )
+    }
+
+    public static func write(_ value: SaveInterpretationResponse, into buf: inout [UInt8]) {
+        FfiConverterBool.write(value.saved, into: &buf)
+        FfiConverterOptionTypeBridgeError.write(value.error, into: &buf)
+    }
+}
+
+
+public func FfiConverterTypeSaveInterpretationResponse_lift(_ buf: RustBuffer) throws -> SaveInterpretationResponse {
+    return try FfiConverterTypeSaveInterpretationResponse.lift(buf)
+}
+
+public func FfiConverterTypeSaveInterpretationResponse_lower(_ value: SaveInterpretationResponse) -> RustBuffer {
+    return FfiConverterTypeSaveInterpretationResponse.lower(value)
 }
 
 
@@ -2825,7 +3150,7 @@ extension SeedBundledDataResponse: Equatable, Hashable {
 public struct FfiConverterTypeSeedBundledDataResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SeedBundledDataResponse {
         return try SeedBundledDataResponse(
-            seeded: FfiConverterBool.read(from: &buf), 
+            seeded: FfiConverterBool.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -2880,7 +3205,7 @@ extension SetApiKeyResponse: Equatable, Hashable {
 public struct FfiConverterTypeSetApiKeyResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SetApiKeyResponse {
         return try SetApiKeyResponse(
-            applied: FfiConverterBool.read(from: &buf), 
+            applied: FfiConverterBool.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -2977,14 +3302,14 @@ extension Source: Equatable, Hashable {
 public struct FfiConverterTypeSource: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Source {
         return try Source(
-            id: FfiConverterString.read(from: &buf), 
-            name: FfiConverterString.read(from: &buf), 
-            tradition: FfiConverterTypeTradition.read(from: &buf), 
-            language: FfiConverterString.read(from: &buf), 
-            passageCount: FfiConverterUInt32.read(from: &buf), 
-            isBundled: FfiConverterBool.read(from: &buf), 
-            isPremium: FfiConverterBool.read(from: &buf), 
-            fallbackPrompts: FfiConverterSequenceString.read(from: &buf), 
+            id: FfiConverterString.read(from: &buf),
+            name: FfiConverterString.read(from: &buf),
+            tradition: FfiConverterTypeTradition.read(from: &buf),
+            language: FfiConverterString.read(from: &buf),
+            passageCount: FfiConverterUInt32.read(from: &buf),
+            isBundled: FfiConverterBool.read(from: &buf),
+            isPremium: FfiConverterBool.read(from: &buf),
+            fallbackPrompts: FfiConverterSequenceString.read(from: &buf),
             sourceType: FfiConverterTypeSourceType.read(from: &buf)
         )
     }
@@ -3046,7 +3371,7 @@ extension SourcesResponse: Equatable, Hashable {
 public struct FfiConverterTypeSourcesResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SourcesResponse {
         return try SourcesResponse(
-            sources: FfiConverterSequenceTypeSource.read(from: &buf), 
+            sources: FfiConverterSequenceTypeSource.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -3101,7 +3426,7 @@ extension StartInterpretationStreamResponse: Equatable, Hashable {
 public struct FfiConverterTypeStartInterpretationStreamResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> StartInterpretationStreamResponse {
         return try StartInterpretationStreamResponse(
-            requestId: FfiConverterOptionString.read(from: &buf), 
+            requestId: FfiConverterOptionString.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -3126,13 +3451,15 @@ public struct Symbol {
     public var id: String
     public var displayName: String
     public var flavorText: String?
+    public var archetypeAssetId: String?
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(id: String, displayName: String, flavorText: String?) {
+    public init(id: String, displayName: String, flavorText: String?, archetypeAssetId: String?) {
         self.id = id
         self.displayName = displayName
         self.flavorText = flavorText
+        self.archetypeAssetId = archetypeAssetId
     }
 }
 
@@ -3148,6 +3475,9 @@ extension Symbol: Equatable, Hashable {
         if lhs.flavorText != rhs.flavorText {
             return false
         }
+        if lhs.archetypeAssetId != rhs.archetypeAssetId {
+            return false
+        }
         return true
     }
 
@@ -3155,6 +3485,7 @@ extension Symbol: Equatable, Hashable {
         hasher.combine(id)
         hasher.combine(displayName)
         hasher.combine(flavorText)
+        hasher.combine(archetypeAssetId)
     }
 }
 
@@ -3162,9 +3493,10 @@ extension Symbol: Equatable, Hashable {
 public struct FfiConverterTypeSymbol: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Symbol {
         return try Symbol(
-            id: FfiConverterString.read(from: &buf), 
-            displayName: FfiConverterString.read(from: &buf), 
-            flavorText: FfiConverterOptionString.read(from: &buf)
+            id: FfiConverterString.read(from: &buf),
+            displayName: FfiConverterString.read(from: &buf),
+            flavorText: FfiConverterOptionString.read(from: &buf),
+            archetypeAssetId: FfiConverterOptionString.read(from: &buf)
         )
     }
 
@@ -3172,6 +3504,7 @@ public struct FfiConverterTypeSymbol: FfiConverterRustBuffer {
         FfiConverterString.write(value.id, into: &buf)
         FfiConverterString.write(value.displayName, into: &buf)
         FfiConverterOptionString.write(value.flavorText, into: &buf)
+        FfiConverterOptionString.write(value.archetypeAssetId, into: &buf)
     }
 }
 
@@ -3243,11 +3576,11 @@ extension Theme: Equatable, Hashable {
 public struct FfiConverterTypeTheme: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Theme {
         return try Theme(
-            id: FfiConverterString.read(from: &buf), 
-            name: FfiConverterString.read(from: &buf), 
-            symbols: FfiConverterSequenceTypeSymbol.read(from: &buf), 
-            isPremium: FfiConverterBool.read(from: &buf), 
-            packId: FfiConverterOptionString.read(from: &buf), 
+            id: FfiConverterString.read(from: &buf),
+            name: FfiConverterString.read(from: &buf),
+            symbols: FfiConverterSequenceTypeSymbol.read(from: &buf),
+            isPremium: FfiConverterBool.read(from: &buf),
+            packId: FfiConverterOptionString.read(from: &buf),
             priceUsd: FfiConverterOptionFloat.read(from: &buf)
         )
     }
@@ -3306,7 +3639,7 @@ extension UpdateUserStateResponse: Equatable, Hashable {
 public struct FfiConverterTypeUpdateUserStateResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> UpdateUserStateResponse {
         return try UpdateUserStateResponse(
-            updated: FfiConverterBool.read(from: &buf), 
+            updated: FfiConverterBool.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -3341,10 +3674,11 @@ public struct UserState {
     public var onboardingComplete: Bool
     public var userIntent: UserIntent?
     public var weeklySummaryEnabled: Bool
+    public var aiPrivacyMode: AiPrivacyMode
 
     // Default memberwise initializers are never public by default, so we
     // declare one manually.
-    public init(userId: String, subscriptionTier: SubscriptionTier, readingsToday: UInt8, aiCallsToday: UInt8, sessionCount: UInt32, lastReadingDate: String?, notificationEnabled: Bool, notificationTime: String?, preferredLanguage: String, darkMode: Bool, onboardingComplete: Bool, userIntent: UserIntent?, weeklySummaryEnabled: Bool) {
+    public init(userId: String, subscriptionTier: SubscriptionTier, readingsToday: UInt8, aiCallsToday: UInt8, sessionCount: UInt32, lastReadingDate: String?, notificationEnabled: Bool, notificationTime: String?, preferredLanguage: String, darkMode: Bool, onboardingComplete: Bool, userIntent: UserIntent?, weeklySummaryEnabled: Bool, aiPrivacyMode: AiPrivacyMode) {
         self.userId = userId
         self.subscriptionTier = subscriptionTier
         self.readingsToday = readingsToday
@@ -3358,6 +3692,7 @@ public struct UserState {
         self.onboardingComplete = onboardingComplete
         self.userIntent = userIntent
         self.weeklySummaryEnabled = weeklySummaryEnabled
+        self.aiPrivacyMode = aiPrivacyMode
     }
 }
 
@@ -3403,6 +3738,9 @@ extension UserState: Equatable, Hashable {
         if lhs.weeklySummaryEnabled != rhs.weeklySummaryEnabled {
             return false
         }
+        if lhs.aiPrivacyMode != rhs.aiPrivacyMode {
+            return false
+        }
         return true
     }
 
@@ -3420,6 +3758,7 @@ extension UserState: Equatable, Hashable {
         hasher.combine(onboardingComplete)
         hasher.combine(userIntent)
         hasher.combine(weeklySummaryEnabled)
+        hasher.combine(aiPrivacyMode)
     }
 }
 
@@ -3427,19 +3766,20 @@ extension UserState: Equatable, Hashable {
 public struct FfiConverterTypeUserState: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> UserState {
         return try UserState(
-            userId: FfiConverterString.read(from: &buf), 
-            subscriptionTier: FfiConverterTypeSubscriptionTier.read(from: &buf), 
-            readingsToday: FfiConverterUInt8.read(from: &buf), 
-            aiCallsToday: FfiConverterUInt8.read(from: &buf), 
-            sessionCount: FfiConverterUInt32.read(from: &buf), 
-            lastReadingDate: FfiConverterOptionString.read(from: &buf), 
-            notificationEnabled: FfiConverterBool.read(from: &buf), 
-            notificationTime: FfiConverterOptionString.read(from: &buf), 
-            preferredLanguage: FfiConverterString.read(from: &buf), 
-            darkMode: FfiConverterBool.read(from: &buf), 
-            onboardingComplete: FfiConverterBool.read(from: &buf), 
-            userIntent: FfiConverterOptionTypeUserIntent.read(from: &buf), 
-            weeklySummaryEnabled: FfiConverterBool.read(from: &buf)
+            userId: FfiConverterString.read(from: &buf),
+            subscriptionTier: FfiConverterTypeSubscriptionTier.read(from: &buf),
+            readingsToday: FfiConverterUInt8.read(from: &buf),
+            aiCallsToday: FfiConverterUInt8.read(from: &buf),
+            sessionCount: FfiConverterUInt32.read(from: &buf),
+            lastReadingDate: FfiConverterOptionString.read(from: &buf),
+            notificationEnabled: FfiConverterBool.read(from: &buf),
+            notificationTime: FfiConverterOptionString.read(from: &buf),
+            preferredLanguage: FfiConverterString.read(from: &buf),
+            darkMode: FfiConverterBool.read(from: &buf),
+            onboardingComplete: FfiConverterBool.read(from: &buf),
+            userIntent: FfiConverterOptionTypeUserIntent.read(from: &buf),
+            weeklySummaryEnabled: FfiConverterBool.read(from: &buf),
+            aiPrivacyMode: FfiConverterTypeAiPrivacyMode.read(from: &buf)
         )
     }
 
@@ -3457,6 +3797,7 @@ public struct FfiConverterTypeUserState: FfiConverterRustBuffer {
         FfiConverterBool.write(value.onboardingComplete, into: &buf)
         FfiConverterOptionTypeUserIntent.write(value.userIntent, into: &buf)
         FfiConverterBool.write(value.weeklySummaryEnabled, into: &buf)
+        FfiConverterTypeAiPrivacyMode.write(value.aiPrivacyMode, into: &buf)
     }
 }
 
@@ -3504,7 +3845,7 @@ extension UserStateResponse: Equatable, Hashable {
 public struct FfiConverterTypeUserStateResponse: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> UserStateResponse {
         return try UserStateResponse(
-            state: FfiConverterOptionTypeUserState.read(from: &buf), 
+            state: FfiConverterOptionTypeUserState.read(from: &buf),
             error: FfiConverterOptionTypeBridgeError.read(from: &buf)
         )
     }
@@ -3526,8 +3867,67 @@ public func FfiConverterTypeUserStateResponse_lower(_ value: UserStateResponse) 
 
 // Note that we don't yet support `indirect` for enums.
 // See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
+public enum AiPrivacyMode {
+
+    case localOnly
+    case askBeforeCloud
+    case allowCloudFallback
+}
+
+public struct FfiConverterTypeAiPrivacyMode: FfiConverterRustBuffer {
+    typealias SwiftType = AiPrivacyMode
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> AiPrivacyMode {
+        let variant: Int32 = try readInt(&buf)
+        switch variant {
+
+        case 1: return .localOnly
+
+        case 2: return .askBeforeCloud
+
+        case 3: return .allowCloudFallback
+
+        default: throw UniffiInternalError.unexpectedEnumCase
+        }
+    }
+
+    public static func write(_ value: AiPrivacyMode, into buf: inout [UInt8]) {
+        switch value {
+
+
+        case .localOnly:
+            writeInt(&buf, Int32(1))
+
+
+        case .askBeforeCloud:
+            writeInt(&buf, Int32(2))
+
+
+        case .allowCloudFallback:
+            writeInt(&buf, Int32(3))
+
+        }
+    }
+}
+
+
+public func FfiConverterTypeAiPrivacyMode_lift(_ buf: RustBuffer) throws -> AiPrivacyMode {
+    return try FfiConverterTypeAiPrivacyMode.lift(buf)
+}
+
+public func FfiConverterTypeAiPrivacyMode_lower(_ value: AiPrivacyMode) -> RustBuffer {
+    return FfiConverterTypeAiPrivacyMode.lower(value)
+}
+
+
+extension AiPrivacyMode: Equatable, Hashable {}
+
+
+
+// Note that we don't yet support `indirect` for enums.
+// See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
 public enum LocalModelStatus {
-    
+
     case notDownloaded
     case downloading
     case ready
@@ -3542,50 +3942,50 @@ public struct FfiConverterTypeLocalModelStatus: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> LocalModelStatus {
         let variant: Int32 = try readInt(&buf)
         switch variant {
-        
+
         case 1: return .notDownloaded
-        
+
         case 2: return .downloading
-        
+
         case 3: return .ready
-        
+
         case 4: return .updateAvailable
-        
+
         case 5: return .error
-        
+
         case 6: return .unsupported
-        
+
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
 
     public static func write(_ value: LocalModelStatus, into buf: inout [UInt8]) {
         switch value {
-        
-        
+
+
         case .notDownloaded:
             writeInt(&buf, Int32(1))
-        
-        
+
+
         case .downloading:
             writeInt(&buf, Int32(2))
-        
-        
+
+
         case .ready:
             writeInt(&buf, Int32(3))
-        
-        
+
+
         case .updateAvailable:
             writeInt(&buf, Int32(4))
-        
-        
+
+
         case .error:
             writeInt(&buf, Int32(5))
-        
-        
+
+
         case .unsupported:
             writeInt(&buf, Int32(6))
-        
+
         }
     }
 }
@@ -3607,7 +4007,7 @@ extension LocalModelStatus: Equatable, Hashable {}
 // Note that we don't yet support `indirect` for enums.
 // See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
 public enum MoodTag {
-    
+
     case confused
     case hopeful
     case anxious
@@ -3622,50 +4022,50 @@ public struct FfiConverterTypeMoodTag: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> MoodTag {
         let variant: Int32 = try readInt(&buf)
         switch variant {
-        
+
         case 1: return .confused
-        
+
         case 2: return .hopeful
-        
+
         case 3: return .anxious
-        
+
         case 4: return .curious
-        
+
         case 5: return .grateful
-        
+
         case 6: return .grief
-        
+
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
 
     public static func write(_ value: MoodTag, into buf: inout [UInt8]) {
         switch value {
-        
-        
+
+
         case .confused:
             writeInt(&buf, Int32(1))
-        
-        
+
+
         case .hopeful:
             writeInt(&buf, Int32(2))
-        
-        
+
+
         case .anxious:
             writeInt(&buf, Int32(3))
-        
-        
+
+
         case .curious:
             writeInt(&buf, Int32(4))
-        
-        
+
+
         case .grateful:
             writeInt(&buf, Int32(5))
-        
-        
+
+
         case .grief:
             writeInt(&buf, Int32(6))
-        
+
         }
     }
 }
@@ -3687,7 +4087,7 @@ extension MoodTag: Equatable, Hashable {}
 // Note that we don't yet support `indirect` for enums.
 // See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
 public enum ReadingState {
-    
+
     case idle
     case situationInput
     case sourceSelection
@@ -3706,74 +4106,74 @@ public struct FfiConverterTypeReadingState: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> ReadingState {
         let variant: Int32 = try readInt(&buf)
         switch variant {
-        
+
         case 1: return .idle
-        
+
         case 2: return .situationInput
-        
+
         case 3: return .sourceSelection
-        
+
         case 4: return .wildcardReveal
-        
+
         case 5: return .wildcardChosen
-        
+
         case 6: return .ritualAnimation
-        
+
         case 7: return .passageDisplayed
-        
+
         case 8: return .aiStreaming
-        
+
         case 9: return .aiFallback
-        
+
         case 10: return .complete
-        
+
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
 
     public static func write(_ value: ReadingState, into buf: inout [UInt8]) {
         switch value {
-        
-        
+
+
         case .idle:
             writeInt(&buf, Int32(1))
-        
-        
+
+
         case .situationInput:
             writeInt(&buf, Int32(2))
-        
-        
+
+
         case .sourceSelection:
             writeInt(&buf, Int32(3))
-        
-        
+
+
         case .wildcardReveal:
             writeInt(&buf, Int32(4))
-        
-        
+
+
         case .wildcardChosen:
             writeInt(&buf, Int32(5))
-        
-        
+
+
         case .ritualAnimation:
             writeInt(&buf, Int32(6))
-        
-        
+
+
         case .passageDisplayed:
             writeInt(&buf, Int32(7))
-        
-        
+
+
         case .aiStreaming:
             writeInt(&buf, Int32(8))
-        
-        
+
+
         case .aiFallback:
             writeInt(&buf, Int32(9))
-        
-        
+
+
         case .complete:
             writeInt(&buf, Int32(10))
-        
+
         }
     }
 }
@@ -3795,7 +4195,7 @@ extension ReadingState: Equatable, Hashable {}
 // Note that we don't yet support `indirect` for enums.
 // See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
 public enum SourceType {
-    
+
     case hexagram
     case bibliomancy
     case meditation
@@ -3807,32 +4207,32 @@ public struct FfiConverterTypeSourceType: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SourceType {
         let variant: Int32 = try readInt(&buf)
         switch variant {
-        
+
         case 1: return .hexagram
-        
+
         case 2: return .bibliomancy
-        
+
         case 3: return .meditation
-        
+
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
 
     public static func write(_ value: SourceType, into buf: inout [UInt8]) {
         switch value {
-        
-        
+
+
         case .hexagram:
             writeInt(&buf, Int32(1))
-        
-        
+
+
         case .bibliomancy:
             writeInt(&buf, Int32(2))
-        
-        
+
+
         case .meditation:
             writeInt(&buf, Int32(3))
-        
+
         }
     }
 }
@@ -3854,7 +4254,7 @@ extension SourceType: Equatable, Hashable {}
 // Note that we don't yet support `indirect` for enums.
 // See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
 public enum SubscriptionTier {
-    
+
     case free
     case pro
 }
@@ -3865,26 +4265,26 @@ public struct FfiConverterTypeSubscriptionTier: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SubscriptionTier {
         let variant: Int32 = try readInt(&buf)
         switch variant {
-        
+
         case 1: return .free
-        
+
         case 2: return .pro
-        
+
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
 
     public static func write(_ value: SubscriptionTier, into buf: inout [UInt8]) {
         switch value {
-        
-        
+
+
         case .free:
             writeInt(&buf, Int32(1))
-        
-        
+
+
         case .pro:
             writeInt(&buf, Int32(2))
-        
+
         }
     }
 }
@@ -3906,7 +4306,7 @@ extension SubscriptionTier: Equatable, Hashable {}
 // Note that we don't yet support `indirect` for enums.
 // See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
 public enum SymbolMethod {
-    
+
     case manual
     case auto
 }
@@ -3917,26 +4317,26 @@ public struct FfiConverterTypeSymbolMethod: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SymbolMethod {
         let variant: Int32 = try readInt(&buf)
         switch variant {
-        
+
         case 1: return .manual
-        
+
         case 2: return .auto
-        
+
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
 
     public static func write(_ value: SymbolMethod, into buf: inout [UInt8]) {
         switch value {
-        
-        
+
+
         case .manual:
             writeInt(&buf, Int32(1))
-        
-        
+
+
         case .auto:
             writeInt(&buf, Int32(2))
-        
+
         }
     }
 }
@@ -3958,7 +4358,7 @@ extension SymbolMethod: Equatable, Hashable {}
 // Note that we don't yet support `indirect` for enums.
 // See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
 public enum Tradition {
-    
+
     case chinese
     case christian
     case islamic
@@ -3973,50 +4373,50 @@ public struct FfiConverterTypeTradition: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> Tradition {
         let variant: Int32 = try readInt(&buf)
         switch variant {
-        
+
         case 1: return .chinese
-        
+
         case 2: return .christian
-        
+
         case 3: return .islamic
-        
+
         case 4: return .sufi
-        
+
         case 5: return .stoic
-        
+
         case 6: return .universal
-        
+
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
 
     public static func write(_ value: Tradition, into buf: inout [UInt8]) {
         switch value {
-        
-        
+
+
         case .chinese:
             writeInt(&buf, Int32(1))
-        
-        
+
+
         case .christian:
             writeInt(&buf, Int32(2))
-        
-        
+
+
         case .islamic:
             writeInt(&buf, Int32(3))
-        
-        
+
+
         case .sufi:
             writeInt(&buf, Int32(4))
-        
-        
+
+
         case .stoic:
             writeInt(&buf, Int32(5))
-        
-        
+
+
         case .universal:
             writeInt(&buf, Int32(6))
-        
+
         }
     }
 }
@@ -4038,7 +4438,7 @@ extension Tradition: Equatable, Hashable {}
 // Note that we don't yet support `indirect` for enums.
 // See https://github.com/mozilla/uniffi-rs/issues/396 for further discussion.
 public enum UserIntent {
-    
+
     case clarity
     case comfort
     case challenge
@@ -4051,38 +4451,38 @@ public struct FfiConverterTypeUserIntent: FfiConverterRustBuffer {
     public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> UserIntent {
         let variant: Int32 = try readInt(&buf)
         switch variant {
-        
+
         case 1: return .clarity
-        
+
         case 2: return .comfort
-        
+
         case 3: return .challenge
-        
+
         case 4: return .guidance
-        
+
         default: throw UniffiInternalError.unexpectedEnumCase
         }
     }
 
     public static func write(_ value: UserIntent, into buf: inout [UInt8]) {
         switch value {
-        
-        
+
+
         case .clarity:
             writeInt(&buf, Int32(1))
-        
-        
+
+
         case .comfort:
             writeInt(&buf, Int32(2))
-        
-        
+
+
         case .challenge:
             writeInt(&buf, Int32(3))
-        
-        
+
+
         case .guidance:
             writeInt(&buf, Int32(4))
-        
+
         }
     }
 }
@@ -4306,6 +4706,27 @@ fileprivate struct FfiConverterOptionTypeGiftReadingData: FfiConverterRustBuffer
         switch try readInt(&buf) as Int8 {
         case 0: return nil
         case 1: return try FfiConverterTypeGiftReadingData.read(from: &buf)
+        default: throw UniffiInternalError.unexpectedOptionalTag
+        }
+    }
+}
+
+fileprivate struct FfiConverterOptionTypeInterpretation: FfiConverterRustBuffer {
+    typealias SwiftType = Interpretation?
+
+    public static func write(_ value: SwiftType, into buf: inout [UInt8]) {
+        guard let value = value else {
+            writeInt(&buf, Int8(0))
+            return
+        }
+        writeInt(&buf, Int8(1))
+        FfiConverterTypeInterpretation.write(value, into: &buf)
+    }
+
+    public static func read(from buf: inout (data: Data, offset: Data.Index)) throws -> SwiftType {
+        switch try readInt(&buf) as Int8 {
+        case 0: return nil
+        case 1: return try FfiConverterTypeInterpretation.read(from: &buf)
         default: throw UniffiInternalError.unexpectedOptionalTag
         }
     }
@@ -4603,13 +5024,22 @@ private var initializationResult: InitializationResult {
     if (uniffi_aletheia_core_checksum_method_aletheiacore_create_gift() != 53160) {
         return InitializationResult.apiChecksumMismatch
     }
+    if (uniffi_aletheia_core_checksum_method_aletheiacore_delete_all_readings() != 11964) {
+        return InitializationResult.apiChecksumMismatch
+    }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_delete_local_model() != 36610) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_aletheia_core_checksum_method_aletheiacore_delete_reading() != 3883) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_get_daily_notification_message() != 39691) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_get_fallback_prompts() != 14357) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_aletheia_core_checksum_method_aletheiacore_get_interpretation_by_reading_id() != 50498) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_get_local_model_status() != 3811) {
@@ -4622,6 +5052,9 @@ private var initializationResult: InitializationResult {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_get_sources() != 26269) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_aletheia_core_checksum_method_aletheiacore_get_sources_for_user() != 21495) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_get_user_state() != 57766) {
@@ -4640,6 +5073,9 @@ private var initializationResult: InitializationResult {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_request_interpretation() != 48174) {
+        return InitializationResult.apiChecksumMismatch
+    }
+    if (uniffi_aletheia_core_checksum_method_aletheiacore_save_interpretation() != 25938) {
         return InitializationResult.apiChecksumMismatch
     }
     if (uniffi_aletheia_core_checksum_method_aletheiacore_seed_bundled_data() != 24203) {

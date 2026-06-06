@@ -11,6 +11,7 @@ export const LOCAL_MODEL_CONFIG = {
   FILES: {
     MODEL: 'Qwen3.5-2B-IT.litertlm',
     VERSION: 'version.json',
+    MANIFEST: 'manifest.json',
     CHECKSUM: 'checksum.sha256',
   },
   REQUIREMENTS: {
@@ -40,12 +41,21 @@ export function getVersionCheckUrl(): string {
   return getModelFileUrl(LOCAL_MODEL_CONFIG.FILES.VERSION);
 }
 
+export function getManifestUrl(): string {
+  return getModelFileUrl(LOCAL_MODEL_CONFIG.FILES.MANIFEST);
+}
+
 export interface ModelVersionInfo {
   version: string;
   releaseDate: string;
   checksum: string;
+  sha256: string;
   sizeBytes: number;
   minAppVersion: string;
+  minRamMb?: number;
+  quantization?: string;
+  contextTokens?: number;
+  signature?: string;
   changelog?: string;
 }
 
@@ -56,8 +66,13 @@ export function parseVersionInfo(json: string): ModelVersionInfo | null {
       version: data.version ?? '0.0.0',
       releaseDate: data.releaseDate ?? data.release_date ?? '',
       checksum: data.checksum ?? '',
+      sha256: data.sha256 ?? data.checksum ?? '',
       sizeBytes: data.sizeBytes ?? data.size_bytes ?? 0,
       minAppVersion: data.minAppVersion ?? data.min_app_version ?? '0.0.0',
+      minRamMb: data.minRamMb ?? data.min_ram_mb,
+      quantization: data.quantization,
+      contextTokens: data.contextTokens ?? data.context_tokens,
+      signature: data.signature,
       changelog: data.changelog,
     };
   } catch {

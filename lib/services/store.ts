@@ -12,11 +12,13 @@ import {
   Theme,
   Symbol,
   Reading,
+  Interpretation,
   UserState,
   SubscriptionTier,
   SymbolMethod,
   SourceType,
   UserIntent,
+  AiPrivacyMode,
 } from "@/lib/types";
 import { BUNDLED_SOURCES, BUNDLED_PASSAGES, BUNDLED_THEMES } from "@/lib/data/content";
 
@@ -72,6 +74,7 @@ type UserStateRow = {
   onboarding_complete: number;
   user_intent: UserState["user_intent"] | null;
   weekly_summary_enabled: number | null;
+  ai_privacy_mode: UserState["ai_privacy_mode"] | null;
 };
 
 type ReadingRow = {
@@ -123,7 +126,7 @@ class StoreService {
   private db: SQLite.SQLiteDatabase | null = null;
   private initialized = false;
   private initPromise: Promise<void> | null = null;
-  private static readonly SCHEMA_VERSION = 11;
+  private static readonly SCHEMA_VERSION = 13;
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
@@ -356,6 +359,39 @@ class StoreService {
       }
     }
 
+    // Migration v12: Add AI privacy mode — default asks before sending situation text to cloud.
+    if (currentVersion < 12) {
+      const userStateCols = await this.db.getAllAsync<SqliteColumnInfo>(`PRAGMA table_info(user_state)`);
+      if (!userStateCols.some((c) => c.name === "ai_privacy_mode")) {
+        await this.db.execAsync(
+          `ALTER TABLE user_state ADD COLUMN ai_privacy_mode TEXT NOT NULL DEFAULT 'ask_before_cloud';`
+        );
+      }
+    }
+
+    // Migration v13: Child records for persisted AI interpretation text and lineage.
+    if (currentVersion < 13) {
+      await this.db.execAsync(`
+        CREATE TABLE IF NOT EXISTS interpretations (
+          id TEXT PRIMARY KEY,
+          reading_id TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          mode TEXT NOT NULL,
+          provider TEXT,
+          model_id TEXT,
+          prompt_version TEXT NOT NULL,
+          text TEXT NOT NULL,
+          used_fallback INTEGER NOT NULL DEFAULT 0,
+          safety_status TEXT NOT NULL,
+          safety_reasons TEXT NOT NULL,
+          input_tokens INTEGER,
+          output_tokens INTEGER,
+          latency_ms INTEGER
+        );
+        CREATE INDEX IF NOT EXISTS idx_interpretations_reading_id ON interpretations(reading_id);
+      `);
+    }
+
     await this.db.execAsync(`PRAGMA user_version = ${StoreService.SCHEMA_VERSION}`);
     console.log(`[Store] Migrated to version ${StoreService.SCHEMA_VERSION}`);
   }
@@ -424,6 +460,7 @@ class StoreService {
         onboarding_complete: false,
         user_intent: undefined,
         weekly_summary_enabled: false,
+        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
       };
       await this.updateUserState(defaultState);
       return defaultState;
@@ -449,6 +486,7 @@ class StoreService {
         onboarding_complete: row.onboarding_complete === 1,
         user_intent: row.user_intent || undefined,
         weekly_summary_enabled: row.weekly_summary_enabled === 1,
+        ai_privacy_mode: row.ai_privacy_mode || AiPrivacyMode.AskBeforeCloud,
       };
     }
 
@@ -466,6 +504,7 @@ class StoreService {
       onboarding_complete: row.onboarding_complete === 1,
       user_intent: row.user_intent || undefined,
       weekly_summary_enabled: row.weekly_summary_enabled === 1,
+      ai_privacy_mode: row.ai_privacy_mode || AiPrivacyMode.AskBeforeCloud,
     };
   }
 
@@ -474,7 +513,7 @@ class StoreService {
     if (!this.db) throw new Error("Database not initialized");
 
     await this.db.runAsync(
-      `INSERT OR REPLACE INTO user_state (user_id, subscription_tier, readings_today, ai_calls_today, session_count, last_reading_date, notification_enabled, notification_time, preferred_language, dark_mode, onboarding_complete, user_intent, weekly_summary_enabled) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT OR REPLACE INTO user_state (user_id, subscription_tier, readings_today, ai_calls_today, session_count, last_reading_date, notification_enabled, notification_time, preferred_language, dark_mode, onboarding_complete, user_intent, weekly_summary_enabled, ai_privacy_mode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         state.user_id,
         state.subscription_tier,
@@ -489,6 +528,7 @@ class StoreService {
         state.onboarding_complete ? 1 : 0,
         state.user_intent ?? null,
         state.weekly_summary_enabled ? 1 : 0,
+        state.ai_privacy_mode,
       ]
     );
   }
@@ -899,6 +939,31 @@ class StoreService {
         reading.user_intent ?? null,
         reading.hide_situation ? 1 : 0,
       ]
+    );
+  }
+
+  async saveInterpretation(interpretation: Interpretation): Promise<void> {
+    await this.initialize();
+    if (!this.db) throw new Error("Database not initialized");
+
+    await this.db.runAsync(
+      `INSERT OR REPLACE INTO interpretations (id, reading_id, created_at, mode, provider, model_id, prompt_version, text, used_fallback, safety_status, safety_reasons, input_tokens, output_tokens, latency_ms) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        interpretation.id,
+        interpretation.reading_id,
+        interpretation.created_at,
+        interpretation.mode,
+        interpretation.provider ?? null,
+        interpretation.model_id ?? null,
+        interpretation.prompt_version,
+        interpretation.text,
+        interpretation.used_fallback ? 1 : 0,
+        interpretation.safety_status,
+        JSON.stringify(interpretation.safety_reasons),
+        interpretation.input_tokens ?? null,
+        interpretation.output_tokens ?? null,
+        interpretation.latency_ms ?? null,
+      ],
     );
   }
 

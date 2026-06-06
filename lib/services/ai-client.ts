@@ -25,6 +25,9 @@ export interface AIRequest {
 export interface AIInterpretationResult {
   chunks: string[];
   usedFallback: boolean;
+  mode?: "local" | "cloud" | "fallback";
+  provider?: string;
+  modelId?: string;
 }
 
 interface AIStreamHandlers {
@@ -100,6 +103,8 @@ class AIClientService {
       return {
         chunks: this.getFallbackInterpretation(request),
         usedFallback: true,
+        mode: "fallback",
+        provider: "fallback",
       };
     }
 
@@ -111,12 +116,16 @@ class AIClientService {
       return {
         chunks: this.getFallbackInterpretation(request),
         usedFallback: true,
+        mode: "fallback",
+        provider: "fallback",
       };
     } catch (error) {
       console.error("[AI Client] Request failed:", error);
       return {
         chunks: this.getFallbackInterpretation(request),
         usedFallback: true,
+        mode: "fallback",
+        provider: "fallback",
       };
     }
   }
@@ -135,7 +144,7 @@ class AIClientService {
     let requestId: string | null = null;
     let cancelled = false;
 
-    const promise = (async () => {
+    const promise: Promise<AIInterpretationResult> = (async () => {
       requestId = await aiRuntime.startInterpretationStream({
         passage: request.passage,
         symbol: request.symbol,
@@ -148,6 +157,8 @@ class AIClientService {
         return {
           chunks: this.getFallbackInterpretation(request),
           usedFallback: true,
+          mode: "fallback",
+          provider: "fallback",
         };
       }
 
@@ -180,6 +191,8 @@ class AIClientService {
           return {
             chunks: state.fullText ? [state.fullText] : chunks,
             usedFallback: state.usedFallback,
+            mode: state.usedFallback ? "fallback" : "cloud",
+            provider: state.usedFallback ? "fallback" : "rust-core",
           };
         }
 
@@ -187,6 +200,8 @@ class AIClientService {
           return {
             chunks: state.fullText ? [state.fullText] : chunks,
             usedFallback: state.usedFallback,
+            mode: state.usedFallback ? "fallback" : "cloud",
+            provider: state.usedFallback ? "fallback" : "rust-core",
           };
         }
 

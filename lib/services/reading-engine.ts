@@ -161,9 +161,6 @@ class ReadingEngineService {
       const userId = await getCurrentUserId();
       await store.incrementReadingsToday(userId);
       await store.incrementSessionCount(userId);
-      if (reading.ai_interpreted) {
-        await store.incrementAICallsToday(userId);
-      }
 
       const saved_at = Date.now();
 

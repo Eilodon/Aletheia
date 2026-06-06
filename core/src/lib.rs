@@ -645,6 +645,50 @@ impl AletheiaCore {
         }
     }
 
+    pub fn save_interpretation(
+        &self,
+        interpretation: Interpretation,
+    ) -> SaveInterpretationResponse {
+        if let Some(err) = &self.init_error {
+            return SaveInterpretationResponse {
+                saved: false,
+                error: Some(err.clone()),
+            };
+        }
+        match self.store.insert_interpretation(&interpretation) {
+            Ok(()) => SaveInterpretationResponse {
+                saved: true,
+                error: None,
+            },
+            Err(e) => SaveInterpretationResponse {
+                saved: false,
+                error: Some(BridgeError::from_aletheia_error(&e)),
+            },
+        }
+    }
+
+    pub fn get_interpretation_by_reading_id(
+        &self,
+        reading_id: String,
+    ) -> InterpretationResponse {
+        if let Some(err) = &self.init_error {
+            return InterpretationResponse {
+                interpretation: None,
+                error: Some(err.clone()),
+            };
+        }
+        match self.store.get_interpretation_by_reading_id(&reading_id) {
+            Ok(interpretation) => InterpretationResponse {
+                interpretation,
+                error: None,
+            },
+            Err(e) => InterpretationResponse {
+                interpretation: None,
+                error: Some(BridgeError::from_aletheia_error(&e)),
+            },
+        }
+    }
+
     pub fn delete_reading(&self, id: String) -> bool {
         if self.init_error.is_some() {
             return false;
@@ -669,6 +713,25 @@ impl AletheiaCore {
             };
         }
         match self.store.get_sources(premium_allowed) {
+            Ok(sources) => SourcesResponse {
+                sources,
+                error: None,
+            },
+            Err(e) => SourcesResponse {
+                sources: Vec::new(),
+                error: Some(BridgeError::from_aletheia_error(&e)),
+            },
+        }
+    }
+
+    pub fn get_sources_for_user(&self, user_id: String) -> SourcesResponse {
+        if let Some(err) = &self.init_error {
+            return SourcesResponse {
+                sources: Vec::new(),
+                error: Some(err.clone()),
+            };
+        }
+        match self.store.get_sources_for_user(&user_id) {
             Ok(sources) => SourcesResponse {
                 sources,
                 error: None,

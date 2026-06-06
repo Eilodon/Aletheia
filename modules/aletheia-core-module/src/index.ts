@@ -47,6 +47,7 @@ export type NativePassage = {
 };
 
 export type NativeUserIntent = "clarity" | "comfort" | "challenge" | "guidance";
+export type NativeAiPrivacyMode = "local_only" | "ask_before_cloud" | "allow_cloud_fallback";
 
 export type NativeReadingSession = {
   temp_id: string;
@@ -92,6 +93,7 @@ export type NativeUserState = {
   onboarding_complete: boolean;
   user_intent?: NativeUserIntent;
   weekly_summary_enabled: boolean;
+  ai_privacy_mode: NativeAiPrivacyMode;
 };
 
 export type NativeNotificationMessage = {
@@ -134,6 +136,23 @@ export type NativeFallbackPromptsResponse = {
 export type NativeAIInterpretation = {
   chunks: string[];
   used_fallback: boolean;
+};
+
+export type NativeInterpretation = {
+  id: string;
+  reading_id: string;
+  created_at: number;
+  mode: string;
+  provider?: string;
+  model_id?: string;
+  prompt_version: string;
+  text: string;
+  used_fallback: boolean;
+  safety_status: string;
+  safety_reasons: string[];
+  input_tokens?: number;
+  output_tokens?: number;
+  latency_ms?: number;
 };
 
 export type NativeRequestInterpretationResponse = {
@@ -194,6 +213,16 @@ export type NativePaginatedReadingsResponse = {
 
 export type NativeReadingResponse = {
   reading?: NativeReading;
+  error?: NativeBridgeError;
+};
+
+export type NativeInterpretationResponse = {
+  interpretation?: NativeInterpretation;
+  error?: NativeBridgeError;
+};
+
+export type NativeSaveInterpretationResponse = {
+  saved: boolean;
   error?: NativeBridgeError;
 };
 
@@ -334,12 +363,15 @@ export type NativeAletheiaModule = {
   getUserState(userId: string): Promise<NativeUserStateResponse>;
   updateUserState(state: NativeUserState): Promise<NativeUpdateUserStateResponse>;
   getSources(premiumAllowed: boolean): Promise<NativeSourcesResponse>;
+  getSourcesForUser(userId: string): Promise<NativeSourcesResponse>;
   getReadings(limit: number, offset: number): Promise<NativePaginatedReadingsResponse>;
   getReadingById(id: string): Promise<NativeReadingResponse>;
   updateReadingFlags(
     id: string,
     flags: { isFavorite?: boolean; shared?: boolean },
   ): Promise<NativeReadingResponse>;
+  saveInterpretation(interpretation: NativeInterpretation): Promise<NativeSaveInterpretationResponse>;
+  getInterpretationByReadingId(readingId: string): Promise<NativeInterpretationResponse>;
   deleteReading(id: string): Promise<boolean>;
   deleteAllReadings(): Promise<number>;
   getDailyNotificationMessage(

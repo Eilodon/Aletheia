@@ -3,6 +3,7 @@
  */
 
 import { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from "react";
+import { Alert } from "react-native";
 import { useRouter, type Href } from "expo-router";
 import {
   Reading,
@@ -29,6 +30,7 @@ import { generateId } from "@/lib/utils/id";
 import { trackRitualEvent } from "@/lib/analytics";
 import { captureException } from "@/lib/sentry";
 import { interpretationOrchestrator } from "@/lib/services/interpretation-orchestrator";
+import type { AIInterpretationResult } from "@/lib/services/ai-client";
 import { showToast } from "@/components/toast";
 
 interface ReadingContextType {
@@ -63,6 +65,19 @@ interface ReadingContextType {
 const ReadingContext = createContext<ReadingContextType | undefined>(undefined);
 const PAYWALL_ROUTE: Href = "/paywall" as Href;
 
+function confirmCloudAI(): Promise<boolean> {
+  return new Promise((resolve) => {
+    Alert.alert(
+      "Gửi lên AI cloud?",
+      "Local AI chưa sẵn sàng. Nếu tiếp tục, đoạn trích, biểu tượng và tình huống của bạn sẽ được gửi để tạo phản chiếu.",
+      [
+        { text: "Ở lại local", style: "cancel", onPress: () => resolve(false) },
+        { text: "Tiếp tục", onPress: () => resolve(true) },
+      ],
+    );
+  });
+}
+
 export function ReadingProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [currentState, setCurrentState] = useState<ReadingState>(ReadingState.Idle);
@@ -83,6 +98,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
   const [selectedMoodTag, setSelectedMoodTag] = useState<MoodTag | null>(null);
   const [isEphemeral, setIsEphemeral] = useState(false);
   const activeAIStreamCancelRef = useRef<(() => Promise<boolean>) | null>(null);
+  const lastAIInterpretationRef = useRef<AIInterpretationResult | null>(null);
   const passageRevealTimeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const passageActionsDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const selectedSymbol = useMemo(
@@ -212,32 +228,60 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
         user_intent: session.user_intent,
       });
 
-      const stream = interpretationOrchestrator.streamInterpretation(
-        {
-          passage,
-          symbol: selectedSymbol,
-          situationText: session.situation_text,
-          resonanceContext: passage.resonance_context, // AI-05: inject hidden context
-          sourceLanguage: session.source.language,
-          sourceFallbackPrompts: session.source.fallback_prompts,
-          userIntent: session.user_intent as "clarity" | "comfort" | "challenge" | "guidance" | undefined,
-          useSonnet: userTier === SubscriptionTier.Pro,
-        },
-        {
-          onChunk: (fullText) => {
-            setAIResponse(fullText);
+      const runStream = async (cloudConsent = false) => {
+        const stream = interpretationOrchestrator.streamInterpretation(
+          {
+            passage,
+            symbol: selectedSymbol,
+            situationText: session.situation_text,
+            resonanceContext: passage.resonance_context, // AI-05: inject hidden context
+            sourceLanguage: session.source.language,
+            sourceFallbackPrompts: session.source.fallback_prompts,
+            userIntent: session.user_intent as "clarity" | "comfort" | "challenge" | "guidance" | undefined,
+            useSonnet: userTier === SubscriptionTier.Pro,
+            cloudConsent,
           },
-        },
-      );
-      activeAIStreamCancelRef.current = stream.cancel;
+          {
+            onChunk: (fullText) => {
+              setAIResponse(fullText);
+            },
+          },
+        );
+        activeAIStreamCancelRef.current = stream.cancel;
+        return stream.promise;
+      };
 
-      const interpretation = await stream.promise;
+      let interpretation;
+      try {
+        interpretation = await runStream(false);
+      } catch (streamError) {
+        const maybeError = streamError as AletheiaError;
+        if (
+          maybeError.code === ErrorCode.InvalidInput &&
+          maybeError.context &&
+          maybeError.context.cloud_consent_required === true
+        ) {
+          const allowed = await confirmCloudAI();
+          if (!allowed) {
+            activeAIStreamCancelRef.current = null;
+            lastAIInterpretationRef.current = null;
+            setAIResponse(null);
+            setCurrentState(ReadingState.PassageDisplayed);
+            return;
+          }
+          setAIResponse("");
+          interpretation = await runStream(true);
+        } else {
+          throw streamError;
+        }
+      }
       const finalInterpretationText =
         interpretation.chunks.length <= 1
           ? (interpretation.chunks[0] ?? "")
           : interpretation.chunks.join("");
       setAIResponse(finalInterpretationText);
       setIsAIFallback(interpretation.usedFallback);
+      lastAIInterpretationRef.current = interpretation;
       activeAIStreamCancelRef.current = null;
       if (interpretation.usedFallback) {
         showToast("warn", "AI trực tuyến không sẵn sàng. Aletheia đang dùng phản chiếu dự phòng.");
@@ -254,6 +298,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
       );
     } catch (err) {
       activeAIStreamCancelRef.current = null;
+      lastAIInterpretationRef.current = null;
       const aletheiaError = err as AletheiaError;
       trackRitualEvent("error", {
         step: "ai_request",
@@ -276,6 +321,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
 
       await cancel();
       activeAIStreamCancelRef.current = null;
+      lastAIInterpretationRef.current = null;
       trackRitualEvent("ai_cancelled", {
         source_id: session?.source.id,
         symbol_id: selectedSymbol?.id,
@@ -336,6 +382,25 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
         ...reading,
         symbol_method: selectedMethod,
       });
+      if (aiResponse?.trim()) {
+        const interpretation = lastAIInterpretationRef.current;
+        await coreStore.saveInterpretation({
+          id: generateId(),
+          reading_id: reading.id,
+          created_at: Date.now(),
+          mode: interpretation?.mode ?? (isAIFallback ? "fallback" : "unknown"),
+          provider: interpretation?.provider ?? (isAIFallback ? "fallback" : undefined),
+          model_id: interpretation?.modelId,
+          prompt_version: "aletheia-v1",
+          text: aiResponse,
+          used_fallback: isAIFallback,
+          safety_status: "passed",
+          safety_reasons: [],
+          input_tokens: undefined,
+          output_tokens: undefined,
+          latency_ms: undefined,
+        });
+      }
       trackRitualEvent("save_completed", {
         reading_id: reading.id,
         source_id: reading.source_id,
@@ -427,6 +492,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
   const resetReading = useCallback(() => {
     void activeAIStreamCancelRef.current?.();
     activeAIStreamCancelRef.current = null;
+    lastAIInterpretationRef.current = null;
     setCurrentState(ReadingState.Idle);
     setSession(null);
     setPassage(null);

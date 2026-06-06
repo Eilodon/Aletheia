@@ -278,8 +278,49 @@ impl Store {
             tx.execute("PRAGMA user_version = 10", [])?;
         }
 
+        if user_version < 11 {
+            let exists: bool = tx
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('user_state') WHERE name='ai_privacy_mode'",
+                    [],
+                    |r| r.get::<_, i32>(0),
+                )
+                .unwrap_or(0)
+                > 0;
+            if !exists {
+                tx.execute_batch(
+                    "ALTER TABLE user_state ADD COLUMN ai_privacy_mode TEXT NOT NULL DEFAULT 'ask_before_cloud';",
+                )?;
+            }
+            tx.execute("PRAGMA user_version = 11", [])?;
+        }
+
+        if user_version < 12 {
+            tx.execute_batch(
+                r#"CREATE TABLE IF NOT EXISTS interpretations (
+                    id TEXT PRIMARY KEY,
+                    reading_id TEXT NOT NULL,
+                    created_at INTEGER NOT NULL,
+                    mode TEXT NOT NULL,
+                    provider TEXT,
+                    model_id TEXT,
+                    prompt_version TEXT NOT NULL,
+                    text TEXT NOT NULL,
+                    used_fallback INTEGER NOT NULL DEFAULT 0,
+                    safety_status TEXT NOT NULL,
+                    safety_reasons TEXT NOT NULL,
+                    input_tokens INTEGER,
+                    output_tokens INTEGER,
+                    latency_ms INTEGER,
+                    FOREIGN KEY (reading_id) REFERENCES readings(id) ON DELETE CASCADE
+                );
+                CREATE INDEX IF NOT EXISTS idx_interpretations_reading_id ON interpretations(reading_id);"#,
+            )?;
+            tx.execute("PRAGMA user_version = 12", [])?;
+        }
+
         tx.commit()?;
-        info!("Migrations complete (schema v10, WAL)");
+        info!("Migrations complete (schema v12, WAL)");
         Ok(())
     }
 
@@ -533,6 +574,11 @@ impl Store {
         let mut stmt = conn.prepare(sql)?;
         let rows = stmt.query_map([], map_source)?;
         collect_rows(rows)
+    }
+
+    pub fn get_sources_for_user(&self, user_id: &str) -> Result<Vec<Source>, AletheiaError> {
+        let state = self.get_user_state(user_id)?;
+        self.get_sources(state.subscription_tier == SubscriptionTier::Pro)
     }
 
     pub fn get_random_source(
@@ -817,14 +863,15 @@ impl Store {
             .as_ref()
             .map(|i| ser(i, "user_intent"))
             .transpose()?;
+        let ai_privacy_mode = ser(&state.ai_privacy_mode, "ai_privacy_mode")?;
         let conn = self.conn.lock();
         conn.execute(
             r#"INSERT INTO user_state (
                 user_id,subscription_tier,readings_today,ai_calls_today,
                 session_count,last_reading_date,notification_enabled,notification_time,
                 preferred_language,dark_mode,onboarding_complete,user_intent,
-                weekly_summary_enabled
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)"#,
+                weekly_summary_enabled,ai_privacy_mode
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"#,
             params![
                 state.user_id,
                 tier,
@@ -839,6 +886,7 @@ impl Store {
                 state.onboarding_complete as i32,
                 user_intent,
                 state.weekly_summary_enabled as i32,
+                ai_privacy_mode,
             ],
         )?;
         Ok(())
@@ -851,13 +899,14 @@ impl Store {
             .as_ref()
             .map(|i| ser(i, "user_intent"))
             .transpose()?;
+        let ai_privacy_mode = ser(&state.ai_privacy_mode, "ai_privacy_mode")?;
         let conn = self.conn.lock();
         conn.execute(
             r#"UPDATE user_state SET
                 subscription_tier=?,readings_today=?,ai_calls_today=?,
                 session_count=?,last_reading_date=?,notification_enabled=?,
                 notification_time=?,preferred_language=?,dark_mode=?,
-                onboarding_complete=?,user_intent=?,weekly_summary_enabled=?
+                onboarding_complete=?,user_intent=?,weekly_summary_enabled=?,ai_privacy_mode=?
                WHERE user_id=?"#,
             params![
                 tier,
@@ -872,6 +921,7 @@ impl Store {
                 state.onboarding_complete as i32,
                 user_intent,
                 state.weekly_summary_enabled as i32,
+                ai_privacy_mode,
                 state.user_id,
             ],
         )?;
@@ -944,6 +994,51 @@ impl Store {
             .unwrap_or_default())
     }
 
+    pub fn insert_interpretation(&self, interpretation: &Interpretation) -> Result<(), AletheiaError> {
+        let safety_reasons = ser(&interpretation.safety_reasons, "safety_reasons")?;
+        let conn = self.conn.lock();
+        conn.execute(
+            r#"INSERT OR REPLACE INTO interpretations (
+                id,reading_id,created_at,mode,provider,model_id,prompt_version,text,
+                used_fallback,safety_status,safety_reasons,input_tokens,output_tokens,latency_ms
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"#,
+            params![
+                interpretation.id,
+                interpretation.reading_id,
+                interpretation.created_at,
+                interpretation.mode,
+                interpretation.provider,
+                interpretation.model_id,
+                interpretation.prompt_version,
+                interpretation.text,
+                interpretation.used_fallback as i32,
+                interpretation.safety_status,
+                safety_reasons,
+                interpretation.input_tokens,
+                interpretation.output_tokens,
+                interpretation.latency_ms,
+            ],
+        )?;
+        Ok(())
+    }
+
+    pub fn get_interpretation_by_reading_id(
+        &self,
+        reading_id: &str,
+    ) -> Result<Option<Interpretation>, AletheiaError> {
+        let conn = self.conn.lock();
+        let mut stmt = conn.prepare(
+            r#"SELECT id,reading_id,created_at,mode,provider,model_id,prompt_version,text,
+                      used_fallback,safety_status,safety_reasons,input_tokens,output_tokens,latency_ms
+               FROM interpretations WHERE reading_id = ? ORDER BY created_at DESC LIMIT 1"#,
+        )?;
+        match stmt.query_row(params![reading_id], map_interpretation) {
+            Ok(i) => Ok(Some(i)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(AletheiaError::from(e)),
+        }
+    }
+
     // ────────────────────────────────────────────────────────────────────────
     // DATE OVERRIDE
     // ────────────────────────────────────────────────────────────────────────
@@ -1007,6 +1102,28 @@ fn map_source(r: &rusqlite::Row<'_>) -> rusqlite::Result<Source> {
     })
 }
 
+fn map_interpretation(r: &rusqlite::Row<'_>) -> rusqlite::Result<Interpretation> {
+    Ok(Interpretation {
+        id: r.get(0)?,
+        reading_id: r.get(1)?,
+        created_at: r.get(2)?,
+        mode: r.get(3)?,
+        provider: r.get(4)?,
+        model_id: r.get(5)?,
+        prompt_version: r.get(6)?,
+        text: r.get(7)?,
+        used_fallback: r.get::<_, i32>(8)? != 0,
+        safety_status: r.get(9)?,
+        safety_reasons: r
+            .get::<_, Option<String>>(10)?
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_default(),
+        input_tokens: r.get(11)?,
+        output_tokens: r.get(12)?,
+        latency_ms: r.get(13)?,
+    })
+}
+
 fn map_passage(r: &rusqlite::Row<'_>) -> rusqlite::Result<Passage> {
     Ok(Passage {
         id: r.get(0)?,
@@ -1036,6 +1153,10 @@ fn map_user_state(r: &rusqlite::Row<'_>) -> rusqlite::Result<UserState> {
             .get::<_, Option<String>>(11)?
             .and_then(|s| serde_json::from_str(&s).ok()),
         weekly_summary_enabled: r.get::<_, Option<i32>>(12)?.unwrap_or(0) != 0,
+        ai_privacy_mode: r
+            .get::<_, Option<String>>(13)?
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or(AiPrivacyMode::AskBeforeCloud),
     })
 }
 

@@ -143,9 +143,6 @@ impl ReadingEngine {
         // Update user state
         self.store.increment_readings_today(user_id)?;
         self.store.increment_session_count(user_id)?;
-        if reading.ai_interpreted {
-            self.store.increment_ai_calls_today(user_id)?;
-        }
 
         let saved_at = chrono_timestamp();
         info!("Reading completed: {}", reading.id);

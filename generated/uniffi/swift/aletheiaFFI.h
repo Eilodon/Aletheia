@@ -81,11 +81,17 @@ RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_complete_reading(void*_No
 );
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_create_gift(void*_Nonnull ptr, RustBuffer source_id, RustBuffer buyer_note, RustCallStatus *_Nonnull out_status
 );
+uint32_t uniffi_aletheia_core_fn_method_aletheiacore_delete_all_readings(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
 int8_t uniffi_aletheia_core_fn_method_aletheiacore_delete_local_model(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
+);
+int8_t uniffi_aletheia_core_fn_method_aletheiacore_delete_reading(void*_Nonnull ptr, RustBuffer id, RustCallStatus *_Nonnull out_status
 );
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_get_daily_notification_message(void*_Nonnull ptr, RustBuffer user_id, RustBuffer date, RustCallStatus *_Nonnull out_status
 );
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_get_fallback_prompts(void*_Nonnull ptr, RustBuffer source_id, RustCallStatus *_Nonnull out_status
+);
+RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_get_interpretation_by_reading_id(void*_Nonnull ptr, RustBuffer reading_id, RustCallStatus *_Nonnull out_status
 );
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_get_local_model_status(void*_Nonnull ptr, RustCallStatus *_Nonnull out_status
 );
@@ -94,6 +100,8 @@ RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_get_reading_by_id(void*_N
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_get_readings(void*_Nonnull ptr, uint32_t limit, uint32_t offset, RustCallStatus *_Nonnull out_status
 );
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_get_sources(void*_Nonnull ptr, int8_t premium_allowed, RustCallStatus *_Nonnull out_status
+);
+RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_get_sources_for_user(void*_Nonnull ptr, RustBuffer user_id, RustCallStatus *_Nonnull out_status
 );
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_get_user_state(void*_Nonnull ptr, RustBuffer user_id, RustCallStatus *_Nonnull out_status
 );
@@ -106,6 +114,8 @@ RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_prepare_local_model(void*
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_redeem_gift(void*_Nonnull ptr, RustBuffer token, RustCallStatus *_Nonnull out_status
 );
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_request_interpretation(void*_Nonnull ptr, RustBuffer passage, RustBuffer symbol, RustBuffer situation_text, RustCallStatus *_Nonnull out_status
+);
+RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_save_interpretation(void*_Nonnull ptr, RustBuffer interpretation, RustCallStatus *_Nonnull out_status
 );
 RustBuffer uniffi_aletheia_core_fn_method_aletheiacore_seed_bundled_data(void*_Nonnull ptr, RustBuffer sources_json, RustBuffer passages_json, RustBuffer themes_json, RustCallStatus *_Nonnull out_status
 );
@@ -234,87 +244,102 @@ void ffi_aletheia_core_rust_future_free_void(void* _Nonnull handle
 void ffi_aletheia_core_rust_future_complete_void(void* _Nonnull handle, RustCallStatus *_Nonnull out_status
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_bootstrap_bundled_content(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_cancel_interpretation_stream(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_cancel_local_model_download(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_check_device_capability(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_choose_symbol(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_complete_reading(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_create_gift(void
-    
+
+);
+uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_delete_all_readings(void
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_delete_local_model(void
-    
+
+);
+uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_delete_reading(void
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_get_daily_notification_message(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_get_fallback_prompts(void
-    
+
+);
+uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_get_interpretation_by_reading_id(void
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_get_local_model_status(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_get_reading_by_id(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_get_readings(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_get_sources(void
-    
+
+);
+uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_get_sources_for_user(void
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_get_user_state(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_perform_reading(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_poll_interpretation_stream(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_prepare_local_model(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_redeem_gift(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_request_interpretation(void
-    
+
+);
+uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_save_interpretation(void
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_seed_bundled_data(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_set_ai_api_key(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_set_local_date(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_start_interpretation_stream(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_update_reading_flags(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_method_aletheiacore_update_user_state(void
-    
+
 );
 uint16_t uniffi_aletheia_core_checksum_constructor_aletheiacore_new(void
-    
+
 );
 uint32_t ffi_aletheia_core_uniffi_contract_version(void
-    
+
 );
 

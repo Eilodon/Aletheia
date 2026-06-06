@@ -3,6 +3,7 @@ const path = require("node:path");
 const {
   createRunOncePlugin,
   withDangerousMod,
+  withAndroidManifest,
   withSettingsGradle,
 } = require("expo/config-plugins");
 
@@ -139,6 +140,52 @@ function syncNativeStaging(projectRoot, platform) {
   );
 }
 
+function hardenAndroidManifest(manifest) {
+  const application = manifest.manifest.application?.[0];
+  if (!application) {
+    return manifest;
+  }
+
+  application.$ = application.$ || {};
+  application.$["android:allowBackup"] = "false";
+  application.$["android:fullBackupContent"] = "false";
+  application.$["android:dataExtractionRules"] = "@xml/data_extraction_rules";
+  return manifest;
+}
+
+function writeAndroidDataExtractionRules(projectRoot) {
+  const rulesPath = path.join(
+    projectRoot,
+    "android",
+    "app",
+    "src",
+    "main",
+    "res",
+    "xml",
+    "data_extraction_rules.xml",
+  );
+  ensureDir(path.dirname(rulesPath));
+  fs.writeFileSync(
+    rulesPath,
+    `<?xml version="1.0" encoding="utf-8"?>
+<data-extraction-rules>
+  <cloud-backup>
+    <exclude domain="file" path="." />
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="external" path="." />
+  </cloud-backup>
+  <device-transfer>
+    <exclude domain="file" path="." />
+    <exclude domain="database" path="." />
+    <exclude domain="sharedpref" path="." />
+    <exclude domain="external" path="." />
+  </device-transfer>
+</data-extraction-rules>
+`,
+  );
+}
+
 function withAletheiaCoreModule(config) {
   config = withSettingsGradle(config, (modConfig) => {
     const safeProjectName = (modConfig.slug || "aletheia-app")
@@ -153,6 +200,11 @@ function withAletheiaCoreModule(config) {
     return modConfig;
   });
 
+  config = withAndroidManifest(config, (modConfig) => {
+    modConfig.modResults = hardenAndroidManifest(modConfig.modResults);
+    return modConfig;
+  });
+
   config = withDangerousMod(config, [
     "ios",
     async (modConfig) => {
@@ -164,6 +216,7 @@ function withAletheiaCoreModule(config) {
   config = withDangerousMod(config, [
     "android",
     async (modConfig) => {
+      writeAndroidDataExtractionRules(modConfig.modRequest.projectRoot);
       syncNativeStaging(modConfig.modRequest.projectRoot, "android");
       return modConfig;
     },

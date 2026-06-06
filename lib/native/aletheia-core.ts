@@ -4,6 +4,8 @@ import {
   type NativeCompleteReadingResponse,
   type NativeFallbackPromptsResponse,
   type NativeInitOptions,
+  type NativeInterpretation,
+  type NativeInterpretationResponse,
   type NativeInterpretationStreamState,
   type NativePerformReadingResponse,
   type NativeReading,
@@ -22,6 +24,7 @@ import {
   type NativeUpdateUserStateResponse,
   type NativePaginatedReadingsResponse,
   type NativeReadingResponse,
+  type NativeSaveInterpretationResponse,
   type NativeSourcesResponse,
   type NativeNotificationMessageResponse,
   type NativeRedeemGiftResponse,
@@ -112,6 +115,10 @@ class AletheiaNativeClient {
     return this.requireModule().getSources(premiumAllowed);
   }
 
+  getSourcesForUser(userId: string): Promise<NativeSourcesResponse> {
+    return this.requireModule().getSourcesForUser(userId);
+  }
+
   getReadingById(id: string): Promise<NativeReadingResponse> {
     return this.requireModule().getReadingById(id);
   }
@@ -121,6 +128,17 @@ class AletheiaNativeClient {
     flags: { isFavorite?: boolean; shared?: boolean },
   ): Promise<NativeReadingResponse> {
     return this.requireModule().updateReadingFlags(id, flags);
+  }
+
+  saveInterpretation(
+    interpretation: NativeInterpretation,
+  ): Promise<NativeSaveInterpretationResponse> {
+    const interpretationArg = Platform.OS === 'android' ? JSON.stringify(interpretation) : interpretation;
+    return this.requireModule().saveInterpretation(interpretationArg as any);
+  }
+
+  getInterpretationByReadingId(readingId: string): Promise<NativeInterpretationResponse> {
+    return this.requireModule().getInterpretationByReadingId(readingId);
   }
 
   deleteReading(id: string): Promise<boolean> {

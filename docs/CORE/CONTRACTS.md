@@ -204,6 +204,20 @@ SubscriptionTier ::
 
 ---
 
+#### AiPrivacyMode
+
+```
+AiPrivacyMode ::
+  | LocalOnly           // Chỉ dùng local model hoặc fallback_prompts, không gửi cloud
+  | AskBeforeCloud      // Default: hỏi consent trước khi gửi context lên cloud
+  | AllowCloudFallback  // Cho phép tự fallback cloud khi local fail/not ready
+```
+
+**Dùng ở:** `Ref<UserState>`, AI orchestration layer
+**Serialization:** snake_case
+
+---
+
 #### ReadingState
 
 ```
@@ -493,10 +507,11 @@ UserState {
   onboarding_complete    :: boolean
   user_intent            :: Ref<UserIntent>?
   weekly_summary_enabled :: boolean
+  ai_privacy_mode        :: Ref<AiPrivacyMode> // default AskBeforeCloud
 }
 ```
 
-**Defaults:** user_id="local-user", tier=Free, preferred_language="vi", notification_time="09:00", notification_enabled=true
+**Defaults:** user_id="local-user", tier=Free, preferred_language="vi", notification_time="09:00", notification_enabled=true, ai_privacy_mode=AskBeforeCloud
 
 ---
 
@@ -591,13 +606,38 @@ ModelVersionInfo {
   version        :: string
   releaseDate    :: string
   checksum       :: string
+  sha256         :: string
   sizeBytes      :: u64
   minAppVersion  :: string
+  minRamMb       :: u32?
+  quantization   :: string?
+  contextTokens  :: u32?
+  signature      :: string?
   changelog      :: string?
 }
 ```
 
 **Dùng ở:** `lib/constants/local-model.ts` — parse từ CDN `version.json`
+
+#### LocalModelManifest *(signed model release contract)*
+
+```
+LocalModelManifest {
+  model_id       :: string
+  version        :: string
+  filename       :: string
+  size_bytes     :: u64
+  sha256         :: string
+  signature      :: string?
+  min_app_version :: string
+  min_ram_mb     :: u32
+  quantization   :: string
+  context_tokens :: u32
+  release_notes  :: string?
+}
+```
+
+**Readiness rule:** model file is Ready only when filename exists and manifest validation passes exact `size_bytes` and `sha256`. If manifest is temporarily absent in dev, downloader may fall back to the legacy minimum-size threshold, but beta/release requires manifest.
 
 ---
 
@@ -625,6 +665,29 @@ InterpretationStreamState {
   error         :: Ref<BridgeError>?
 }
 ```
+
+#### Interpretation *(persisted AI text child record)*
+
+```
+Interpretation {
+  id             :: string
+  reading_id     :: string
+  created_at     :: i64
+  mode           :: string      // "local" | "cloud" | "fallback" | "unknown"
+  provider       :: string?
+  model_id       :: string?
+  prompt_version :: string
+  text           :: string
+  used_fallback  :: boolean
+  safety_status  :: string
+  safety_reasons :: List<string>
+  input_tokens   :: u32?
+  output_tokens  :: u32?
+  latency_ms     :: u32?
+}
+```
+
+**Persistence:** Child record keyed by `reading_id`. `Reading` keeps summary flags; `Interpretation` stores AI text and lineage so privacy/export/delete policies can target interpretation text independently.
 
 ---
 
@@ -754,9 +817,9 @@ start_interpretation_stream(
   user_intent    :: string?,     // Ref<UserIntent> serialized value hoặc null
   use_sonnet     :: boolean      // true = Claude Sonnet; false = Claude Haiku
 ) → Ref<StartInterpretationStreamResponse>
-  // PRE: API key đã set (cloud) HOẶC LocalModelStatus = Ready (local)
+  // PRE: passage + symbol hợp lệ; local/cloud/fallback mode được resolver quyết định
   // POST: request_id để dùng trong poll_interpretation_stream
-  // FAIL: AiUnavailable nếu tất cả providers fail; DailyLimitReached
+  // FAIL: AiUnavailable nếu không provider nào được phép; AiDailyLimitReached nếu cloud quota hết
 
 poll_interpretation_stream(request_id :: string) → Ref<InterpretationStreamState>
   // Gọi mỗi ~300ms đến khi done=true hoặc error≠null
@@ -786,8 +849,11 @@ set_local_date(local_date :: string) → void
 
 ```
 get_sources(premium_allowed :: boolean) → Ref<SourcesResponse>
-  // premium_allowed = (subscription_tier == Pro)
-  // Trả về tất cả sources available cho tier đó
+  // LEGACY/compat only. Không dùng trong production flow vì tin boolean từ UI.
+
+get_sources_for_user(user_id :: string) → Ref<SourcesResponse>
+  // Rust tự load UserState/Entitlement và quyết định tier; không tin boolean từ UI.
+  // Trả về tất cả sources available cho user đó.
 
 get_readings(
   limit  :: u32,   // ≤ MAX_PAGE_SIZE
@@ -802,6 +868,10 @@ update_reading_flags(
   is_favorite :: boolean?,   // null = không thay đổi field này
   shared      :: boolean?
 ) → Ref<ReadingResponse>
+
+save_interpretation(interpretation :: Ref<Interpretation>) → Ref<SaveInterpretationResponse>
+
+get_interpretation_by_reading_id(reading_id :: string) → Ref<InterpretationResponse>
 ```
 
 ### 4.6 Notifications
@@ -861,6 +931,7 @@ delete_local_model() → boolean
 | `SymbolInvalid` | `ERR_SYMBOL_INVALID` | 400 | symbol_id không thuộc theme đang active |
 | `AiTimeout` | `ERR_AI_TIMEOUT` | 504 | AI stream vượt `AI_STREAM_TIMEOUT_MS` (15s) |
 | `AiUnavailable` | `ERR_AI_UNAVAILABLE` | 503 | Tất cả providers (cloud + local) đều fail |
+| `AiDailyLimitReached` | `ERR_AI_DAILY_LIMIT_REACHED` | 403 | ai_calls_today ≥ `FREE_AI_PER_DAY` cho cloud AI Free tier |
 | `GiftExpired` | `ERR_GIFT_EXPIRED` | 410 | Token quá `GIFT_LINK_TTL_SECONDS` (24h) |
 | `GiftNotFound` | `ERR_GIFT_NOT_FOUND` | 404 | Token không tồn tại trên backend |
 | `GiftAlreadyRedeemed` | `ERR_GIFT_ALREADY_REDEEMED` | 409 | Token đã được dùng một lần |
@@ -908,6 +979,7 @@ Base: https://storage.googleapis.com/aletheia-models/qwen3.5-2b/
 Files:
   Qwen3.5-2B-IT.litertlm  — model binary (~1.5GB)
   version.json             — Ref<ModelVersionInfo>
+  manifest.json            — Ref<LocalModelManifest>
   checksum.sha256          — SHA-256 của model file
 ```
 

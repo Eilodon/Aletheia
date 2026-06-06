@@ -32,6 +32,7 @@ const ERROR_STATUS_MAP: Record<ErrorCode, number> = {
   [ErrorCode.SymbolInvalid]: 400,
   [ErrorCode.AiTimeout]: 504,
   [ErrorCode.AiUnavailable]: 503,
+  [ErrorCode.AiDailyLimitReached]: 403,
   [ErrorCode.GiftExpired]: 410,
   [ErrorCode.GiftNotFound]: 404,
   [ErrorCode.GiftAlreadyRedeemed]: 409,

@@ -279,7 +279,7 @@ start_interpretation_stream() called
 - `Idle → SituationInput`: không cần guard
 - `SituationInput → SourceSelection`: `situation_text` có thể rỗng (user skip)
 - `WildcardChosen → RitualAnimation`: symbol_id phải valid trong session.symbols
-- `PassageDisplayed → AiStreaming`: readings_today < FREE_AI_PER_DAY HOẶC tier=Pro
+- `PassageDisplayed → AiStreaming`: local AI luôn được phép nếu model ready; cloud AI yêu cầu `ai_calls_today < FREE_AI_PER_DAY` HOẶC tier=Pro, và phải thỏa `AiPrivacyMode`
 - `* → Idle`: bất kỳ lúc nào user navigate away (abandon flow)
 
 ### 4.2 LocalModelStatus Transitions
@@ -406,7 +406,7 @@ return result.session;
 
 **Provider selection logic:**
 1. Check `LocalModelStatus` — nếu `Ready` và device capable → try local
-2. Nếu local fail hoặc NotReady → check network + API key → try cloud
+2. Nếu local fail hoặc NotReady → check `AiPrivacyMode`; default `ask_before_cloud` phải hỏi consent trước khi gửi `situation_text` lên cloud
 3. Nếu cloud fail → `get_fallback_prompts()` → display static
 
 **Sonnet vs Haiku:** `use_sonnet = (subscription_tier === Pro)`. Haiku mặc định cho Free tier.
@@ -473,7 +473,7 @@ get_readings(20, 0)         : < 100ms
 ### 7.4 Free Tier Limits
 
 - `FREE_READINGS_PER_DAY = 3` readings/ngày
-- `FREE_AI_PER_DAY = 1` AI interpretation/ngày
+- `FREE_AI_PER_DAY = 1` cloud AI interpretation/ngày cho Free tier; local AI không tính quota
 - Reset: khi `set_local_date()` được gọi với ngày mới
 - **Bypass by design:** Delete + reinstall reset daily limit (không có device tracking — memory invariant)
 

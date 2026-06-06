@@ -3,7 +3,7 @@ import { getApiBaseUrl } from "@/constants/oauth";
 import { aiClient, type AIInterpretationResult, type AIRequest, type AIStreamSession } from "./ai-client";
 import { aletheiaNativeClient } from "@/lib/native/aletheia-core";
 import { determineInferenceMode } from "@/hooks/use-local-model";
-import type { InferenceMode } from "@/lib/types";
+import { AiPrivacyMode, ErrorCode, SubscriptionTier, type AletheiaError, type InferenceMode } from "@/lib/types";
 import { trackInferenceMode, trackLocalModelEvent } from "@/lib/analytics";
 import {
   isSafeLocalOutput,
@@ -13,16 +13,18 @@ import {
 import { Platform } from "react-native";
 import { getCurrentUserId } from "./current-user-id";
 import { getSessionToken } from "@/lib/auth";
-import { AI_STREAM_TIMEOUT_MS } from "@/lib/constants";
+import { AI_STREAM_TIMEOUT_MS, FREE_AI_PER_DAY } from "@/lib/constants";
 import { APP_ID } from "@/constants/oauth";
 import { getLocale } from "@/lib/i18n";
 import { getLocalizedSymbol } from "@/lib/i18n/symbol-names";
 
 type InterpretationMode = "auto" | "quality" | "local";
+const DEFAULT_AI_PRIVACY_MODE = "ask_before_cloud";
 
 type InterpretationRequestPayload = AIRequest & {
   mode?: InterpretationMode;
   useSonnet?: boolean;
+  cloudConsent?: boolean;
 };
 
 type ServerStreamEvent =
@@ -97,6 +99,8 @@ async function parseServerStream(
       return {
         chunks: event.text ? [event.text] : chunks,
         usedFallback: fallback,
+        mode: fallback ? "fallback" : "cloud",
+        provider: fallback ? "fallback" : "aletheia-server",
       };
     }
   }
@@ -108,6 +112,8 @@ async function parseServerStream(
   return {
     chunks,
     usedFallback: fallback,
+    mode: fallback ? "fallback" : "cloud",
+    provider: fallback ? "fallback" : "aletheia-server",
   };
 }
 
@@ -213,6 +219,41 @@ class InterpretationOrchestratorService {
     return true;
   }
 
+  private async assertCloudAllowed(request: InterpretationRequestPayload): Promise<void> {
+    const userId = await getCurrentUserId().catch(() => "");
+    const userState = userId
+      ? (await aletheiaNativeClient.getUserState(userId).catch(() => ({ state: undefined }))).state
+      : undefined;
+    const privacyMode = userState?.ai_privacy_mode ?? DEFAULT_AI_PRIVACY_MODE;
+
+    if (privacyMode === AiPrivacyMode.LocalOnly) {
+      throw {
+        code: ErrorCode.AiUnavailable,
+        message: "Cloud AI is disabled by privacy mode.",
+        context: { ai_privacy_mode: privacyMode },
+      } satisfies AletheiaError;
+    }
+
+    if (privacyMode === AiPrivacyMode.AskBeforeCloud && !request.cloudConsent) {
+      throw {
+        code: ErrorCode.InvalidInput,
+        message: "Cloud AI requires user consent before sending reading context.",
+        context: { ai_privacy_mode: privacyMode, cloud_consent_required: true },
+      } satisfies AletheiaError;
+    }
+
+    if (
+      userState?.subscription_tier === SubscriptionTier.Free &&
+      userState.ai_calls_today >= FREE_AI_PER_DAY
+    ) {
+      throw {
+        code: ErrorCode.AiDailyLimitReached,
+        message: `Daily AI limit reached: ${userState.ai_calls_today}/${FREE_AI_PER_DAY}`,
+        context: { used: userState.ai_calls_today, limit: FREE_AI_PER_DAY },
+      } satisfies AletheiaError;
+    }
+  }
+
   private recordServerSuccess(): void {
     if (this.circuitState === "half-open") {
       this.circuitState = "closed";
@@ -228,6 +269,24 @@ class InterpretationOrchestratorService {
       this.circuitState = "open";
     }
     this.persistCircuitState();
+  }
+
+  private async recordCloudAiUsage(): Promise<void> {
+    const userId = await getCurrentUserId().catch(() => "");
+    if (!userId || !aletheiaNativeClient.isAvailable()) {
+      return;
+    }
+
+    const response = await aletheiaNativeClient.getUserState(userId).catch(() => null);
+    const state = response?.state;
+    if (!state || state.subscription_tier !== SubscriptionTier.Free) {
+      return;
+    }
+
+    await aletheiaNativeClient.updateUserState({
+      ...state,
+      ai_calls_today: Math.min(255, state.ai_calls_today + 1),
+    }).catch(() => {});
   }
 
   /**
@@ -307,7 +366,7 @@ class InterpretationOrchestratorService {
     let controller: AbortController | null = new AbortController();
     let localRequestId: string | null = null;
 
-    const promise = (async () => {
+    const promise: Promise<AIInterpretationResult> = (async () => {
       // Select inference mode
       const selection = await this.selectInferenceMode(request.mode);
       const startMs = Date.now();
@@ -357,7 +416,12 @@ class InterpretationOrchestratorService {
                     ? "Take a moment to sit with these words. What do they stir in you?"
                     : "Hãy ngồi với những từ này một lúc. Điều gì đang rung lên trong bạn?");
                 handlers.onChunk?.(fallback, fallback);
-                return { chunks: [fallback], usedFallback: true };
+                return {
+                  chunks: [fallback],
+                  usedFallback: true,
+                  mode: "fallback",
+                  provider: "fallback",
+                } satisfies AIInterpretationResult;
               }
 
               // Format normalization (port of server finalizeInterpretationText)
@@ -374,7 +438,13 @@ class InterpretationOrchestratorService {
                 }
               }
 
-              return { chunks: [finalText], usedFallback: false };
+              return {
+                chunks: [finalText],
+                usedFallback: false,
+                mode: "local",
+                provider: "litert-lm",
+                modelId: "qwen3.5-2b",
+              } satisfies AIInterpretationResult;
             }
             
             await new Promise((resolve) => setTimeout(resolve, 50));
@@ -384,6 +454,7 @@ class InterpretationOrchestratorService {
 
       // Use server-side orchestration if available
       if (this.shouldUseServer()) {
+        await this.assertCloudAllowed(request);
         serverTimeout = setTimeout(() => {
           controller?.abort();
         }, AI_STREAM_TIMEOUT_MS);
@@ -418,6 +489,9 @@ class InterpretationOrchestratorService {
 
           const result = await parseServerStream(response, handlers);
           this.recordServerSuccess();
+          if (!result.usedFallback) {
+            await this.recordCloudAiUsage();
+          }
           return result;
         } catch (streamError) {
           this.recordServerFailure();
@@ -432,6 +506,9 @@ class InterpretationOrchestratorService {
       // Fallback to direct aiClient (native path)
       return aiClient.streamInterpretation(request, handlers).promise;
     })().catch(async (error) => {
+      if (typeof error === "object" && error !== null && "code" in error) {
+        throw error;
+      }
       const reason = error instanceof Error ? error.message : String(error);
       console.warn("[Orchestrator] Primary interpretation path failed, using fallback:", reason);
       trackInferenceMode("fallback", {

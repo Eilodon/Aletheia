@@ -79,6 +79,16 @@ impl AletheiaError {
         )
     }
 
+    pub fn ai_daily_limit_reached(used: u8, limit: u8, reset_at: &str) -> Self {
+        Self::new(
+            ErrorCode::AiDailyLimitReached,
+            &format!("Daily AI limit reached: {}/{}", used, limit),
+        )
+        .with_context("used", Value::Number(used.into()))
+        .with_context("limit", Value::Number(limit.into()))
+        .with_context("reset_at", Value::String(reset_at.to_string()))
+    }
+
     pub fn gift_expired(expired_at: i64) -> Self {
         Self::new(ErrorCode::GiftExpired, "Gift expired after 24 hours")
             .with_context("expired_at", Value::Number(expired_at.into()))

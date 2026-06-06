@@ -15,7 +15,7 @@
     "lint": "expo lint",
     "spec:lint": "tsx scripts/spec-lint.ts",
     "verify:fast": "pnpm check && pnpm test -- --run tests/store.test.ts tests/auth.logout.test.ts tests/reading-engine.test.ts tests/ai-client.test.ts",
-    "verify:medium": "pnpm verify:fast && pnpm spec:lint && pnpm exec tsx scripts/sync-bundled-content.ts --check && pnpm test -- --run tests/core-store.test.ts tests/spec-lint.test.ts tests/local-model-ops-source.test.ts tests/privacy-ledger.test.ts tests/archetype-asset-source.test.ts && node scripts/verify-architecture.mjs",
+    "verify:medium": "pnpm verify:fast && pnpm spec:lint && pnpm exec tsx scripts/sync-bundled-content.ts --check && pnpm test -- --run tests/core-store.test.ts tests/spec-lint.test.ts tests/local-model-ops-source.test.ts tests/privacy-ledger.test.ts tests/archetype-asset-source.test.ts tests/beta-p0-guards.test.ts && node scripts/verify-architecture.mjs",
     "verify:release": "pnpm verify:medium && pnpm rust:android && pnpm release:report --check && pnpm audit --audit-level=high",
     "format": "prettier --write .",
     "test": "vitest run",

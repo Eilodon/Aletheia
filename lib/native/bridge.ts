@@ -7,6 +7,7 @@ import type {
   NativeChooseSymbolResponse,
   NativeCompleteReadingResponse,
   NativeFallbackPromptsResponse,
+  NativeInterpretationResponse,
   NativeInterpretationStreamState,
   NativePerformReadingResponse,
   NativeSetApiKeyResponse,
@@ -15,6 +16,7 @@ import type {
   NativeUpdateUserStateResponse,
   NativePaginatedReadingsResponse,
   NativeReadingResponse,
+  NativeSaveInterpretationResponse,
   NativeSourcesResponse,
   NativeNotificationMessageResponse,
   NativeRedeemGiftResponse,
@@ -32,6 +34,7 @@ const ERROR_CODE_MAP: Record<string, ErrorCode> = {
   ERR_SYMBOL_INVALID: ErrorCode.SymbolInvalid,
   ERR_AI_TIMEOUT: ErrorCode.AiTimeout,
   ERR_AI_UNAVAILABLE: ErrorCode.AiUnavailable,
+  ERR_AI_DAILY_LIMIT_REACHED: ErrorCode.AiDailyLimitReached,
   ERR_GIFT_EXPIRED: ErrorCode.GiftExpired,
   ERR_GIFT_NOT_FOUND: ErrorCode.GiftNotFound,
   ERR_GIFT_ALREADY_REDEEMED: ErrorCode.GiftAlreadyRedeemed,
@@ -145,6 +148,22 @@ export function unwrapNativeReadingResponse(response: NativeReadingResponse) {
     throw error;
   }
   return response.reading ?? null;
+}
+
+export function unwrapNativeInterpretationResponse(response: NativeInterpretationResponse) {
+  const error = toAletheiaError(response.error);
+  if (error) {
+    throw error;
+  }
+  return response.interpretation ?? null;
+}
+
+export function unwrapNativeSaveInterpretationResponse(response: NativeSaveInterpretationResponse) {
+  const error = toAletheiaError(response.error);
+  if (error) {
+    throw error;
+  }
+  return response.saved;
 }
 
 export function unwrapNativeSourcesResponse(response: NativeSourcesResponse) {

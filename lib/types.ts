@@ -47,6 +47,12 @@ export enum SubscriptionTier {
   Pro = "pro",
 }
 
+export enum AiPrivacyMode {
+  LocalOnly = "local_only",
+  AskBeforeCloud = "ask_before_cloud",
+  AllowCloudFallback = "allow_cloud_fallback",
+}
+
 export enum ReadingState {
   Idle = "idle",
   SituationInput = "situation_input",
@@ -82,6 +88,7 @@ export enum ErrorCode {
   SymbolInvalid = "symbol_invalid",
   AiTimeout = "ai_timeout",
   AiUnavailable = "ai_unavailable",
+  AiDailyLimitReached = "ai_daily_limit_reached",
   GiftExpired = "gift_expired",
   GiftNotFound = "gift_not_found",
   GiftAlreadyRedeemed = "gift_already_redeemed",
@@ -222,6 +229,7 @@ export interface UserState {
   onboarding_complete: boolean;
   user_intent: UserIntent | undefined;
   weekly_summary_enabled: boolean;
+  ai_privacy_mode: AiPrivacyMode;
 }
 
 export interface ReadingSession {
@@ -319,6 +327,16 @@ export interface ReadingResponse {
   error: BridgeError | undefined;
 }
 
+export interface InterpretationResponse {
+  interpretation: Interpretation | undefined;
+  error: BridgeError | undefined;
+}
+
+export interface SaveInterpretationResponse {
+  saved: boolean;
+  error: BridgeError | undefined;
+}
+
 export interface LocalModelInfo {
   model_id: string;
   status: LocalModelStatus;
@@ -386,6 +404,23 @@ export interface InterpretationStreamState {
   used_fallback: boolean;
   cancelled: boolean;
   error: BridgeError | undefined;
+}
+
+export interface Interpretation {
+  id: string;
+  reading_id: string;
+  created_at: number;
+  mode: string;
+  provider: string | undefined;
+  model_id: string | undefined;
+  prompt_version: string;
+  text: string;
+  used_fallback: boolean;
+  safety_status: string;
+  safety_reasons: string[];
+  input_tokens: number | undefined;
+  output_tokens: number | undefined;
+  latency_ms: number | undefined;
 }
 
 export interface CancelInterpretationResponse {
