@@ -589,6 +589,44 @@ impl AletheiaCore {
         }
     }
 
+    pub fn search_readings(
+        &self,
+        query: String,
+        filter: String,
+        sort: String,
+        limit: u32,
+        offset: u32,
+    ) -> PaginatedReadingsResponse {
+        if let Some(err) = &self.init_error {
+            return PaginatedReadingsResponse {
+                readings: None,
+                error: Some(err.clone()),
+            };
+        }
+        let result = (|| -> Result<PaginatedReadings, AletheiaError> {
+            let items = self
+                .store
+                .search_readings(&query, &filter, &sort, limit, offset)?;
+            let total_count = self.store.search_readings_count(&query, &filter)?;
+            let has_more = (offset + limit) < total_count;
+            Ok(PaginatedReadings {
+                items,
+                total_count,
+                has_more,
+            })
+        })();
+        match result {
+            Ok(r) => PaginatedReadingsResponse {
+                readings: Some(r),
+                error: None,
+            },
+            Err(e) => PaginatedReadingsResponse {
+                readings: None,
+                error: Some(BridgeError::from_aletheia_error(&e)),
+            },
+        }
+    }
+
     pub fn get_reading_by_id(&self, id: String) -> ReadingResponse {
         if let Some(err) = &self.init_error {
             return ReadingResponse {
@@ -667,10 +705,7 @@ impl AletheiaCore {
         }
     }
 
-    pub fn get_interpretation_by_reading_id(
-        &self,
-        reading_id: String,
-    ) -> InterpretationResponse {
+    pub fn get_interpretation_by_reading_id(&self, reading_id: String) -> InterpretationResponse {
         if let Some(err) = &self.init_error {
             return InterpretationResponse {
                 interpretation: None,

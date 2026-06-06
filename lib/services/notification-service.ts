@@ -12,11 +12,24 @@ import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 import { coreStore } from "./core-store";
 import { getCurrentUserId } from "./current-user-id";
+import {
+  buildDailyNotificationContent,
+  buildWeeklySummaryNotificationContent,
+} from "./notification-privacy";
 import { BUNDLED_PASSAGES } from "@/lib/data/seed-data.generated";
 import { getLocale } from "@/lib/i18n";
+import { NotificationPrivacy } from "@/lib/types";
 
 const DAILY_NOTIFICATION_ID = "aletheia-daily-passage";
 const WEEKLY_NOTIFICATION_ID = "aletheia-weekly-summary";
+
+function schedulableNotificationPrivacy(
+  privacy: NotificationPrivacy,
+): NotificationPrivacy.FullText | NotificationPrivacy.Discreet {
+  return privacy === NotificationPrivacy.Discreet
+    ? NotificationPrivacy.Discreet
+    : NotificationPrivacy.FullText;
+}
 
 /** Call once at app startup (after permissions are set up). */
 export function initializeNotificationHandler(): void {
@@ -51,7 +64,11 @@ export async function requestNotificationPermission(): Promise<boolean> {
  * app is not opened. Call on every app open to refresh the rolling window.
  * Cancels all previously scheduled daily notifications first.
  */
-export async function scheduleDailyPassage(hour: number, minute: number): Promise<void> {
+export async function scheduleDailyPassage(
+  hour: number,
+  minute: number,
+  privacy: NotificationPrivacy = NotificationPrivacy.FullText,
+): Promise<void> {
   if (Platform.OS === "web") return;
   try {
     const existing = await Notifications.getAllScheduledNotificationsAsync();
@@ -60,6 +77,9 @@ export async function scheduleDailyPassage(hour: number, minute: number): Promis
         .filter((n) => n.identifier.startsWith(DAILY_NOTIFICATION_ID))
         .map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {}))
     );
+
+    if (privacy === NotificationPrivacy.Off) return;
+    const contentPrivacy = schedulableNotificationPrivacy(privacy);
 
     const userId = await getCurrentUserId();
     const now = new Date();
@@ -75,14 +95,12 @@ export async function scheduleDailyPassage(hour: number, minute: number): Promis
       if (triggerDate <= now) continue;
 
       const message = await coreStore.getDailyNotificationMessage(userId, dateKey);
+      const content = buildDailyNotificationContent(message, contentPrivacy);
+      if (!content) continue;
 
       await Notifications.scheduleNotificationAsync({
         identifier: `${DAILY_NOTIFICATION_ID}-${dateKey}`,
-        content: {
-          title: message.title,
-          body: message.body,
-          data: { symbol_id: message.symbol_id },
-        },
+        content,
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DATE,
           date: triggerDate,
@@ -130,10 +148,16 @@ export function formatNotificationTime(hour: number, minute: number): string {
  * Picks the most engaged reading from the past 7 days (ai_interpreted first,
  * then longest read_duration_s), shows a passage snippet + reading count.
  */
-export async function scheduleWeeklySummary(hour: number, minute: number): Promise<void> {
+export async function scheduleWeeklySummary(
+  hour: number,
+  minute: number,
+  privacy: NotificationPrivacy = NotificationPrivacy.FullText,
+): Promise<void> {
   if (Platform.OS === "web") return;
   try {
     await Notifications.cancelScheduledNotificationAsync(WEEKLY_NOTIFICATION_ID).catch(() => {});
+    if (privacy === NotificationPrivacy.Off) return;
+    const contentPrivacy = schedulableNotificationPrivacy(privacy);
 
     const sevenDaysAgoMs = Date.now() - 7 * 24 * 60 * 60 * 1000;
     const page = await coreStore.getReadingsPage(50, 0);
@@ -160,10 +184,17 @@ export async function scheduleWeeklySummary(hour: number, minute: number): Promi
         ? `${count} reading${count !== 1 ? "s" : ""} this week`
         : `${count} lần đọc tuần này`;
     const body = snippet || (locale === "en" ? "What has changed since then?" : "Điều gì đã thay đổi từ khi đó?");
+    const content = buildWeeklySummaryNotificationContent(
+      title,
+      body,
+      { passage_id: best.passage_id },
+      contentPrivacy,
+    );
+    if (!content) return;
 
     await Notifications.scheduleNotificationAsync({
       identifier: WEEKLY_NOTIFICATION_ID,
-      content: { title, body, data: { passage_id: best.passage_id } },
+      content,
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
         weekday: 7, // Saturday

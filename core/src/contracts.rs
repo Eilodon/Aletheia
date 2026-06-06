@@ -71,6 +71,25 @@ pub enum AiPrivacyMode {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
+pub enum NotificationPrivacy {
+    #[default]
+    FullText,
+    Discreet,
+    Off,
+}
+
+impl NotificationPrivacy {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            NotificationPrivacy::FullText => "full_text",
+            NotificationPrivacy::Discreet => "discreet",
+            NotificationPrivacy::Off => "off",
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
 pub enum ReadingState {
     #[default]
     Idle,
@@ -106,8 +125,12 @@ pub const THEME_PACK_PRICE_USD: f32 = 1.99;
 pub const WILDCARD_AUTO_DELAY_MS: u32 = 800;
 #[allow(dead_code)]
 pub const SYMBOL_FADE_STAGGER_MS: u32 = 200;
+pub const AI_FIRST_TOKEN_TIMEOUT_MS: u32 = 8_000;
+pub const AI_PROVIDER_IDLE_TIMEOUT_MS: u32 = 15_000;
+pub const AI_PROVIDER_TOTAL_TIMEOUT_MS: u32 = 60_000;
+pub const AI_REVEAL_PACING_MS: u32 = 600;
 pub const AI_STREAM_TIMEOUT_MS: u32 = 15_000;
-pub const NOTIFICATION_MATRIX_SIZE: u16 = 20;
+pub const NOTIFICATION_MATRIX_SIZE: u16 = 216;
 
 #[allow(dead_code)]
 pub const MIN_PASSAGE_CHARS: u16 = 20;
@@ -117,6 +140,7 @@ pub const MAX_PASSAGE_CHARS: u16 = 500;
 #[allow(dead_code)]
 pub const FREE_HISTORY_DAYS: u16 = 90;
 pub const GIFT_LINK_TTL_SECONDS: u32 = 86_400;
+pub const GIFT_BUYER_NOTE_MAX_CHARS: u16 = 500;
 
 // Pagination
 #[allow(dead_code)]
@@ -297,6 +321,8 @@ pub struct UserState {
     pub weekly_summary_enabled: bool,
     #[serde(default)]
     pub ai_privacy_mode: AiPrivacyMode,
+    #[serde(default)]
+    pub notification_privacy: NotificationPrivacy,
 }
 
 impl Default for UserState {
@@ -316,6 +342,7 @@ impl Default for UserState {
             user_intent: None,
             weekly_summary_enabled: false,
             ai_privacy_mode: AiPrivacyMode::AskBeforeCloud,
+            notification_privacy: NotificationPrivacy::FullText,
         }
     }
 }

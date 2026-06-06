@@ -47,6 +47,12 @@ enum AiPrivacyMode {
     "AllowCloudFallback"
 };
 
+enum NotificationPrivacy {
+    "FullText",
+    "Discreet",
+    "Off"
+};
+
 enum ReadingState {
     "Idle",
     "SituationInput",
@@ -178,6 +184,7 @@ dictionary UserState {
     UserIntent? user_intent;
     boolean weekly_summary_enabled;
     AiPrivacyMode ai_privacy_mode;
+    NotificationPrivacy notification_privacy;
 };
 
 dictionary PaginatedReadings {
@@ -424,6 +431,14 @@ interface AletheiaCore {
     SourcesResponse get_sources_for_user(string user_id);
 
     PaginatedReadingsResponse get_readings(u32 limit, u32 offset);
+
+    PaginatedReadingsResponse search_readings(
+        string query,
+        string filter,
+        string sort,
+        u32 limit,
+        u32 offset
+    );
 
     ReadingResponse get_reading_by_id(string id);
 

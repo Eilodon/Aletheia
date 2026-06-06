@@ -11,6 +11,7 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.ResponseBody
 import java.io.File
+import java.io.FileOutputStream
 import java.security.MessageDigest
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
@@ -284,25 +285,35 @@ class ModelDownloadManager(private val context: Context) {
                 return@withContext Result.success(modelFile)
             }
 
-            Log.i(TAG, "Starting model download from $MODEL_DOWNLOAD_URL")
-            val request = Request.Builder().url(MODEL_DOWNLOAD_URL).build()
+            var existingBytes = if (tempFile.exists()) tempFile.length() else 0L
+            Log.i(TAG, "Starting model download from $MODEL_DOWNLOAD_URL at byte $existingBytes")
+            val requestBuilder = Request.Builder().url(MODEL_DOWNLOAD_URL)
+            if (existingBytes > 0L) {
+                requestBuilder.header("Range", "bytes=$existingBytes-")
+            }
+            val request = requestBuilder.build()
             val response = client.newCall(request).execute()
 
             if (!response.isSuccessful) {
                 return@withContext Result.failure(Exception("Download failed: HTTP ${response.code}"))
             }
+            if (existingBytes > 0L && response.code != 206) {
+                Log.w(TAG, "Resume requested but backend did not return HTTP 206; restarting download")
+                tempFile.delete()
+                existingBytes = 0L
+            }
 
             val body: ResponseBody = response.body
                 ?: return@withContext Result.failure(Exception("Empty response body"))
             val contentLength = body.contentLength()
+            val expectedTotalBytes = if (contentLength > 0) contentLength + existingBytes else EXPECTED_MODEL_SIZE
 
-            tempFile.outputStream().use { out ->
+            FileOutputStream(tempFile, true).use { out ->
                 body.byteStream().use { input ->
                     val buffer = ByteArray(8192)
-                    var totalRead = 0L
+                    var totalRead = existingBytes
                     while (true) {
                         if (cancelToken.get()) {
-                            tempFile.delete()
                             return@withContext Result.failure(Exception("Download cancelled"))
                         }
                         val read = input.read(buffer)
@@ -310,8 +321,8 @@ class ModelDownloadManager(private val context: Context) {
                         out.write(buffer, 0, read)
                         totalRead += read
                         downloadedBytes = totalRead
-                        val progress = if (contentLength > 0) {
-                            ((totalRead * 100) / contentLength).toInt()
+                        val progress = if (expectedTotalBytes > 0) {
+                            ((totalRead * 100) / expectedTotalBytes).toInt()
                         } else {
                             ((totalRead * 100) / EXPECTED_MODEL_SIZE).toInt().coerceAtMost(99)
                         }

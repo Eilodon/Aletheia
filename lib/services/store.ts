@@ -19,6 +19,9 @@ import {
   SourceType,
   UserIntent,
   AiPrivacyMode,
+  NotificationPrivacy,
+  type ArchiveFilter,
+  type ArchiveSort,
 } from "@/lib/types";
 import { BUNDLED_SOURCES, BUNDLED_PASSAGES, BUNDLED_THEMES } from "@/lib/data/content";
 
@@ -75,6 +78,7 @@ type UserStateRow = {
   user_intent: UserState["user_intent"] | null;
   weekly_summary_enabled: number | null;
   ai_privacy_mode: UserState["ai_privacy_mode"] | null;
+  notification_privacy: UserState["notification_privacy"] | null;
 };
 
 type ReadingRow = {
@@ -97,6 +101,16 @@ type ReadingRow = {
   user_intent: Reading["user_intent"] | null;
   hide_situation: number;
 };
+
+export type SearchReadingsOptions = {
+  query?: string;
+  filter?: ArchiveFilter;
+  sort?: ArchiveSort;
+  limit: number;
+  offset: number;
+};
+
+export type SearchReadingsCountOptions = Pick<SearchReadingsOptions, "query" | "filter">;
 
 function isDuplicateColumnError(error: unknown): boolean {
   return error instanceof Error && error.message.includes("duplicate column");
@@ -126,7 +140,7 @@ class StoreService {
   private db: SQLite.SQLiteDatabase | null = null;
   private initialized = false;
   private initPromise: Promise<void> | null = null;
-  private static readonly SCHEMA_VERSION = 13;
+  private static readonly SCHEMA_VERSION = 14;
 
   async initialize(): Promise<void> {
     if (this.initialized) return;
@@ -392,6 +406,16 @@ class StoreService {
       `);
     }
 
+    // Migration v14: Notification lock-screen privacy mode.
+    if (currentVersion < 14) {
+      const userStateCols = await this.db.getAllAsync<SqliteColumnInfo>(`PRAGMA table_info(user_state)`);
+      if (!userStateCols.some((c) => c.name === "notification_privacy")) {
+        await this.db.execAsync(
+          `ALTER TABLE user_state ADD COLUMN notification_privacy TEXT NOT NULL DEFAULT 'full_text';`
+        );
+      }
+    }
+
     await this.db.execAsync(`PRAGMA user_version = ${StoreService.SCHEMA_VERSION}`);
     console.log(`[Store] Migrated to version ${StoreService.SCHEMA_VERSION}`);
   }
@@ -461,6 +485,7 @@ class StoreService {
         user_intent: undefined,
         weekly_summary_enabled: false,
         ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
+        notification_privacy: NotificationPrivacy.FullText,
       };
       await this.updateUserState(defaultState);
       return defaultState;
@@ -487,6 +512,7 @@ class StoreService {
         user_intent: row.user_intent || undefined,
         weekly_summary_enabled: row.weekly_summary_enabled === 1,
         ai_privacy_mode: row.ai_privacy_mode || AiPrivacyMode.AskBeforeCloud,
+        notification_privacy: row.notification_privacy || NotificationPrivacy.FullText,
       };
     }
 
@@ -505,6 +531,7 @@ class StoreService {
       user_intent: row.user_intent || undefined,
       weekly_summary_enabled: row.weekly_summary_enabled === 1,
       ai_privacy_mode: row.ai_privacy_mode || AiPrivacyMode.AskBeforeCloud,
+      notification_privacy: row.notification_privacy || NotificationPrivacy.FullText,
     };
   }
 
@@ -513,7 +540,7 @@ class StoreService {
     if (!this.db) throw new Error("Database not initialized");
 
     await this.db.runAsync(
-      `INSERT OR REPLACE INTO user_state (user_id, subscription_tier, readings_today, ai_calls_today, session_count, last_reading_date, notification_enabled, notification_time, preferred_language, dark_mode, onboarding_complete, user_intent, weekly_summary_enabled, ai_privacy_mode) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT OR REPLACE INTO user_state (user_id, subscription_tier, readings_today, ai_calls_today, session_count, last_reading_date, notification_enabled, notification_time, preferred_language, dark_mode, onboarding_complete, user_intent, weekly_summary_enabled, ai_privacy_mode, notification_privacy) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         state.user_id,
         state.subscription_tier,
@@ -529,6 +556,7 @@ class StoreService {
         state.user_intent ?? null,
         state.weekly_summary_enabled ? 1 : 0,
         state.ai_privacy_mode,
+        state.notification_privacy,
       ]
     );
   }
@@ -979,6 +1007,22 @@ class StoreService {
     await this.db.runAsync("DELETE FROM readings");
   }
 
+  async deleteReadingsExcept(ids: string[]): Promise<number> {
+    await this.initialize();
+    if (!this.db) throw new Error("Database not initialized");
+
+    const before = await this.getReadingsCount();
+    if (ids.length === 0) {
+      await this.db.runAsync("DELETE FROM readings");
+      return before;
+    }
+
+    const placeholders = ids.map(() => "?").join(", ");
+    await this.db.runAsync(`DELETE FROM readings WHERE id NOT IN (${placeholders})`, ids);
+    const after = await this.getReadingsCount();
+    return Math.max(0, before - after);
+  }
+
   async getReadings(limit: number, offset: number): Promise<Reading[]> {
     await this.initialize();
     if (!this.db) throw new Error("Database not initialized");
@@ -991,12 +1035,46 @@ class StoreService {
     return rows.map((row) => this.mapReadingRow(row));
   }
 
+  async searchReadings(options: SearchReadingsOptions): Promise<Reading[]> {
+    await this.initialize();
+    if (!this.db) throw new Error("Database not initialized");
+
+    const { where, params } = this.buildReadingSearchQuery(options.query, options.filter);
+    const orderBy = this.buildReadingOrderBy(options.sort);
+    const rows = await this.db.getAllAsync<ReadingRow>(
+      `SELECT r.* FROM readings r
+       LEFT JOIN sources s ON s.id = r.source_id
+       LEFT JOIN symbols sym ON sym.id = r.symbol_chosen
+       ${where}
+       ${orderBy}
+       LIMIT ? OFFSET ?`,
+      [...params, options.limit, options.offset],
+    );
+
+    return rows.map((row) => this.mapReadingRow(row));
+  }
+
   async getReadingsCount(): Promise<number> {
     await this.initialize();
     if (!this.db) throw new Error("Database not initialized");
 
     const result = await this.db.getFirstAsync<{ count: number }>(
       "SELECT COUNT(*) as count FROM readings"
+    );
+    return result?.count || 0;
+  }
+
+  async getSearchReadingsCount(options: SearchReadingsCountOptions): Promise<number> {
+    await this.initialize();
+    if (!this.db) throw new Error("Database not initialized");
+
+    const { where, params } = this.buildReadingSearchQuery(options.query, options.filter);
+    const result = await this.db.getFirstAsync<{ count: number }>(
+      `SELECT COUNT(*) as count FROM readings r
+       LEFT JOIN sources s ON s.id = r.source_id
+       LEFT JOIN symbols sym ON sym.id = r.symbol_chosen
+       ${where}`,
+      params,
     );
     return result?.count || 0;
   }
@@ -1054,6 +1132,21 @@ class StoreService {
     );
 
     return this.getReadingById(id);
+  }
+
+  async upsertReadingPrivacyFlags(
+    id: string,
+    flags: { hide_situation: boolean },
+  ): Promise<void> {
+    await this.initialize();
+    if (!this.db) throw new Error("Database not initialized");
+
+    await this.db.runAsync(
+      `INSERT INTO readings (id, created_at, hide_situation)
+       VALUES (?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET hide_situation = excluded.hide_situation`,
+      [id, Date.now(), flags.hide_situation ? 1 : 0],
+    );
   }
 
   async getGiftableSources(): Promise<Source[]> {
@@ -1129,6 +1222,55 @@ class StoreService {
       user_intent: row.user_intent || undefined,
       hide_situation: row.hide_situation === 1,
     };
+  }
+
+  private buildReadingSearchQuery(
+    query?: string,
+    filter: ArchiveFilter = "all",
+  ): { where: string; params: string[] } {
+    const clauses: string[] = [];
+    const params: string[] = [];
+    const q = query?.trim().toLowerCase();
+
+    if (q) {
+      const like = `%${q}%`;
+      clauses.push(`(
+        LOWER(COALESCE(r.situation_text, '')) LIKE ? OR
+        LOWER(COALESCE(r.source_id, '')) LIKE ? OR
+        LOWER(COALESCE(r.symbol_chosen, '')) LIKE ? OR
+        LOWER(COALESCE(s.name, '')) LIKE ? OR
+        LOWER(COALESCE(sym.display_name, '')) LIKE ?
+      )`);
+      params.push(like, like, like, like, like);
+    }
+
+    if (filter === "favorites") clauses.push("r.is_favorite = 1");
+    if (filter === "ai") clauses.push("r.ai_interpreted = 1");
+    if (filter === "shared") clauses.push("r.shared = 1");
+
+    return {
+      where: clauses.length > 0 ? `WHERE ${clauses.join(" AND ")}` : "",
+      params,
+    };
+  }
+
+  private buildReadingOrderBy(sort: ArchiveSort = "latest"): string {
+    if (sort === "oldest") return "ORDER BY r.created_at ASC";
+    if (sort === "depth") {
+      return `ORDER BY (
+        (CASE WHEN r.ai_interpreted = 1 THEN 4 ELSE 0 END) +
+        (CASE WHEN r.mood_tag IS NOT NULL THEN 2 ELSE 0 END) +
+        (CASE WHEN TRIM(COALESCE(r.situation_text, '')) != '' THEN 2 ELSE 0 END) +
+        (CASE
+          WHEN r.read_duration_s IS NULL THEN 0
+          WHEN r.read_duration_s / 60.0 > 3 THEN 3
+          ELSE r.read_duration_s / 60.0
+        END) +
+        (CASE WHEN r.is_favorite = 1 THEN 1.5 ELSE 0 END) +
+        (CASE WHEN r.shared = 1 THEN 1 ELSE 0 END)
+      ) DESC, r.created_at DESC`;
+    }
+    return "ORDER BY r.created_at DESC";
   }
 
   private normalizeSymbolMethod(value: unknown): SymbolMethod {

@@ -18,7 +18,7 @@ import {
   parseNotificationTime,
   formatNotificationTime,
 } from "@/lib/services/notification-service";
-import { UserState } from "@/lib/types";
+import { NotificationPrivacy, UserState } from "@/lib/types";
 import { track, checkAnalyticsConsent, grantAnalyticsConsent, revokeAnalyticsConsent } from "@/lib/analytics";
 import { showToast } from "@/components/toast";
 
@@ -30,6 +30,12 @@ const PRESET_TIMES = [
   { label: "20:00", hour: 20, minute: 0 },
   { label: "21:00", hour: 21, minute: 0 },
 ];
+
+const NOTIFICATION_PRIVACY_OPTIONS = [
+  NotificationPrivacy.FullText,
+  NotificationPrivacy.Discreet,
+  NotificationPrivacy.Off,
+] as const;
 
 export default function SettingsScreen() {
   const colors = useColors();
@@ -172,8 +178,13 @@ export default function SettingsScreen() {
           return;
         }
         const { hour, minute } = parseNotificationTime(userState?.notification_time ?? "07:00");
-        await scheduleDailyPassage(hour, minute);
-        await saveUserState({ notification_enabled: true });
+        const currentPrivacy = userState?.notification_privacy ?? NotificationPrivacy.FullText;
+        const privacy = currentPrivacy === NotificationPrivacy.Off ? NotificationPrivacy.FullText : currentPrivacy;
+        await scheduleDailyPassage(hour, minute, privacy);
+        await saveUserState({
+          notification_enabled: true,
+          notification_privacy: privacy,
+        });
         track("settings_notification_enabled", { time: userState?.notification_time ?? "07:00" });
       } else {
         await cancelDailyPassage();
@@ -191,7 +202,7 @@ export default function SettingsScreen() {
     const timeStr = formatNotificationTime(hour, minute);
     await saveUserState({ notification_time: timeStr });
     if (userState?.notification_enabled) {
-      await scheduleDailyPassage(hour, minute);
+      await scheduleDailyPassage(hour, minute, userState.notification_privacy);
       track("settings_notification_time_changed", { time: timeStr });
     }
   };
@@ -209,8 +220,10 @@ export default function SettingsScreen() {
         const granted = await requestNotificationPermission();
         if (!granted) return;
         const { hour, minute } = parseNotificationTime(userState?.notification_time ?? "20:00");
-        await scheduleWeeklySummary(hour, minute);
-        await saveUserState({ weekly_summary_enabled: true });
+        const currentPrivacy = userState?.notification_privacy ?? NotificationPrivacy.FullText;
+        const privacy = currentPrivacy === NotificationPrivacy.Off ? NotificationPrivacy.FullText : currentPrivacy;
+        await scheduleWeeklySummary(hour, minute, privacy);
+        await saveUserState({ weekly_summary_enabled: true, notification_privacy: privacy });
         track("settings_weekly_summary_enabled");
       } else {
         await cancelWeeklySummary();
@@ -222,6 +235,32 @@ export default function SettingsScreen() {
     } finally {
       setIsTogglingWeeklySummary(false);
     }
+  };
+
+  const handleNotificationPrivacyChange = async (privacy: NotificationPrivacy) => {
+    if (!userState || userState.notification_privacy === privacy) return;
+
+    const { hour, minute } = parseNotificationTime(userState.notification_time ?? "07:00");
+
+    if (privacy === NotificationPrivacy.Off) {
+      await Promise.all([cancelDailyPassage(), cancelWeeklySummary()]);
+      await saveUserState({
+        notification_privacy: privacy,
+        notification_enabled: false,
+        weekly_summary_enabled: false,
+      });
+      track("settings_notification_privacy_changed", { privacy });
+      return;
+    }
+
+    await saveUserState({ notification_privacy: privacy });
+    if (userState.notification_enabled) {
+      await scheduleDailyPassage(hour, minute, privacy);
+    }
+    if (userState.weekly_summary_enabled) {
+      await scheduleWeeklySummary(hour, minute, privacy);
+    }
+    track("settings_notification_privacy_changed", { privacy });
   };
 
   return (
@@ -422,6 +461,38 @@ export default function SettingsScreen() {
         <Text style={[styles.sectionNote, { color: colors.muted }]}>
           {s.settings.notificationBody}
         </Text>
+      </View>
+
+      {/* Notification Privacy */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: colors.muted }]}>
+          {s.settings.notificationPrivacySection}
+        </Text>
+        <View style={[styles.card, { backgroundColor: colors.surface + "C8", borderColor: colors.primary + "22" }]}>
+          {NOTIFICATION_PRIVACY_OPTIONS.map((privacy, i) => {
+            const isSelected = (userState?.notification_privacy ?? NotificationPrivacy.FullText) === privacy;
+            const labels = s.settings.notificationPrivacyOptions;
+            return (
+              <View key={privacy}>
+                {i > 0 && <View style={[styles.divider, { backgroundColor: colors.primary + "18" }]} />}
+                <Pressable
+                  onPress={() => handleNotificationPrivacyChange(privacy)}
+                  style={styles.row}
+                >
+                  <View style={{ flex: 1, paddingRight: 12 }}>
+                    <Text style={[styles.rowLabel, { color: isSelected ? colors.foreground : colors.muted, fontFamily: isSelected ? Fonts.bodyMedium : Fonts.body }]}>
+                      {labels[privacy].title}
+                    </Text>
+                    <Text style={[styles.rowSubLabel, { color: colors.muted, marginTop: 3 }]}>
+                      {labels[privacy].body}
+                    </Text>
+                  </View>
+                  {isSelected && <Text style={{ color: colors.primary, fontSize: 16 }}>✦</Text>}
+                </Pressable>
+              </View>
+            );
+          })}
+        </View>
       </View>
 
       {/* Weekly Summary */}

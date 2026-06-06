@@ -6,7 +6,11 @@
 import { Passage, Symbol } from "@/lib/types";
 import { aiRuntime } from "./ai-runtime";
 import { secureRandomIndex } from "@/lib/utils/random";
-import { AI_STREAM_TIMEOUT_MS } from "@/lib/constants";
+import {
+  AI_FIRST_TOKEN_TIMEOUT_MS,
+  AI_PROVIDER_IDLE_TIMEOUT_MS,
+  AI_PROVIDER_TOTAL_TIMEOUT_MS,
+} from "@/lib/constants";
 
 export interface AIRequest {
   passage: Passage;
@@ -172,10 +176,19 @@ class AIClientService {
       let idlePolls = 0;                // Consecutive polls with no new chunks
 
       const startMs = Date.now();
+      let lastChunkMs = startMs;
+      let hasFirstChunk = false;
 
       while (true) {
-        if (Date.now() - startMs > AI_STREAM_TIMEOUT_MS) {
+        const now = Date.now();
+        if (now - startMs > AI_PROVIDER_TOTAL_TIMEOUT_MS) {
           throw new Error("Native interpretation stream timed out.");
+        }
+        if (!hasFirstChunk && now - startMs > AI_FIRST_TOKEN_TIMEOUT_MS) {
+          throw new Error("Native interpretation stream timed out before first token.");
+        }
+        if (hasFirstChunk && now - lastChunkMs > AI_PROVIDER_IDLE_TIMEOUT_MS) {
+          throw new Error("Native interpretation stream became idle.");
         }
 
         const state = await aiRuntime.pollInterpretationStream(requestId);
@@ -183,6 +196,8 @@ class AIClientService {
         const hadNewChunks = state.newChunks.length > 0;
 
         for (const chunk of state.newChunks) {
+          hasFirstChunk = true;
+          lastChunkMs = Date.now();
           chunks.push(chunk);
           handlers.onChunk?.(chunks.join(""), chunk);
         }

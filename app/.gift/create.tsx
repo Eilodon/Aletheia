@@ -7,6 +7,7 @@ import { coreStore } from "@/lib/services/core-store";
 import { getCurrentUserId } from "@/lib/services/current-user-id";
 import { haptic } from "@/lib/utils/haptics";
 import { Fonts } from "@/constants/theme";
+import { GIFT_BUYER_NOTE_MAX_CHARS } from "@/lib/constants";
 
 interface GiftSource {
   id: string;
@@ -282,10 +283,10 @@ export default function GiftCreateScreen() {
               numberOfLines={3}
               className="bg-muted/20 rounded-xl p-4 text-base text-foreground"
               style={{ fontFamily: Fonts.body }}
-              maxLength={200}
+              maxLength={GIFT_BUYER_NOTE_MAX_CHARS}
             />
             <Text className="text-xs text-muted text-right mt-2">
-              {buyerNote.length}/200
+              {buyerNote.length}/{GIFT_BUYER_NOTE_MAX_CHARS}
             </Text>
           </View>
 

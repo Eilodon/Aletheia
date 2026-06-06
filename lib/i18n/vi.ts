@@ -200,10 +200,25 @@ export const vi = {
     notificationToggleOn: "Bật",
     notificationToggleOff: "Tắt",
     notificationTimeLabel: "Giờ gửi",
-    notificationBody: "Mỗi sáng, nếu bạn muốn, AletheiA để lại một đoạn nhỏ trên màn hình khóa. Không cần mở app.",
-    notificationPermissionDenied: "Quyền thông báo bị từ chối. Vào Cài đặt hệ thống để bật lại.",
+	    notificationBody: "Mỗi sáng, nếu bạn muốn, AletheiA để lại một đoạn nhỏ trên màn hình khóa. Không cần mở app.",
+	    notificationPermissionDenied: "Quyền thông báo bị từ chối. Vào Cài đặt hệ thống để bật lại.",
+	    notificationPrivacySection: "Riêng tư màn hình khóa",
+	    notificationPrivacyOptions: {
+	      full_text: {
+	        title: "Hiện đầy đủ",
+	        body: "Thông báo có thể hiện đoạn trích hoặc tóm tắt.",
+	      },
+	      discreet: {
+	        title: "Kín đáo",
+	        body: "Chỉ hiện lời nhắc chung, không hiện nội dung đọc.",
+	      },
+	      off: {
+	        title: "Tắt thông báo",
+	        body: "Hủy thông báo hằng ngày và gương cuối tuần.",
+	      },
+	    },
 
-    weeklySummarySection: "Gương nhìn lại cuối tuần",
+	    weeklySummarySection: "Gương nhìn lại cuối tuần",
     weeklySummaryToggleOn: "Bật",
     weeklySummaryToggleOff: "Tắt",
     weeklySummaryBody: "Mỗi thứ Bảy, thiết bị của bạn tự tổng kết tuần đọc — hoàn toàn offline, không có dữ liệu nào rời khỏi máy.",

@@ -111,6 +111,16 @@ class AletheiaNativeClient {
     return this.requireModule().getReadings(limit, offset);
   }
 
+  searchReadings(
+    query: string | undefined,
+    filter: string,
+    sort: string,
+    limit: number,
+    offset: number,
+  ): Promise<NativePaginatedReadingsResponse> {
+    return this.requireModule().searchReadings(query, filter, sort, limit, offset);
+  }
+
   getSources(premiumAllowed: boolean): Promise<NativeSourcesResponse> {
     return this.requireModule().getSources(premiumAllowed);
   }

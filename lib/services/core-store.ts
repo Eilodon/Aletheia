@@ -13,6 +13,8 @@ import type {
   SubscriptionTier,
   SymbolMethod,
   UserState,
+  ArchiveFilter,
+  ArchiveSort,
 } from "@/lib/types";
 import { BUNDLED_PASSAGES, BUNDLED_SOURCES } from "@/lib/data/content";
 import { aletheiaNativeClient } from "@/lib/native/aletheia-core";
@@ -42,6 +44,14 @@ import { getCurrentUserId } from "./current-user-id";
 import { readingEngine } from "./reading-engine";
 import { store } from "./store";
 
+export interface SearchReadingsPageOptions {
+  query?: string;
+  filter?: ArchiveFilter;
+  sort?: ArchiveSort;
+  limit: number;
+  offset: number;
+}
+
 export interface ReadingDetail {
   reading: Reading;
   source: Source | undefined;
@@ -59,6 +69,26 @@ class CoreStoreService {
     if (shouldUseAletheiaNative()) {
       await initializeAletheiaNative();
     }
+  }
+
+  private async mergeTsOnlyReadingFlags(reading: Reading): Promise<Reading> {
+    const localReading = await store.getReadingById(reading.id).catch(() => null);
+    if (!localReading) return reading;
+    if (typeof localReading.hide_situation !== "boolean") return reading;
+
+    return {
+      ...reading,
+      hide_situation: localReading.hide_situation,
+    };
+  }
+
+  private async mergeTsOnlyReadingFlagsForPage(page: PaginatedReadings): Promise<PaginatedReadings> {
+    if (!shouldUseAletheiaNative()) return page;
+
+    return {
+      ...page,
+      items: await Promise.all(page.items.map((reading) => this.mergeTsOnlyReadingFlags(reading))),
+    };
   }
 
   async syncLocalDate(localDate: string = new Date().toLocaleDateString("en-CA")): Promise<void> {
@@ -161,9 +191,37 @@ class CoreStoreService {
     }
 
     await this.ensureNativeReady();
-    return unwrapNativePaginatedReadingsResponse(
+    const page = unwrapNativePaginatedReadingsResponse(
       await aletheiaNativeClient.getReadings(limit, offset),
     ) as PaginatedReadings;
+    return this.mergeTsOnlyReadingFlagsForPage(page);
+  }
+
+  async searchReadingsPage(options: SearchReadingsPageOptions): Promise<PaginatedReadings> {
+    if (!shouldUseAletheiaNative()) {
+      const [totalCount, items] = await Promise.all([
+        store.getSearchReadingsCount({ query: options.query, filter: options.filter }),
+        store.searchReadings(options),
+      ]);
+
+      return {
+        items,
+        total_count: totalCount,
+        has_more: options.offset + options.limit < totalCount,
+      };
+    }
+
+    await this.ensureNativeReady();
+    const page = unwrapNativePaginatedReadingsResponse(
+      await aletheiaNativeClient.searchReadings(
+        options.query,
+        options.filter ?? "all",
+        options.sort ?? "latest",
+        options.limit,
+        options.offset,
+      ),
+    ) as PaginatedReadings;
+    return this.mergeTsOnlyReadingFlagsForPage(page);
   }
 
   async getReadingById(id: string): Promise<Reading | null> {
@@ -172,9 +230,10 @@ class CoreStoreService {
     }
 
     await this.ensureNativeReady();
-    return unwrapNativeReadingResponse(
+    const reading = unwrapNativeReadingResponse(
       await aletheiaNativeClient.getReadingById(id),
     ) as Reading | null;
+    return reading ? this.mergeTsOnlyReadingFlags(reading) : null;
   }
 
   async getReadingDetail(id: string): Promise<ReadingDetail | null> {
@@ -229,27 +288,54 @@ class CoreStoreService {
   ): Promise<Reading | null> {
     const { hide_situation, ...nativeFlags } = flags;
 
+    const useNative = shouldUseAletheiaNative();
+
     // hide_situation is TS-store-only — persist it first, then handle native flags separately
     if (hide_situation !== undefined) {
-      await store.updateReadingFlags(id, { hide_situation });
+      if (useNative) {
+        await store.upsertReadingPrivacyFlags(id, { hide_situation });
+      } else {
+        await store.updateReadingFlags(id, { hide_situation });
+      }
     }
 
     const hasNativeFlags = nativeFlags.is_favorite !== undefined || nativeFlags.shared !== undefined;
     if (!hasNativeFlags) {
-      return store.getReadingById(id);
+      return useNative ? this.getReadingById(id) : store.getReadingById(id);
     }
 
-    if (!shouldUseAletheiaNative()) {
+    if (!useNative) {
       return store.updateReadingFlags(id, nativeFlags);
     }
 
     await this.ensureNativeReady();
-    return unwrapNativeReadingResponse(
+    const reading = unwrapNativeReadingResponse(
       await aletheiaNativeClient.updateReadingFlags(id, {
         isFavorite: nativeFlags.is_favorite,
         shared: nativeFlags.shared,
       }),
     ) as Reading | null;
+    return reading ? this.mergeTsOnlyReadingFlags(reading) : null;
+  }
+
+  async repairReadingDependents(): Promise<number> {
+    if (!shouldUseAletheiaNative()) return 0;
+
+    await this.ensureNativeReady();
+    const ids: string[] = [];
+    const pageSize = 100;
+    let offset = 0;
+
+    while (true) {
+      const page = unwrapNativePaginatedReadingsResponse(
+        await aletheiaNativeClient.getReadings(pageSize, offset),
+      ) as PaginatedReadings;
+      ids.push(...page.items.map((reading) => reading.id));
+      if (!page.has_more) break;
+      offset += pageSize;
+    }
+
+    return store.deleteReadingsExcept(ids);
   }
 
   async deleteReading(id: string): Promise<void> {
@@ -258,6 +344,7 @@ class CoreStoreService {
     }
     await this.ensureNativeReady();
     await aletheiaNativeClient.deleteReading(id);
+    await store.deleteReading(id);
   }
 
   async deleteAllReadings(): Promise<void> {
@@ -266,6 +353,7 @@ class CoreStoreService {
     }
     await this.ensureNativeReady();
     await aletheiaNativeClient.deleteAllReadings();
+    await store.deleteAllReadings();
   }
 
   async exportReadings(): Promise<ReadingsExport> {

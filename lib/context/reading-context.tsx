@@ -137,7 +137,7 @@ export function ReadingProvider({ children }: { children: React.ReactNode }) {
       setPassageDisplayedAt(null);
       setAIRequestedAt(null);
       setHasSavedReading(false);
-      setCurrentState(ReadingState.SourceSelection);
+      setCurrentState(ReadingState.WildcardReveal);
     } catch (err) {
       const aletheiaError = err as AletheiaError;
       

@@ -1487,287 +1487,863 @@ export const NOTIFICATION_MATRIX = [
     "question": "Bạn đang thắp sáng hay đang cháy"
   },
   {
+    "symbol_id": "candle",
+    "question": "Nếu thành thật, bạn đang thắp sáng hay đang cháy"
+  },
+  {
+    "symbol_id": "candle",
+    "question": "Trong yên lặng, bạn đang thắp sáng hay đang cháy"
+  },
+  {
     "symbol_id": "key",
     "question": "Cái gì đang chờ bạn mở"
+  },
+  {
+    "symbol_id": "key",
+    "question": "Nếu thành thật, cái gì đang chờ bạn mở"
+  },
+  {
+    "symbol_id": "key",
+    "question": "Trong yên lặng, cái gì đang chờ bạn mở"
   },
   {
     "symbol_id": "dawn",
     "question": "Bạn sẵn sàng cho gì"
   },
   {
+    "symbol_id": "dawn",
+    "question": "Nếu thành thật, bạn sẵn sàng cho gì"
+  },
+  {
+    "symbol_id": "dawn",
+    "question": "Trong yên lặng, bạn sẵn sàng cho gì"
+  },
+  {
     "symbol_id": "mirror",
     "question": "Bạn thấy gì khi nhìn sâu vào"
+  },
+  {
+    "symbol_id": "mirror",
+    "question": "Nếu thành thật, bạn thấy gì khi nhìn sâu vào"
+  },
+  {
+    "symbol_id": "mirror",
+    "question": "Trong yên lặng, bạn thấy gì khi nhìn sâu vào"
   },
   {
     "symbol_id": "door",
     "question": "Bạn sẽ bước qua hay lùi lại"
   },
   {
+    "symbol_id": "door",
+    "question": "Nếu thành thật, bạn sẽ bước qua hay lùi lại"
+  },
+  {
+    "symbol_id": "door",
+    "question": "Trong yên lặng, bạn sẽ bước qua hay lùi lại"
+  },
+  {
     "symbol_id": "bridge",
     "question": "Bạn đang nối liền những gì"
+  },
+  {
+    "symbol_id": "bridge",
+    "question": "Nếu thành thật, bạn đang nối liền những gì"
+  },
+  {
+    "symbol_id": "bridge",
+    "question": "Trong yên lặng, bạn đang nối liền những gì"
   },
   {
     "symbol_id": "stone",
     "question": "Cái gì trong bạn là bất động"
   },
   {
+    "symbol_id": "stone",
+    "question": "Nếu thành thật, cái gì trong bạn là bất động"
+  },
+  {
+    "symbol_id": "stone",
+    "question": "Trong yên lặng, cái gì trong bạn là bất động"
+  },
+  {
     "symbol_id": "water",
     "question": "Bạn đang chảy hay đang đứng yên"
+  },
+  {
+    "symbol_id": "water",
+    "question": "Nếu thành thật, bạn đang chảy hay đang đứng yên"
+  },
+  {
+    "symbol_id": "water",
+    "question": "Trong yên lặng, bạn đang chảy hay đang đứng yên"
   },
   {
     "symbol_id": "fire",
     "question": "Cái gì trong bạn đang cháy"
   },
   {
+    "symbol_id": "fire",
+    "question": "Nếu thành thật, cái gì trong bạn đang cháy"
+  },
+  {
+    "symbol_id": "fire",
+    "question": "Trong yên lặng, cái gì trong bạn đang cháy"
+  },
+  {
     "symbol_id": "wind",
     "question": "Bạn đang theo hướng nào"
+  },
+  {
+    "symbol_id": "wind",
+    "question": "Nếu thành thật, bạn đang theo hướng nào"
+  },
+  {
+    "symbol_id": "wind",
+    "question": "Trong yên lặng, bạn đang theo hướng nào"
   },
   {
     "symbol_id": "silence",
     "question": "Bạn có nghe được gì trong im lặng"
   },
   {
+    "symbol_id": "silence",
+    "question": "Nếu thành thật, bạn có nghe được gì trong im lặng"
+  },
+  {
+    "symbol_id": "silence",
+    "question": "Trong yên lặng, bạn có nghe được gì trong im lặng"
+  },
+  {
     "symbol_id": "seed",
     "question": "Bạn đang trồng cái gì"
+  },
+  {
+    "symbol_id": "seed",
+    "question": "Nếu thành thật, bạn đang trồng cái gì"
+  },
+  {
+    "symbol_id": "seed",
+    "question": "Trong yên lặng, bạn đang trồng cái gì"
   },
   {
     "symbol_id": "earth",
     "question": "Bạn cần gì để cảm thấy an toàn"
   },
   {
+    "symbol_id": "earth",
+    "question": "Nếu thành thật, bạn cần gì để cảm thấy an toàn"
+  },
+  {
+    "symbol_id": "earth",
+    "question": "Trong yên lặng, bạn cần gì để cảm thấy an toàn"
+  },
+  {
     "symbol_id": "air",
     "question": "Bạn cần không gian để làm gì"
+  },
+  {
+    "symbol_id": "air",
+    "question": "Nếu thành thật, bạn cần không gian để làm gì"
+  },
+  {
+    "symbol_id": "air",
+    "question": "Trong yên lặng, bạn cần không gian để làm gì"
   },
   {
     "symbol_id": "metal",
     "question": "Cái gì cần được tinh chỉnh"
   },
   {
+    "symbol_id": "metal",
+    "question": "Nếu thành thật, cái gì cần được tinh chỉnh"
+  },
+  {
+    "symbol_id": "metal",
+    "question": "Trong yên lặng, cái gì cần được tinh chỉnh"
+  },
+  {
     "symbol_id": "wood",
     "question": "Bạn đang phát triển như thế nào"
+  },
+  {
+    "symbol_id": "wood",
+    "question": "Nếu thành thật, bạn đang phát triển như thế nào"
+  },
+  {
+    "symbol_id": "wood",
+    "question": "Trong yên lặng, bạn đang phát triển như thế nào"
   },
   {
     "symbol_id": "void",
     "question": "Bạn sợ điều gì trong khoảng trống"
   },
   {
+    "symbol_id": "void",
+    "question": "Nếu thành thật, bạn sợ điều gì trong khoảng trống"
+  },
+  {
+    "symbol_id": "void",
+    "question": "Trong yên lặng, bạn sợ điều gì trong khoảng trống"
+  },
+  {
     "symbol_id": "light",
     "question": "Điều gì đang trở nên rõ hơn dù bạn không mong"
+  },
+  {
+    "symbol_id": "light",
+    "question": "Nếu thành thật, điều gì đang trở nên rõ hơn dù bạn không mong"
+  },
+  {
+    "symbol_id": "light",
+    "question": "Trong yên lặng, điều gì đang trở nên rõ hơn dù bạn không mong"
   },
   {
     "symbol_id": "shadow",
     "question": "Bạn đang tránh nhìn vào gì"
   },
   {
+    "symbol_id": "shadow",
+    "question": "Nếu thành thật, bạn đang tránh nhìn vào gì"
+  },
+  {
+    "symbol_id": "shadow",
+    "question": "Trong yên lặng, bạn đang tránh nhìn vào gì"
+  },
+  {
     "symbol_id": "thunder",
     "question": "Bạn sẵn sàng cho sự thay đổi đột ngột"
+  },
+  {
+    "symbol_id": "thunder",
+    "question": "Nếu thành thật, bạn sẵn sàng cho sự thay đổi đột ngột"
+  },
+  {
+    "symbol_id": "thunder",
+    "question": "Trong yên lặng, bạn sẵn sàng cho sự thay đổi đột ngột"
   },
   {
     "symbol_id": "mountain",
     "question": "Bạn đang đứng trên đỉnh nào"
   },
   {
+    "symbol_id": "mountain",
+    "question": "Nếu thành thật, bạn đang đứng trên đỉnh nào"
+  },
+  {
+    "symbol_id": "mountain",
+    "question": "Trong yên lặng, bạn đang đứng trên đỉnh nào"
+  },
+  {
     "symbol_id": "valley",
     "question": "Điều gì đang được tích tụ trong chiều sâu"
+  },
+  {
+    "symbol_id": "valley",
+    "question": "Nếu thành thật, điều gì đang được tích tụ trong chiều sâu"
+  },
+  {
+    "symbol_id": "valley",
+    "question": "Trong yên lặng, điều gì đang được tích tụ trong chiều sâu"
   },
   {
     "symbol_id": "river",
     "question": "Bạn đang chảy về phía nào"
   },
   {
+    "symbol_id": "river",
+    "question": "Nếu thành thật, bạn đang chảy về phía nào"
+  },
+  {
+    "symbol_id": "river",
+    "question": "Trong yên lặng, bạn đang chảy về phía nào"
+  },
+  {
     "symbol_id": "ocean",
     "question": "Điều gì đang kéo bạn xuống sâu hơn"
+  },
+  {
+    "symbol_id": "ocean",
+    "question": "Nếu thành thật, điều gì đang kéo bạn xuống sâu hơn"
+  },
+  {
+    "symbol_id": "ocean",
+    "question": "Trong yên lặng, điều gì đang kéo bạn xuống sâu hơn"
   },
   {
     "symbol_id": "elephant",
     "question": "Bạn đang gánh điều gì mà không cần thiết"
   },
   {
+    "symbol_id": "elephant",
+    "question": "Nếu thành thật, bạn đang gánh điều gì mà không cần thiết"
+  },
+  {
+    "symbol_id": "elephant",
+    "question": "Trong yên lặng, bạn đang gánh điều gì mà không cần thiết"
+  },
+  {
     "symbol_id": "fox",
     "question": "Bạn đang dùng khôn ngoan hay xảo quyệt"
+  },
+  {
+    "symbol_id": "fox",
+    "question": "Nếu thành thật, bạn đang dùng khôn ngoan hay xảo quyệt"
+  },
+  {
+    "symbol_id": "fox",
+    "question": "Trong yên lặng, bạn đang dùng khôn ngoan hay xảo quyệt"
   },
   {
     "symbol_id": "turtle",
     "question": "Điều gì đang khiến bạn rút vào trong"
   },
   {
+    "symbol_id": "turtle",
+    "question": "Nếu thành thật, điều gì đang khiến bạn rút vào trong"
+  },
+  {
+    "symbol_id": "turtle",
+    "question": "Trong yên lặng, điều gì đang khiến bạn rút vào trong"
+  },
+  {
     "symbol_id": "tiger",
     "question": "Sức mạnh nào bạn đang giữ lại"
+  },
+  {
+    "symbol_id": "tiger",
+    "question": "Nếu thành thật, sức mạnh nào bạn đang giữ lại"
+  },
+  {
+    "symbol_id": "tiger",
+    "question": "Trong yên lặng, sức mạnh nào bạn đang giữ lại"
   },
   {
     "symbol_id": "crane",
     "question": "Bạn đang chờ đúng thời điểm hay tránh hành động"
   },
   {
+    "symbol_id": "crane",
+    "question": "Nếu thành thật, bạn đang chờ đúng thời điểm hay tránh hành động"
+  },
+  {
+    "symbol_id": "crane",
+    "question": "Trong yên lặng, bạn đang chờ đúng thời điểm hay tránh hành động"
+  },
+  {
     "symbol_id": "snake",
     "question": "Điều gì cần được lột bỏ"
+  },
+  {
+    "symbol_id": "snake",
+    "question": "Nếu thành thật, điều gì cần được lột bỏ"
+  },
+  {
+    "symbol_id": "snake",
+    "question": "Trong yên lặng, điều gì cần được lột bỏ"
   },
   {
     "symbol_id": "eagle",
     "question": "Bạn thấy gì khi nhìn từ xa hơn"
   },
   {
+    "symbol_id": "eagle",
+    "question": "Nếu thành thật, bạn thấy gì khi nhìn từ xa hơn"
+  },
+  {
+    "symbol_id": "eagle",
+    "question": "Trong yên lặng, bạn thấy gì khi nhìn từ xa hơn"
+  },
+  {
     "symbol_id": "wolf",
     "question": "Bạn đang chọn một mình hay cùng đàn"
+  },
+  {
+    "symbol_id": "wolf",
+    "question": "Nếu thành thật, bạn đang chọn một mình hay cùng đàn"
+  },
+  {
+    "symbol_id": "wolf",
+    "question": "Trong yên lặng, bạn đang chọn một mình hay cùng đàn"
   },
   {
     "symbol_id": "crescent",
     "question": "Bạn đang trong pha lớn hay pha hao"
   },
   {
+    "symbol_id": "crescent",
+    "question": "Nếu thành thật, bạn đang trong pha lớn hay pha hao"
+  },
+  {
+    "symbol_id": "crescent",
+    "question": "Trong yên lặng, bạn đang trong pha lớn hay pha hao"
+  },
+  {
     "symbol_id": "full_moon",
     "question": "Điều gì đang hiển lộ ra"
+  },
+  {
+    "symbol_id": "full_moon",
+    "question": "Nếu thành thật, điều gì đang hiển lộ ra"
+  },
+  {
+    "symbol_id": "full_moon",
+    "question": "Trong yên lặng, điều gì đang hiển lộ ra"
   },
   {
     "symbol_id": "eclipse",
     "question": "Điều gì đang tạm khuất"
   },
   {
+    "symbol_id": "eclipse",
+    "question": "Nếu thành thật, điều gì đang tạm khuất"
+  },
+  {
+    "symbol_id": "eclipse",
+    "question": "Trong yên lặng, điều gì đang tạm khuất"
+  },
+  {
     "symbol_id": "north_star",
     "question": "Điểm neo của bạn là gì"
+  },
+  {
+    "symbol_id": "north_star",
+    "question": "Nếu thành thật, điểm neo của bạn là gì"
+  },
+  {
+    "symbol_id": "north_star",
+    "question": "Trong yên lặng, điểm neo của bạn là gì"
   },
   {
     "symbol_id": "shooting_star",
     "question": "Điều gì chớp nhoáng nhưng thật"
   },
   {
+    "symbol_id": "shooting_star",
+    "question": "Nếu thành thật, điều gì chớp nhoáng nhưng thật"
+  },
+  {
+    "symbol_id": "shooting_star",
+    "question": "Trong yên lặng, điều gì chớp nhoáng nhưng thật"
+  },
+  {
     "symbol_id": "dawn_sky",
     "question": "Bạn đang ở trước điều gì"
+  },
+  {
+    "symbol_id": "dawn_sky",
+    "question": "Nếu thành thật, bạn đang ở trước điều gì"
+  },
+  {
+    "symbol_id": "dawn_sky",
+    "question": "Trong yên lặng, bạn đang ở trước điều gì"
   },
   {
     "symbol_id": "dusk",
     "question": "Bạn đang ở giữa hai điều gì"
   },
   {
+    "symbol_id": "dusk",
+    "question": "Nếu thành thật, bạn đang ở giữa hai điều gì"
+  },
+  {
+    "symbol_id": "dusk",
+    "question": "Trong yên lặng, bạn đang ở giữa hai điều gì"
+  },
+  {
     "symbol_id": "galaxy",
     "question": "Bạn là một phần của điều gì lớn hơn"
+  },
+  {
+    "symbol_id": "galaxy",
+    "question": "Nếu thành thật, bạn là một phần của điều gì lớn hơn"
+  },
+  {
+    "symbol_id": "galaxy",
+    "question": "Trong yên lặng, bạn là một phần của điều gì lớn hơn"
   },
   {
     "symbol_id": "cave",
     "question": "Bạn đang đi vào hay đi ra"
   },
   {
+    "symbol_id": "cave",
+    "question": "Nếu thành thật, bạn đang đi vào hay đi ra"
+  },
+  {
+    "symbol_id": "cave",
+    "question": "Trong yên lặng, bạn đang đi vào hay đi ra"
+  },
+  {
     "symbol_id": "summit",
     "question": "Đứng ở đây bạn thấy gì"
+  },
+  {
+    "symbol_id": "summit",
+    "question": "Nếu thành thật, đứng ở đây bạn thấy gì"
+  },
+  {
+    "symbol_id": "summit",
+    "question": "Trong yên lặng, đứng ở đây bạn thấy gì"
   },
   {
     "symbol_id": "delta",
     "question": "Tất cả trong bạn đang đổ về đâu"
   },
   {
+    "symbol_id": "delta",
+    "question": "Nếu thành thật, tất cả trong bạn đang đổ về đâu"
+  },
+  {
+    "symbol_id": "delta",
+    "question": "Trong yên lặng, tất cả trong bạn đang đổ về đâu"
+  },
+  {
     "symbol_id": "desert",
     "question": "Bạn đang học gì từ sự vắng lặng"
+  },
+  {
+    "symbol_id": "desert",
+    "question": "Nếu thành thật, bạn đang học gì từ sự vắng lặng"
+  },
+  {
+    "symbol_id": "desert",
+    "question": "Trong yên lặng, bạn đang học gì từ sự vắng lặng"
   },
   {
     "symbol_id": "forest",
     "question": "Điều gì đang sống trong bóng tối của bạn"
   },
   {
+    "symbol_id": "forest",
+    "question": "Nếu thành thật, điều gì đang sống trong bóng tối của bạn"
+  },
+  {
+    "symbol_id": "forest",
+    "question": "Trong yên lặng, điều gì đang sống trong bóng tối của bạn"
+  },
+  {
     "symbol_id": "cliff",
     "question": "Bạn đang đứng ở rìa nào"
+  },
+  {
+    "symbol_id": "cliff",
+    "question": "Nếu thành thật, bạn đang đứng ở rìa nào"
+  },
+  {
+    "symbol_id": "cliff",
+    "question": "Trong yên lặng, bạn đang đứng ở rìa nào"
   },
   {
     "symbol_id": "crossroads",
     "question": "Bạn đang trì hoãn quyết định nào"
   },
   {
+    "symbol_id": "crossroads",
+    "question": "Nếu thành thật, bạn đang trì hoãn quyết định nào"
+  },
+  {
+    "symbol_id": "crossroads",
+    "question": "Trong yên lặng, bạn đang trì hoãn quyết định nào"
+  },
+  {
     "symbol_id": "shore",
     "question": "Bạn đang ở giữa điều gì và điều gì"
+  },
+  {
+    "symbol_id": "shore",
+    "question": "Nếu thành thật, bạn đang ở giữa điều gì và điều gì"
+  },
+  {
+    "symbol_id": "shore",
+    "question": "Trong yên lặng, bạn đang ở giữa điều gì và điều gì"
   },
   {
     "symbol_id": "incense",
     "question": "Điều vô hình nào bạn đang cảm nhận"
   },
   {
+    "symbol_id": "incense",
+    "question": "Nếu thành thật, điều vô hình nào bạn đang cảm nhận"
+  },
+  {
+    "symbol_id": "incense",
+    "question": "Trong yên lặng, điều vô hình nào bạn đang cảm nhận"
+  },
+  {
     "symbol_id": "bell",
     "question": "Tiếng vang nào còn lại trong bạn"
+  },
+  {
+    "symbol_id": "bell",
+    "question": "Nếu thành thật, tiếng vang nào còn lại trong bạn"
+  },
+  {
+    "symbol_id": "bell",
+    "question": "Trong yên lặng, tiếng vang nào còn lại trong bạn"
   },
   {
     "symbol_id": "ash",
     "question": "Điều gì đã qua nhưng còn để lại dấu"
   },
   {
+    "symbol_id": "ash",
+    "question": "Nếu thành thật, điều gì đã qua nhưng còn để lại dấu"
+  },
+  {
+    "symbol_id": "ash",
+    "question": "Trong yên lặng, điều gì đã qua nhưng còn để lại dấu"
+  },
+  {
     "symbol_id": "bowl",
     "question": "Bạn đang chứa đựng gì lúc này"
+  },
+  {
+    "symbol_id": "bowl",
+    "question": "Nếu thành thật, bạn đang chứa đựng gì lúc này"
+  },
+  {
+    "symbol_id": "bowl",
+    "question": "Trong yên lặng, bạn đang chứa đựng gì lúc này"
   },
   {
     "symbol_id": "thread",
     "question": "Bạn đang kết nối điều gì mà sợ đứt"
   },
   {
+    "symbol_id": "thread",
+    "question": "Nếu thành thật, bạn đang kết nối điều gì mà sợ đứt"
+  },
+  {
+    "symbol_id": "thread",
+    "question": "Trong yên lặng, bạn đang kết nối điều gì mà sợ đứt"
+  },
+  {
     "symbol_id": "scroll",
     "question": "Điều gì bạn chưa dám đọc"
+  },
+  {
+    "symbol_id": "scroll",
+    "question": "Nếu thành thật, điều gì bạn chưa dám đọc"
+  },
+  {
+    "symbol_id": "scroll",
+    "question": "Trong yên lặng, điều gì bạn chưa dám đọc"
   },
   {
     "symbol_id": "hourglass",
     "question": "Bạn đang dùng thời gian để làm gì"
   },
   {
+    "symbol_id": "hourglass",
+    "question": "Nếu thành thật, bạn đang dùng thời gian để làm gì"
+  },
+  {
+    "symbol_id": "hourglass",
+    "question": "Trong yên lặng, bạn đang dùng thời gian để làm gì"
+  },
+  {
     "symbol_id": "scales",
     "question": "Bạn đang cân nhắc hai điều gì"
+  },
+  {
+    "symbol_id": "scales",
+    "question": "Nếu thành thật, bạn đang cân nhắc hai điều gì"
+  },
+  {
+    "symbol_id": "scales",
+    "question": "Trong yên lặng, bạn đang cân nhắc hai điều gì"
   },
   {
     "symbol_id": "circle",
     "question": "Bạn đang ở điểm nào trên vòng tròn"
   },
   {
+    "symbol_id": "circle",
+    "question": "Nếu thành thật, bạn đang ở điểm nào trên vòng tròn"
+  },
+  {
+    "symbol_id": "circle",
+    "question": "Trong yên lặng, bạn đang ở điểm nào trên vòng tròn"
+  },
+  {
     "symbol_id": "spiral",
     "question": "Bạn đang quay về điều gì theo cách mới"
+  },
+  {
+    "symbol_id": "spiral",
+    "question": "Nếu thành thật, bạn đang quay về điều gì theo cách mới"
+  },
+  {
+    "symbol_id": "spiral",
+    "question": "Trong yên lặng, bạn đang quay về điều gì theo cách mới"
   },
   {
     "symbol_id": "crossmark",
     "question": "Hai chiều nào đang gặp nhau trong bạn"
   },
   {
+    "symbol_id": "crossmark",
+    "question": "Nếu thành thật, hai chiều nào đang gặp nhau trong bạn"
+  },
+  {
+    "symbol_id": "crossmark",
+    "question": "Trong yên lặng, hai chiều nào đang gặp nhau trong bạn"
+  },
+  {
     "symbol_id": "labyrinth",
     "question": "Bạn đang ở đâu trong mê cung của mình"
+  },
+  {
+    "symbol_id": "labyrinth",
+    "question": "Nếu thành thật, bạn đang ở đâu trong mê cung của mình"
+  },
+  {
+    "symbol_id": "labyrinth",
+    "question": "Trong yên lặng, bạn đang ở đâu trong mê cung của mình"
   },
   {
     "symbol_id": "triangle",
     "question": "Ba thứ nào đang tạo nên bức tranh của bạn"
   },
   {
+    "symbol_id": "triangle",
+    "question": "Nếu thành thật, ba thứ nào đang tạo nên bức tranh của bạn"
+  },
+  {
+    "symbol_id": "triangle",
+    "question": "Trong yên lặng, ba thứ nào đang tạo nên bức tranh của bạn"
+  },
+  {
     "symbol_id": "horizon",
     "question": "Điều gì luôn ở phía trước dù bạn đi mãi"
+  },
+  {
+    "symbol_id": "horizon",
+    "question": "Nếu thành thật, điều gì luôn ở phía trước dù bạn đi mãi"
+  },
+  {
+    "symbol_id": "horizon",
+    "question": "Trong yên lặng, điều gì luôn ở phía trước dù bạn đi mãi"
   },
   {
     "symbol_id": "knot",
     "question": "Nút thắt nào bạn đang cần tháo"
   },
   {
+    "symbol_id": "knot",
+    "question": "Nếu thành thật, nút thắt nào bạn đang cần tháo"
+  },
+  {
+    "symbol_id": "knot",
+    "question": "Trong yên lặng, nút thắt nào bạn đang cần tháo"
+  },
+  {
     "symbol_id": "infinity",
     "question": "Điều gì bạn nghĩ có giới hạn mà không có"
+  },
+  {
+    "symbol_id": "infinity",
+    "question": "Nếu thành thật, điều gì bạn nghĩ có giới hạn mà không có"
+  },
+  {
+    "symbol_id": "infinity",
+    "question": "Trong yên lặng, điều gì bạn nghĩ có giới hạn mà không có"
   },
   {
     "symbol_id": "threshold",
     "question": "Bạn đang đứng ở cửa nào"
   },
   {
+    "symbol_id": "threshold",
+    "question": "Nếu thành thật, bạn đang đứng ở cửa nào"
+  },
+  {
+    "symbol_id": "threshold",
+    "question": "Trong yên lặng, bạn đang đứng ở cửa nào"
+  },
+  {
     "symbol_id": "ending",
     "question": "Kết thúc nào đang mở ra điều gì"
+  },
+  {
+    "symbol_id": "ending",
+    "question": "Nếu thành thật, kết thúc nào đang mở ra điều gì"
+  },
+  {
+    "symbol_id": "ending",
+    "question": "Trong yên lặng, kết thúc nào đang mở ra điều gì"
   },
   {
     "symbol_id": "pause",
     "question": "Bạn đang dừng lại hay đang trốn"
   },
   {
+    "symbol_id": "pause",
+    "question": "Nếu thành thật, bạn đang dừng lại hay đang trốn"
+  },
+  {
+    "symbol_id": "pause",
+    "question": "Trong yên lặng, bạn đang dừng lại hay đang trốn"
+  },
+  {
     "symbol_id": "turning_point",
     "question": "Điều gì đã thay đổi mà bạn chưa công nhận"
+  },
+  {
+    "symbol_id": "turning_point",
+    "question": "Nếu thành thật, điều gì đã thay đổi mà bạn chưa công nhận"
+  },
+  {
+    "symbol_id": "turning_point",
+    "question": "Trong yên lặng, điều gì đã thay đổi mà bạn chưa công nhận"
   },
   {
     "symbol_id": "letting_go",
     "question": "Bạn đang giữ lại điều gì vì sợ mất"
   },
   {
+    "symbol_id": "letting_go",
+    "question": "Nếu thành thật, bạn đang giữ lại điều gì vì sợ mất"
+  },
+  {
+    "symbol_id": "letting_go",
+    "question": "Trong yên lặng, bạn đang giữ lại điều gì vì sợ mất"
+  },
+  {
     "symbol_id": "return",
     "question": "Bạn đang trở về hay đang chạy trốn"
+  },
+  {
+    "symbol_id": "return",
+    "question": "Nếu thành thật, bạn đang trở về hay đang chạy trốn"
+  },
+  {
+    "symbol_id": "return",
+    "question": "Trong yên lặng, bạn đang trở về hay đang chạy trốn"
   },
   {
     "symbol_id": "waiting",
     "question": "Bạn đang chờ điều gì để bắt đầu"
   },
   {
+    "symbol_id": "waiting",
+    "question": "Nếu thành thật, bạn đang chờ điều gì để bắt đầu"
+  },
+  {
+    "symbol_id": "waiting",
+    "question": "Trong yên lặng, bạn đang chờ điều gì để bắt đầu"
+  },
+  {
     "symbol_id": "empty_hand",
     "question": "Bạn cần buông gì để nhận được gì"
+  },
+  {
+    "symbol_id": "empty_hand",
+    "question": "Nếu thành thật, bạn cần buông gì để nhận được gì"
+  },
+  {
+    "symbol_id": "empty_hand",
+    "question": "Trong yên lặng, bạn cần buông gì để nhận được gì"
   }
 ] as NotificationEntry[];

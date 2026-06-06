@@ -161,7 +161,7 @@ const THEMES = [
 
 // ─── Notification Matrix ──────────────────────────────────────────────────────
 
-const NOTIFICATION_MATRIX = [
+const NOTIFICATION_BASE_MATRIX = [
   { symbol_id: "candle",        question: "Bạn đang thắp sáng hay đang cháy" },
   { symbol_id: "key",           question: "Cái gì đang chờ bạn mở" },
   { symbol_id: "dawn",          question: "Bạn sẵn sàng cho gì" },
@@ -235,6 +235,23 @@ const NOTIFICATION_MATRIX = [
   { symbol_id: "waiting",       question: "Bạn đang chờ điều gì để bắt đầu" },
   { symbol_id: "empty_hand",    question: "Bạn cần buông gì để nhận được gì" },
 ];
+
+function lowerFirst(value: string): string {
+  return value.length === 0 ? value : value[0].toLocaleLowerCase("vi-VN") + value.slice(1);
+}
+
+const NOTIFICATION_LENSES = [
+  (question: string) => question,
+  (question: string) => `Nếu thành thật, ${lowerFirst(question)}`,
+  (question: string) => `Trong yên lặng, ${lowerFirst(question)}`,
+];
+
+const NOTIFICATION_MATRIX = NOTIFICATION_BASE_MATRIX.flatMap((entry) =>
+  NOTIFICATION_LENSES.map((buildQuestion) => ({
+    symbol_id: entry.symbol_id,
+    question: buildQuestion(entry.question),
+  })),
+);
 
 // ─── Assemble & write ─────────────────────────────────────────────────────────
 

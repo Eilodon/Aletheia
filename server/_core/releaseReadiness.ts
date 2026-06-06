@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 
 type CheckState = "ready" | "warning" | "blocked";
@@ -55,6 +55,84 @@ function readinessForEnv(
     : { state: missingState, detail: missingDetail };
 }
 
+function readProjectFile(relativePath: string): string | null {
+  const filePath = path.join(projectRoot, relativePath);
+  return existsSync(filePath) ? readFileSync(filePath, "utf8") : null;
+}
+
+function readinessForContentProvenance(): ReleaseCheck {
+  const content = readProjectFile("core/content/bundled-content.json");
+  const provenance = readProjectFile("docs/CONTENT_PROVENANCE.md");
+  if (!content) {
+    return { state: "blocked", detail: "Missing core/content/bundled-content.json" };
+  }
+  if (!provenance) {
+    return { state: "blocked", detail: "Missing docs/CONTENT_PROVENANCE.md" };
+  }
+
+  try {
+    const bundled = JSON.parse(content) as { sources?: Array<{ id?: string }> };
+    const sourceIds = (bundled.sources ?? []).map((source) => source.id).filter(Boolean);
+    const missing = sourceIds.filter((sourceId) => !provenance.includes(`| ${sourceId} |`));
+    if (missing.length > 0) {
+      return {
+        state: "blocked",
+        detail: `Content provenance missing source ids: ${missing.join(", ")}`,
+      };
+    }
+    if (provenance.includes("| unknown |")) {
+      return { state: "blocked", detail: "Content provenance contains unknown license entries." };
+    }
+    return { state: "ready", detail: "Content provenance covers every bundled source." };
+  } catch {
+    return { state: "blocked", detail: "Bundled content JSON could not be parsed." };
+  }
+}
+
+function readinessForAiEvalDataset(): ReleaseCheck {
+  const dataset = readProjectFile("tests/fixtures/interpretation-eval-dataset.json");
+  if (!dataset) {
+    return { state: "blocked", detail: "Missing interpretation eval dataset." };
+  }
+  try {
+    const parsed = JSON.parse(dataset) as { eval_cases?: unknown[] };
+    const count = parsed.eval_cases?.length ?? 0;
+    return count >= 30
+      ? { state: "ready", detail: `Interpretation eval dataset has ${count} cases.` }
+      : { state: "blocked", detail: `Interpretation eval dataset has only ${count} cases.` };
+  } catch {
+    return { state: "blocked", detail: "Interpretation eval dataset could not be parsed." };
+  }
+}
+
+function readinessForLegacyInterpretationRoute(): ReleaseCheck {
+  const appSources = ["app", "components"].flatMap((dir) => {
+    const rootPath = path.join(projectRoot, dir);
+    if (!existsSync(rootPath)) return [] as string[];
+    return collectFiles(rootPath, [".ts", ".tsx"]).map((filePath) => readFileSync(filePath, "utf8"));
+  });
+  const hasScreenDirectUsage = appSources.some((source) =>
+    /requestInterpretation\s*\(|request_interpretation\s*\(/.test(source),
+  );
+  return hasScreenDirectUsage
+    ? { state: "blocked", detail: "App screen/component imports legacy request_interpretation path." }
+    : { state: "ready", detail: "Legacy request_interpretation is not used directly by app screens." };
+}
+
+function collectFiles(dir: string, extensions: string[]): string[] {
+  const files: string[] = [];
+  for (const entry of readdirSync(dir)) {
+    const filePath = path.join(dir, entry);
+    const stat = statSync(filePath);
+    if (stat.isDirectory()) {
+      files.push(...collectFiles(filePath, extensions));
+    } else if (extensions.some((extension) => filePath.endsWith(extension))) {
+      files.push(filePath);
+    }
+  }
+  return files;
+}
+
 export function getReleaseReadiness(options?: { strict?: boolean }) {
   const strict = options?.strict ?? false;
   const checks = {
@@ -107,14 +185,18 @@ export function getReleaseReadiness(options?: { strict?: boolean }) {
     giftBackend: readinessForEnv(
       ["EXPO_PUBLIC_GIFT_BACKEND_URL"],
       "Gift backend URL is configured.",
-      "Gift backend URL not configured — gift creation will surface a config error to users.",
-      "warning",
+      strict
+        ? "Gift backend URL is not configured for strict beta release."
+        : "Gift backend URL not configured — gift creation will surface a config error to users.",
+      strict ? "blocked" : "warning",
     ),
     revenueCatAndroid: readinessForEnv(
       ["EXPO_PUBLIC_REVENUECAT_API_KEY_ANDROID"],
       "RevenueCat Android API key is configured.",
-      "RevenueCat Android key not configured — paywall and in-app purchases will show a config error.",
-      "warning",
+      strict
+        ? "RevenueCat Android key is not configured for strict beta release."
+        : "RevenueCat Android key not configured — paywall and in-app purchases will show a config error.",
+      strict ? "blocked" : "warning",
     ),
     aiProviderConfig: readinessForEnv(
       ["BUILT_IN_FORGE_API_URL", "AI_API_URL", "EXPO_PUBLIC_API_BASE_URL"],
@@ -126,6 +208,9 @@ export function getReleaseReadiness(options?: { strict?: boolean }) {
       state: "ready" as const,
       detail: "Active release surfaces are Android and web. iOS remains explicitly out of beta scope.",
     },
+    contentProvenance: readinessForContentProvenance(),
+    aiEvalDataset: readinessForAiEvalDataset(),
+    legacyInterpretationRoute: readinessForLegacyInterpretationRoute(),
   };
 
   const values = Object.values(checks);

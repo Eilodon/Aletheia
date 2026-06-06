@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { View, Text, Pressable, FlatList, Animated, RefreshControl, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { useFocusEffect } from "@react-navigation/native";
@@ -35,6 +35,7 @@ export default function HistoryScreen() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [totalCount, setTotalCount] = useState(0);
   const [activeFilter, setActiveFilter] = useState<ArchiveFilter>("all");
   const [activeSort, setActiveSort] = useState<ArchiveSort>("latest");
   const [searchQuery, setSearchQuery] = useState("");
@@ -45,7 +46,13 @@ export default function HistoryScreen() {
   const loadReadings = useCallback(async (pageNum: number = 0, refresh: boolean = false) => {
     try {
       await getCurrentUserId();
-      const pageResult = await coreStore.getReadingsPage(PAGE_SIZE, pageNum * PAGE_SIZE);
+      const pageResult = await coreStore.searchReadingsPage({
+        query: searchQuery,
+        filter: activeFilter,
+        sort: activeSort,
+        limit: PAGE_SIZE,
+        offset: pageNum * PAGE_SIZE,
+      });
       const total = pageResult.total_count;
       const transformed: ReadingWithDetails[] = pageResult.items.map((r: Reading) => ({
         ...r,
@@ -53,6 +60,7 @@ export default function HistoryScreen() {
         symbolName: r.symbol_chosen || "?",
       }));
       setReadings((prev) => refresh ? transformed : [...prev, ...transformed]);
+      setTotalCount(total);
       setHasMore((pageNum + 1) * PAGE_SIZE < total);
       setPage(pageNum);
     } catch (error) {
@@ -61,7 +69,7 @@ export default function HistoryScreen() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [activeFilter, activeSort, searchQuery]);
 
   useEffect(() => {
     Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true }).start();
@@ -103,47 +111,15 @@ export default function HistoryScreen() {
     return mood ? emojis[mood] || "💭" : "💭";
   };
 
-  const getDepthScore = useCallback((reading: ReadingWithDetails) => {
-    let score = 0;
-    if (reading.ai_interpreted) score += 4;
-    if (reading.mood_tag) score += 2;
-    if (reading.situation_text?.trim()) score += 2;
-    if (reading.read_duration_s) score += Math.min(reading.read_duration_s / 60, 3);
-    if (reading.is_favorite) score += 1.5;
-    if (reading.shared) score += 1;
-    return score;
-  }, []);
-
-  const visibleReadings = useMemo(() => {
-    const filtered = readings.filter((reading) => {
-      const q = searchQuery.trim().toLowerCase();
-      const matchesSearch =
-        q.length === 0 ||
-        reading.situation_text?.toLowerCase().includes(q) ||
-        reading.sourceName?.toLowerCase().includes(q) ||
-        reading.symbolName?.toLowerCase().includes(q) ||
-        reading.symbol_chosen?.toLowerCase().includes(q);
-      if (!matchesSearch) return false;
-      switch (activeFilter) {
-        case "favorites": return reading.is_favorite;
-        case "ai": return reading.ai_interpreted;
-        case "shared": return reading.shared;
-        default: return true;
-      }
-    });
-    const sorted = [...filtered];
-    sorted.sort((a, b) => {
-      switch (activeSort) {
-        case "oldest": return a.created_at - b.created_at;
-        case "depth": return getDepthScore(b) - getDepthScore(a) || b.created_at - a.created_at;
-        default: return b.created_at - a.created_at;
-      }
-    });
-    return sorted;
-  }, [activeFilter, activeSort, getDepthScore, readings, searchQuery]);
+  const visibleReadings = readings;
 
   useEffect(() => { trackArchiveEvent("filter_changed", { filter: activeFilter }); }, [activeFilter]);
   useEffect(() => { trackArchiveEvent("sort_changed", { sort: activeSort }); }, [activeSort]);
+  useEffect(() => {
+    const id = setTimeout(() => loadReadings(0, true), searchQuery.trim().length > 0 ? 250 : 0);
+    return () => clearTimeout(id);
+  }, [activeFilter, activeSort, loadReadings, searchQuery]);
+
   useEffect(() => {
     if (searchQuery.trim().length === 0) return;
     const id = setTimeout(() => {
@@ -155,7 +131,7 @@ export default function HistoryScreen() {
       });
     }, 300);
     return () => clearTimeout(id);
-  }, [searchQuery, visibleReadings.length]);
+  }, [searchQuery, totalCount, visibleReadings.length]);
 
   const filterOptions: { key: ArchiveFilter; label: string }[] = [
     { key: "all",       label: s.mirror.filterAll },
@@ -218,12 +194,12 @@ export default function HistoryScreen() {
     <View className="flex-1 justify-center items-center py-20">
       <RitualOrnament variant="sigil" />
       <Text className="text-lg text-foreground mb-2 mt-4" style={{ fontFamily: df.display }}>
-        {readings.length === 0 ? s.mirror.emptyTitle : s.mirror.emptyFilteredTitle}
+        {totalCount === 0 && searchQuery.trim().length === 0 && activeFilter === "all" ? s.mirror.emptyTitle : s.mirror.emptyFilteredTitle}
       </Text>
       <Text className="text-sm text-muted text-center max-w-xs">
-        {readings.length === 0 ? s.mirror.emptyBody : s.mirror.emptyFilteredBody}
+        {totalCount === 0 && searchQuery.trim().length === 0 && activeFilter === "all" ? s.mirror.emptyBody : s.mirror.emptyFilteredBody}
       </Text>
-      {readings.length === 0 ? (
+      {totalCount === 0 && searchQuery.trim().length === 0 && activeFilter === "all" ? (
         <Pressable
           onPress={() => router.push("/reading/situation")}
           accessibilityRole="button"
@@ -244,9 +220,9 @@ export default function HistoryScreen() {
       <RitualOrnament variant="line" />
       <Text className="text-3xl text-foreground" style={{ fontFamily: df.display }}>{s.mirror.title}</Text>
       <Text className="text-sm text-muted text-center">
-        {s.mirror.countLabel(visibleReadings.length, readings.length)}
+        {s.mirror.countLabel(visibleReadings.length, totalCount)}
       </Text>
-      {readings.length > 0 && (
+      {(totalCount > 0 || searchQuery.trim().length > 0 || activeFilter !== "all") && (
         <View style={{ width: "100%", gap: 12, marginTop: 8 }}>
           <View style={{ borderRadius: 22, borderWidth: 1, borderColor: colors.primary + "22", backgroundColor: colors.surface + "BC", paddingHorizontal: 14 }}>
             <TextInput

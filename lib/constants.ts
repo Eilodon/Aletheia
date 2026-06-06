@@ -16,10 +16,14 @@ export const THEME_PACK_PRICE_USD = 1.99;
 // UX timing
 export const WILDCARD_AUTO_DELAY_MS = 800;
 export const SYMBOL_FADE_STAGGER_MS = 200;
+export const AI_FIRST_TOKEN_TIMEOUT_MS = 8_000;
+export const AI_PROVIDER_IDLE_TIMEOUT_MS = 15_000;
+export const AI_PROVIDER_TOTAL_TIMEOUT_MS = 60_000;
+export const AI_REVEAL_PACING_MS = 600;
 export const AI_STREAM_TIMEOUT_MS = 15_000;
 
 // Notification
-export const NOTIFICATION_MATRIX_SIZE = 20;
+export const NOTIFICATION_MATRIX_SIZE = 216;
 
 // Content constraints
 export const MIN_PASSAGE_CHARS = 20;
@@ -28,6 +32,7 @@ export const MAX_PASSAGE_CHARS = 500;
 // History & gifts
 export const FREE_HISTORY_DAYS = 90; // sync with contracts.rs FREE_HISTORY_DAYS
 export const GIFT_LINK_TTL_SECONDS = 86_400; // 24 hours
+export const GIFT_BUYER_NOTE_MAX_CHARS = 500;
 
 // Auth (from shared/const.ts)
 export const COOKIE_NAME = "app_session_id";

@@ -198,10 +198,25 @@ export const en: Strings = {
     notificationToggleOn: "On",
     notificationToggleOff: "Off",
     notificationTimeLabel: "Send at",
-    notificationBody: "Each morning, if you want, Aletheia leaves a small passage on your lock screen. No need to open the app.",
-    notificationPermissionDenied: "Notification permission denied. Go to system Settings to re-enable.",
+	    notificationBody: "Each morning, if you want, Aletheia leaves a small passage on your lock screen. No need to open the app.",
+	    notificationPermissionDenied: "Notification permission denied. Go to system Settings to re-enable.",
+	    notificationPrivacySection: "Lock-screen privacy",
+	    notificationPrivacyOptions: {
+	      full_text: {
+	        title: "Show full text",
+	        body: "Notifications may show the passage or weekly summary.",
+	      },
+	      discreet: {
+	        title: "Discreet",
+	        body: "Show only a generic reminder, never reading content.",
+	      },
+	      off: {
+	        title: "Notifications off",
+	        body: "Cancel daily passages and weekly mirror alerts.",
+	      },
+	    },
 
-    weeklySummarySection: "Weekly Mirror",
+	    weeklySummarySection: "Weekly Mirror",
     weeklySummaryToggleOn: "On",
     weeklySummaryToggleOff: "Off",
     weeklySummaryBody: "Every Saturday, your device privately summarises your reading week — fully offline, no data leaves your phone.",

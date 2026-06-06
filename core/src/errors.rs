@@ -1,7 +1,7 @@
 //! Aletheia Core - Error Types
 //! Error handling aligned with executable contracts in core/src/contracts.rs
 
-use crate::contracts::ErrorCode;
+use crate::contracts::{ErrorCode, AI_PROVIDER_TOTAL_TIMEOUT_MS};
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -160,7 +160,7 @@ impl From<rusqlite::Error> for AletheiaError {
 impl From<reqwest::Error> for AletheiaError {
     fn from(err: reqwest::Error) -> Self {
         if err.is_timeout() {
-            AletheiaError::ai_timeout(15_000)
+            AletheiaError::ai_timeout(AI_PROVIDER_TOTAL_TIMEOUT_MS)
         } else {
             AletheiaError::ai_unavailable()
         }

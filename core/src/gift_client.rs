@@ -41,6 +41,7 @@ impl GiftClient {
                 "Gift backend is not configured",
             ));
         }
+        let buyer_note = normalize_buyer_note(buyer_note)?;
 
         let resp = self
             .client
@@ -75,7 +76,7 @@ impl GiftClient {
             })?
             .to_string();
 
-        info!("Created gift: {}", token);
+        info!("Created gift: {}", redact_token(&token));
         Ok(GiftResponse { token, deep_link })
     }
 
@@ -114,6 +115,26 @@ impl GiftClient {
             Err(err) => Err(err.into()),
         }
     }
+}
+
+fn normalize_buyer_note(buyer_note: Option<String>) -> Result<Option<String>, AletheiaError> {
+    let Some(note) = buyer_note else {
+        return Ok(None);
+    };
+    let trimmed = note.trim();
+    if trimmed.is_empty() {
+        return Ok(None);
+    }
+    if trimmed.chars().count() > GIFT_BUYER_NOTE_MAX_CHARS as usize {
+        return Err(AletheiaError::invalid_input(
+            "buyer_note",
+            &format!(
+                "buyer_note must be at most {} characters",
+                GIFT_BUYER_NOTE_MAX_CHARS
+            ),
+        ));
+    }
+    Ok(Some(trimmed.to_string()))
 }
 
 // ─── Strict JSON parser — ADR-AL-52 ─────────────────────────────────────────
@@ -158,7 +179,7 @@ fn parse_gift_json(json: &serde_json::Value, token: &str) -> Result<GiftReading,
         chrono_timestamp()
     });
 
-    info!("Redeemed gift: {}", token);
+    info!("Redeemed gift: {}", redact_token(token));
     Ok(GiftReading {
         token: token.to_string(),
         buyer_note: json["buyer_note"].as_str().map(String::from),
@@ -168,6 +189,18 @@ fn parse_gift_json(json: &serde_json::Value, token: &str) -> Result<GiftReading,
         redeemed: true,
         redeemed_at: Some(chrono_timestamp()),
     })
+}
+
+fn redact_token(token: &str) -> String {
+    let suffix: String = token
+        .chars()
+        .rev()
+        .take(4)
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .collect();
+    format!("[REDACTED:{}]", suffix)
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
@@ -264,5 +297,21 @@ mod tests {
             gift.created_at > 0,
             "created_at should have fallback timestamp"
         );
+    }
+
+    #[test]
+    fn buyer_note_is_trimmed_and_empty_note_is_removed() {
+        assert_eq!(
+            normalize_buyer_note(Some("  hello  ".to_string())).unwrap(),
+            Some("hello".to_string())
+        );
+        assert_eq!(normalize_buyer_note(Some("   ".to_string())).unwrap(), None);
+    }
+
+    #[test]
+    fn buyer_note_rejects_over_limit_text() {
+        let note = "x".repeat(GIFT_BUYER_NOTE_MAX_CHARS as usize + 1);
+        let err = normalize_buyer_note(Some(note)).unwrap_err();
+        assert!(err.message.contains("buyer_note"));
     }
 }

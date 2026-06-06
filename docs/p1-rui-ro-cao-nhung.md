@@ -1,6 +1,19 @@
 
 # 3. P1 — Rủi ro cao nhưng có thể xử lý sau P0
 
+## Status Update — 2026-06-06
+
+- P1-3 resolved: Android/web now use an install-scoped generated user id through `current-user-id`, so deterministic notification rotation no longer shares `local-user` across installs.
+- P1-2 resolved at code-contract level: `NotificationPrivacy` is now part of `UserState`, contracts, native bridge types, Settings, and local notification scheduling. `discreet` hides passage/summary text; `off` cancels daily and weekly local notifications. Release-device lock-screen behavior still needs manual validation.
+- P1-1 resolved at code-contract level: `DualStoreConsistency` is implemented for TS-store-only dependent rows. `coreStore` merges `hide_situation` into native read/export results, cascades native delete/delete-all into the TS store, and runs startup orphan repair.
+- P1-4 resolved: daily notification matrix now generates 216 unique symbol/question entries instead of a tiny repeating pool.
+- P1-5 resolved: Mirror search/filter/sort now goes through SQLite-backed `search_readings(query, filter, sort, limit, offset)` instead of searching only loaded rows.
+- P1-7 resolved at code-contract level: AI timeout semantics are split into first-token, idle, total, and reveal-pacing constants.
+- P1-9 partially resolved: Android model download now validates manifest size/hash, uses atomic rename, and resumes interrupted partial downloads via HTTP Range. Storage/network/battery UX remains a release-device task.
+- P1-11/P1-16 partially resolved: AI eval dataset has 30 cases and content provenance is release-gated; model output quality and legal review remain release evidence tasks.
+- P1-6 resolved: beta flow is `SituationInput → WildcardReveal`; `SourceSelection` is documented as a reserved future detour and runtime now enters `WildcardReveal` after `perform_reading`.
+- Still open: gift backend deployment/security review, monetization verification, real-device local AI validation, and full legacy `request_interpretation` API removal.
+
 ## P1-1 — Dual SQLite architecture cần consistency protocol
 
 CONTRACTS hợp thức hóa hai database: Rust SQLite qua AletheiaCore và TypeScript SQLite trong `store.ts`, với `hide_situation` là TS-store-only.  Pattern này hợp lý cho UI-only data, nhưng thiếu protocol.
@@ -702,5 +715,3 @@ Ba đòn nâng cấp có ROI cao nhất:
 
 3. **Core-owned session/quota/entitlement**
    Đây là nền cho business model không bị bypass.
-
-

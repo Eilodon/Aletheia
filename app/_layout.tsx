@@ -189,6 +189,9 @@ export default function RootLayout() {
 
         const userId = await getCurrentUserId();
         let userState = await coreStore.getUserState(userId);
+        await coreStore.repairReadingDependents().catch((error) => {
+          console.warn("[bootstrap] reading dependent repair failed:", error);
+        });
 
         if (cancelled) {
           return;

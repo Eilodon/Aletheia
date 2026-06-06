@@ -1,6 +1,6 @@
 # Beta Implementation Roadmap
 
-Last verified against repo: 2026-06-05.
+Last verified against repo: 2026-06-06.
 
 ## Summary
 
@@ -12,7 +12,22 @@ Last verified against repo: 2026-06-05.
 | Monetization | Partial | Configure RevenueCat and test purchase/restore, or hide paywall. |
 | Local AI | Partial | Test Android model download/inference on real devices. |
 | Share cards | Partial | Verify native/card generation end-to-end. |
-| Startup guard | Bug | Invoke `assertStartupConfig()` or remove it. |
+| Startup repair | Ready | Bootstrap now repairs TS-only orphan reading rows after native store load. |
+
+## 2026-06-06 Batch 1 Risk Hardening
+
+- Implemented `NotificationPrivacy` across contracts, stores, bridge types, Settings, and local notification content builders.
+- Added lock-screen `discreet` mode and `off` mode that cancels daily passage and weekly summary notifications.
+- Added Sentry event scrubbing for situation/passage/prompt/token/buyer-note fields.
+- Redacted gift tokens in Rust gift client logs.
+- Added dual-store consistency guards for TS-only reading privacy flags: native reads/export are enriched, and native delete/delete-all cascades into TS rows.
+- Added startup orphan repair for TS-only reading rows after native bootstrap.
+- Moved Mirror search/filter/sort to SQLite-backed `coreStore.searchReadingsPage()` and native `search_readings(...)`.
+- Expanded the daily notification matrix to 216 generated unique entries and synchronized the constant across docs/Rust/TS.
+- Split AI timeout semantics into first-token, idle, total provider, and reveal-pacing constants.
+- Added Android model download resume via HTTP Range while retaining manifest size/hash validation and atomic rename.
+- Added release-gated content provenance coverage for bundled sources.
+- Remaining beta blockers stay tracked below: environment, real backend/payment configuration, real-device local AI validation, and release gating.
 
 ## Phase 1 - Buildable Beta
 
@@ -88,7 +103,7 @@ Decision:
 Current state:
 
 - Android native local inference targets Qwen3.5-2B LiteRT-LM (`Qwen3.5-2B-IT.litertlm`), about 1.5GB, with 3072MB RAM minimum.
-- Runtime download/cache/delete flows exist.
+- Runtime download/cache/delete flows exist. Download uses partial-file resume, manifest size/hash validation, and atomic rename before marking ready.
 - Rust core local inference remains an interface/stub; Android native owns real execution.
 
 Decision:

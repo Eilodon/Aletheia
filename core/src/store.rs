@@ -319,8 +319,25 @@ impl Store {
             tx.execute("PRAGMA user_version = 12", [])?;
         }
 
+        if user_version < 13 {
+            let exists: bool = tx
+                .query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('user_state') WHERE name='notification_privacy'",
+                    [],
+                    |r| r.get::<_, i32>(0),
+                )
+                .unwrap_or(0)
+                > 0;
+            if !exists {
+                tx.execute_batch(
+                    "ALTER TABLE user_state ADD COLUMN notification_privacy TEXT NOT NULL DEFAULT 'full_text';",
+                )?;
+            }
+            tx.execute("PRAGMA user_version = 13", [])?;
+        }
+
         tx.commit()?;
-        info!("Migrations complete (schema v12, WAL)");
+        info!("Migrations complete (schema v13, WAL)");
         Ok(())
     }
 
@@ -463,6 +480,70 @@ impl Store {
     pub fn get_readings_count(&self) -> Result<u32, AletheiaError> {
         let conn = self.conn.lock();
         Ok(conn.query_row("SELECT COUNT(*) FROM readings", [], |r| r.get(0))?)
+    }
+
+    pub fn search_readings(
+        &self,
+        query: &str,
+        filter: &str,
+        sort: &str,
+        limit: u32,
+        offset: u32,
+    ) -> Result<Vec<Reading>, AletheiaError> {
+        let conn = self.conn.lock();
+        let q = query.trim().to_lowercase();
+        let filter = normalize_archive_filter(filter);
+        let sql = format!(
+            r#"SELECT r.id,r.created_at,r.source_id,r.passage_id,r.theme_id,r.symbol_chosen,
+                      r.symbol_method,r.situation_text,r.ai_interpreted,r.ai_used_fallback,
+                      r.read_duration_s,r.time_to_ai_request_s,r.notification_opened,
+                      r.mood_tag,r.is_favorite,r.shared,r.user_intent
+               FROM readings r
+               LEFT JOIN sources s ON s.id = r.source_id
+               LEFT JOIN symbols sym ON sym.id = r.symbol_chosen
+               WHERE
+                 (?1 = '' OR
+                  LOWER(COALESCE(r.situation_text, '')) LIKE '%' || ?1 || '%' OR
+                  LOWER(COALESCE(r.source_id, '')) LIKE '%' || ?1 || '%' OR
+                  LOWER(COALESCE(r.symbol_chosen, '')) LIKE '%' || ?1 || '%' OR
+                  LOWER(COALESCE(s.name, '')) LIKE '%' || ?1 || '%' OR
+                  LOWER(COALESCE(sym.display_name, '')) LIKE '%' || ?1 || '%')
+                 AND (?2 = 'all'
+                   OR (?2 = 'favorites' AND r.is_favorite = 1)
+                   OR (?2 = 'ai' AND r.ai_interpreted = 1)
+                   OR (?2 = 'shared' AND r.shared = 1))
+               {}
+               LIMIT ?3 OFFSET ?4"#,
+            archive_order_by(sort)
+        );
+        let mut stmt = conn.prepare(&sql)?;
+        let rows = stmt.query_map(params![q, filter, limit, offset], map_reading)?;
+        collect_rows(rows)
+    }
+
+    pub fn search_readings_count(&self, query: &str, filter: &str) -> Result<u32, AletheiaError> {
+        let conn = self.conn.lock();
+        let q = query.trim().to_lowercase();
+        let filter = normalize_archive_filter(filter);
+        Ok(conn.query_row(
+            r#"SELECT COUNT(*)
+               FROM readings r
+               LEFT JOIN sources s ON s.id = r.source_id
+               LEFT JOIN symbols sym ON sym.id = r.symbol_chosen
+               WHERE
+                 (?1 = '' OR
+                  LOWER(COALESCE(r.situation_text, '')) LIKE '%' || ?1 || '%' OR
+                  LOWER(COALESCE(r.source_id, '')) LIKE '%' || ?1 || '%' OR
+                  LOWER(COALESCE(r.symbol_chosen, '')) LIKE '%' || ?1 || '%' OR
+                  LOWER(COALESCE(s.name, '')) LIKE '%' || ?1 || '%' OR
+                  LOWER(COALESCE(sym.display_name, '')) LIKE '%' || ?1 || '%')
+                 AND (?2 = 'all'
+                   OR (?2 = 'favorites' AND r.is_favorite = 1)
+                   OR (?2 = 'ai' AND r.ai_interpreted = 1)
+                   OR (?2 = 'shared' AND r.shared = 1))"#,
+            params![q, filter],
+            |r| r.get(0),
+        )?)
     }
 
     #[allow(dead_code)]
@@ -864,14 +945,15 @@ impl Store {
             .map(|i| ser(i, "user_intent"))
             .transpose()?;
         let ai_privacy_mode = ser(&state.ai_privacy_mode, "ai_privacy_mode")?;
+        let notification_privacy = ser(&state.notification_privacy, "notification_privacy")?;
         let conn = self.conn.lock();
         conn.execute(
             r#"INSERT INTO user_state (
                 user_id,subscription_tier,readings_today,ai_calls_today,
                 session_count,last_reading_date,notification_enabled,notification_time,
                 preferred_language,dark_mode,onboarding_complete,user_intent,
-                weekly_summary_enabled,ai_privacy_mode
-            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)"#,
+                weekly_summary_enabled,ai_privacy_mode,notification_privacy
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"#,
             params![
                 state.user_id,
                 tier,
@@ -887,6 +969,7 @@ impl Store {
                 user_intent,
                 state.weekly_summary_enabled as i32,
                 ai_privacy_mode,
+                notification_privacy,
             ],
         )?;
         Ok(())
@@ -900,13 +983,14 @@ impl Store {
             .map(|i| ser(i, "user_intent"))
             .transpose()?;
         let ai_privacy_mode = ser(&state.ai_privacy_mode, "ai_privacy_mode")?;
+        let notification_privacy = ser(&state.notification_privacy, "notification_privacy")?;
         let conn = self.conn.lock();
         conn.execute(
             r#"UPDATE user_state SET
                 subscription_tier=?,readings_today=?,ai_calls_today=?,
                 session_count=?,last_reading_date=?,notification_enabled=?,
                 notification_time=?,preferred_language=?,dark_mode=?,
-                onboarding_complete=?,user_intent=?,weekly_summary_enabled=?,ai_privacy_mode=?
+                onboarding_complete=?,user_intent=?,weekly_summary_enabled=?,ai_privacy_mode=?,notification_privacy=?
                WHERE user_id=?"#,
             params![
                 tier,
@@ -922,6 +1006,7 @@ impl Store {
                 user_intent,
                 state.weekly_summary_enabled as i32,
                 ai_privacy_mode,
+                notification_privacy,
                 state.user_id,
             ],
         )?;
@@ -994,7 +1079,10 @@ impl Store {
             .unwrap_or_default())
     }
 
-    pub fn insert_interpretation(&self, interpretation: &Interpretation) -> Result<(), AletheiaError> {
+    pub fn insert_interpretation(
+        &self,
+        interpretation: &Interpretation,
+    ) -> Result<(), AletheiaError> {
         let safety_reasons = ser(&interpretation.safety_reasons, "safety_reasons")?;
         let conn = self.conn.lock();
         conn.execute(
@@ -1157,7 +1245,41 @@ fn map_user_state(r: &rusqlite::Row<'_>) -> rusqlite::Result<UserState> {
             .get::<_, Option<String>>(13)?
             .and_then(|s| serde_json::from_str(&s).ok())
             .unwrap_or(AiPrivacyMode::AskBeforeCloud),
+        notification_privacy: r
+            .get::<_, Option<String>>(14)?
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or(NotificationPrivacy::FullText),
     })
+}
+
+fn normalize_archive_filter(filter: &str) -> &'static str {
+    match filter {
+        "favorites" => "favorites",
+        "ai" => "ai",
+        "shared" => "shared",
+        _ => "all",
+    }
+}
+
+fn archive_order_by(sort: &str) -> &'static str {
+    match sort {
+        "oldest" => "ORDER BY r.created_at ASC",
+        "depth" => {
+            r#"ORDER BY (
+                (CASE WHEN r.ai_interpreted = 1 THEN 4 ELSE 0 END) +
+                (CASE WHEN r.mood_tag IS NOT NULL THEN 2 ELSE 0 END) +
+                (CASE WHEN TRIM(COALESCE(r.situation_text, '')) != '' THEN 2 ELSE 0 END) +
+                (CASE
+                  WHEN r.read_duration_s IS NULL THEN 0
+                  WHEN r.read_duration_s / 60.0 > 3 THEN 3
+                  ELSE r.read_duration_s / 60.0
+                END) +
+                (CASE WHEN r.is_favorite = 1 THEN 1.5 ELSE 0 END) +
+                (CASE WHEN r.shared = 1 THEN 1 ELSE 0 END)
+              ) DESC, r.created_at DESC"#
+        }
+        _ => "ORDER BY r.created_at DESC",
+    }
 }
 
 // Validate a YYYY-MM-DD local date string.
@@ -1347,6 +1469,32 @@ mod tests {
 
         assert_eq!(s.get_readings_count().unwrap(), 0);
         assert!(s.get_readings(10, 0).unwrap().is_empty());
+    }
+
+    #[test]
+    fn search_readings_filters_across_full_history() {
+        let s = make_store();
+        s.insert_source(&src()).unwrap();
+        s.insert_theme(&thm()).unwrap();
+        s.insert_passage(&psg()).unwrap();
+        let mut old = sample_reading("old-match");
+        old.created_at = 1;
+        old.situation_text = Some("loss and return".into());
+        old.is_favorite = true;
+        let mut recent = sample_reading("recent-other");
+        recent.created_at = 2;
+        recent.situation_text = Some("quiet morning".into());
+        recent.is_favorite = true;
+        s.insert_reading(&old).unwrap();
+        s.insert_reading(&recent).unwrap();
+
+        let matches = s
+            .search_readings("loss", "favorites", "oldest", 20, 0)
+            .unwrap();
+
+        assert_eq!(matches.len(), 1);
+        assert_eq!(matches[0].id, "old-match");
+        assert_eq!(s.search_readings_count("loss", "favorites").unwrap(), 1);
     }
 
     #[test]

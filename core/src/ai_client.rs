@@ -461,7 +461,7 @@ impl AIClient {
             .header("content-type", "application/json")
             .json(&request_body)
             .timeout(std::time::Duration::from_millis(
-                AI_STREAM_TIMEOUT_MS as u64,
+                AI_PROVIDER_TOTAL_TIMEOUT_MS as u64,
             ))
             .send()
             .await?;
@@ -526,7 +526,7 @@ impl AIClient {
             .header("content-type", "application/json")
             .json(&request_body)
             .timeout(std::time::Duration::from_millis(
-                AI_STREAM_TIMEOUT_MS as u64,
+                AI_PROVIDER_TOTAL_TIMEOUT_MS as u64,
             ))
             .send()
             .await?;
@@ -592,7 +592,7 @@ impl AIClient {
             .header("content-type", "application/json")
             .json(&request_body)
             .timeout(std::time::Duration::from_millis(
-                AI_STREAM_TIMEOUT_MS as u64,
+                AI_PROVIDER_TOTAL_TIMEOUT_MS as u64,
             ))
             .send()
             .await?;

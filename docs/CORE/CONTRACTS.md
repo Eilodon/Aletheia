@@ -61,7 +61,11 @@ FREE_HISTORY_DAYS        :: u16   = 90      // Synced with lib/constants.ts
 ```
 WILDCARD_AUTO_DELAY_MS   :: u32   = 800     // Delay trước khi tự động chọn wildcard
 SYMBOL_FADE_STAGGER_MS   :: u32   = 200     // Stagger giữa các symbol animation frames
-AI_STREAM_TIMEOUT_MS     :: u32   = 15_000  // Hard timeout cho AI streaming request
+AI_FIRST_TOKEN_TIMEOUT_MS    :: u32 = 8_000   // Max wait before first provider token/chunk
+AI_PROVIDER_IDLE_TIMEOUT_MS  :: u32 = 15_000  // Max silence after first provider token/chunk
+AI_PROVIDER_TOTAL_TIMEOUT_MS :: u32 = 60_000  // Max provider request duration
+AI_REVEAL_PACING_MS         :: u32 = 600      // Sentence reveal pacing after safe output
+AI_STREAM_TIMEOUT_MS        :: u32 = 15_000   // Legacy alias for provider idle timeout
 ```
 
 ### 1.3 Content Constraints
@@ -69,8 +73,9 @@ AI_STREAM_TIMEOUT_MS     :: u32   = 15_000  // Hard timeout cho AI streaming req
 ```
 MIN_PASSAGE_CHARS        :: u16   = 20
 MAX_PASSAGE_CHARS        :: u16   = 500
-NOTIFICATION_MATRIX_SIZE :: u16   = 20      // Số entries trong daily notification pool
+NOTIFICATION_MATRIX_SIZE :: u16   = 216     // Số entries trong daily notification pool
 GIFT_LINK_TTL_SECONDS    :: u32   = 86_400  // 24 giờ — sau đó GiftExpired
+GIFT_BUYER_NOTE_MAX_CHARS :: u16  = 500     // Max optional gift note length before backend send
 DEFAULT_PAGE_SIZE        :: u32   = 20
 MAX_PAGE_SIZE            :: u32   = 100
 ```
@@ -218,13 +223,27 @@ AiPrivacyMode ::
 
 ---
 
+#### NotificationPrivacy
+
+```
+NotificationPrivacy ::
+  | FullText  // Default: lock screen can show passage/summary text
+  | Discreet  // Generic AletheiA reminder, no reading content
+  | Off       // No local notification content is scheduled
+```
+
+**Dùng ở:** `Ref<UserState>`, notification scheduling layer
+**Serialization:** snake_case (`"full_text"`, `"discreet"`, `"off"`)
+
+---
+
 #### ReadingState
 
 ```
 ReadingState ::
   | Idle              // Màn hình trống, chờ user — default
   | SituationInput    // User đang nhập câu hỏi/ngữ cảnh
-  | SourceSelection   // User đang chọn source (truyền thống)
+  | SourceSelection   // Reserved optional detour; Android beta currently chooses source inside perform_reading
   | WildcardReveal    // Đang hiển thị các symbol cards để chọn
   | WildcardChosen    // User đã chọn symbol, chờ confirm
   | RitualAnimation   // Transition animation sang passage
@@ -416,6 +435,15 @@ Reading {
 > enrich từ JS-layer store. Đây là pattern có chủ ý — data nhạy cảm thuần UI không cần đi vào
 > Rust core. Xem Glossary: "TS-store-only field".
 
+**DualStoreConsistency for TS-store-only dependent rows:**
+- `reading_id` is the primary join key between Rust `Reading` and TS-only dependent fields.
+- `coreStore.getReadingById()` and `coreStore.getReadingsPage()` must merge TS-only flags after native reads.
+- `coreStore.exportReadings()` exports the enriched facade result, including TS-only privacy flags.
+- `coreStore.deleteReading(id)` must delete the native row and then delete the TS dependent row for the same id.
+- `coreStore.deleteAllReadings()` must clear both native readings and TS dependent rows.
+- `coreStore.repairReadingDependents()` runs during app bootstrap and removes TS dependent rows whose
+  `reading_id` no longer exists in Rust SQLite.
+
 #### ReadingWithDetails *(UI-scope extension, không qua bridge)*
 
 ```
@@ -508,10 +536,11 @@ UserState {
   user_intent            :: Ref<UserIntent>?
   weekly_summary_enabled :: boolean
   ai_privacy_mode        :: Ref<AiPrivacyMode> // default AskBeforeCloud
+  notification_privacy   :: Ref<NotificationPrivacy> // default FullText
 }
 ```
 
-**Defaults:** user_id="local-user", tier=Free, preferred_language="vi", notification_time="09:00", notification_enabled=true, ai_privacy_mode=AskBeforeCloud
+**Defaults:** user_id="local-user", tier=Free, preferred_language="vi", notification_time="09:00", notification_enabled=true, ai_privacy_mode=AskBeforeCloud, notification_privacy=FullText
 
 ---
 
@@ -860,6 +889,15 @@ get_readings(
   offset :: u32
 ) → Ref<PaginatedReadingsResponse>
   // Ordered by created_at DESC
+
+search_readings(
+  query  :: string, // empty = no text filter
+  filter :: string, // ArchiveFilter wire value
+  sort   :: string, // ArchiveSort wire value
+  limit  :: u32,    // ≤ MAX_PAGE_SIZE
+  offset :: u32
+) → Ref<PaginatedReadingsResponse>
+  // SQLite-backed Mirror search across full history, not only loaded rows
 
 get_reading_by_id(id :: string) → Ref<ReadingResponse>
 

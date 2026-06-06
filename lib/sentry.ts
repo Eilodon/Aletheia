@@ -1,4 +1,5 @@
 import * as Sentry from "@sentry/react-native";
+import { scrubSentryEvent } from "./sentry-scrubber";
 
 const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN;
 
@@ -26,7 +27,7 @@ export function initSentry() {
           }
         });
       }
-      return event;
+      return scrubSentryEvent(event as unknown as Record<string, unknown>) as unknown as typeof event;
     },
     integrations: [
       // Keep minimal for beta - can add tracing later

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { store } from "../lib/services/store";
-import { AiPrivacyMode, SubscriptionTier, SymbolMethod } from "../lib/types";
+import { AiPrivacyMode, NotificationPrivacy, SubscriptionTier, SymbolMethod } from "../lib/types";
 
 type MockParam = string | number | null | undefined;
 type MockRow = Record<string, MockParam>;
@@ -18,7 +18,20 @@ const mockDb = vi.hoisted(() => ({
     }
 
     if (query.includes("SELECT COUNT(*) as count FROM readings")) {
-      return { count: (mockDb.data.get("readings") || []).length };
+      let rows = mockDb.data.get("readings") || [];
+      const likeParam = params?.find((param) => typeof param === "string" && param.includes("%"));
+      if (typeof likeParam === "string") {
+        const q = likeParam.replace(/%/g, "").toLowerCase();
+        rows = rows.filter((row) =>
+          String(row.situation_text ?? "").toLowerCase().includes(q) ||
+          String(row.source_id ?? "").toLowerCase().includes(q) ||
+          String(row.symbol_chosen ?? "").toLowerCase().includes(q),
+        );
+      }
+      if (query.includes("is_favorite = 1")) rows = rows.filter((row) => row.is_favorite === 1);
+      if (query.includes("ai_interpreted = 1")) rows = rows.filter((row) => row.ai_interpreted === 1);
+      if (query.includes("shared = 1")) rows = rows.filter((row) => row.shared === 1);
+      return { count: rows.length };
     }
 
     if (query.includes("SELECT display_name FROM symbols WHERE id = ?")) {
@@ -28,7 +41,24 @@ const mockDb = vi.hoisted(() => ({
       return symbol ? { display_name: symbol.display_name } : null;
     }
 
-    const tableMatch = query.match(/SELECT \* FROM (\w+)/);
+      if (query.includes("FROM readings r")) {
+        let rows = mockDb.data.get("readings") || [];
+        const likeParam = params?.find((param) => typeof param === "string" && param.includes("%"));
+        if (typeof likeParam === "string") {
+          const q = likeParam.replace(/%/g, "").toLowerCase();
+          rows = rows.filter((row) =>
+            String(row.situation_text ?? "").toLowerCase().includes(q) ||
+            String(row.source_id ?? "").toLowerCase().includes(q) ||
+            String(row.symbol_chosen ?? "").toLowerCase().includes(q),
+          );
+        }
+        if (query.includes("r.is_favorite = 1")) rows = rows.filter((row) => row.is_favorite === 1);
+        if (query.includes("r.ai_interpreted = 1")) rows = rows.filter((row) => row.ai_interpreted === 1);
+        if (query.includes("r.shared = 1")) rows = rows.filter((row) => row.shared === 1);
+        return rows;
+      }
+
+	    const tableMatch = query.match(/SELECT \* FROM (\w+)/);
     if (!tableMatch) return null;
 
     const table = tableMatch[1];
@@ -70,10 +100,27 @@ const mockDb = vi.hoisted(() => ({
             "user_id", "subscription_tier", "readings_today", "ai_calls_today",
             "session_count", "last_reading_date", "notification_enabled",
             "notification_time", "preferred_language", "dark_mode", "onboarding_complete", "user_intent",
-            "weekly_summary_enabled", "ai_privacy_mode",
+            "weekly_summary_enabled", "ai_privacy_mode", "notification_privacy",
           ],
         };
       return (knownColumns[table] ?? []).map((name) => ({ name }));
+    }
+
+    if (query.includes("FROM readings r")) {
+      let rows = mockDb.data.get("readings") || [];
+      const likeParam = params?.find((param) => typeof param === "string" && param.includes("%"));
+      if (typeof likeParam === "string") {
+        const q = likeParam.replace(/%/g, "").toLowerCase();
+        rows = rows.filter((row) =>
+          String(row.situation_text ?? "").toLowerCase().includes(q) ||
+          String(row.source_id ?? "").toLowerCase().includes(q) ||
+          String(row.symbol_chosen ?? "").toLowerCase().includes(q),
+        );
+      }
+      if (query.includes("r.is_favorite = 1")) rows = rows.filter((row) => row.is_favorite === 1);
+      if (query.includes("r.ai_interpreted = 1")) rows = rows.filter((row) => row.ai_interpreted === 1);
+      if (query.includes("r.shared = 1")) rows = rows.filter((row) => row.shared === 1);
+      return rows;
     }
 
     const tableMatch = query.match(/SELECT \* FROM (\w+)/);
@@ -106,6 +153,7 @@ const mockDb = vi.hoisted(() => ({
         user_intent: params?.[11],
         weekly_summary_enabled: params?.[12],
         ai_privacy_mode: params?.[13],
+        notification_privacy: params?.[14],
       };
       if (existingIdx >= 0) {
         rows[existingIdx] = row;
@@ -124,6 +172,43 @@ const mockDb = vi.hoisted(() => ({
         rows[idx].readings_today = 0;
         rows[idx].ai_calls_today = 0;
         rows[idx].last_reading_date = params?.[0];
+        mockDb.data.set(table, rows);
+      }
+      return;
+    }
+
+    if (query.includes("INSERT INTO readings") && query.includes("ON CONFLICT(id) DO UPDATE SET")) {
+      const table = "readings";
+      const rows = mockDb.data.get(table) || [];
+      const existingIdx = rows.findIndex((r) => r.id === params?.[0]);
+      const hide = params?.[2];
+      if (existingIdx >= 0) {
+        rows[existingIdx].hide_situation = hide;
+      } else {
+        rows.push({
+          id: params?.[0],
+          created_at: params?.[1],
+          hide_situation: hide,
+        });
+      }
+      mockDb.data.set(table, rows);
+      return;
+    }
+
+    if (query.includes("DELETE FROM readings WHERE id NOT IN")) {
+      const keep = new Set(params ?? []);
+      const rows = mockDb.data.get("readings") || [];
+      mockDb.data.set("readings", rows.filter((row) => keep.has(row.id)));
+      return;
+    }
+
+    if (query.includes("UPDATE readings SET")) {
+      const table = "readings";
+      const rows = mockDb.data.get(table) || [];
+      const id = params?.[params.length - 1];
+      const idx = rows.findIndex((r) => r.id === id);
+      if (idx >= 0 && query.includes("hide_situation = ?")) {
+        rows[idx].hide_situation = params?.[0];
         mockDb.data.set(table, rows);
       }
       return;
@@ -251,8 +336,9 @@ describe("StoreService", () => {
         dark_mode: false,
         onboarding_complete: false,
         user_intent: undefined,
-        weekly_summary_enabled: false,
-        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
+	        weekly_summary_enabled: false,
+	        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
+	        notification_privacy: NotificationPrivacy.FullText,
       });
 
       // ACT
@@ -279,8 +365,9 @@ describe("StoreService", () => {
         dark_mode: false,
         onboarding_complete: false,
         user_intent: undefined,
-        weekly_summary_enabled: false,
-        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
+	        weekly_summary_enabled: false,
+	        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
+	        notification_privacy: NotificationPrivacy.FullText,
       });
 
       // ACT
@@ -306,8 +393,9 @@ describe("StoreService", () => {
         dark_mode: false,
         onboarding_complete: false,
         user_intent: undefined,
-        weekly_summary_enabled: false,
-        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
+	        weekly_summary_enabled: false,
+	        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
+	        notification_privacy: NotificationPrivacy.FullText,
       });
 
       // ACT
@@ -399,6 +487,63 @@ describe("StoreService", () => {
       expect(reading?.id).toBe("reading-123");
       expect(reading?.symbol_chosen).toBe("candle");
       expect(reading?.symbol_method).toBe(SymbolMethod.Manual);
+    });
+
+    it("upserts native TS-only hide_situation rows when the reading is not in the TS store", async () => {
+      await store.initialize();
+
+      await store.upsertReadingPrivacyFlags("native-reading", { hide_situation: true });
+
+      const reading = await store.getReadingById("native-reading");
+      expect(reading?.id).toBe("native-reading");
+      expect(reading?.hide_situation).toBe(true);
+    });
+
+    it("repairs orphan TS-only reading rows by deleting rows not present in the native id set", async () => {
+      await store.initialize();
+      mockDb.data.set("readings", [
+        { id: "keep", created_at: 1, hide_situation: 1 },
+        { id: "orphan", created_at: 2, hide_situation: 1 },
+      ]);
+
+      await expect(store.deleteReadingsExcept(["keep"])).resolves.toBe(1);
+      await expect(store.getReadingById("orphan")).resolves.toBeNull();
+      await expect(store.getReadingById("keep")).resolves.toMatchObject({ id: "keep" });
+    });
+
+    it("searches readings across the full SQLite table instead of the loaded page", async () => {
+      await store.initialize();
+      mockDb.data.set("readings", [
+        {
+          id: "old-hidden",
+          created_at: 1,
+          source_id: "tao_te_ching",
+          passage_id: "tao_1",
+          theme_id: "moments",
+          symbol_chosen: "river",
+          symbol_method: "Manual",
+          situation_text: "loss and return",
+          ai_interpreted: 0,
+          ai_used_fallback: 0,
+          notification_opened: 0,
+          is_favorite: 1,
+          shared: 0,
+          hide_situation: 0,
+        },
+      ]);
+
+      await expect(
+        store.searchReadings({
+          query: "loss",
+          filter: "favorites",
+          sort: "oldest",
+          limit: 20,
+          offset: 0,
+        }),
+      ).resolves.toMatchObject([{ id: "old-hidden" }]);
+      await expect(
+        store.getSearchReadingsCount({ query: "loss", filter: "favorites" }),
+      ).resolves.toBe(1);
     });
   });
 

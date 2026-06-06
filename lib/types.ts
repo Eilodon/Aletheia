@@ -2,7 +2,7 @@
  * Aletheia Type Definitions
  * AUTO-GENERATED - Do not edit manually
  * Sync from: CONTRACTS.md → core/src/contracts.rs → this file (ADR-AL-001)
- * Last synced: 2026-06-05
+ * Last synced: 2026-06-06
  *
  * docs/CORE/CONTRACTS.md is the primary spec (human layer).
  * core/src/contracts.rs is the executable spec.
@@ -51,6 +51,12 @@ export enum AiPrivacyMode {
   LocalOnly = "local_only",
   AskBeforeCloud = "ask_before_cloud",
   AllowCloudFallback = "allow_cloud_fallback",
+}
+
+export enum NotificationPrivacy {
+  FullText = "full_text",
+  Discreet = "discreet",
+  Off = "off",
 }
 
 export enum ReadingState {
@@ -230,6 +236,7 @@ export interface UserState {
   user_intent: UserIntent | undefined;
   weekly_summary_enabled: boolean;
   ai_privacy_mode: AiPrivacyMode;
+  notification_privacy: NotificationPrivacy;
 }
 
 export interface ReadingSession {

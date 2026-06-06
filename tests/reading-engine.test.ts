@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { readingEngine } from "../lib/services/reading-engine";
-import { AiPrivacyMode, SubscriptionTier, ErrorCode, SourceType, SymbolMethod, Tradition } from "../lib/types";
+import { AiPrivacyMode, NotificationPrivacy, SubscriptionTier, ErrorCode, SourceType, SymbolMethod, Tradition } from "../lib/types";
 
 vi.mock("@/lib/services/store", () => ({
   store: {
@@ -57,8 +57,9 @@ describe("ReadingEngine", () => {
         dark_mode: false,
         onboarding_complete: false,
         user_intent: undefined,
-        weekly_summary_enabled: false,
-        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
+	        weekly_summary_enabled: false,
+	        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
+	        notification_privacy: NotificationPrivacy.FullText,
       });
 
       // ACT & ASSERT
@@ -82,8 +83,9 @@ describe("ReadingEngine", () => {
         dark_mode: false,
         onboarding_complete: false,
         user_intent: undefined,
-        weekly_summary_enabled: false,
-        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
+	        weekly_summary_enabled: false,
+	        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
+	        notification_privacy: NotificationPrivacy.FullText,
       });
 
       vi.mocked(store.getRandomSourceWeighted).mockResolvedValue({
@@ -134,8 +136,9 @@ describe("ReadingEngine", () => {
         dark_mode: false,
         onboarding_complete: false,
         user_intent: undefined,
-        weekly_summary_enabled: false,
-        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
+	        weekly_summary_enabled: false,
+	        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
+	        notification_privacy: NotificationPrivacy.FullText,
       });
 
       vi.mocked(store.getRandomSourceWeighted).mockResolvedValue({
@@ -297,8 +300,9 @@ describe("ReadingEngine", () => {
         dark_mode: false,
         onboarding_complete: false,
         user_intent: undefined,
-        weekly_summary_enabled: false,
-        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
+	        weekly_summary_enabled: false,
+	        ai_privacy_mode: AiPrivacyMode.AskBeforeCloud,
+	        notification_privacy: NotificationPrivacy.FullText,
       });
 
       vi.mocked(store.getRandomSourceWeighted).mockResolvedValue({

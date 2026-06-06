@@ -13,7 +13,13 @@ import {
 import { Platform } from "react-native";
 import { getCurrentUserId } from "./current-user-id";
 import { getSessionToken } from "@/lib/auth";
-import { AI_STREAM_TIMEOUT_MS, FREE_AI_PER_DAY } from "@/lib/constants";
+import {
+  AI_FIRST_TOKEN_TIMEOUT_MS,
+  AI_PROVIDER_IDLE_TIMEOUT_MS,
+  AI_PROVIDER_TOTAL_TIMEOUT_MS,
+  AI_REVEAL_PACING_MS,
+  FREE_AI_PER_DAY,
+} from "@/lib/constants";
 import { APP_ID } from "@/constants/oauth";
 import { getLocale } from "@/lib/i18n";
 import { getLocalizedSymbol } from "@/lib/i18n/symbol-names";
@@ -61,9 +67,35 @@ async function parseServerStream(
   let buffer = "";
   const chunks: string[] = [];
   let fallback = false;
+  let hasFirstChunk = false;
+
+  const readWithTimeout = async () => {
+    const timeoutMs = hasFirstChunk ? AI_PROVIDER_IDLE_TIMEOUT_MS : AI_FIRST_TOKEN_TIMEOUT_MS;
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    try {
+      return await Promise.race([
+        reader.read(),
+        new Promise<never>((_, reject) => {
+          timeout = setTimeout(() => {
+            reject(
+              new Error(
+                hasFirstChunk
+                  ? "Interpretation stream became idle."
+                  : "Interpretation stream timed out before first token.",
+              ),
+            );
+          }, timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+    }
+  };
 
   while (true) {
-    const { done, value } = await reader.read();
+    const { done, value } = await readWithTimeout();
     if (done) {
       break;
     }
@@ -90,6 +122,7 @@ async function parseServerStream(
         continue;
       }
       if (event.type === "chunk") {
+        hasFirstChunk = true;
         chunks.push(event.chunk);
         handlers.onChunk?.(chunks.join(""), event.chunk);
         continue;
@@ -396,7 +429,7 @@ class InterpretationOrchestratorService {
           // Poll for results
           const chunks: string[] = [];
           while (true) {
-            if (Date.now() - startMs > AI_STREAM_TIMEOUT_MS) {
+            if (Date.now() - startMs > AI_PROVIDER_TOTAL_TIMEOUT_MS) {
               await aletheiaNativeClient.cancelLocalInterpretationStream(localRequestId);
               throw new Error("Local interpretation timed out.");
             }
@@ -434,7 +467,7 @@ class InterpretationOrchestratorService {
                 accumulated += (accumulated ? " " : "") + sentences[i];
                 handlers.onChunk?.(accumulated, sentences[i]!);
                 if (i < sentences.length - 1) {
-                  await new Promise((resolve) => setTimeout(resolve, 600));
+                  await new Promise((resolve) => setTimeout(resolve, AI_REVEAL_PACING_MS));
                 }
               }
 
@@ -457,7 +490,7 @@ class InterpretationOrchestratorService {
         await this.assertCloudAllowed(request);
         serverTimeout = setTimeout(() => {
           controller?.abort();
-        }, AI_STREAM_TIMEOUT_MS);
+        }, AI_PROVIDER_TOTAL_TIMEOUT_MS);
 
         try {
           const response = await fetch(`${this.getServerUrl()}/api/interpret/stream`, {

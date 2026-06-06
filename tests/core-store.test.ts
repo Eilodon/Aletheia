@@ -9,6 +9,7 @@ const runtimeMocks = vi.hoisted(() => ({
 
 const nativeClientMocks = vi.hoisted(() => ({
   getReadings: vi.fn(),
+  searchReadings: vi.fn(),
   getReadingById: vi.fn(),
   updateReadingFlags: vi.fn(),
   setLocalDate: vi.fn(),
@@ -29,6 +30,13 @@ const storeMocks = vi.hoisted(() => ({
   getReadingById: vi.fn(),
   getReadingsCount: vi.fn(),
   getReadings: vi.fn(),
+  searchReadings: vi.fn(),
+  getSearchReadingsCount: vi.fn(),
+  upsertReadingPrivacyFlags: vi.fn(),
+  deleteReadingsExcept: vi.fn(),
+  updateReadingFlags: vi.fn(),
+  deleteReading: vi.fn(),
+  deleteAllReadings: vi.fn(),
   getGiftableSources: vi.fn(),
   getDailyNotificationMessage: vi.fn(),
   getUserState: vi.fn(),
@@ -116,6 +124,65 @@ describe("CoreStoreService", () => {
     });
   });
 
+  it("persists TS-only hide_situation for native readings before returning merged native state", async () => {
+    runtimeMocks.shouldUseAletheiaNative.mockReturnValue(true);
+    storeMocks.upsertReadingPrivacyFlags.mockResolvedValue(undefined);
+    nativeClientMocks.getReadingById.mockResolvedValue({ id: "reading-native", hide_situation: false });
+    storeMocks.getReadingById.mockResolvedValue({ id: "reading-native", hide_situation: true });
+
+    await expect(
+      coreStore.updateReadingFlags("reading-native", { hide_situation: true }),
+    ).resolves.toMatchObject({ id: "reading-native", hide_situation: true });
+
+    expect(storeMocks.upsertReadingPrivacyFlags).toHaveBeenCalledWith("reading-native", {
+      hide_situation: true,
+    });
+    expect(nativeClientMocks.updateReadingFlags).not.toHaveBeenCalled();
+    expect(nativeClientMocks.getReadingById).toHaveBeenCalledWith("reading-native");
+  });
+
+  it("searches readings through the store query when native path is disabled", async () => {
+    storeMocks.getSearchReadingsCount.mockResolvedValue(1);
+    storeMocks.searchReadings.mockResolvedValue([{ id: "reading-1" }]);
+
+    await expect(
+      coreStore.searchReadingsPage({
+        query: "loss",
+        filter: "favorites",
+        sort: "oldest",
+        limit: 20,
+        offset: 0,
+      }),
+    ).resolves.toMatchObject({
+      items: [{ id: "reading-1" }],
+      total_count: 1,
+      has_more: false,
+    });
+
+    expect(storeMocks.searchReadings).toHaveBeenCalledWith({
+      query: "loss",
+      filter: "favorites",
+      sort: "oldest",
+      limit: 20,
+      offset: 0,
+    });
+  });
+
+  it("repairs orphan TS-only reading rows from the native reading id set", async () => {
+    runtimeMocks.shouldUseAletheiaNative.mockReturnValue(true);
+    nativeClientMocks.getReadings
+      .mockResolvedValueOnce({
+        items: [{ id: "reading-1" }, { id: "reading-2" }],
+        total_count: 2,
+        has_more: false,
+      });
+    storeMocks.deleteReadingsExcept.mockResolvedValue(1);
+
+    await expect(coreStore.repairReadingDependents()).resolves.toBe(1);
+
+    expect(storeMocks.deleteReadingsExcept).toHaveBeenCalledWith(["reading-1", "reading-2"]);
+  });
+
   it("returns platform error before backend config error on unsupported runtimes", async () => {
     runtimeMocks.shouldUseAletheiaNative.mockReturnValue(false);
     runtimeMocks.isGiftBackendConfigured.mockReturnValue(false);
@@ -148,26 +215,48 @@ describe("CoreStoreService", () => {
     expect(coreStore.canCreateGift()).toBe(true);
   });
 
-  it("deletes one reading through native bridge when native path is enabled", async () => {
+  it("deletes one reading through native bridge and cascades TS-only dependent flags", async () => {
     runtimeMocks.shouldUseAletheiaNative.mockReturnValue(true);
     nativeClientMocks.deleteReading.mockResolvedValue(undefined);
+    storeMocks.deleteReading.mockResolvedValue(undefined);
 
     await coreStore.deleteReading("reading-native");
 
     expect(runtimeMocks.initializeAletheiaNative).toHaveBeenCalledTimes(1);
     expect(nativeClientMocks.deleteReading).toHaveBeenCalledWith("reading-native");
+    expect(storeMocks.deleteReading).toHaveBeenCalledWith("reading-native");
     expect(storeMocks.getReadingById).not.toHaveBeenCalled();
   });
 
-  it("deletes all readings through native bridge when native path is enabled", async () => {
+  it("deletes all readings through native bridge and clears TS-only dependent rows", async () => {
     runtimeMocks.shouldUseAletheiaNative.mockReturnValue(true);
     nativeClientMocks.deleteAllReadings.mockResolvedValue(undefined);
+    storeMocks.deleteAllReadings.mockResolvedValue(undefined);
 
     await coreStore.deleteAllReadings();
 
     expect(runtimeMocks.initializeAletheiaNative).toHaveBeenCalledTimes(1);
     expect(nativeClientMocks.deleteAllReadings).toHaveBeenCalledTimes(1);
+    expect(storeMocks.deleteAllReadings).toHaveBeenCalledTimes(1);
     expect(storeMocks.getReadings).not.toHaveBeenCalled();
+  });
+
+  it("exports native readings with TS-only hide_situation flags merged in", async () => {
+    runtimeMocks.shouldUseAletheiaNative.mockReturnValue(true);
+    nativeClientMocks.getReadings.mockResolvedValue({
+      items: [{ id: "reading-native", hide_situation: false }],
+      total_count: 1,
+      has_more: false,
+    });
+    storeMocks.getReadingById.mockResolvedValue({
+      id: "reading-native",
+      hide_situation: true,
+    });
+
+    await expect(coreStore.exportReadings()).resolves.toMatchObject({
+      schema: "aletheia.readings.export.v1",
+      readings: [{ id: "reading-native", hide_situation: true }],
+    });
   });
 
   it("exports readings through the core-store facade", async () => {

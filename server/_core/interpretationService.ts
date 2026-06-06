@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import { AI_STREAM_TIMEOUT_MS } from "../../lib/constants";
+import { AI_PROVIDER_TOTAL_TIMEOUT_MS } from "../../lib/constants";
 import { logger } from "./logger";
 import { ENV } from "./env";
 
@@ -8,7 +8,7 @@ const DEFAULT_LOCAL_MODEL = "qwen2.5:1.5b";
 const DEFAULT_CLAUDE_MODEL = "claude-haiku-4-5-20251001"; // Matches Rust CLAUDE_MODEL
 const DEFAULT_OPENAI_MODEL = "gpt-4.1-mini";
 const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
-const DEFAULT_TIMEOUT_MS = Math.max(AI_STREAM_TIMEOUT_MS, 120_000);
+const DEFAULT_TIMEOUT_MS = AI_PROVIDER_TOTAL_TIMEOUT_MS;
 const OLLAMA_TAG_TIMEOUT_MS = 10_000;
 const OLLAMA_MODEL_PRIORITY = [
   "qwen2.5:1.5b",

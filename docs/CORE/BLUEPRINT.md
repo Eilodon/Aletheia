@@ -245,9 +245,8 @@ start_interpretation_stream() called
                       [Tap "Continue" / skip]                            │
                                 │                                        │
                                 ▼                                        │
-                         SourceSelection ◀── optional detour ────────────┤
-                                │                                        │
-                      [Source confirmed]                                 │
+                         SourceSelection                                 │
+                       (reserved detour; beta skips)                     │
                                 │                                        │
                                 ▼                                        │
                          WildcardReveal                                  │
@@ -277,7 +276,8 @@ start_interpretation_stream() called
 
 **Guards:**
 - `Idle → SituationInput`: không cần guard
-- `SituationInput → SourceSelection`: `situation_text` có thể rỗng (user skip)
+- Beta flow: `SituationInput → WildcardReveal`. `perform_reading(source_id?)` owns source selection before Wildcard.
+- `SourceSelection` is reserved for a future explicit source picker route, not a beta screen.
 - `WildcardChosen → RitualAnimation`: symbol_id phải valid trong session.symbols
 - `PassageDisplayed → AiStreaming`: local AI luôn được phép nếu model ready; cloud AI yêu cầu `ai_calls_today < FREE_AI_PER_DAY` HOẶC tier=Pro, và phải thỏa `AiPrivacyMode`
 - `* → Idle`: bất kỳ lúc nào user navigate away (abandon flow)

@@ -48,6 +48,7 @@ export type NativePassage = {
 
 export type NativeUserIntent = "clarity" | "comfort" | "challenge" | "guidance";
 export type NativeAiPrivacyMode = "local_only" | "ask_before_cloud" | "allow_cloud_fallback";
+export type NativeNotificationPrivacy = "full_text" | "discreet" | "off";
 
 export type NativeReadingSession = {
   temp_id: string;
@@ -94,6 +95,7 @@ export type NativeUserState = {
   user_intent?: NativeUserIntent;
   weekly_summary_enabled: boolean;
   ai_privacy_mode: NativeAiPrivacyMode;
+  notification_privacy: NativeNotificationPrivacy;
 };
 
 export type NativeNotificationMessage = {
@@ -365,6 +367,13 @@ export type NativeAletheiaModule = {
   getSources(premiumAllowed: boolean): Promise<NativeSourcesResponse>;
   getSourcesForUser(userId: string): Promise<NativeSourcesResponse>;
   getReadings(limit: number, offset: number): Promise<NativePaginatedReadingsResponse>;
+  searchReadings(
+    query: string | undefined,
+    filter: string,
+    sort: string,
+    limit: number,
+    offset: number,
+  ): Promise<NativePaginatedReadingsResponse>;
   getReadingById(id: string): Promise<NativeReadingResponse>;
   updateReadingFlags(
     id: string,

@@ -38,4 +38,13 @@ describe("Android local model ops source guards", () => {
     expect(source).not.toContain("downloadManager.getModelSize() > 0");
     expect(source).toContain("downloadManager.hasCompleteModel()");
   });
+
+  it("resumes interrupted downloads with HTTP range and append mode", () => {
+    const source = engineSource();
+
+    expect(source).toContain("Range");
+    expect(source).toContain("bytes=$existingBytes-");
+    expect(source).toContain("FileOutputStream(tempFile, true)");
+    expect(source).toContain("HTTP 206");
+  });
 });

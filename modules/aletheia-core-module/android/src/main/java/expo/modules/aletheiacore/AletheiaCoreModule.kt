@@ -104,6 +104,7 @@ private interface AletheiaCoreClient {
   fun getSources(premiumAllowed: Boolean): Map<String, Any?>
   fun getSourcesForUser(userId: String): Map<String, Any?>
   fun getReadings(limit: Int, offset: Int): Map<String, Any?>
+  fun searchReadings(query: String?, filter: String, sort: String, limit: Int, offset: Int): Map<String, Any?>
   fun getReadingById(id: String): Map<String, Any?>
   fun updateReadingFlags(id: String, flags: Map<String, Any?>): Map<String, Any?>
   fun saveInterpretation(interpretation: Map<String, Any?>): Map<String, Any?>
@@ -250,6 +251,13 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
 
   override fun getReadings(limit: Int, offset: Int): Map<String, Any?> =
     safeCall { serializePaginatedReadingsResponse(requireCore().getReadings(limit.toUInt(), offset.toUInt())) }
+
+  override fun searchReadings(query: String?, filter: String, sort: String, limit: Int, offset: Int): Map<String, Any?> =
+    safeCall {
+      serializePaginatedReadingsResponse(
+        requireCore().searchReadings(query.orEmpty(), filter, sort, limit.toUInt(), offset.toUInt())
+      )
+    }
 
   override fun getReadingById(id: String): Map<String, Any?> =
     safeCall { serializeReadingResponse(requireCore().getReadingById(id)) }
@@ -917,7 +925,8 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
         "onboarding_complete" to it.onboardingComplete,
         "user_intent" to it.userIntent?.name?.lowercase(),
         "weekly_summary_enabled" to it.weeklySummaryEnabled,
-        "ai_privacy_mode" to serializeAiPrivacyMode(it.aiPrivacyMode)
+        "ai_privacy_mode" to serializeAiPrivacyMode(it.aiPrivacyMode),
+        "notification_privacy" to serializeNotificationPrivacy(it.notificationPrivacy)
       )
     }
   }
@@ -1075,7 +1084,9 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
       userIntent = payload.optionalString("user_intent")?.let(::deserializeUserIntent),
       weeklySummaryEnabled = payload.optionalBoolean("weekly_summary_enabled") ?: false,
       aiPrivacyMode = payload.optionalString("ai_privacy_mode")?.let(::deserializeAiPrivacyMode)
-        ?: AiPrivacyMode.ASK_BEFORE_CLOUD
+        ?: AiPrivacyMode.ASK_BEFORE_CLOUD,
+      notificationPrivacy = payload.optionalString("notification_privacy")?.let(::deserializeNotificationPrivacy)
+        ?: NotificationPrivacy.FULL_TEXT
     )
   }
 
@@ -1092,6 +1103,22 @@ private class AletheiaCoreUniFFIAdapter : AletheiaCoreClient {
       "local_only" -> AiPrivacyMode.LOCAL_ONLY
       "allow_cloud_fallback" -> AiPrivacyMode.ALLOW_CLOUD_FALLBACK
       else -> AiPrivacyMode.ASK_BEFORE_CLOUD
+    }
+  }
+
+  private fun serializeNotificationPrivacy(value: NotificationPrivacy): String {
+    return when (value) {
+      NotificationPrivacy.FULL_TEXT -> "full_text"
+      NotificationPrivacy.DISCREET -> "discreet"
+      NotificationPrivacy.OFF -> "off"
+    }
+  }
+
+  private fun deserializeNotificationPrivacy(value: String): NotificationPrivacy {
+    return when (value.lowercase()) {
+      "discreet" -> NotificationPrivacy.DISCREET
+      "off" -> NotificationPrivacy.OFF
+      else -> NotificationPrivacy.FULL_TEXT
     }
   }
 
@@ -1359,6 +1386,10 @@ class AletheiaCoreModule : Module() {
 
     AsyncFunction("getReadings") { limit: Int, offset: Int ->
       client.getReadings(limit, offset)
+    }
+
+    AsyncFunction("searchReadings") { query: String?, filter: String, sort: String, limit: Int, offset: Int ->
+      client.searchReadings(query, filter, sort, limit, offset)
     }
 
     AsyncFunction("getReadingById") { id: String ->
